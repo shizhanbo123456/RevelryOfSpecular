@@ -1,13 +1,15 @@
 using Ros.Transport;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 
-
+/// <summary>
+/// 网络行为脚本（继承 EnsBehaviour，partial 供代码生成）。
+/// 本项目唯一进行服务器、客户端调用的位置（架构说明）。
+/// 【注意】运行前需在 Unity 菜单执行 Ens - Generate Code 重新生成 EnsNetcode/Gen/NetworkManager.Generated.cs。
+/// </summary>
 public partial class NetworkManager : EnsBehaviour
 {
     private void Awake()
@@ -20,42 +22,51 @@ public partial class NetworkManager : EnsBehaviour
         ResetClientNetworkInfo();
         ClientBindEvents();
     }
+
     public enum ConnectResult
     {
         Success,
         Failed,
         TooFrequent
     }
-    #region//Client
+
+    /// <summary>服务器返回的握手信息（房间事件 0）。</summary>
+    public static string serverHello;
+
+    /// <summary>本地玩家开局信息（服务器下发）。</summary>
+    public static SCBattleInfo battleInfo;
+
+    #region//Client 连接流程
     private static bool connecting;
     private static bool rejected;
     private static bool connected;
-    public static LevelInfo levelInfo;
-    public static SCPlayerInfo roomInfo;
-    public static CSPlayerInfo playerInfo;
     private static bool tryingEnterWorld;
     private static bool hasRoomInfo;
     private static bool intentionalExitWorld;
-    public static bool CanSendWorldCommand => playerInfo != null && hasRoomInfo;
+
+    /// <summary>是否可以发送世界内命令（已进入房间）。</summary>
+    public static bool CanSendWorldCommand => connected && hasRoomInfo;
 
     private void ResetClientNetworkInfo()
     {
         connecting = false;
         rejected = false;
         connected = false;
-        levelInfo = null;
-        playerInfo = null;
+        serverHello = null;
+        battleInfo = null;
         hasRoomInfo = false;
         tryingEnterWorld = false;
         intentionalExitWorld = false;
     }
+
     private void ClientBindEvents()
     {
         EnsInstance.OnConnectionRejected += () => rejected = true;
         EnsInstance.OnServerConnect += () => connected = true;
+        // 房间事件 0：服务器握手（服务器信息可达性确认）
         ClientRoomManagerEventCenter.Register(0, data =>
         {
-            levelInfo = new LevelInfo(data);
+            serverHello = data;
         });
         Ens.Request.Client.JoinRoom.OnRecvReply += ClientSendInfo;
 
@@ -70,11 +81,13 @@ public partial class NetworkManager : EnsBehaviour
         };
         Ens.Request.Client.JoinRoom.OnTimeOut += () => EventManager.TrigEvent(ClientEvent.OnRestartGame);
     }
+
+    /// <summary>尝试连接服务器（ipAddress 为空则连接本机）。</summary>
     public async Task<ConnectResult> TryConnect(string ipAddress)
     {
         if (connecting) return ConnectResult.TooFrequent;
         ResetClientNetworkInfo();
-        connecting=true;
+        connecting = true;
         if (ipAddress == string.Empty)
         {
             ipAddress = IPAddress.Loopback.ToString();
@@ -101,11 +114,11 @@ public partial class NetworkManager : EnsBehaviour
         }
         ClientRoomManagerEventCenter.TrigEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
         t = Time.time;
-        while (levelInfo==null && Time.time < t + 5f)
+        while (serverHello == null && Time.time < t + 5f)
         {
             await Task.Delay(100);
         }
-        if (levelInfo == null)
+        if (serverHello == null)
         {
             connecting = false;
             Debug.LogError("服务器信息获取失败");
@@ -115,25 +128,29 @@ public partial class NetworkManager : EnsBehaviour
         connecting = false;
         return ConnectResult.Success;
     }
+
+    /// <summary>进入世界（加入房间并上报选角信息）。</summary>
     public void EnterWorld()
     {
         if (tryingEnterWorld) return;
-        playerInfo = CreatePlayerInfoFromHomeSelection();
         tryingEnterWorld = true;
         StartCoroutine(EnterWorldFallBack());
         Ens.Request.Client.JoinRoom.SendRequest(EnsRoomManager.roomIdStart);
     }
+
+    /// <summary>退出世界。</summary>
     public void ExitWorld()
     {
         intentionalExitWorld = true;
         if (EnsInstance.LocalClientId >= 0 && EnsInstance.PresentRoomId != 0)
         {
-            CallFuncRpc(ServerReceiveExitWorld, SendTo.RoomOwner, Delivery.Reliable, EnsInstance.LocalClientId);
+            CallFuncRpc(ServerReceiveExitWorldLocal, SendTo.RoomOwner, Delivery.Reliable, EnsInstance.LocalClientId);
             EnsInstance.Corr.FlushSendBufferNow();
         }
         hasRoomInfo = false;
         EnsInstance.Corr.ShutDown();
     }
+
     private IEnumerator EnterWorldFallBack()
     {
         yield return new WaitForSeconds(2f);
@@ -141,74 +158,189 @@ public partial class NetworkManager : EnsBehaviour
         tryingEnterWorld = false;
         EventManager.TrigEvent(ClientEvent.OnRestartGame);
     }
+
     private void ClientSendInfo()
     {
         if (!tryingEnterWorld) return;
-        CallFuncRpc(ServerReceivePlayerInfo, SendTo.RoomOwner, Delivery.Reliable, playerInfo, EnsInstance.LocalClientId);
-    }
-    private CSPlayerInfo CreatePlayerInfoFromHomeSelection()
-    {
-        var index = HomePage.currentSelectedCharacter;
-        var imprintList = HomePage.SelectedImprints.ToList();
-        if (imprintList.Count > Config.max_selected_imprint_count)
+        var info = new CSPlayerInfo()
         {
-            imprintList = imprintList.GetRange(0, Config.max_selected_imprint_count);
-        }
-        Dictionary<int, int> imprints=new Dictionary<int, int>();
-        foreach (var imprint in imprintList) imprints.Add(imprint, Tool.SaveManager.imprintLevels[imprint]);
-        List<int> noteCount = new();
-        for(int i = 0; i < Config.note_count; i++)
-        {
-            noteCount.Add(Tool.SaveManager.noteCounts[i]);
-        }
-        var skillRunes = new Dictionary<int, int>();
-        foreach (var skill in HomePage.SelectedSkillCounts.OrderBy(i => i.Key))
-        {
-            int skillId = skill.Key;
-            int remainCount = skill.Value;
-            if (skillId < 0) continue;
-            if (remainCount <= 0) continue;
-            skillRunes[skillId] = remainCount;
-        }
-        if (skillRunes.Count > Config.skill_slot_count)
-        {
-            skillRunes = skillRunes.Take(Config.skill_slot_count).ToDictionary(i => i.Key, i => i.Value);
-        }
-        return new CSPlayerInfo()
-        {
-            type = EntityType.Character(index),
-            level = Tool.SaveManager.characterLevels[index],
-            imprints=imprints,
-            collectionLevels=noteCount,
-            skills= skillRunes,
+            type = ClientSelection.SelectionToEntityType(ClientSelection.selectedCharacterIndex),
+            level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedCharacterIndex) : 1,
+            campIntention = ClientSelection.campIntention,
+            playerLevel = Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1,
         };
-    }
-    [Rpc]
-    private void ClientRecvRoomInfo(SCPlayerInfo roomInfo)
-    {
-        if (!tryingEnterWorld) return;
-        NetworkManager.roomInfo= roomInfo;
-        if (!Tool.SaveManager.TryConsumeCarriedRunes(playerInfo) ||
-            !Tool.SaveManager.TryConsumeCharacterToken(HomePage.currentSelectedCharacter))
-        {
-            tryingEnterWorld = false;
-            EventManager.TrigEvent<string>(ClientEvent.ShowNotice, "入场资源消耗失败");
-            ExitWorld();
-            return;
-        }
-        hasRoomInfo = true;
-        tryingEnterWorld = false;
-        EventManager.TrigEvent(ClientEvent.OnEnterWorld);
+        CallFuncRpc(ServerReceivePlayerInfoLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
     }
     #endregion
 
-    [E]
-    public void TrigClientEventRpc(int index)//调用远程函数以Rpc结尾
+    #region//发送封装：客户端 → 服务器
+    /// <summary>发送输入命令（高频，不可靠）。</summary>
+    public void SendInputCommand(CSInputCommand command)
     {
-        CallFuncRpc(TrigClientEventLocal, SendTo.ExcludeSender, Delivery.Reliable, index);
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveInputCommandLocal, SendTo.RoomOwner, Delivery.Unreliable, command, EnsInstance.LocalClientId);
     }
-    public void TrigClientEventLocal(int index)//远程函数被调用以Local结尾
-    {
 
+    /// <summary>发送技能释放请求。</summary>
+    public void SendUseSkill(CSUseSkillRequest request)
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveUseSkillLocal, SendTo.RoomOwner, Delivery.Strive, request, EnsInstance.LocalClientId);
     }
+    #endregion
+
+    #region//发送封装：服务器 → 客户端
+    /// <summary>发送开局信息（定向）。</summary>
+    public void SendBattleInfo(short clientId, SCBattleInfo info)
+    {
+        CallFuncRpc(ClientReceiveBattleInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送实体表现（定向）。</summary>
+    public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
+    {
+        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Unreliable, info);
+    }
+
+    /// <summary>移除实体（定向）。</summary>
+    public void SendRemoveEntity(short clientId, int entityId)
+    {
+        CallFuncRpc(ClientRemoveEntityLocal, SendTo.To(clientId), Delivery.Reliable, entityId);
+    }
+
+    /// <summary>发送战斗事件（定向或广播）。</summary>
+    public void SendBattleEvent(short clientId, SCBattleEvent e)
+    {
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Reliable, e);
+    }
+
+    /// <summary>发送战斗事件（广播，含消息 id 飘字）。</summary>
+    public void SendBattleEvent(byte type, ushort targetId = 0, byte messageId = 0)
+    {
+        var e = new SCBattleEvent() { type = type, targetId = targetId, value = messageId };
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
+    }
+
+    /// <summary>发送技能运行时（定向）。</summary>
+    public void SendSkillRuntime(short clientId, SCSkillRuntimeInfo info)
+    {
+        CallFuncRpc(ClientReceiveSkillRuntimeLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送守护点血量（定向或广播）。</summary>
+    public void SendBeaconInfo(short clientId, SCBeaconInfo info)
+    {
+        CallFuncRpc(ClientReceiveBeaconInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送分数（定向）。</summary>
+    public void SendScoreInfo(short clientId, SCScoreInfo info)
+    {
+        CallFuncRpc(ClientReceiveScoreInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送复活进度（定向）。</summary>
+    public void SendReviveInfo(short clientId, SCReviveInfo info)
+    {
+        CallFuncRpc(ClientReceiveReviveInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+    #endregion
+
+    #region//[Rpc] 服务器侧接收（客户端 → 服务器）
+    /// <summary>服务器：接收玩家进场选角。</summary>
+    [Rpc]
+    private void ServerReceivePlayerInfoLocal(CSPlayerInfo info, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.AddPlayer(clientId, info);
+    }
+
+    /// <summary>服务器：接收输入命令。</summary>
+    [Rpc]
+    private void ServerReceiveInputCommandLocal(CSInputCommand command, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveInputCommand(clientId, command);
+    }
+
+    /// <summary>服务器：接收技能释放请求。</summary>
+    [Rpc]
+    private void ServerReceiveUseSkillLocal(CSUseSkillRequest request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveUseSkill(clientId, request);
+    }
+
+    /// <summary>服务器：接收退出世界。</summary>
+    [Rpc]
+    private void ServerReceiveExitWorldLocal(short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.RemovePlayer(clientId);
+    }
+    #endregion
+
+    #region//[Rpc] 客户端侧接收（服务器 → 客户端）
+    /// <summary>客户端：接收开局信息。</summary>
+    [Rpc]
+    private void ClientReceiveBattleInfoLocal(SCBattleInfo info)
+    {
+        if (info == null) return;
+        battleInfo = info;
+        EventManager.TrigEvent(ClientEvent.OnBattleStart, (int)info.camp);
+    }
+
+    /// <summary>客户端：接收实体表现。</summary>
+    [Rpc]
+    private void ClientReceiveEntityDisplayLocal(SCEntityDisplayInfo info)
+    {
+        if (info == null) return;
+        if (Tool.ClientDisplayManager != null) Tool.ClientDisplayManager.OnEntityDisplay(info);
+        else EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+    }
+
+    /// <summary>客户端：移除实体。</summary>
+    [Rpc]
+    private void ClientRemoveEntityLocal(int entityId)
+    {
+        if (Tool.ClientDisplayManager != null) Tool.ClientDisplayManager.OnRemoveEntity(entityId);
+        else EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
+    }
+
+    /// <summary>客户端：接收战斗事件。</summary>
+    [Rpc]
+    private void ClientReceiveBattleEventLocal(SCBattleEvent e)
+    {
+        if (e == null) return;
+        EventManager.TrigEvent(ClientEvent.OnBattleEvent, e);
+    }
+
+    /// <summary>客户端：接收技能运行时。</summary>
+    [Rpc]
+    private void ClientReceiveSkillRuntimeLocal(SCSkillRuntimeInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnSkillRuntimeUpdate, info);
+    }
+
+    /// <summary>客户端：接收守护点血量。</summary>
+    [Rpc]
+    private void ClientReceiveBeaconInfoLocal(SCBeaconInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnBeaconHealthUpdate, info);
+    }
+
+    /// <summary>客户端：接收分数。</summary>
+    [Rpc]
+    private void ClientReceiveScoreInfoLocal(SCScoreInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnScoreUpdate, info);
+    }
+
+    /// <summary>客户端：接收复活进度。</summary>
+    [Rpc]
+    private void ClientReceiveReviveInfoLocal(SCReviveInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnReviveProgressUpdate, info);
+    }
+    #endregion
 }

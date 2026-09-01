@@ -10,8 +10,9 @@ public class RSRoomManager:EnsRoomManager
     {
         if (type == 0)
         {
-            var cid=short.Parse(content);
-            TrigClientEvent(conn,Delivery.Reliable, 0, Tool.BattleManager.GetLevelInfo().ToString());
+            // 客户端握手：返回服务器可达确认（版本号占位）
+            var cid = short.Parse(content);
+            TrigClientEvent(conn, Delivery.Reliable, 0, "ok");
         }
     }
     public override void Update()

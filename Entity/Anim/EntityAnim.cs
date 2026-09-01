@@ -13,6 +13,7 @@ public class EntityAnim : MonoBehaviour
     private const string key_die = "Death";
     public enum AttackType
     {
+        None=0,
         Attack_Hand_L=1,
         Attack_Hand_R=2,
         Jump_Hit=11,

@@ -1,0 +1,158 @@
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+
+/// <summary>
+/// 存档管理器（局外养成，策划案 8.1：只保留角色解锁 + 角色升级；双等级制见 8.1）。
+/// 玩家等级（账号级，解锁角色）+ 角色等级（每角色独立，属性成长）。
+/// PlayerPrefs 存档（"|" 分隔）。修改即保存。
+/// </summary>
+public class SaveManager : MonoBehaviour
+{
+    private const string SaveKey = "GameSaveDataV3";
+
+    private void Awake()
+    {
+        Tool.SaveManager = this;
+        LoadOrCreate();
+    }
+
+    #region 数据
+    /// <summary>玩家等级（账号级）。</summary>
+    public int playerLevel = 1;
+    /// <summary>玩家经验。</summary>
+    public int playerExp;
+
+    /// <summary>角色等级（全局角色索引 0~23，进攻 0~17 / 防守 18~23）。</summary>
+    public List<int> characterLevels = new();
+    /// <summary>角色经验。</summary>
+    public List<int> characterExp = new();
+    /// <summary>角色解锁。</summary>
+    public List<bool> characterUnlocked = new();
+
+    /// <summary>全局角色数量（进攻 + 防守）。</summary>
+    public static int CharacterTotalCount => Config.attack_character_count + Config.defense_character_count;
+    #endregion
+
+    #region 查询
+    public int GetCharacterLevel(int index)
+    {
+        if (index < 0 || index >= characterLevels.Count) return 1;
+        return characterLevels[index];
+    }
+
+    public bool IsCharacterUnlocked(int index)
+    {
+        if (index < 0 || index >= characterUnlocked.Count) return false;
+        return characterUnlocked[index];
+    }
+
+    /// <summary>按玩家等级是否解锁（TODO：具体解锁表待定，当前按初始数量 + 每级解锁一个）。</summary>
+    public bool IsUnlockedByPlayerLevel(int characterIndex)
+    {
+        if (characterIndex < Config.initial_unlocked_character_count) return true;
+        return playerLevel >= (characterIndex - Config.initial_unlocked_character_count + 1) * 5;
+    }
+    #endregion
+
+    #region 修改
+    /// <summary>解锁角色。</summary>
+    public void UnlockCharacter(int index)
+    {
+        EnsureListSize(index);
+        characterUnlocked[index] = true;
+        Save();
+    }
+
+    /// <summary>给角色加经验（对局结算产出，TODO: 经验公式待设计，当前 1 局 = 100 经验占位）。</summary>
+    public void AddCharacterExp(int index, int exp)
+    {
+        EnsureListSize(index);
+        characterExp[index] += exp;
+        int level = characterLevels[index];
+        // TODO: 升级经验表待设计，当前简单公式：每级所需经验 = 100 * 等级
+        while (level < Config.max_entity_level && characterExp[index] >= 100 * level)
+        {
+            characterExp[index] -= 100 * level;
+            level++;
+        }
+        characterLevels[index] = level;
+        Save();
+    }
+
+    /// <summary>给玩家加经验（账号级，TODO: 升级公式待设计）。</summary>
+    public void AddPlayerExp(int exp)
+    {
+        playerExp += exp;
+        while (playerLevel < Config.player_max_level && playerExp >= 200 * playerLevel)
+        {
+            playerExp -= 200 * playerLevel;
+            playerLevel++;
+        }
+        Save();
+    }
+    #endregion
+
+    #region 序列化（PlayerPrefs，| 分隔）
+    private void EnsureListSize(int index)
+    {
+        while (characterLevels.Count < CharacterTotalCount) characterLevels.Add(1);
+        while (characterExp.Count < CharacterTotalCount) characterExp.Add(0);
+        while (characterUnlocked.Count < CharacterTotalCount)
+        {
+            characterUnlocked.Add(characterUnlocked.Count < Config.initial_unlocked_character_count);
+        }
+    }
+
+    private void LoadOrCreate()
+    {
+        EnsureListSize(0);
+        string data = PlayerPrefs.GetString(SaveKey, "");
+        if (string.IsNullOrEmpty(data))
+        {
+            Save();
+            return;
+        }
+        try
+        {
+            var parts = data.Split('|');
+            int idx = 0;
+            playerLevel = int.Parse(parts[idx++]);
+            playerExp = int.Parse(parts[idx++]);
+            int count = int.Parse(parts[idx++]);
+            for (int i = 0; i < count && idx < parts.Length; i++) characterLevels[i] = int.Parse(parts[idx++]);
+            for (int i = 0; i < count && idx < parts.Length; i++) characterExp[i] = int.Parse(parts[idx++]);
+            for (int i = 0; i < count && idx < parts.Length; i++) characterUnlocked[i] = parts[idx++] == "1";
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"存档解析失败，已重建：{e.Message}");
+            Save();
+        }
+    }
+
+    private void Save()
+    {
+        EnsureListSize(0);
+        var sb = new System.Text.StringBuilder();
+        sb.Append(playerLevel).Append('|').Append(playerExp).Append('|');
+        sb.Append(CharacterTotalCount).Append('|');
+        for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterLevels[i]).Append('|');
+        for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterExp[i]).Append('|');
+        for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterUnlocked[i] ? "1" : "0").Append('|');
+        PlayerPrefs.SetString(SaveKey, sb.ToString());
+        PlayerPrefs.Save();
+    }
+
+    [ContextMenu("ClearSave")]
+    private void ClearSave()
+    {
+        PlayerPrefs.DeleteKey(SaveKey);
+        playerLevel = 1;
+        playerExp = 0;
+        EnsureListSize(0);
+        Save();
+        Debug.Log("存档已清除");
+    }
+    #endregion
+}

@@ -21,6 +21,7 @@ namespace Ros.Transport
             public const byte Respawn = 7;
             public const byte YzStackUp = 8; // 愈战愈勇叠层
             public const byte ShowText = 9;  // 飘字
+            public const byte DayNight = 10; // 昼夜阶段切换（value=阶段 0白天 1黄昏 2夜晚 3黎明）
         }
 
         /// <summary>事件类型（Type 常量）。</summary>

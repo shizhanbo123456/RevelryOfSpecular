@@ -1,160 +1,94 @@
-using Ros.Skill;
 using System.Collections.Generic;
+using Ros.Skill;
 using UnityEngine;
-using a=Ros.Skill.PackageA;
-using b=Ros.Skill.PackageB;
-using c=Ros.Skill.PackageC;
 
-public class SkillManager
+/// <summary>
+/// 技能管理器（注册表 + 统一入口）。
+/// 外部只向 SkillManager 传入技能 id 和上下文即可（见架构说明）。
+/// 技能包（A/B/C）在 RegisterAll 中注册各自的技能。
+/// </summary>
+public static class SkillManager
 {
-    private static readonly HashSet<int> s_targetBuffer = new();
-    private static readonly List<SkillBase> s_list = new()
+    private static readonly Dictionary<int, SkillBase> s_map = new();
+
+    /// <summary>注册技能（技能包 PackageManager.RegisterAll 中调用）。</summary>
+    public static void Register(SkillBase skill)
     {
-        new a.Skill0(),
-        new a.Skill1(),
-        new a.Skill2(),
-        new a.Skill3(),
-        new a.Skill4(),
-        new a.Skill5(),
-        new a.Skill6(),
-        new a.Skill7(),
-        new a.Skill8(),
-        new a.Skill9(),
-        new a.Skill10(),
-        new a.Skill11(),
-        new a.Skill12(),
-        new a.Skill13(),
-        new a.Skill14(),
-        new a.Skill15(),
-        new a.Skill16(),
-        new a.Skill17(),
-        new a.Skill18(),
-        new a.Skill19(),
-        new a.Skill20(),
-        new a.Skill21(),
-        new a.Skill22(),
-        new a.Skill23(),
-        new a.Skill24(),
-        new a.Skill25(),
-        new a.Skill26(),
-        new a.Skill27(),
-        new a.Skill28(),
-        new a.Skill29(),
-        new a.Skill30(),
-    };
-    private static Dictionary<int, SkillBase> s_map;
-    private static Dictionary<int, SkillBase> Map
-    {
-        get
-        {
-            if (s_map != null) return s_map;
-            s_map = new Dictionary<int, SkillBase>();
-            foreach (var skill in s_list)
-            {
-                s_map[skill.Id] = skill;
-            }
-            return s_map;
-        }
+        if (skill == null) return;
+        s_map[skill.Id] = skill;
     }
 
+    /// <summary>反注册。</summary>
+    public static void Unregister(int id)
+    {
+        s_map.Remove(id);
+    }
+
+    /// <summary>查询技能。</summary>
+    public static bool TryGet(int id, out SkillBase skill)
+    {
+        return s_map.TryGetValue(id, out skill);
+    }
+
+    /// <summary>技能 CD。</summary>
     public static float GetSkillCD(int id)
     {
-        return Map.TryGetValue(id, out var skill) ? skill.CD : 0f;
+        return s_map.TryGetValue(id, out var skill) ? skill.CD : 0f;
     }
 
+    /// <summary>技能库存。</summary>
     public static int GetSkillStore(int id)
     {
-        return Map.TryGetValue(id, out var skill) ? skill.Store : 0;
+        return s_map.TryGetValue(id, out var skill) ? skill.Store : -1;
     }
 
-    public static SkillInfo.Quality GetSkillQuality(int id)
+    /// <summary>是否远程/施法类（右键可触发）。</summary>
+    public static bool IsRanged(int id)
     {
-        if (Tool.InfoManager != null &&
-            id >= 0 &&
-            id < Tool.InfoManager.SkillInfoList.Count &&
-            Tool.InfoManager.SkillInfoList[id] != null)
-        {
-            return Tool.InfoManager.SkillInfoList[id].quality;
-        }
-        throw new System.Exception("非玩家技能不可获取quality:" + id);
+        return s_map.TryGetValue(id, out var skill) && skill.Ranged;
     }
 
-    public static int GetSkillWeight(int id)
+    /// <summary>是否有武器显示。</summary>
+    public static bool HasWeaponDisplay(int id)
     {
-        if (Tool.InfoManager != null &&
-            id >= 0 &&
-            id < Tool.InfoManager.SkillInfoList.Count &&
-            Tool.InfoManager.SkillInfoList[id] != null)
-        {
-            var weight = Tool.InfoManager.SkillInfoList[id].weight;
-            if (weight == 0)
-            {
-                switch(GetSkillQuality(id))
-                {
-                    case SkillInfo.Quality.C:
-                        weight = 3;
-                        break;
-                    case SkillInfo.Quality.B:
-                        weight = 5;
-                        break;
-                    case SkillInfo.Quality.A:
-                        weight = 10;
-                        break;
-                    case SkillInfo.Quality.S:
-                        weight = 20;
-                        break;
-                }
-            }
-            return weight;
-        }
-        throw new System.Exception("非玩家技能不可获取weight:" + id);
+        return s_map.TryGetValue(id, out var skill) && skill.HasWeaponDisplay;
     }
 
-    public static bool GetSkillInfectious(int id)
+    /// <summary>释放动作。</summary>
+    public static EntityAnim.AttackType GetCastAnim(int id)
     {
-        if (Tool.InfoManager != null &&
-            id >= 0 &&
-            id < Tool.InfoManager.SkillInfoList.Count &&
-            Tool.InfoManager.SkillInfoList[id] != null)
-        {
-            return Tool.InfoManager.SkillInfoList[id].infectionSkill;
-        }
-        throw new System.Exception("非玩家技能不可获取quality:" + id);
+        return s_map.TryGetValue(id, out var skill) ? skill.CastAnim : 0;
     }
 
-    public static (Vector3, Vector3) DoDamageActs(int id, EntityData entity)
+    /// <summary>伤害侧（服务器权威执行）。</summary>
+    public static void DoDamageActs(int id, EntityData entity, Vector3 dest)
     {
-        return DoDamageActs(id, entity, GetDefaultDest(entity));
-    }
-    public static (Vector3, Vector3) DoDamageActs(int id,EntityData entity, Vector3 dest)
-    {
-        if (a.PackageManager.TryDoDamageActs(id,entity, dest, out var output)) return output;
-        if (b.PackageManager.TryDoDamageActs(id,entity, dest, out output)) return output;
-        if (c.PackageManager.TryDoDamageActs(id,entity, dest, out output)) return output;
-        throw new System.Exception("未知技能id：" + id);
-    }
-    private static Vector3 GetDefaultDest(EntityData entity)
-    {
-        BattleManager.EntityContainer.Entities.GetIdsInRange(entity.transform.position, Config.default_skill_auto_target_radius, s_targetBuffer);
-        EntityData target = null;
-        float sqrDistance = float.MaxValue;
-        foreach (var entityId in s_targetBuffer)
+        if (!s_map.TryGetValue(id, out var skill))
         {
-            var enemy = BattleManager.EntityContainer.Entities[entityId];
-            if (entity.id == enemy.id) continue;
-            float distance = Vector3.SqrMagnitude(enemy.transform.position - entity.transform.position);
-            if (distance >= sqrDistance) continue;
-            sqrDistance = distance;
-            target = enemy;
+            Debug.LogWarning($"未知技能 id：{id}");
+            return;
         }
-        s_targetBuffer.Clear();
-        return target == null ? entity.transform.position + entity.transform.forward * Config.default_skill_target_distance : target.transform.position;
+        skill.DoDamageActs(entity, dest);
     }
+
+    /// <summary>表现侧（客户端执行）。</summary>
     public static void PlayVFX(int id, Vector3 pos, Vector3 dest)
     {
-        if (a.PackageManager.TryPlayVFX(id,pos, dest)) return;
-        if (b.PackageManager.TryPlayVFX(id,pos, dest)) return;
-        if (c.PackageManager.TryPlayVFX(id,pos, dest)) return;
-        throw new System.Exception("未知技能id：" + id);
+        if (!s_map.TryGetValue(id, out var skill))
+        {
+            Debug.LogWarning($"未知技能 id：{id}");
+            return;
+        }
+        skill.PlayVFX(pos, dest);
+    }
+
+    /// <summary>程序集加载时注册所有技能包（技能包实现后自动生效）。</summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void RegisterAll()
+    {
+        s_map.Clear();
+        SkillPackageA.PackageManager.RegisterAll();
+        SkillPackageB.PackageManager.RegisterAll();
+        SkillPackageC.PackageManager.RegisterAll();
     }
 }
