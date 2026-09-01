@@ -1,16 +1,5 @@
 using System;
 
-public enum EntityCategory
-{
-    Character,
-    NPC,
-    Plant,
-    InfectedPlant,
-    Ore,
-    InfectedOre,
-    Infection
-}
-
 [Serializable]
 public struct EntityType : IEquatable<EntityType>
 {
@@ -21,21 +10,6 @@ public struct EntityType : IEquatable<EntityType>
     {
         this.category = category;
         this.value = value;
-#if !RELEASE
-        if (value < 0) throw new Exception("entity type value error: " + category + " " + value);
-        bool valueError = category switch
-        {
-            EntityCategory.Character => value >= Config.character_count,
-            EntityCategory.NPC => value >= Config.npc_count,
-            EntityCategory.Plant => value >= Config.plant_count,
-            EntityCategory.InfectedPlant => value >= 1,
-            EntityCategory.Ore => value >= Config.ore_count,
-            EntityCategory.InfectedOre => value >= 1,
-            EntityCategory.Infection => value >= Config.infection_count,
-            _ => true
-        };
-        if (valueError) throw new Exception("entity type value error: " + category + " " + value);
-#endif
     }
 
     public static EntityType Character(int value) => new EntityType(EntityCategory.Character, value);
@@ -101,20 +75,4 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType InfectionFirst => InfectionTree;
     public static EntityType InfectionLast => Infection(Config.infection_count - 1);
     #endregion
-}
-
-public struct EntityTypeSerializer
-{
-    public static bool Serialize(EntityType value, byte[] result, ref int indexStart)
-    {
-        return IntSerializer.Serialize((int)value.category, result, ref indexStart) &&
-               IntSerializer.Serialize(value.value, result, ref indexStart);
-    }
-
-    public static EntityType Deserialize(byte[] data, ref int indexStart, int invalidIndex)
-    {
-        EntityCategory category = (EntityCategory)IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
-        int value = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
-        return new EntityType(category, value);
-    }
 }

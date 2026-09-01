@@ -13,7 +13,19 @@ public class EntityAnim : MonoBehaviour
     private const string key_die = "Death";
     public enum AttackType
     {
-
+        Attack_Hand_L=1,
+        Attack_Hand_R=2,
+        Jump_Hit=11,
+        Jump_Mega=12,
+        Attack_Weapon_R=21,
+        Attack_Weapon_L=22,
+        Attack_Weapon_R_And_L=23,
+        Mega_Short=31,
+        Mega_Middle=32,
+        Mega_Long=33,
+        Zombie_Hand_Attack_R=41,
+        Zombie_Hand_Attack_L=42,
+        Zombie_Scream=43,
     }
     public Action<AttackType> onAttack;
     private Animator animator;

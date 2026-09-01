@@ -5,20 +5,6 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class Tool:MonoBehaviour
 {
-    public static Tool Instance;
-    public static AssetsManager AssetsManager;
-    public static InfoManager InfoManager;
-    public static TransitionManager TransitionManager;
-    public static BattleManager BattleManager;
-    public static NetworkManager NetworkManager;
-    public static InputManager InputManager;
-    public static CameraController CameraController;
-    public static SaveManager SaveManager;
-    public static UIManager UIManager;
-    public static ClientLogicManager ClientLogicManager;
-    public static EnvironmentManager EnvironmentManager;
-    public static SkillDelayActionManager SkillDelayActionManager;
-
     [SerializeField][Range(0,100)] private int delay = 20;
 
     private void Awake()

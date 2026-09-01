@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 
+
 public partial class NetworkManager : EnsBehaviour
 {
     private void Awake()
@@ -199,131 +200,15 @@ public partial class NetworkManager : EnsBehaviour
         tryingEnterWorld = false;
         EventManager.TrigEvent(ClientEvent.OnEnterWorld);
     }
-
-    public void SendMoveCommand(CSInputCommand command)
-    {
-        if (Application.platform == RuntimePlatform.WindowsServer) return;
-        CallFuncRpc(ReceiveInputCommand, SendTo.RoomOwner, Delivery.Strive, EnsInstance.LocalClientId, command.moving, command.yaw);
-    }
-    public void SendUseSkillRequest(int skillId)
-    {
-        if (Application.platform == RuntimePlatform.WindowsServer) return;
-        CallFuncRpc(ReceiveUseSkillRequest, SendTo.RoomOwner, Delivery.Reliable, EnsInstance.LocalClientId, skillId);
-    }
-    public void SendUseSkillRequest(int skillId, Vector3 dest)
-    {
-        if (Application.platform == RuntimePlatform.WindowsServer) return;
-        CallFuncRpc(ReceiveUseSkillRequestWithDest, SendTo.RoomOwner, Delivery.Reliable, EnsInstance.LocalClientId, skillId, dest);
-    }
-
-    [Rpc]
-    private void UpdateInfoLocal(SCEntityDisplayInfo info)
-    {
-        EventManager.TrigEvent(ClientEvent.UpdateEntityDisplayInfo, info);
-    }
-    [Rpc]
-    private void RemoveInfoLocal(int id)
-    {
-        EventManager.TrigEvent(ClientEvent.RemoveEntityDisplayInfo, id);
-    }
-    [Rpc]
-    private void ShowTextLocal(TextValueInfo info)
-    {
-        EventManager.TrigEvent<(string, Vector3, TextColor)>(ClientEvent.ShowSceneLabel, (info.value.ToString(), info.pos, info.color));
-    }
-    [Rpc]
-    private void ShowTextLocal(TextLabelInfo info)
-    {
-        EventManager.TrigEvent<(string, Vector3, TextColor)>(ClientEvent.ShowSceneLabel, (info.label, info.pos, info.color));
-    }
-    [Rpc]
-    private void UseSkillLocal(UseSkillInfo info)
-    {
-        //SkillManager.GetSkill(info.id).PlayVFX(info.pos, info.dest);
-        SkillManager.PlayVFX(info.id, info.pos, info.dest);
-    }
-    [Rpc]
-    private void SyncNetworkEventLocal(NetworkEvent e)
-    {
-        foreach(var i in e.type)
-        {
-            EventManager.TrigEvent(i.Key, i.Value);
-        }
-    }
-    [Rpc]
-    private void PvpKillRewardLocal(SCPvpKillRewardInfo info)
-    {
-        EventManager.TrigEvent(ClientEvent.PvpKillReward, info);
-    }
-    [Rpc]
-    public void SyncTripLocal(InteractablePropInfo info)
-    {
-        EventManager.TrigEvent(ClientEvent.UpdateInteractablePropInfo, info);
-    }
     #endregion
 
+    [E]
+    public void TrigClientEventRpc(int index)//调用远程函数以Rpc结尾
+    {
+        CallFuncRpc(TrigClientEventLocal, SendTo.ExcludeSender, Delivery.Reliable, index);
+    }
+    public void TrigClientEventLocal(int index)//远程函数被调用以Local结尾
+    {
 
-    #region//Server
-    [Rpc]
-    private void ServerReceivePlayerInfo(CSPlayerInfo info,short id)
-    {
-        var res=Tool.BattleManager.AddPlayerInfo(info,id);
-        CallFuncRpc(ClientRecvRoomInfo, SendTo.To(id), Delivery.Reliable, res);
-        CallFuncRpc(SyncTripLocal, SendTo.To(id), Delivery.Reliable, Tool.BattleManager.GetInteractablePropInfo());
     }
-
-    [Rpc]
-    private void ServerReceiveExitWorld(short id)
-    {
-        Tool.BattleManager.RemovePlayerInfo(id);
-    }
-
-    [Rpc]
-    private void ReceiveInputCommand(short id, bool moving, float yaw)
-    {
-        Tool.BattleManager.ReceiveCommand(id, new CSInputCommand(moving, yaw));
-    }
-    [Rpc]
-    private void ReceiveUseSkillRequest(short id, int skillId)
-    {
-        Tool.BattleManager.ReceiveUseSkill(id, skillId);
-    }
-    [Rpc]
-    private void ReceiveUseSkillRequestWithDest(short id, int skillId, Vector3 dest)
-    {
-        Tool.BattleManager.ReceiveUseSkill(id, skillId, dest);
-    }
-    public void UpdateInfoRpc(short cid,SCEntityDisplayInfo info)
-    {
-        CallFuncRpc(UpdateInfoLocal, SendTo.To(cid), Delivery.Unreliable, info);
-    }
-    public void RemoveInfoRpc(short cid, int id)
-    {
-        CallFuncRpc(RemoveInfoLocal, SendTo.To(cid),Delivery.Strive, id);
-    }
-    public void ShowTextRpc(short cid, TextValueInfo info)
-    {
-        CallFuncRpc(ShowTextLocal,SendTo.To(cid),Delivery.Unreliable,info);
-    }
-    public void ShowTextRpc(short cid, TextLabelInfo info)
-    {
-        CallFuncRpc(ShowTextLocal, SendTo.To(cid), Delivery.Unreliable, info);
-    }
-    public void UseSkillRpc(short cid, UseSkillInfo info)
-    {
-        CallFuncRpc(UseSkillLocal, SendTo.To(cid), Delivery.Reliable, info);
-    }
-    public void SyncNetworkEventRpc(short cid, NetworkEvent e)
-    {
-        CallFuncRpc(SyncNetworkEventLocal, SendTo.To(cid), Delivery.Reliable, e);
-    }
-    public void PvpKillRewardRpc(short cid, SCPvpKillRewardInfo info)
-    {
-        CallFuncRpc(PvpKillRewardLocal, SendTo.To(cid), Delivery.Reliable, info);
-    }
-    public void SyncTripRpc(InteractablePropInfo info)
-    {
-        CallFuncRpc(SyncTripLocal,SendTo.ExcludeSender,Delivery.Reliable, info);
-    }
-    #endregion
 }
