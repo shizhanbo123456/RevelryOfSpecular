@@ -12,7 +12,7 @@ public class VfxManager : MonoBehaviour
     }
 
     #region 各类型特效播放入口（index 与 AssetsManager 列表下标对应）
-    /// <summary>播放子弹特效（20 种，策划案 2.4）。</summary>
+    /// <summary>播放子弹特效（60 种：20 类 × 3 颜色，策划案 2.4）。</summary>
     public void PlayBulletVFX(int index, Vector3 pos, Quaternion rot, float lifeTime)
     {
         var prefab = GetVFX(Tool.AssetsManager?.BulletVFX, index);

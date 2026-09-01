@@ -26,7 +26,7 @@ public class AssetsManager : MonoBehaviour
     #endregion
 
     #region 特效（编号与策划案 2.4 素材清单对应）
-    /// <summary>子弹特效（20 个）。</summary>
+    /// <summary>子弹特效（60 个：20 类 × 3 颜色变体，编号见策划案 2.4）。</summary>
     public List<GameObject> BulletVFX = new();
     /// <summary>护盾特效（13 个）。</summary>
     public List<GameObject> ShieldVFX = new();
