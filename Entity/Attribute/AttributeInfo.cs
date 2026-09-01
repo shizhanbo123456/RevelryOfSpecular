@@ -1,58 +1,80 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ros.Info
 {
-    [CreateAssetMenu]
+    /// <summary>
+    /// 角色属性配置（ScriptableObject，以 Info 结尾）。
+    /// 基础属性 + 独立成长路线（每次升级只提供一个固定、明确的属性加成，见策划案 8.3）。
+    /// </summary>
+    [CreateAssetMenu(menuName = "Ros/EntityAttributeInfo", fileName = "EntityAttributeInfo")]
     public class EntityAttributeInfo : ScriptableObject
     {
         public string Name;
-        [Header("BaseAttributes")]
-        public int health=1200;
-        [Space]
-        [Range(0,400)]public int attack=200;
-        [Range(0, 100)] public int strikeRate=20;
-        [Range(0, 400)] public int strikeDamage=200;
-        [Space]
-        [Range(0, 400)] public int defense=200;
-        [Range(0, 100)] public int strikeRateResistance=0;
-        [Range(0, 400)] public int strikeDamageResistance=0;
-        [Space]
-        [Range(0, 200)] public int endurance=100;
-        [Range(0, 80)] public int speed=40;
-        [Range(0, 100)] public int pickAbility=20;
-        [Range(0, 200)] public int digAbility=100;
-        [Space]
-        [Header("Growth")]
-        public int healthGrowth;
-        [Space]
-        public int attackGrowth;
-        public int strikeRateGrowth;
-        public int strikeDamageGrowth;
-        [Space]
-        public int defenseGrowth;
-        public int strikeRateResistanceGrowth;
-        public int strikeDamageResistanceGrowth;
-        [Space]
-        public int enduranceGrowth;
-        public int speedGrowth;
-        public int pickAbilityGrowth;
-        public int digAbilityGrowth;
-        public EntityAttribute GetAttribute(int level=0)
+
+        [Header("基础属性")]
+        public EntityAttribute baseAttribute = new();
+
+        [Header("成长路线：每级固定加成（数组下标 0 = Lv1→Lv2 的加成）")]
+        [Tooltip("每个元素代表升到下一级时的唯一属性加成；留空则使用下方线性成长。")]
+        public List<EntityAttributeDelta> levelUpGains = new();
+
+        [Header("线性成长（levelUpGains 为空时使用）")]
+        public EntityAttributeDelta linearGrowth = new();
+
+        /// <summary>按等级取属性（level 从 1 开始）。</summary>
+        public EntityAttribute GetAttribute(int level = 1)
         {
-            return new EntityAttribute()
+            var attr = baseAttribute.Clone();
+            attr.level = Mathf.Max(1, level);
+            int lv = attr.level;
+            if (levelUpGains != null && levelUpGains.Count > 0)
             {
-                health=health+healthGrowth*level,
-                attack=attack+attackGrowth*level,
-                strikeRate=strikeRate+strikeRateGrowth*level,
-                strikeDamage=strikeDamage+strikeDamageGrowth*level,
-                defense=defense+defenseGrowth*level,
-                strikeRateResistance=strikeRateResistance+strikeRateResistanceGrowth*level,
-                strikeDamageResistance=strikeDamageResistance+strikeDamageResistanceGrowth*level,
-                endurance=endurance+enduranceGrowth*level,
-                speed=speed+speedGrowth*level,
-                pickAbility=pickAbility+pickAbilityGrowth*level,
-                digAbility=digAbility+digAbilityGrowth*level,
-            };
+                // 逐级应用：Lv1→Lv2 用 levelUpGains[0]，依此类推
+                for (int i = 0; i < lv - 1 && i < levelUpGains.Count; i++)
+                {
+                    attr.ApplyDelta(levelUpGains[i]);
+                }
+            }
+            else if (linearGrowth != null && linearGrowth.value != 0f)
+            {
+                var linear = new EntityAttributeDelta(linearGrowth.field, linearGrowth.value * (lv - 1));
+                attr.ApplyDelta(linear);
+            }
+            // 出生满血
+            attr.health = attr.maxHealth;
+            return attr;
+        }
+
+        /// <summary>下一等级将获得的加成描述（供升级界面显示"本级获得的唯一变化"）。</summary>
+        public string GetNextLevelGainDescription(int level)
+        {
+            if (levelUpGains == null || levelUpGains.Count == 0)
+            {
+                if (linearGrowth == null || linearGrowth.value == 0f) return "无成长";
+                return $"{FieldName(linearGrowth.field)} +{linearGrowth.value}";
+            }
+            int index = level - 1;
+            if (index < 0 || index >= levelUpGains.Count) return "已达等级上限";
+            var gain = levelUpGains[index];
+            return $"{FieldName(gain.field)} +{gain.value}";
+        }
+
+        private static string FieldName(EntityAttributeDelta.Field field)
+        {
+            switch (field)
+            {
+                case EntityAttributeDelta.Field.Health: return "最大生命值";
+                case EntityAttributeDelta.Field.Strength: return "力量";
+                case EntityAttributeDelta.Field.Magic: return "魔法";
+                case EntityAttributeDelta.Field.MoveSpeed: return "移动速度";
+                case EntityAttributeDelta.Field.CritRate: return "暴击率";
+                case EntityAttributeDelta.Field.CritDamage: return "暴击伤害";
+                case EntityAttributeDelta.Field.KnockbackResistance: return "击退抗性";
+                case EntityAttributeDelta.Field.ViewDistance: return "可见距离";
+                case EntityAttributeDelta.Field.WeaponSlotCount: return "武器槽位";
+                default: return field.ToString();
+            }
         }
     }
 }

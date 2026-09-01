@@ -1,5 +1,8 @@
 using System;
 
+/// <summary>
+/// 实体类型：类别 + 编号。（值语义，可网络传输，配套 EntityTypeSerializer 同文件）
+/// </summary>
 [Serializable]
 public struct EntityType : IEquatable<EntityType>
 {
@@ -12,16 +15,84 @@ public struct EntityType : IEquatable<EntityType>
         this.value = value;
     }
 
-    public static EntityType Character(int value) => new EntityType(EntityCategory.Character, value);
-    public static EntityType Npc(int value) => new EntityType(EntityCategory.NPC, value);
-    public static EntityType Plant(int value) => new EntityType(EntityCategory.Plant, value);
+    #region 构造器
+    public static EntityType Attack(int value) => new EntityType(EntityCategory.Character_Attack, value);
+    public static EntityType Defense(int value) => new EntityType(EntityCategory.Character_Defense, value);
+    public static EntityType Zombie(int value) => new EntityType(EntityCategory.Zombie, value);
+    public static EntityType EliteZombie(int value) => new EntityType(EntityCategory.EliteZombie, value);
+    public static EntityType Beacon(int value) => new EntityType(EntityCategory.Beacon, value);
+    public static EntityType Crystal(int value) => new EntityType(EntityCategory.Crystal, value);
+    public static EntityType Tower(int value) => new EntityType(EntityCategory.Tower, value);
+    public static EntityType PlagueTree(int value) => new EntityType(EntityCategory.PlagueTree, value);
+    public static EntityType Mushroom(int value) => new EntityType(EntityCategory.Mushroom, value);
+    public static EntityType Prop(int value) => new EntityType(EntityCategory.Prop, value);
+    #endregion
 
-    public static EntityType InfectedPlant => new EntityType(EntityCategory.InfectedPlant, 0);
-    public static EntityType Ore(int value) => new EntityType(EntityCategory.Ore, value);
-    public static EntityType InfectedOre => new EntityType(EntityCategory.InfectedOre, 0);
-    public static EntityType Infection(int value) => new EntityType(EntityCategory.Infection, value);
+    #region 预设
+    // 进攻方角色（18 人，具体角色池待定）
+    public static EntityType Attack0 => Attack(0);
+    public static EntityType Attack1 => Attack(1);
+    public static EntityType Attack2 => Attack(2);
+    public static EntityType Attack3 => Attack(3);
+    public static EntityType Attack4 => Attack(4);
+    public static EntityType Attack5 => Attack(5);
+    public static EntityType Attack6 => Attack(6);
+    public static EntityType Attack7 => Attack(7);
+    public static EntityType Attack8 => Attack(8);
+    public static EntityType Attack9 => Attack(9);
+    public static EntityType Attack10 => Attack(10);
+    public static EntityType Attack11 => Attack(11);
+    public static EntityType Attack12 => Attack(12);
+    public static EntityType Attack13 => Attack(13);
+    public static EntityType Attack14 => Attack(14);
+    public static EntityType Attack15 => Attack(15);
+    public static EntityType Attack16 => Attack(16);
+    public static EntityType Attack17 => Attack(17);
+    public static EntityType AttackFirst => Attack0;
+    public static EntityType AttackLast => Attack(Config.attack_character_count - 1);
 
-    #region//common class func
+    // 防守方角色（6 人，基于实际模型资源）
+    public static EntityType Defense0 => Defense(0);
+    public static EntityType Defense1 => Defense(1);
+    public static EntityType Defense2 => Defense(2);
+    public static EntityType Defense3 => Defense(3);
+    public static EntityType Defense4 => Defense(4);
+    public static EntityType Defense5 => Defense(5);
+    public static EntityType DefenseFirst => Defense0;
+    public static EntityType DefenseLast => Defense(Config.defense_character_count - 1);
+
+    // 守护点：0/1/2 外围，3 中心
+    public static EntityType OuterBeacon0 => Beacon(0);
+    public static EntityType OuterBeacon1 => Beacon(1);
+    public static EntityType OuterBeacon2 => Beacon(2);
+    public static EntityType CoreBeacon => Beacon(Config.outer_beacon_count);
+
+    // 水晶（0~7，TODO 数量待定）
+    public static EntityType Crystal0 => Crystal(0);
+    public static EntityType CrystalFirst => Crystal(0);
+    public static EntityType CrystalLast => Crystal(Config.crystal_count - 1);
+
+    // 防御塔（0~3）
+    public static EntityType Tower0 => Tower(0);
+    public static EntityType TowerFirst => Tower(0);
+    public static EntityType TowerLast => Tower(Config.tower_count - 1);
+
+    // 瘟疫树
+    public static EntityType PlagueTree0 => PlagueTree(0);
+
+    // 普通僵尸（0~20，暂用 21 种）
+    public static EntityType ZombieFirst => Zombie(0);
+    public static EntityType ZombieLast => Zombie(20);
+
+    // 精英僵尸（0~13，14 种）
+    public static EntityType EliteZombieFirst => EliteZombie(0);
+    public static EntityType EliteZombieLast => EliteZombie(13);
+
+    // 感染蘑菇
+    public static EntityType Mushroom0 => Mushroom(0);
+    #endregion
+
+    #region common class func
     public bool Equals(EntityType other) => category == other.category && value == other.value;
 
     public override bool Equals(object obj) => obj is EntityType other && Equals(other);
@@ -33,46 +104,46 @@ public struct EntityType : IEquatable<EntityType>
     public static bool operator ==(EntityType left, EntityType right) => left.Equals(right);
 
     public static bool operator !=(EntityType left, EntityType right) => !left.Equals(right);
+
+    /// <summary>该实体类型对应的默认阵营（守护点/防御塔/蘑菇/精英僵尸归防守，瘟疫树中立，僵尸默认中立待确认）。</summary>
+    public EntityCamp DefaultCamp()
+    {
+        switch (category)
+        {
+            case EntityCategory.Character_Attack: return EntityCamp.Attack;
+            case EntityCategory.Character_Defense:
+            case EntityCategory.Beacon:
+            case EntityCategory.Tower:
+            case EntityCategory.Mushroom:
+            case EntityCategory.EliteZombie:
+                return EntityCamp.Defense;
+            case EntityCategory.PlagueTree:
+                return EntityCamp.Neutral;
+            case EntityCategory.Zombie:
+                // TODO【策划案 17.3】普通僵尸是否归属防守阵营尚未确认，当前默认中立
+                return EntityCamp.Neutral;
+            default:
+                return EntityCamp.Neutral;
+        }
+    }
     #endregion
+}
 
-    #region//presets
-    public static EntityType Char0 => Character(0);
-    public static EntityType Char1 => Character(1);
-    public static EntityType Char2 => Character(2);
-    public static EntityType Char3 => Character(3);
-    public static EntityType Char4 => Character(4);
-    public static EntityType Char5 => Character(5);
-    public static EntityType Char6 => Character(6);
-    public static EntityType Char7 => Character(7);
-    public static EntityType Char8 => Character(8);
-    public static EntityType Char9 => Character(9);
-    public static EntityType Char10 => Character(10);
-    public static EntityType Char11 => Character(11);
-    public static EntityType Char12 => Character(12);
-    public static EntityType Char13 => Character(13);
+/// <summary>
+/// EntityType 网络序列化器（EnsNetcode 要求，同文件）。
+/// </summary>
+public struct EntityTypeSerializer
+{
+    public static bool Serialize(EntityType value, byte[] result, ref int indexStart)
+    {
+        if (!IntSerializer.Serialize((int)value.category, result, ref indexStart)) return false;
+        return IntSerializer.Serialize(value.value, result, ref indexStart);
+    }
 
-    public static EntityType InfectionTree => Infection(0);
-    public static EntityType InfectionBeacon0 => Infection(1);
-    public static EntityType InfectionBeacon1 => Infection(2);
-    public static EntityType InfectionCore0 => Infection(3);
-    public static EntityType InfectionCore1 => Infection(4);
-    public static EntityType InfectionCore2 => Infection(5);
-    public static EntityType InfectionCore3 => Infection(6);
-
-
-    public static EntityType CharacterFirst => Char0;
-    public static EntityType CharacterLast => Char13;
-
-    public static EntityType NpcFirst => Npc(0);
-    public static EntityType NpcLast => Npc(Config.npc_count - 1);
-
-    public static EntityType PlantFirst => Plant(0);
-    public static EntityType PlantLast => Plant(Config.plant_count - 1);
-
-    public static EntityType OreFirst => Ore(0);
-    public static EntityType OreLast => Ore(Config.ore_count - 1);
-
-    public static EntityType InfectionFirst => InfectionTree;
-    public static EntityType InfectionLast => Infection(Config.infection_count - 1);
-    #endregion
+    public static EntityType Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+    {
+        var category = (EntityCategory)IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+        int value = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+        return new EntityType(category, value);
+    }
 }
