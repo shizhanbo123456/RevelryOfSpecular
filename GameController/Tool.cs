@@ -19,6 +19,7 @@ public class Tool : MonoBehaviour
     private void Update()
     {
         Thread.Sleep(delay);
+        GenericTimer.Update();
     }
 
     public static Tool Instance { get; private set; }
