@@ -36,6 +36,7 @@ public class Tool : MonoBehaviour
     public static ClientDisplayManager ClientDisplayManager;
     public static AssetsObjectPool AssetsObjectPool;
     public static VfxManager VfxManager;
+    public static TransitionManager TransitionManager;
     #endregion
 
     #region 通用工具
