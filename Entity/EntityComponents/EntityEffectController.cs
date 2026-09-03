@@ -27,10 +27,10 @@ public class EntityEffectController
         BlessAttack,        // 祝福·攻击（Buff 30 橙色祝福）
         BlessSpeed,         // 祝福·速度（Buff 31 紫色祝福）
         Heal,               // 治疗（Buff 14/15 绿色/蓝色治愈）
-        TowerHeal,          // 塔回血（鹿铠主动 1，Buff 14/19）
+        TowerShield,        // 塔护盾（鹿铠主动 1，护盾特效 1~13 按类型；2026-09-04 替换原塔回血 TowerHeal）
 
         // ---- 机制调整类 ----
-        Mark,               // 暴露标记（Buff 16 黄色周身泛光）
+        Mark,               // 暴露标记（Buff 16 黄色周身泛光；白眼伯爵专属增强=被标记者受暴击率增加，2026-09-04）
         Darkness,           // 黑暗：视野缩小（范围魔法 3 + Buff 6 黑雾喷发）
         Fog,                // 迷雾遮蔽/隐身（Buff 1/7 紫雾）
         Invincible,         // 无敌（Buff 2 舞台灯）
