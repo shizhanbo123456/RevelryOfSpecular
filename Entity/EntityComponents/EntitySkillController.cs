@@ -23,8 +23,8 @@ public class EntitySkillController
     /// <summary>技能库存（技能 id → 剩余次数，-1 无限制）。</summary>
     private readonly Dictionary<int, int> stores = new();
 
-    /// <summary>武器等级（技能 id → 武器升级等级）。</summary>
-    private readonly Dictionary<int, int> weaponLevels = new();
+    /// <summary>武器经验（技能 id → 本局累计经验；无等级，经验直接加成武器伤害，见策划案 11.4）。</summary>
+    private readonly Dictionary<int, int> weaponExp = new();
 
     public void Init(EntityData data)
     {
@@ -32,7 +32,7 @@ public class EntitySkillController
         skillIds.Clear();
         cdRemains.Clear();
         stores.Clear();
-        weaponLevels.Clear();
+        weaponExp.Clear();
         SelectedIndex = -1;
     }
 
@@ -123,16 +123,25 @@ public class EntitySkillController
         return stores.TryGetValue(skillId, out var store) ? store : -1;
     }
 
-    /// <summary>武器等级。</summary>
-    public int GetWeaponLevel(int skillId)
+    /// <summary>武器经验（无等级，经验直接加成该武器伤害，见策划案 11.4）。</summary>
+    public int GetWeaponExp(int skillId)
     {
-        return weaponLevels.TryGetValue(skillId, out var level) ? level : 0;
+        return weaponExp.TryGetValue(skillId, out var exp) ? exp : 0;
     }
 
-    /// <summary>设置武器等级（重复获得自动升级）。</summary>
-    public void SetWeaponLevel(int skillId, int level)
+    /// <summary>给指定武器加经验（重复获得已持有武器 = 该武器 +1；槽满随机分配请用 AddWeaponExpToRandom）。</summary>
+    public void AddWeaponExp(int skillId, int amount = 1)
     {
-        weaponLevels[skillId] = level;
+        if (skillId < 0) return;
+        weaponExp[skillId] = GetWeaponExp(skillId) + amount;
+    }
+
+    /// <summary>给随机一件已持有武器加经验（武器槽满获得新武器时转经验随机分配，见策划案 5.2）。</summary>
+    public void AddWeaponExpToRandom(int amount = 1)
+    {
+        if (skillIds.Count == 0) return;
+        int index = UnityEngine.Random.Range(0, skillIds.Count);
+        AddWeaponExp(skillIds[index], amount);
     }
 
     /// <summary>开始 CD（技能释放后由 SkillManager 回写）。</summary>
@@ -178,7 +187,7 @@ public class EntitySkillController
             info.slots.Add(new SCSkillRuntimeInfo.SkillSlotRuntime()
             {
                 skillId = skillId,
-                level = GetWeaponLevel(skillId),
+                exp = GetWeaponExp(skillId),
                 cdRemain = GetCdRemain(skillId),
                 cdTotal = GetCdTotal(skillId),
                 store = GetStore(skillId),

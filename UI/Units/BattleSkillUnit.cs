@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// 技能槽 UI 单元（战斗 HUD 底部技能栏的一项）。
-/// 展示：图标名 / 选中高亮 / CD 遮罩 / 库存 / 武器等级。
+/// 展示：图标名 / 选中高亮 / CD 遮罩 / 库存 / 武器经验。
 /// </summary>
 public class BattleSkillUnit
 {
@@ -14,7 +14,7 @@ public class BattleSkillUnit
     private readonly VisualElement cdFill;
     private readonly Label cdLabel;
     private readonly Label storeLabel;
-    private readonly Label levelLabel;
+    private readonly Label expLabel;
 
     private static readonly Color NormalBg = new Color(0.15f, 0.15f, 0.2f, 0.95f);
     private static readonly Color SelectedBg = new Color(0.3f, 0.6f, 1f, 0.95f);
@@ -44,8 +44,8 @@ public class BattleSkillUnit
         storeLabel = new Label { style = { color = new Color(0.8f, 0.8f, 0.85f, 1f), fontSize = 12, marginTop = 4 } };
         Root.Add(storeLabel);
 
-        levelLabel = new Label { style = { color = new Color(0.4f, 0.9f, 0.5f, 1f), fontSize = 12 } };
-        Root.Add(levelLabel);
+        expLabel = new Label { style = { color = new Color(0.4f, 0.9f, 0.5f, 1f), fontSize = 12 } };
+        Root.Add(expLabel);
 
         // CD 遮罩（从底部生长）
         cdFill = new VisualElement
@@ -87,7 +87,7 @@ public class BattleSkillUnit
         string skillName = GetSkillName(slot.skillId);
         nameLabel.text = skillName;
         storeLabel.text = slot.store >= 0 ? $"x{slot.store}" : "";
-        levelLabel.text = slot.level > 0 ? $"Lv{slot.level}" : "";
+        expLabel.text = slot.exp > 0 ? $"+{slot.exp}" : "";
 
         // 选中高亮
         Root.style.backgroundColor = selected ? SelectedBg : NormalBg;
@@ -115,7 +115,7 @@ public class BattleSkillUnit
     {
         nameLabel.text = "—";
         storeLabel.text = "";
-        levelLabel.text = "";
+        expLabel.text = "";
         cdFill.style.height = 0;
         cdLabel.text = "";
         Root.style.backgroundColor = NormalBg;

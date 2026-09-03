@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Ros.Transport
 {
     /// <summary>
-    /// 服务器 → 客户端：技能运行时信息（技能列表/选中项/CD/库存/武器等级）。
+    /// 服务器 → 客户端：技能运行时信息（技能列表/选中项/CD/库存/武器经验）。
     /// 滚轮循环的技能列表由服务器权威下发。
     /// </summary>
     public class SCSkillRuntimeInfo
@@ -13,8 +13,8 @@ namespace Ros.Transport
         {
             /// <summary>技能 id。</summary>
             public int skillId = -1;
-            /// <summary>技能等级（武器升级等级，0=未升级）。</summary>
-            public int level;
+            /// <summary>武器经验（仅对局内；武器无等级，经验直接加成伤害，见策划案 11.4）。</summary>
+            public int exp;
             /// <summary>剩余 CD（秒）。</summary>
             public float cdRemain;
             /// <summary>总 CD（秒）。</summary>
@@ -56,7 +56,7 @@ namespace Ros.Transport
                 if (!BoolSerializer.Serialize(slot != null, result, ref indexStart)) return false;
                 if (slot == null) continue;
                 if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(slot.level, result, ref indexStart)) return false;
+                if (!IntSerializer.Serialize(slot.exp, result, ref indexStart)) return false;
                 if (!FloatSerializer.Serialize(slot.cdRemain, result, ref indexStart)) return false;
                 if (!FloatSerializer.Serialize(slot.cdTotal, result, ref indexStart)) return false;
                 if (!IntSerializer.Serialize(slot.store, result, ref indexStart)) return false;
@@ -85,7 +85,7 @@ namespace Ros.Transport
                 info.slots.Add(new SCSkillRuntimeInfo.SkillSlotRuntime()
                 {
                     skillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    exp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     cdRemain = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     cdTotal = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     store = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
