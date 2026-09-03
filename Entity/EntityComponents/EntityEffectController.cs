@@ -43,7 +43,7 @@ public class EntityEffectController
         Burning,            // 燃烧（Buff 12 火焰）
         Poison,             // 中毒（护盾 9 绿毒）
         Mushroomize,        // 蘑菇化：施加在水晶上的封锁（表现=变成蘑菇，无法采集，可破坏恢复）
-        ViewDistanceReduce, // 视野减小（瘟疫使者大招·夜间不对称视野，复用黑暗特效）
+        ViewDistanceReduce, // 视野减小（夜间不对称视野·2026-09-03 后暂无角色采用·效果池候选，复用黑暗特效）
     }
 
     /// <summary>单个效果的运行时数据。</summary>
