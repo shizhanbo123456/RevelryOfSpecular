@@ -6,7 +6,7 @@ using UnityEngine;
 /// 泛型计时器：注册延时回调，到期执行一次。
 /// 用法：
 ///   GenericTimer.AddTimer(value, 1f, v => { ... });   // 注册
-///   GenericTimer.Update();                            // 外部每帧驱动（SkillDelayActionManager 已代为驱动）
+///   GenericTimer.Update();                            // 外部每帧驱动（Tool.Update 已代为驱动）
 /// T 值通过闭包捕获，调用时即可访问，与注册时的快照一致。
 /// </summary>
 public static class GenericTimer
@@ -42,7 +42,7 @@ public static class GenericTimer
 
     /// <summary>
     /// 每帧更新：推进所有任务计时，到期的执行回调并移除。
-    /// 由 SkillDelayActionManager.Update 每帧驱动。
+    /// 由 Tool.Update 每帧驱动。
     /// </summary>
     public static void Update()
     {
