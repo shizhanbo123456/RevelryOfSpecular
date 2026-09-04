@@ -22,8 +22,8 @@ namespace Ros.Transport
         public bool slidePressed;
         /// <summary>滚轮增量（>0 下一技能，<0 上一技能）。</summary>
         public int skillScrollDelta;
-        /// <summary>当前选中技能 id（-1 表示未选中）。</summary>
-        public int selectedSkillId = -1;
+        /// <summary>当前选中技能 id（-1 表示未选中；C#9 下 struct 不可用字段初始化器，默认 0，调用处需显式赋值或使用带参构造）。</summary>
+        public int selectedSkillId;
         /// <summary>瞄准点（世界坐标）。</summary>
         public Vector3 aimPoint;
 
