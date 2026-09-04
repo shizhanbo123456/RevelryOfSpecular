@@ -69,7 +69,7 @@ public abstract class EntityData : MonoBehaviour
         this.type = type;
         this.level = level;
         this.camp = camp;
-        baseAttribute = InfoManager.GetAttribute(type, level);
+        baseAttribute = Tool.InfoManager != null ? Tool.InfoManager.GetAttribute(type, level) : new EntityAttribute();
         floatingAttribute = baseAttribute.Clone();
         effectController = new EntityEffectController();
         effectController.Init(this);
@@ -132,7 +132,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>血条 Y 偏移（相对头顶）。</summary>
     public float GetBarYOffset()
     {
-        return InfoManager.GetEntityBarYOffset(type);
+        return Tool.InfoManager != null ? Tool.InfoManager.GetEntityBarYOffset(type) : 0.9f;
     }
 
     /// <summary>标记死亡（供外部触发，如 Bullet 击杀）。</summary>

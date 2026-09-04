@@ -331,7 +331,7 @@ public partial class BattleManager : EnsBehaviour
         if (BattleStarted) return;
         BattleStarted = true;
         BattleRemainTime = Config.battle_duration;
-        EnvironmentManager.ResetDayNight();
+        if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
         // TODO: 生成守护点×4 / 水晶 / 防御塔 / 瘟疫树 / 僵尸刷新生效 / 全局参数被动一次性计算
         Debug.Log("战斗开始");
     }
