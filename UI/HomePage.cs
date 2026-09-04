@@ -63,7 +63,7 @@ public class HomePage : PageBase
 
         var infoPanel = new VisualElement
         {
-            style = { width = 420, backgroundColor = new Color(0.15f, 0.15f, 0.2f, 1f), padding = 16 }
+            style = { width = 420, backgroundColor = new Color(0.15f, 0.15f, 0.2f, 1f), paddingLeft = 16, paddingRight = 16, paddingTop = 16, paddingBottom = 16 }
         };
         infoLabel = new Label("未选择角色") { style = { color = Color.white, fontSize = 16, whiteSpace = WhiteSpace.Normal } };
         levelUpLabel = new Label("") { style = { color = new Color(0.4f, 0.9f, 0.5f, 1f), fontSize = 15, whiteSpace = WhiteSpace.Normal, marginTop = 10 } };
@@ -75,7 +75,7 @@ public class HomePage : PageBase
 
         // 底部按钮
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 16, justifyContent = Justify.SpaceBetween } };
-        enterLobbyButton = new Button("进入匹配大厅") { style = { width = 200, height = 44, fontSize = 18 } };
+        enterLobbyButton = new Button { text = "进入匹配大厅", style = { width = 200, height = 44, fontSize = 18 } };
         enterLobbyButton.clicked += () => Owner.ShowPage(UIManager.PageType.Lobby);
         bottomRow.Add(enterLobbyButton);
         container.Add(bottomRow);
@@ -158,7 +158,7 @@ public class HomePage : PageBase
             var btn = new Button
             {
                 text = $"{name}  Lv{level}  {(unlocked ? "" : "[未解锁]")}",
-                style = { marginBottom = 4, textAlignment = TextAnchor.MiddleLeft, height = 36 }
+                style = { marginBottom = 4, unityTextAlign = TextAnchor.MiddleLeft, height = 36 }
             };
             btn.style.backgroundColor = index == ClientSelection.selectedCharacterIndex ? selectedColor : normalColor;
             int captured = index;

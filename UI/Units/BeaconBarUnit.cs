@@ -23,7 +23,7 @@ public class BeaconBarUnit
             {
                 width = 240, height = 56,
                 backgroundColor = new Color(0.12f, 0.12f, 0.16f, 0.95f),
-                padding = 6, marginBottom = 6,
+                paddingLeft = 6, paddingRight = 6, paddingTop = 6, paddingBottom = 6, marginBottom = 6,
             }
         };
         var row = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };

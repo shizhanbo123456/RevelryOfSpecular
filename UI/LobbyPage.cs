@@ -68,9 +68,9 @@ public class LobbyPage : PageBase
 
         // 底部按钮
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
-        var backButton = new Button("返回初始界面") { style = { width = 180, height = 44 } };
+        var backButton = new Button { text = "返回初始界面", style = { width = 180, height = 44 } };
         backButton.clicked += () => Owner.ShowPage(UIManager.PageType.Home);
-        matchButton = new Button("开始匹配") { style = { width = 200, height = 44, fontSize = 18 } };
+        matchButton = new Button { text = "开始匹配", style = { width = 200, height = 44, fontSize = 18 } };
         matchButton.clicked += OnMatchClicked;
         bottomRow.Add(backButton);
         bottomRow.Add(matchButton);

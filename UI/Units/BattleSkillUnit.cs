@@ -69,7 +69,7 @@ public class BattleSkillUnit
                 position = Position.Absolute,
                 left = 0, right = 0, top = 30,
                 color = Color.white, fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold,
-                textAlignment = TextAnchor.MiddleCenter,
+                unityTextAlign = TextAnchor.MiddleCenter,
             }
         };
         cdLabel.pickingMode = PickingMode.Ignore;

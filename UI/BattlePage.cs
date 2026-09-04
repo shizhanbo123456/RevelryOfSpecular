@@ -88,9 +88,9 @@ public class BattlePage : PageBase
         };
         var reviveBox = new VisualElement
         {
-            style = { width = 300, backgroundColor = new Color(0f, 0f, 0f, 0.75f), padding = 16 }
+            style = { width = 300, backgroundColor = new Color(0f, 0f, 0f, 0.75f), paddingLeft = 16, paddingRight = 16, paddingTop = 16, paddingBottom = 16 }
         };
-        reviveLabel = new Label("复活中...") { style = { color = Color.white, fontSize = 18, textAlignment = TextAnchor.MiddleCenter, marginBottom = 8 } };
+        reviveLabel = new Label("复活中...") { style = { color = Color.white, fontSize = 18, unityTextAlign = TextAnchor.MiddleCenter, marginBottom = 8 } };
         var reviveBar = new VisualElement { style = { height = 14, backgroundColor = new Color(0.25f, 0.25f, 0.3f, 1f) } };
         reviveFill = new VisualElement { style = { width = Length.Percent(0f), height = 14, backgroundColor = new Color(0.3f, 0.9f, 0.4f, 1f) } };
         reviveFill.pickingMode = PickingMode.Ignore;
