@@ -370,7 +370,7 @@ public partial class BattleManager : EnsBehaviour
         if (Tool.EnvironmentManager != null)
         {
             Tool.EnvironmentManager.TickPhase(UnityEngine.Time.deltaTime);
-            if (Tool.EnvironmentManager.PhaseTime >= EnvironmentManager.GetPhaseDuration(EnvironmentManager.CurrentPhase))
+            if (EnvironmentManager.PhaseTime >= EnvironmentManager.GetPhaseDuration(EnvironmentManager.CurrentPhase))
             {
                 int next = (EnvironmentManager.CurrentPhase + 1) % EnvironmentManager.PhaseCount;
                 Tool.EnvironmentManager.SetPhase(next);
