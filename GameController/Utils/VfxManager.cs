@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 特效管理器（统一播放入口，资源编号与策划案 2.4 素材清单对应）。
+/// 特效管理器（统一播放入口，资源编号与《特效清单与分配表.md》对应）。
 /// 客户端表现侧调用；服务端不播特效。
 /// </summary>
 public class VfxManager : MonoBehaviour
@@ -12,7 +12,7 @@ public class VfxManager : MonoBehaviour
     }
 
     #region 各类型特效播放入口（index 与 AssetsManager 列表下标对应）
-    /// <summary>播放子弹特效（60 种：20 类 × 3 颜色，策划案 2.4）。</summary>
+    /// <summary>播放子弹特效（60 种：20 类 × 3 颜色，下标 0~59 见特效清单）。</summary>
     public void PlayBulletVFX(int index, Vector3 pos, Quaternion rot, float lifeTime)
     {
         var prefab = GetVFX(Tool.AssetsManager?.BulletVFX, index);

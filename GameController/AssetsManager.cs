@@ -25,8 +25,8 @@ public class AssetsManager : MonoBehaviour
     public GameObject MushroomGraphic;
     #endregion
 
-    #region 特效（编号与策划案 2.4 素材清单对应）
-    /// <summary>子弹特效（60 个：20 类 × 3 颜色变体，编号见策划案 2.4）。</summary>
+    #region 特效（编号与《特效清单与分配表.md》对应）
+    /// <summary>子弹特效（60 个：20 类 × 3 颜色变体，下标 0~59 与特效清单一致）。</summary>
     public List<GameObject> BulletVFX = new();
     /// <summary>护盾特效（13 个）。</summary>
     public List<GameObject> ShieldVFX = new();

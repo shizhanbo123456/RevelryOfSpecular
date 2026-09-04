@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public class EntityEffectController
 {
-    /// <summary>效果类型（按策划案 9.2 分类，特效编号见策划案 2.4）。</summary>
+    /// <summary>效果类型（按策划案 9.2 分类，特效编号见《特效清单与分配表.md》）。</summary>
     public enum EffectType
     {
         // ---- 护盾类（Shield 系）----
