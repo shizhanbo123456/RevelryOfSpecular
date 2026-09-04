@@ -27,10 +27,10 @@ public class EntityEffectController
         BlessAttack,        // 祝福·攻击（Buff 30 橙色祝福）
         BlessSpeed,         // 祝福·速度（Buff 31 紫色祝福）
         Heal,               // 治疗（Buff 14/15 绿色/蓝色治愈）
-        TowerShield,        // 塔护盾（鹿铠主动 1，护盾特效 1~13 按类型；2026-09-04 替换原塔回血 TowerHeal）
+        TowerShield,        // 塔护盾（鹿铠主动 1，护盾特效 1~13 按类型）
 
         // ---- 机制调整类 ----
-        Mark,               // 暴露标记（Buff 16 黄色周身泛光；白眼伯爵专属增强=被标记者受暴击率增加，2026-09-04）
+        Mark,               // 暴露标记（Buff 16 黄色周身泛光；白眼伯爵专属增强=被标记者受暴击率增加）
         Darkness,           // 黑暗：视野缩小（范围魔法 3 + Buff 6 黑雾喷发）
         Fog,                // 迷雾遮蔽/隐身（Buff 1/7 紫雾）
         Invincible,         // 无敌（Buff 2 舞台灯）
@@ -43,7 +43,7 @@ public class EntityEffectController
         Burning,            // 燃烧（Buff 12 火焰）
         Poison,             // 中毒（护盾 9 绿毒）
         Mushroomize,        // 蘑菇化：施加在水晶上的封锁（表现=变成蘑菇，无法采集，可破坏恢复）
-        ViewDistanceReduce, // 视野减小（夜间不对称视野·2026-09-03 后暂无角色采用·效果池候选，复用黑暗特效）
+        ViewDistanceReduce, // 视野减小（夜间不对称视野·暂无角色采用·效果池候选）
     }
 
     /// <summary>单个效果的运行时数据。</summary>
