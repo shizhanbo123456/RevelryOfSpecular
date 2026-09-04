@@ -14,12 +14,12 @@ public class ClientLogicManager : MonoBehaviour
 
     private void OnEnable()
     {
-        EventManager.AddEvent(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.AddEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
     }
 
     private void OnDisable()
     {
-        EventManager.RemoveEvent(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.RemoveEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
     }
 
     /// <summary>本地玩家技能运行时（服务器下发缓存）。</summary>

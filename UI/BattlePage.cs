@@ -129,11 +129,11 @@ public class BattlePage : PageBase
 
     public override void OnEnable()
     {
-        EventManager.AddEvent(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
-        EventManager.AddEvent(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
-        EventManager.AddEvent(ClientEvent.OnScoreUpdate, OnScoreUpdate);
-        EventManager.AddEvent(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.AddEvent(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
+        EventManager.AddEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.AddEvent<SCBeaconInfo>(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
+        EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
+        EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
 
         // 开局信息立即应用
@@ -151,11 +151,11 @@ public class BattlePage : PageBase
 
     public override void OnDisable()
     {
-        EventManager.RemoveEvent(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
-        EventManager.RemoveEvent(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
-        EventManager.RemoveEvent(ClientEvent.OnScoreUpdate, OnScoreUpdate);
-        EventManager.RemoveEvent(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.RemoveEvent(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
+        EventManager.RemoveEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.RemoveEvent<SCBeaconInfo>(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
+        EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
+        EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
     }
 

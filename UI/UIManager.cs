@@ -62,7 +62,7 @@ public class UIManager : MonoBehaviour
         loading.Init(root);
 
         // 事件绑定
-        EventManager.AddEvent(ClientEvent.OnBattleStart, OnBattleStart);
+        EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
         EventManager.AddEvent<string>(ClientEvent.ShowNotice, ShowNotice);
@@ -73,7 +73,7 @@ public class UIManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        EventManager.RemoveEvent(ClientEvent.OnBattleStart, OnBattleStart);
+        EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.RemoveEvent(ClientEvent.OnConnect, OnConnect);
         EventManager.RemoveEvent<string>(ClientEvent.ShowNotice, ShowNotice);
