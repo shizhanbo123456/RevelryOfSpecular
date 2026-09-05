@@ -3,14 +3,37 @@ using UnityEngine;
 
 public class EntityAnim : MonoBehaviour
 {
+    private const string key_characterType = "CharacterType";
     private const string key_spawn = "DoSpawn";
     private const string key_moving = "Moving";
     private const string key_inAir = "InAir";
     private const string key_slide = "Slide";
     private const string key_slideEnd = "SlideEnd";
+    private const string key_roll = "Roll";
     private const string key_doAttack = "DoAttack";
     private const string key_attack = "Attack";
     private const string key_die = "Death";
+    public enum CharcterAnimType
+    {
+        Female=0,
+        Male=1,
+        Zombie=2
+    }
+    public enum AnimState
+    {
+        Spawn,
+        Motion,
+        Attack,
+        Die
+    }
+    public enum MotionType
+    {
+        Idle,
+        Run,
+        Jump,
+        Slide,
+        Roll
+    }
     public enum AttackType
     {
         None=0,
@@ -27,8 +50,9 @@ public class EntityAnim : MonoBehaviour
         Zombie_Hand_Attack_R=41,
         Zombie_Hand_Attack_L=42,
         Zombie_Scream=43,
+        Kick=51,
     }
-    public Action<AttackType> onAttack;
+    public Action<AttackType> onAttack;//动画中的攻击事件回调
     private Animator animator;
     public void Init(EntityData data,Action<AttackType>onAttack)
     {
@@ -42,6 +66,10 @@ public class EntityAnim : MonoBehaviour
         }
         var behaviours=animator.GetBehaviours<AnimEvent>();
         foreach (var be in behaviours) be.Init(this,data);
+    }
+    public void SetType(CharcterAnimType type)
+    {
+        animator.SetInteger(key_characterType, (int)type);
     }
     public void DoSpawn()
     {
@@ -63,6 +91,10 @@ public class EntityAnim : MonoBehaviour
     {
         animator.SetBool(key_slide,false);
         animator.SetTrigger(key_slideEnd);
+    }
+    public void Roll()
+    {
+        animator.SetTrigger(key_roll);
     }
     public void DoAttack(AttackType attack)
     {
