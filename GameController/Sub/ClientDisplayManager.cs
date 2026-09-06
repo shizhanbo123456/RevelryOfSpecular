@@ -17,6 +17,7 @@ public class ClientDisplayManager : MonoBehaviour
         public EntityCamp camp;
         public Animator animator;
         public EntityAnim anim;
+        public TextMesh nameLabel; // 玩家名字（仅玩家实体）
     }
 
     /// <summary>实体 id → 表现视图。</summary>
@@ -143,6 +144,24 @@ public class ClientDisplayManager : MonoBehaviour
         view.camp = info.camp;
         view.animator = go.GetComponentInChildren<Animator>();
         if (view.animator != null) view.anim = view.animator.GetComponent<EntityAnim>();
+
+        // 玩家名字（头顶文字，无血条；攻红守蓝）
+        if (info.type.category == EntityCategory.Character_Attack ||
+            info.type.category == EntityCategory.Character_Defense)
+        {
+            var labelGo = new GameObject("NameLabel");
+            labelGo.transform.SetParent(go.transform, false);
+            float yOffset = Tool.InfoManager != null ? Tool.InfoManager.GetEntityBarYOffset(info.type) : 2f;
+            labelGo.transform.localPosition = Vector3.up * yOffset;
+            var tm = labelGo.AddComponent<TextMesh>();
+            tm.text = $"玩家{info.ownerClientId}";
+            tm.fontSize = 64;
+            tm.characterSize = 0.08f;
+            tm.anchor = TextAnchor.LowerCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = info.camp == EntityCamp.Attack ? new Color(1f, 0.45f, 0.4f) : new Color(0.45f, 0.7f, 1f);
+            view.nameLabel = tm;
+        }
         return view;
     }
 
@@ -183,7 +202,16 @@ public class ClientDisplayManager : MonoBehaviour
                     break;
             }
         }
-        // TODO: 血条/头顶信息（BarPos）、Buff 表现（info.buffs）后续完善
+        // 动画移速载体（加速/减速/泥沼 = 移动状态播放速度）：完整同步时按 Buff 重算
+        if (info.includeRuntime && view.anim != null && info.buffs.Count > 0)
+        {
+            var types = new List<int>(info.buffs.Count);
+            foreach (var b in info.buffs)
+            {
+                if (b != null) types.Add(b.type);
+            }
+            view.anim.SetMoveSpeedScale(EntityEffectController.ComputeMoveAnimSpeedMultiplier(types));
+        }
     }
     #endregion
 }

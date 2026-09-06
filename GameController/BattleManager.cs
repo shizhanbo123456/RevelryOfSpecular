@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// 战斗管理器（服务器权威，客户端仅接收信息摘要做表现）。
 /// 核心移动/战斗内容都在服务器完成计算（架构说明总体原则）。
-/// 本类为框架：实体容器/玩家进出/输入接收/技能接收已就绪；具体战斗规则（移动、子弹、守护点减伤、分数、昼夜、复活）标 TODO。
+/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；瘟疫树/防御塔/僵尸/AI 的攻击与行动暂留空。
 /// </summary>
 public partial class BattleManager : EnsBehaviour
 {
@@ -153,16 +153,23 @@ public partial class BattleManager : EnsBehaviour
         return id;
     }
 
+    /// <summary>开始战斗时重置 id 源（每次开战从 1 重新分配）。</summary>
+    private void ResetEntityIdSource() => nextEntityId = 1;
+
     private ushort AllocEntityId()
     {
-        // 服务器实体 id 自增，0 保留；回绕后跳过已占用（TODO 简单实现，上限后从 100 重新分配）
+        // 服务器实体 id 自增，0 保留；超过上限 30000 回绕到 1（跳过已占用）
         do
         {
             nextEntityId++;
-            if (nextEntityId == 0) nextEntityId = Config.entity_id_rollback_start;
+            if (nextEntityId > Config.entity_id_max) nextEntityId = 1;
         } while (EntityContainer.Entities.Contains(nextEntityId));
         return nextEntityId;
     }
+
+    /// <summary>按 id 取实体（不存在返回 null）。</summary>
+    public static EntityData GetEntity(ushort id) =>
+        EntityContainer.Entities.TryGetObject(id, out var e) ? e : null;
 
     /// <summary>销毁实体（服务器）。</summary>
     public bool DestroyEntity(ushort id)
@@ -362,58 +369,15 @@ public partial class BattleManager : EnsBehaviour
         return remaining * (1f + Config.kill_score_factor * DefenseKills);
     }
 
-    /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
-    private void UpdateAI()
-    {
-        foreach (var entity in EntityContainer.Entities)
-        {
-            if (entity == null || !entity.Alive) continue;
-            if (EntityOwnerClient.ContainsKey(entity.id)) continue; // 跳过真人玩家
-            if (entity.type.category != EntityCategory.Character_Attack &&
-                entity.type.category != EntityCategory.Character_Defense) continue;
-            if (entity.skillController == null) continue;
-
-            var target = EntityContainer.GetNearestEnemy(entity);
-            if (target == null) continue; // 无目标：站立
-
-            foreach (var skillId in entity.skillController.GetSkillIds())
-            {
-                if (entity.skillController.GetCdRemain(skillId) > 0f) continue;
-                if (entity.skillController.GetStore(skillId) == 0) continue;
-                entity.skillController.TryUseSkill(skillId, target.transform.position);
-                break;
-            }
-        }
-    }
-
-    /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
-    public void AddBeaconDamage(float damage)
-    {
-        AttackScore += damage;
-    }
-
-    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
-    public float DefenseScore()
-    {
-        float remaining = 0f;
-        foreach (var beacon in EntityContainer.Beacons)
-        {
-            if (beacon != null && beacon.floatingAttribute != null) remaining += beacon.floatingAttribute.health;
-        }
-        return remaining * (1f + Config.kill_score_factor * DefenseKills);
-    }
     #endregion
 
     #region 输入与技能接收（服务器）
-    /// <summary>接收客户端输入命令（服务器，由 NetworkManager RPC 回调）。</summary>
+    /// <summary>接收客户端输入命令（服务器，由 NetworkManager RPC 回调）：权威移动与动作触发见 BattleManagerCombat。</summary>
     public void ReceiveInputCommand(short clientId, CSInputCommand command)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-
-        // TODO: 服务器权威移动/近战/滑铲/滚轮选技能/朝向在此计算
-        entity.transform.rotation = Quaternion.Euler(0f, command.yaw, 0f);
-        // TODO: 服务器权威移动/近战/滑铲/跳跃在此计算（位移由动画状态机根运动驱动）
+        RecordInput(entity, command);
     }
 
     /// <summary>接收客户端技能释放请求（服务器，由 NetworkManager RPC 回调）。</summary>
@@ -444,11 +408,11 @@ public partial class BattleManager : EnsBehaviour
     /// 发射子弹（服务器伤害侧；客户端经表现侧同步）。
     /// attack 为攻击数据（近战与子弹共用，含破霸体等，见策划案 12.1）；
     /// trajectory 为弹道轨迹（BulletTrajectory 基类，各实现见 Bullet 文件夹）。
-    /// TODO：BulletContainer 完整实现（位置推进/命中检测/伤害结算）待后续完善。
+    /// 实现见 BattleManagerCombat（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)）。
     /// </summary>
     public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime)
     {
-        // TODO: 生成 Bullet{ attack, trajectory, lifeTime, spawnTime = Time.time } 记录入 BulletContainer，ManagedUpdate 中推进与命中检测
+        AddBullet(attack, trajectory, lifeTime);
     }
     #endregion
 
@@ -460,6 +424,10 @@ public partial class BattleManager : EnsBehaviour
         BattleStarted = true;
         BattleRemainTime = Config.battle_duration;
         if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
+
+        // 开战重置：id 源置零、子弹/移动/复活/重生状态清空
+        ResetEntityIdSource();
+        ClearBattleState();
 
         // 玩家实体：按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色
         foreach (var pair in PlayerInfoList)
@@ -474,6 +442,7 @@ public partial class BattleManager : EnsBehaviour
             ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
+            GetEntity(entityId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
 
             Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
             {
@@ -490,15 +459,19 @@ public partial class BattleManager : EnsBehaviour
         // AI 玩家实体：与真人判定完全一致（策划案 17.1），暂用各队 0 号角色（TODO：AI 角色配置）
         for (int i = 0; i < AttackAICount; i++)
         {
-            SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos((short)(-100 - i)), EntityCamp.Attack);
+            ushort aiId = SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos((short)(-100 - i)), EntityCamp.Attack);
+            GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
         }
         for (int i = 0; i < DefenseAICount; i++)
         {
-            SpawnEntity(EntityType.Defense(0), 1, Tool.InfoManager.DefenseSpawnPosition, EntityCamp.Defense);
+            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, Tool.InfoManager.DefenseSpawnPosition, EntityCamp.Defense);
+            GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
         }
 
+        // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
+        SpawnBattleWorld();
+
         BroadcastRoomInfo();
-        // TODO: 生成守护点×4 / 水晶 / 防御塔 / 瘟疫树 / 僵尸刷新生效 / 全局参数被动一次性计算
         Debug.Log($"战斗开始：人类 {PlayerInfoList.Count}，AI {AttackAICount + DefenseAICount}");
     }
 
@@ -557,7 +530,13 @@ public partial class BattleManager : EnsBehaviour
             if (entity != null) entity.OnUpdate();
         }
 
-        // 处理本帧死亡实体
+        // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与水晶重生
+        TickMovement();
+        TickBullets();
+        TickRevive();
+        TickWorldRespawn();
+
+        // 处理本帧死亡实体：摧毁单位（死亡即摧毁，复活时重建并回满，Buff 随之消失）
         if (EntityData.KilledList.Count > 0)
         {
             var killed = new List<EntityData>(EntityData.KilledList);
@@ -565,12 +544,7 @@ public partial class BattleManager : EnsBehaviour
             {
                 entity.OnKilled();
                 if (entity.camp == EntityCamp.Attack) DefenseKills++; // 防守方击杀数（得分公式用）
-                // TODO: 掉落/复活进度开始（死亡即摧毁单位，复活时重建并回满）
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
-                if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
-                {
-                    Tool.NetworkManager.SendReviveInfo(owner, new SCReviveInfo() { entityId = entity.id, deadCount = 1 });
-                }
+                HandleDeath(entity);
             }
             EntityData.ClearKilled();
         }
@@ -601,7 +575,7 @@ public partial class BattleManager : EnsBehaviour
                 if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
                 {
                     zombieRefreshProgress = 0f;
-                    // TODO: 刷新一只普通僵尸（出生点分散在道路/墓地/守护点外围，依赖僵尸实体生成与 AI 行为系统）
+                    SpawnZombie(); // 出生点分散在道路/墓地/守护点外围（LandscapeSpawns），攻击/行动暂留空
                 }
             }
         }
@@ -628,6 +602,7 @@ public partial class BattleManager : EnsBehaviour
                 // TODO: 可见距离/阵营视野过滤（15 章视野系统）
                 var info = entity.GetDisplayInfo();
                 info.includeRuntime = includeRuntime;
+                info.ownerClientId = EntityOwnerClient.TryGetValue(entity.id, out var oc) ? oc : (short)-1;
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
             }
         }

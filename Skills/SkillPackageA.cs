@@ -22,6 +22,7 @@ namespace Ros.Skill
 
     /// <summary>
     /// [E] 示例技能：扇形三连直射飞弹 + 一发天降轰炸（展示轨迹上下文体系的标准写法）。
+    /// 占用 id 999（正式技能 id 段见策划案第二十一章，0~48 武器 / 50~73 防守方角色）。
     ///
     /// 上下文约定（本技能自定义，无全局含义）：
     /// - ints[0] = 直射弹道数量 N；ints[1] = 天降弹道升空高度；
@@ -33,7 +34,7 @@ namespace Ros.Skill
     /// </summary>
     public class SkillFanShot : SkillBase
     {
-        public override int Id => 0;
+        public override int Id => 999;
         public override bool Ranged => true;
         public override bool HasWeaponDisplay => true;
         public override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;

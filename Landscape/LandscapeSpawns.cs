@@ -21,6 +21,9 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("防御塔位置列表（防御塔被摧毁后不会复活）")]
     public List<Vector3> towerSpawnPositions = new();
 
+    [Header("瘟疫树位置列表（中立争抢单位）")]
+    public List<Vector3> plagueTreeSpawnPositions = new();
+
     [Header("进攻方复活备选位置列表")]
     public List<Vector3> attackRevivePositions = new();
 

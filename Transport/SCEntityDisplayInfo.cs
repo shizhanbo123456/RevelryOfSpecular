@@ -35,6 +35,8 @@ namespace Ros.Transport
         public float animFrame;
         /// <summary>滚轮选中槽位下标（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;
+        /// <summary>所属客户端 id（非玩家实体 = -1；客户端据此显示玩家名字）。</summary>
+        public int ownerClientId = -1;
         /// <summary>当前 Buff 列表（部分表现需按 Buff 判断，如守护点减伤叠层/迷雾）。</summary>
         public List<BuffRuntime> buffs = new();
         /// <summary>技能槽列表（顺序即滚轮循环顺序；含装载技能与 CD 情况）。</summary>
@@ -86,6 +88,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.animId, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
             int buffCount = value.buffs?.Count ?? 0;
             if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
@@ -136,6 +139,7 @@ namespace Ros.Transport
                 animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
             int buffCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             for (int i = 0; i < buffCount; i++)

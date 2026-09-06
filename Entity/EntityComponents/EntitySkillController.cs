@@ -17,8 +17,8 @@ public class EntitySkillController
     /// <summary>滚轮当前选中下标（-1 无）。</summary>
     public int SelectedIndex { get; private set; } = -1;
 
-    /// <summary>CD 剩余时间（技能 id → 剩余秒）。</summary>
-    private readonly Dictionary<int, float> cdRemains = new();
+    /// <summary>CD 结束时间戳（技能 id → Time.time 时刻；时间戳惰性计算，不每帧推进）。</summary>
+    private readonly Dictionary<int, float> cdEndTimes = new();
 
     /// <summary>技能库存（技能 id → 剩余次数，-1 无限制）。</summary>
     private readonly Dictionary<int, int> stores = new();
@@ -30,26 +30,10 @@ public class EntitySkillController
     {
         owner = data;
         skillIds.Clear();
-        cdRemains.Clear();
+        cdEndTimes.Clear();
         stores.Clear();
         weaponExp.Clear();
         SelectedIndex = -1;
-    }
-
-    /// <summary>每帧推进 CD（具体技能效果判定 TODO）。</summary>
-    public void OnUpdate()
-    {
-        if (cdRemains.Count == 0) return;
-        var finished = new List<int>();
-        foreach (var pair in cdRemains)
-        {
-            cdRemains[pair.Key] = Mathf.Max(0f, pair.Value - Time.deltaTime);
-            if (cdRemains[pair.Key] <= 0f) finished.Add(pair.Key);
-        }
-        foreach (var id in finished)
-        {
-            cdRemains.Remove(id);
-        }
     }
 
     #region 技能列表管理
@@ -105,10 +89,19 @@ public class EntitySkillController
     #endregion
 
     #region CD 与库存
-    /// <summary>技能剩余 CD（秒）。</summary>
+    /// <summary>技能剩余 CD（秒，按结束时间戳惰性计算，过期条目顺带清理）。</summary>
     public float GetCdRemain(int skillId)
     {
-        return cdRemains.TryGetValue(skillId, out var cd) ? cd : 0f;
+        if (cdEndTimes.TryGetValue(skillId, out var end))
+        {
+            if (Time.time >= end)
+            {
+                cdEndTimes.Remove(skillId);
+                return 0f;
+            }
+            return end - Time.time;
+        }
+        return 0f;
     }
 
     /// <summary>技能总 CD（来自 SkillManager 配置）。</summary>
@@ -144,10 +137,10 @@ public class EntitySkillController
         AddWeaponExp(skillIds[index], amount);
     }
 
-    /// <summary>开始 CD（技能释放后由 SkillManager 回写）。</summary>
+    /// <summary>开始 CD（技能释放后由 SkillManager 回写；记录结束时间戳，不每帧推进）。</summary>
     public void StartCd(int skillId)
     {
-        cdRemains[skillId] = GetCdTotal(skillId);
+        cdEndTimes[skillId] = Time.time + GetCdTotal(skillId);
     }
 
     /// <summary>减少库存。</summary>

@@ -45,6 +45,9 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>碰撞体信息（判定柱：bottom~top，radius）。</summary>
     public EntityColliderInfo colliderInfo;
 
+    /// <summary>权威移动速度（米/秒，按 EntityAnimData.legHeight 换算；模型参数而非属性，不吃 Buff）。</summary>
+    [HideInInspector] public float moveSpeed = Config.base_move_speed;
+
     /// <summary>当前位移效果（null = 无）；SetMotion 设置并调用 Enter，时间到由 OnUpdate 调用 Exit。</summary>
     [HideInInspector] public MotionBase motion;
     /// <summary>位移效果产出的当前速度（服务器权威移动逻辑 TODO 中消费；无位移效果时为零）。</summary>
@@ -80,13 +83,33 @@ public abstract class EntityData : MonoBehaviour
         effectController.Init(this);
         skillController = new EntitySkillController();
         skillController.Init(this);
+
+        // 预制体/模板上的共用参数（判定柱、动画类型、腿高移速）：服务端模板与客户端模型参数一致
+        var animData = GetComponent<EntityAnimData>();
+        if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
+        if (animData != null)
+        {
+            colliderInfo = new EntityColliderInfo()
+            {
+                bottom = animData.Bottom,
+                top = animData.Top,
+                radius = animData.Radius,
+            };
+            moveSpeed = animData.legHeight > 0f
+                ? EntityAnimData.LegHeightToStandartRunSpeed(animData.legHeight)
+                : Config.base_move_speed;
+            GetComponentInChildren<EntityAnim>()?.SetType(animData.type);
+        }
+        else
+        {
+            moveSpeed = Config.base_move_speed;
+        }
     }
 
-    /// <summary>每帧更新（BattleManager 遍历调用）。</summary>
+    /// <summary>每帧更新（BattleManager 遍历调用）。技能 CD 为时间戳惰性计算，无需每帧推进。</summary>
     public virtual void OnUpdate()
     {
         effectController?.OnUpdate();
-        skillController?.OnUpdate();
         UpdateMotion();
     }
 
@@ -144,7 +167,7 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 命中判定入口（BulletContainer/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击，
-    /// 随后结算伤害（伤害公式 TODO：attack.rate × 力量/魔法，由调用方计算后传入 damage）。
+    /// 随后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好）。
     /// </summary>
     public void ProcessHit(AttackData attack, float damage)
     {

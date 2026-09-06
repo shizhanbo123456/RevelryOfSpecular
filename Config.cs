@@ -141,8 +141,26 @@ public static class Config
     #endregion
 
     #region 通用
-    /// <summary>实体 id 回绕起点（ChunkSearcher 管理物体、EnsNetworkObjectManager 的 id 源同规则）。</summary>
-    public const int entity_id_rollback_start = 100;
+    /// <summary>实体 id 上限（每次开始战斗时 id 源置零，超过上限从 1 重新分配，跳过已占用）。</summary>
+    public const int entity_id_max = 30000;
+    /// <summary>服务器权威移动速度（米/秒，暂定；客户端移动由动画状态机根运动表现，见策划案 10 章）。</summary>
+    public const float base_move_speed = 5f;
+    /// <summary>空手/近战基础攻击距离（米，暂定）。</summary>
+    public const float melee_range = 2f;
+    /// <summary>空手/近战基础攻击半径（判定，暂定）。</summary>
+    public const float melee_hit_radius = 0.6f;
+    /// <summary>跳跃持续时长（秒，暂定；到时落回 InAir=false）。</summary>
+    public const float jump_duration = 0.6f;
+    /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>
+    public const float anim_move_speed_up = 1.3f;
+    /// <summary>动画移动状态播放速度倍率——减速（载体：移动状态 Speed 参数）。</summary>
+    public const float anim_move_speed_down = 0.6f;
+    /// <summary>动画移动状态播放速度倍率——泥沼（教皇主动2 全场敌方减速）。</summary>
+    public const float anim_move_speed_mire = 0.5f;
+    /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
+    public const int zombie_variant_count = 21;
+    /// <summary>玩家初始攻击技能 id（暂定 = 疾风斩；每角色初始武器各不相同，待后续配置）。</summary>
+    public const int initial_skill_id = 0;
     /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
     #endregion

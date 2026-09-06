@@ -5,6 +5,7 @@ using UnityEngine;
 public class EntityAnim : MonoBehaviour
 {
     private const string key_characterType = "CharacterType";
+    private const string key_moveSpeed = "MoveSpeed";
     private const string key_spawn = "DoSpawn";
     private const string key_moving = "Moving";
     private const string key_inAir = "InAir";
@@ -138,6 +139,15 @@ public class EntityAnim : MonoBehaviour
     public void SetPaused(bool paused)
     {
         if (animator != null) animator.speed = paused ? 0f : 1f;
+    }
+
+    /// <summary>
+    /// 设置动画移动状态的播放速度倍率（加速/减速/泥沼的载体，见策划案 11.3）。
+    /// 移动状态的 Speed Parameter 绑定 MoveSpeed 参数（状态机资产侧配置）。
+    /// </summary>
+    public void SetMoveSpeedScale(float scale)
+    {
+        animator?.SetFloat(key_moveSpeed, scale);
     }
 
     public void DoSpawn()

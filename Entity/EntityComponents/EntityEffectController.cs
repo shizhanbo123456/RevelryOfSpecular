@@ -44,6 +44,11 @@ public enum EffectType
     Fog,                // 迷雾（苍白舞者大招）
     MinimapLost,        // 小地图失联（夜间进攻方）
 
+    // ---- 动画移速（载体 = 动画状态机移动状态播放速度，移速属性已删除，见策划案 11.3）----
+    AnimSpeedUp,        // 加速（激励弹）
+    AnimSlowDown,       // 减速（通用，破甲重弹）
+    Mire,               // 泥沼（教皇主动2，全场敌方）
+
     // ---- 特殊 ----
     YzCy,               // 愈战愈勇（增伤/减伤乘区，按层数）
     TowerBlaze,         // 灵火（塔攻击附加爆炸：攻击生成时查询）
@@ -253,6 +258,37 @@ public class EntityEffectController
 
     /// <summary>是否处于强制霸体（绝对霸体，如「死灵漫步」期间）。</summary>
     public bool HasSuperArmor() => HasEffect(EffectType.DeathStroll);
+
+    /// <summary>
+    /// 动画移动状态播放速度倍率（加速/减速/泥沼的载体，多个并存时连乘）。
+    /// 服务器与客户端共用：结果经 EntityAnim.SetMoveSpeedScale 应用到 Animator 的 MoveSpeed 参数。
+    /// </summary>
+    public float GetMoveAnimSpeedMultiplier()
+    {
+        float m = 1f;
+        if (HasEffect(EffectType.AnimSpeedUp)) m *= Config.anim_move_speed_up;
+        if (HasEffect(EffectType.AnimSlowDown)) m *= Config.anim_move_speed_down;
+        if (HasEffect(EffectType.Mire)) m *= Config.anim_move_speed_mire;
+        return m;
+    }
+
+    /// <summary>
+    /// 客户端：按同步来的 Buff 类型列表计算动画移速倍率（客户端无控制器，直接按类型换算）。
+    /// </summary>
+    public static float ComputeMoveAnimSpeedMultiplier(IEnumerable<int> buffTypes)
+    {
+        float m = 1f;
+        foreach (var t in buffTypes)
+        {
+            switch ((EffectType)t)
+            {
+                case EffectType.AnimSpeedUp: m *= Config.anim_move_speed_up; break;
+                case EffectType.AnimSlowDown: m *= Config.anim_move_speed_down; break;
+                case EffectType.Mire: m *= Config.anim_move_speed_mire; break;
+            }
+        }
+        return m;
+    }
     #endregion
 
     #region//每帧推进（只做两件事：到期移除、DoT/光环 tick）

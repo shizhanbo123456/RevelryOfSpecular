@@ -91,5 +91,7 @@ public static class SkillManager
         SkillPackageA.PackageManager.RegisterAll();
         SkillPackageB.PackageManager.RegisterAll();
         SkillPackageC.PackageManager.RegisterAll();
+        SkillPoolWeapons.RegisterAll();   // 武器技能 0~48（占位，效果待实现）
+        SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73（占位，效果待实现）
     }
 }
