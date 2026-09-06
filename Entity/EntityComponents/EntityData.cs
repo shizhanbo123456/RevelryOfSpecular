@@ -139,7 +139,7 @@ public abstract class EntityData : MonoBehaviour
         if (motion != null) return EndureType.Common;
         if (effectController != null && effectController.HasSuperArmor()) return EndureType.Super;
         var anim = GetComponentInChildren<EntityAnim>();
-        return anim != null ? anim.currentState.GetEndure() : EndureType.None;
+        return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 
     /// <summary>

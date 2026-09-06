@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EntityAnim : MonoBehaviour
@@ -57,19 +58,51 @@ public class EntityAnim : MonoBehaviour
     public Action<AttackType> onAttack;//动画中的攻击事件回调
     private Animator animator;
 
-    /// <summary>当前动画状态（由各触发方法维护，供服务器同步表现摘要 SCEntityDisplayInfo.animState）。</summary>
-    public AnimState currentState = AnimState.Motion;
+    /// <summary>
+    /// 当前状态大类（纯推送制：由各状态的 AnimEvent.OnStateEnter 回调驱动，
+    /// Do* 方法只负责写状态机参数/触发器，不直接改状态）。
+    /// </summary>
+    private AnimState currentState = AnimState.Motion;
+    public AnimState CurrentState
+    {
+        get=>currentState;
+        set
+        {
+            if (currentState == value) return;
+            OnStateChange?.Invoke(currentState, value);
+            currentState = value;
+        }
+    }
+    public Action<AnimState, AnimState> OnStateChange;
 
-    /// <summary>当前具体动画 id（Attack=AttackType / Motion=MotionType，其余 0；供 SCEntityDisplayInfo.animId）。</summary>
-    public int currentAnimId = (int)MotionType.Idle;
+    /// <summary>当前状态的编号（由 AnimEvent 推送，供 SCEntityDisplayInfo.animId 同步；-1 = 尚未进入任何已配置状态）。</summary>
+    private int currentAnimId = -1;
 
-    /// <summary>取当前动画状态、具体动画 id 与播放进度（归一化 0~1，供表现摘要同步）。</summary>
+    /// <summary>animId → AnimEvent 映射（Init 时从全部状态机行为构建，供客户端按编号定位状态脚本）。</summary>
+    private readonly Dictionary<int, AnimEvent> animEventMap = new Dictionary<int, AnimEvent>();
+
+    /// <summary>
+    /// AnimEvent 进入状态时回调（推送制状态追踪）。
+    /// 注意：OnStateEnter 在进入过渡的第一帧触发，即过渡开始即切换，不等混合完成。
+    /// </summary>
+    public void NotifyStateEnter(int animId, AnimState state)
+    {
+        currentAnimId = animId;
+        CurrentState = state;
+    }
+
+    /// <summary>按编号取状态机事件脚本（客户端收到同步的 animId 后定位用）。</summary>
+    public bool TryGetAnimEvent(int animId, out AnimEvent animEvent)
+    {
+        return animEventMap.TryGetValue(animId, out animEvent);
+    }
+
     public void GetDisplayAnim(out AnimState state, out int animId, out float normalizedTime)
     {
         state = currentState;
         animId = currentAnimId;
         normalizedTime = 0f;
-        if (animator != null)
+        if (animator != null && animator.layerCount > 0)
         {
             var st = animator.GetCurrentAnimatorStateInfo(0);
             normalizedTime = st.length > 0f ? Mathf.Repeat(st.normalizedTime, 1f) : 0f;
@@ -81,13 +114,20 @@ public class EntityAnim : MonoBehaviour
         this.onAttack = onAttack;
 
         animator = GetComponent<Animator>();
-        if (animator == null) 
-        { 
+        if (animator == null)
+        {
             Debug.LogError($"{gameObject.name}未挂载动画状态机");
             return;
         }
         var behaviours=animator.GetBehaviours<AnimEvent>();
-        foreach (var be in behaviours) be.Init(this,data);
+        animEventMap.Clear();
+        foreach (var be in behaviours)
+        {
+            be.Init(this,data);
+            if (be.AnimId < 0) continue; // 未配置编号的状态（如过渡用中转态）
+            if (!animEventMap.TryAdd(be.AnimId, be))
+                Debug.LogWarning($"{gameObject.name} 状态编号 {be.AnimId} 重复配置，后配置的覆盖检查：{be.name}");
+        }
     }
     public void SetType(CharcterAnimType type)
     {
@@ -102,57 +142,40 @@ public class EntityAnim : MonoBehaviour
 
     public void DoSpawn()
     {
-        currentState = AnimState.Spawn;
         animator.SetTrigger(key_spawn);
     }
     public void InAir(bool inAir)
     {
-        if (!inAir) currentState = AnimState.Motion;
-        if (inAir) currentAnimId = (int)MotionType.Jump;
         animator.SetBool(key_inAir, inAir);
     }
     public void Move(bool moving)
     {
-        currentState = AnimState.Motion;
-        currentAnimId = (int)(moving ? MotionType.Run : MotionType.Idle);
         animator.SetBool(key_moving, moving);
     }
     public void DoSlide(float last = 3f)
     {
-        currentState = AnimState.Motion;
-        currentAnimId = (int)MotionType.Slide;
         animator.SetBool(key_slide, true);
     }
     public void EndSlide()
     {
-        currentState = AnimState.Motion;
-        currentAnimId = (int)MotionType.Idle;
         animator.SetBool(key_slide,false);
         animator.SetTrigger(key_slideEnd);
     }
     public void Roll()
     {
-        currentState = AnimState.Motion;
-        currentAnimId = (int)MotionType.Roll;
         animator.SetTrigger(key_roll);
     }
     public void DoAttack(AttackType attack)
     {
-        currentState = AnimState.Attack;
-        currentAnimId = (int)attack;
         animator.SetInteger(key_attack, (int)attack);
         animator.SetTrigger(key_doAttack);
     }
     public void DoHit()
     {
-        currentState = AnimState.Hit;
-        currentAnimId = 0;
         animator.SetTrigger(key_hit);
     }
     public void DoDie()
     {
-        currentState = AnimState.Die;
-        currentAnimId = 0;
         animator.SetTrigger(key_die);
     }
 }
