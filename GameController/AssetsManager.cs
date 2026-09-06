@@ -27,7 +27,8 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> BeaconGraphics = new();
     /// <summary>水晶图形：下标 = 水晶类型（策划案第七章，4 种类型对应 4 类武器，见 Config.crystal_type_count）。</summary>
     public List<GameObject> CrystalGraphics = new();
-    public GameObject TowerGraphic;
+    /// <summary>防御塔（瘟疫孢子）图形：4 种外观，按塔实例编号 value 选用（4 座塔各配一种）。</summary>
+    public List<GameObject> TowerGraphics = new();
     public GameObject PlagueTreeGraphic;
     /// <summary>蘑菇图形（水晶被「蘑菇感染」后的形态，与水晶本质相同；多种外观，表现时随机选用一种）。</summary>
     public List<GameObject> MushroomGraphics = new();
@@ -87,7 +88,10 @@ public class AssetsManager : MonoBehaviour
                 // 下标 = 水晶类型（0~3 对应刀/长枪/枪械/魔法球）；越界时取末位兜底
                 if (CrystalGraphics.Count > 0) graphic = CrystalGraphics[Mathf.Clamp(type.value, 0, CrystalGraphics.Count - 1)];
                 break;
-            case EntityCategory.Tower: graphic = TowerGraphic; break;
+            case EntityCategory.Tower:
+                // 4 种外观按实例编号选用（Config.tower_count = 4）；配置不足时取模循环
+                if (TowerGraphics.Count > 0) graphic = TowerGraphics[type.value % TowerGraphics.Count];
+                break;
             case EntityCategory.PlagueTree: graphic = PlagueTreeGraphic; break;
             case EntityCategory.Mushroom:
                 // 蘑菇与水晶本质相同（type.value = 被感染水晶的类型），外观多种、表现随机选用
