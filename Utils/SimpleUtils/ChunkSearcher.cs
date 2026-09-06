@@ -20,6 +20,9 @@ public class ChunkSearcher<T> : IEnumerable<T>
     // 获取物体位置的委托
     private readonly Func<T, Vector3> _getPosition;
 
+    /// <summary>当前管理的物体总数。</summary>
+    public int Count => _allObjects.Count;
+
     /// <summary>
     /// 构造函数
     /// </summary>

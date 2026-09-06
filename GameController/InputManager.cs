@@ -25,6 +25,9 @@ public class InputManager : MonoBehaviour
     /// <summary>跳跃按下（本帧，K 键）。</summary>
     public static bool JumpPressed { get; private set; }
 
+    /// <summary>滑铲按下（本帧，左 Shift）。</summary>
+    public static bool SlidePressed { get; private set; }
+
     /// <summary>本帧按下的技能槽下标（-1 = 无；0~4 对应 U I O L H）。</summary>
     public static int SkillSlotPressed { get; private set; } = -1;
 
@@ -62,6 +65,7 @@ public class InputManager : MonoBehaviour
 
         MeleePressed = Input.GetKeyDown(Config.melee_key);
         JumpPressed = Input.GetKeyDown(Config.jump_key);
+        SlidePressed = Input.GetKeyDown(Config.slide_key);
 
         SkillSlotPressed = -1;
         for (int i = 0; i < Config.skill_slot_keys.Length; i++)
@@ -87,7 +91,7 @@ public class InputManager : MonoBehaviour
             moveDir = MoveInput,
             meleePressed = MeleePressed,
             jumpPressed = JumpPressed,
-            slidePressed = false, // 滑铲触发键待定
+            slidePressed = SlidePressed,
             aimPoint = AimPoint,
         };
         Tool.NetworkManager.SendInputCommand(command);

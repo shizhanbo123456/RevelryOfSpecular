@@ -27,10 +27,8 @@ public partial class BattleManager : EnsBehaviour
     private float syncTimer;
     private float detailsTimer;
     private float aiTimer;
-
-    private float syncTimer;
-    private float detailsTimer;
-    private float aiTimer;
+    /// <summary>夜间僵尸刷新 cd 进度（满 1 刷新一只并清零，见 Config.zombie_refresh_*）。</summary>
+    private float zombieRefreshProgress;
 
     #region 玩家进出与组队大厅
     /// <summary>客户端进场选角信息。</summary>
@@ -583,6 +581,29 @@ public partial class BattleManager : EnsBehaviour
         {
             aiTimer = 0.5f;
             UpdateAI();
+        }
+
+        // 夜间僵尸刷新（策划案第九章）：cd 进度满 1 → 刷新一只并清零；
+        // 僵尸数量达上限时不刷新且进度清零；白天/黄昏/黎明进度不增加
+        if (EnvironmentManager.CurrentPhase == 2) // 2 = 夜晚
+        {
+            int zombieCount = EntityContainer.Zombies.Count;
+            if (zombieCount >= Config.zombie_max)
+            {
+                zombieRefreshProgress = 0f;
+            }
+            else
+            {
+                // 越少越快：0 只 → 0.5/s，接近上限 → 0.05/s（线性插值）
+                float rate = Mathf.Lerp(Config.zombie_refresh_rate_fast, Config.zombie_refresh_rate_slow,
+                    (float)zombieCount / Config.zombie_max);
+                zombieRefreshProgress += UnityEngine.Time.deltaTime * rate;
+                if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
+                {
+                    zombieRefreshProgress = 0f;
+                    // TODO: 刷新一只普通僵尸（出生点分散在道路/墓地/守护点外围，依赖僵尸实体生成与 AI 行为系统）
+                }
+            }
         }
 
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；可见距离过滤 TODO）

@@ -70,8 +70,12 @@ public static class Config
     public const int zombie_max = 30;
     /// <summary>僵尸最大追击距离。</summary>
     public const float zombie_chase_range = 25f;
-    /// <summary>普通僵尸死亡后延迟刷新（秒，与"夜间定时刷新"的衔接待定）。</summary>
-    public const float zombie_respawn_delay = 20f;
+    /// <summary>夜间刷新 cd 进度增速——僵尸数为 0 时（每秒进度，越少越快）。</summary>
+    public const float zombie_refresh_rate_fast = 0.5f;
+    /// <summary>夜间刷新 cd 进度增速——僵尸数接近上限时（每秒进度）。</summary>
+    public const float zombie_refresh_rate_slow = 0.05f;
+    /// <summary>夜间刷新 cd 进度上限（达到即刷新一只并清零；僵尸数量达上限时不刷新且进度清零）。</summary>
+    public const float zombie_refresh_progress_max = 1f;
     #endregion
 
     #region 昼夜
@@ -107,7 +111,9 @@ public static class Config
     public const KeyCode melee_key = KeyCode.J;
     /// <summary>跳跃键。</summary>
     public const KeyCode jump_key = KeyCode.K;
-    /// <summary>滑铲持续时间（滑铲触发键待定，暂保留参数）。</summary>
+    /// <summary>滑铲键（左 Shift）。</summary>
+    public const KeyCode slide_key = KeyCode.LeftShift;
+    /// <summary>滑铲持续时间。</summary>
     public const float slide_duration = 0.6f;
     /// <summary>近战武器剑气射程上限（暂定）。</summary>
     public const float sword_qi_max_range = 8f;
