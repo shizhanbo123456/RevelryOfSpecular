@@ -253,6 +253,15 @@ public partial class NetworkManager : EnsBehaviour
     {
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
     }
+
+    /// <summary>
+    /// 广播"使用技能"（技能 id + 轨迹上下文）。
+    /// 客户端收到后按技能 id 调用 SkillManager.PlayVFX，用与服务器相同的构建函数从上下文重建轨迹播放表现。
+    /// </summary>
+    public void SendSkillCast(int skillId, TrajectoryContext context)
+    {
+        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Reliable, skillId, context);
+    }
     #endregion
 
     #region//[Rpc] 服务器侧接收（客户端 → 服务器）
@@ -356,6 +365,14 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (info == null) return;
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
+    }
+
+    /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>
+    [Rpc]
+    private void ClientUseSkillLocal(int skillId, TrajectoryContext context)
+    {
+        if (context == null) return;
+        SkillManager.PlayVFX(skillId, context);
     }
     #endregion
 }

@@ -163,7 +163,8 @@ public class EntitySkillController
     #region 释放
     /// <summary>
     /// 尝试释放技能（右键触发远程/施法类技能）。
-    /// 服务器权威：实际伤害/效果由 SkillManager.DoDamageActs 在服务器执行（TODO 技能包实现后生效）。
+    /// 服务器权威：SkillManager.DoDamageActs 执行伤害逻辑，技能内部通过 BroadcastSkillCast
+    /// 广播（技能 id + 轨迹上下文），客户端收到后用同一构建函数重建轨迹播放表现。
     /// </summary>
     public bool TryUseSkill(int skillId, Vector3 dest)
     {
@@ -172,7 +173,6 @@ public class EntitySkillController
         if (GetStore(skillId) == 0) return false;
 
         SkillManager.DoDamageActs(skillId, owner, dest);
-        SkillManager.PlayVFX(skillId, owner.transform.position, dest);
         StartCd(skillId);
         ConsumeStore(skillId);
         return true;

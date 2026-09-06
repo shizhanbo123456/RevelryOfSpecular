@@ -3,10 +3,19 @@ using UnityEngine;
 namespace Ros.Skill
 {
     /// <summary>
-    /// 技能基类（V0.8 技能统一模型）。
+    /// 技能基类（技能统一模型）。
     /// 三要素：武器显示（可选）/ 释放动作（可配置）/ 释放效果（必须）。
-    /// 服务器执行 DoDamageActs（伤害侧），客户端执行 PlayVFX（表现侧），两者必须一致。
-    /// 【TODO】技能包具体实现待后续完善，本类仅提供框架与工具。
+    ///
+    /// 【轨迹上下文体系】
+    /// 1. 服务器执行 DoDamageActs：计算并填装 TrajectoryContext（ints/vectors 完全无固定含义，
+    ///    由技能任意填充；每个上下文只服务一次释放）→ 调用自己的轨迹构建函数得到 BulletTrajectory
+    ///    → 用于服务器子弹逻辑（BattleManager.ShootBullet）→ 调用 BroadcastSkillCast 把
+    ///    (技能 id, 上下文) 通过"使用技能"RPC 广播给客户端。
+    /// 2. 客户端收到 (技能 id, 上下文) 后经 SkillManager.PlayVFX 调用本技能 PlayVFX(context)：
+    ///    用【同一个】轨迹构建函数重建轨迹 → BulletPlayer 播放特效。服务器与客户端显示逻辑因此完全相同。
+    /// 3. 约定：技能中要为该技能涉及的每一种轨迹写一个构建函数——传入 TrajectoryContext，
+    ///    传出 BulletTrajectory；函数内读取上下文中自己约定的下标段（多种轨迹各读各的，互不重叠）。
+    /// 4. 若技能需要向客户端传递额外信息（目标点/施放者 id 等），一律放入 TrajectoryContext 传递。
     /// </summary>
     public abstract class SkillBase
     {
@@ -28,11 +37,26 @@ namespace Ros.Skill
         /// <summary>释放动作（0=None，无施法动作弹幕可配置为 None 由武器直接发射）。</summary>
         public virtual EntityAnim.AttackType CastAnim => 0;
 
-        /// <summary>释放效果（必须）：服务器伤害侧。</summary>
+        /// <summary>
+        /// 释放效果（必须）：服务器伤害侧。
+        /// 实现内容：填装 TrajectoryContext → 构建轨迹 → ShootBullet 逻辑判定 → BroadcastSkillCast 广播。
+        /// dest 为玩家瞄准点（不需要目标位置的技能可忽略，客户端需要的参数请放入上下文）。
+        /// </summary>
         public abstract void DoDamageActs(EntityData entity, Vector3 dest);
 
-        /// <summary>释放效果（必须）：客户端表现侧。</summary>
-        public abstract void PlayVFX(Vector3 pos, Vector3 dest);
+        /// <summary>
+        /// 释放效果（必须）：客户端表现侧。
+        /// 用与服务器相同的轨迹构建函数从上下文重建轨迹，播放特效（BulletPlayer 等）。
+        /// </summary>
+        public abstract void PlayVFX(TrajectoryContext context);
+
+        /// <summary>
+        /// 服务器：广播"使用技能"RPC（技能 id + 轨迹上下文），客户端据此重建轨迹播放表现。
+        /// </summary>
+        protected static void BroadcastSkillCast(int skillId, TrajectoryContext context)
+        {
+            Tool.NetworkManager?.SendSkillCast(skillId, context);
+        }
 
         #region 通用工具（服务端/客户端共用，保证伤害与特效一致）
         /// <summary>以 pos→dest 为基准方向生成扇形终点（水平展开 spreadDeg）。</summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Ros.Skill;
+using Ros.Transport;
 using UnityEngine;
 
 /// <summary>
@@ -71,15 +72,15 @@ public static class SkillManager
         skill.DoDamageActs(entity, dest);
     }
 
-    /// <summary>表现侧（客户端执行）。</summary>
-    public static void PlayVFX(int id, Vector3 pos, Vector3 dest)
+    /// <summary>表现侧（客户端执行，收到"使用技能"RPC 后调用）。</summary>
+    public static void PlayVFX(int id, TrajectoryContext context)
     {
         if (!s_map.TryGetValue(id, out var skill))
         {
             Debug.LogWarning($"未知技能 id：{id}");
             return;
         }
-        skill.PlayVFX(pos, dest);
+        skill.PlayVFX(context);
     }
 
     /// <summary>程序集加载时注册所有技能包（技能包实现后自动生效）。</summary>
