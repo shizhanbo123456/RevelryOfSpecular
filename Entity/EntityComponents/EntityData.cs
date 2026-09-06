@@ -90,16 +90,31 @@ public abstract class EntityData : MonoBehaviour
         UpdateMotion();
     }
 
-    /// <summary>设置位移效果（替换已有效果时先对旧效果调用 Exit；设置时对新效果调用 Enter）。</summary>
+    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter）。</summary>
     public void SetMotion(MotionBase motion)
     {
-        if (this.motion != null) this.motion.Exit(this);
+        RemoveMotion();
         this.motion = motion;
         motionVelocity = motion != null ? motion.Enter(this, Vector3.zero) : Vector3.zero;
     }
 
+    /// <summary>移除位移效果（Exit + 清速度；破霸体命中/强控打断时调用）。</summary>
+    public void RemoveMotion()
+    {
+        if (motion == null) return;
+        motion.Exit(this);
+        motion = null;
+        motionVelocity = Vector3.zero;
+    }
+
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
     public bool MotionCanMove => motion == null || motion.canMove;
+
+    /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
+    public void SetAnimPaused(bool paused)
+    {
+        GetComponentInChildren<EntityAnim>()?.SetPaused(paused);
+    }
 
     /// <summary>位移效果每帧推进：时间到调用 Exit 并清除；否则 Update 产出本帧速度。</summary>
     private void UpdateMotion()
@@ -107,41 +122,72 @@ public abstract class EntityData : MonoBehaviour
         if (motion == null) return;
         if (Time.time >= motion.endTime)
         {
-            motion.Exit(this);
-            motion = null;
-            motionVelocity = Vector3.zero;
+            RemoveMotion();
             return;
         }
         motionVelocity = motion.Update(this, motionVelocity);
     }
 
     /// <summary>
-    /// 计算当前霸体等级（实时换算，不储存字段，见策划案 12.1）：
-    /// Buff 强制霸体（绝对霸体）优先；否则由当前动画状态换算（对应 Entity/Attribute/Endure.cs）。
+    /// 计算当前霸体等级（实时换算，不储存字段，见策划案 12.1）。
+    /// 优先级：被强控 → None（强控期间霸体失效）＞ 位移中 → Common（位移自带普通霸体，
+    /// 被破霸体命中时移除位移）＞ 强制霸体 Buff → Super ＞ 动画状态换算（Endure.cs）。
     /// </summary>
     public EndureType GetEndureLevel()
     {
+        if (effectController != null && effectController.IsActionBlocked()) return EndureType.None;
+        if (motion != null) return EndureType.Common;
         if (effectController != null && effectController.HasSuperArmor()) return EndureType.Super;
         var anim = GetComponentInChildren<EntityAnim>();
         return anim != null ? anim.currentState.GetEndure() : EndureType.None;
     }
 
     /// <summary>
-    /// 受伤计算（统一入口）。
-    /// 参数 damage 为最终伤害数值；触发死亡时进入 KilledEntities 由 BattleManager 统一处理。
-    /// TODO：护盾吸收/减伤/暴击等计算在此完善。
+    /// 命中判定入口（BulletContainer/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击，
+    /// 随后结算伤害（伤害公式 TODO：attack.rate × 力量/魔法，由调用方计算后传入 damage）。
     /// </summary>
-    public virtual void OnDamaged(float damage, EntityData attacker = null)
+    public void ProcessHit(AttackData attack, float damage)
+    {
+        EndureType endure = GetEndureLevel();
+        bool enterHit = endure == EndureType.None || (attack.breakEndure && endure == EndureType.Common);
+        if (enterHit)
+        {
+            RemoveMotion();  // 破霸体命中：打断位移
+            GetComponentInChildren<EntityAnim>()?.DoHit();
+        }
+        EntityData attacker = null;
+        if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
+        OnDamaged(damage, attacker);
+    }
+
+    /// <summary>
+    /// 受伤计算（统一入口）。触发死亡时进入 KilledEntities 由 BattleManager 统一处理。
+    /// 管线：护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤。
+    /// fixedDamage = true 表示固定数值伤害（DoT/反伤：吃护盾/减伤，不吃增减伤乘区）。
+    /// </summary>
+    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true)
     {
         if (floatingAttribute == null || !Alive) return;
         float finalDamage = damage;
         if (effectController != null)
         {
-            // TODO: 护盾吸收、守护点减伤等在此接入
-            finalDamage = Mathf.Max(0f, finalDamage - effectController.GetShieldAbsorb());
+            float shield = effectController.GetShieldAbsorb();
+            if (shield > 0f)
+            {
+                float absorbed = Mathf.Min(shield, finalDamage);
+                effectController.ConsumeShield(absorbed);
+                finalDamage -= absorbed;
+            }
             finalDamage *= 1f - effectController.GetDamageReduceRate();
+            if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
+        finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
+        if (attacker != null && canReflect && effectController != null)
+        {
+            float reflect = effectController.GetReflectDamage();
+            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
+        }
         if (floatingAttribute.health <= 0f)
         {
             if (!KilledEntities.Contains(this)) KilledEntities.Add(this);

@@ -165,12 +165,14 @@ public class EntitySkillController
     /// 尝试释放技能（右键触发远程/施法类技能）。
     /// 服务器权威：SkillManager.DoDamageActs 执行伤害逻辑，技能内部通过 BroadcastSkillCast
     /// 广播（技能 id + 轨迹上下文），客户端收到后用同一构建函数重建轨迹播放表现。
+    /// 沉默/强控期间无法释放。
     /// </summary>
     public bool TryUseSkill(int skillId, Vector3 dest)
     {
         if (skillId < 0) return false;
         if (GetCdRemain(skillId) > 0f) return false;
         if (GetStore(skillId) == 0) return false;
+        if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
 
         SkillManager.DoDamageActs(skillId, owner, dest);
         StartCd(skillId);

@@ -93,6 +93,13 @@ public class EntityAnim : MonoBehaviour
     {
         animator.SetInteger(key_characterType, (int)type);
     }
+
+    /// <summary>暂停/恢复动画播放（强控施加 = 速度置 0，当前攻击动画事件随之停止触发）。</summary>
+    public void SetPaused(bool paused)
+    {
+        if (animator != null) animator.speed = paused ? 0f : 1f;
+    }
+
     public void DoSpawn()
     {
         currentState = AnimState.Spawn;
