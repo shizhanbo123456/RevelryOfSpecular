@@ -13,39 +13,39 @@ public class BulletPlayer : MonoBehaviour
 
     private float createTime;
     private float oneMinusLifetime;
-    private BezierCurve curve;
+    private BulletTrajectory trajectory;
     private RotationMode rotation;
-    private void Init(BezierCurve curve, float lifeTime, RotationMode rotation)
+    private void Init(BulletTrajectory trajectory, float lifeTime, RotationMode rotation)
     {
         createTime = Time.time;
         oneMinusLifetime = 1f / lifeTime;
-        this.curve= curve;
-        transform.position=curve.Lerp(0);
+        this.trajectory = trajectory;
+        transform.position = trajectory.Lerp(0);
         this.rotation = rotation;
         if (rotation == RotationMode.Identity) transform.rotation = Quaternion.identity;
-        else if (rotation == RotationMode.CompleteTangent) transform.LookAt(curve.Lerp(1));
+        else if (rotation == RotationMode.CompleteTangent) transform.LookAt(trajectory.End);
     }
     private void Update()
     {
         float f = (Time.time - createTime) * oneMinusLifetime;
-        transform.position = curve.Lerp(f);
+        transform.position = trajectory.Lerp(f);
         if (rotation == RotationMode.Tangent)
         {
-            transform.LookAt(curve.Lerp(f + 0.02f));
+            transform.LookAt(trajectory.Lerp(f + 0.02f));
         }
         else if (rotation == RotationMode.Camera)
         {
             transform.rotation = Camera.main.transform.rotation;
         }
     }
-    public static void Create(GameObject vfx,BezierCurve curve,float lifeTime,RotationMode rotation=RotationMode.Constant)
+    public static void Create(GameObject vfx, BulletTrajectory trajectory, float lifeTime, RotationMode rotation = RotationMode.Constant)
     {
         BulletPlayer player;
-        if(!vfx.TryGetComponent(out player))
+        if (!vfx.TryGetComponent(out player))
         {
-            player=vfx.AddComponent<BulletPlayer>();
+            player = vfx.AddComponent<BulletPlayer>();
         }
-        player.Init(curve,lifeTime,rotation);
+        player.Init(trajectory, lifeTime, rotation);
         Destroy(player.gameObject, lifeTime);
     }
 }

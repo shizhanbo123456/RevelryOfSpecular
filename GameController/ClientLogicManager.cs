@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// 客户端逻辑管理器（客户端总控）。
-/// 统一处理服务器传回的各类内容并加以呈现（子管理器 Sub 后续按需拆分：实体表现/技能特效/技能使用等）。
+/// 本地玩家的技能槽/选中项/状态随实体表现摘要（SCEntityDisplayInfo）缓存。
 /// </summary>
 public class ClientLogicManager : MonoBehaviour
 {
@@ -14,16 +14,16 @@ public class ClientLogicManager : MonoBehaviour
 
     private void OnEnable()
     {
-        EventManager.AddEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
     }
 
     private void OnDisable()
     {
-        EventManager.RemoveEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
+        EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
     }
 
-    /// <summary>本地玩家技能运行时（服务器下发缓存）。</summary>
-    public SCSkillRuntimeInfo SkillRuntime { get; private set; }
+    /// <summary>本地玩家最近一次实体表现摘要（含技能槽/选中项/Buff）。</summary>
+    public SCEntityDisplayInfo LocalDisplay { get; private set; }
 
     /// <summary>本地玩家实体 id。</summary>
     public ushort LocalPlayerEntityId => NetworkManager.battleInfo != null ? NetworkManager.battleInfo.playerEntityId : (ushort)0;
@@ -36,15 +36,17 @@ public class ClientLogicManager : MonoBehaviour
     {
         get
         {
-            if (SkillRuntime == null || SkillRuntime.selectedIndex < 0) return -1;
-            var slot = SkillRuntime.Get(SkillRuntime.selectedIndex);
+            var d = LocalDisplay;
+            if (d == null || d.selectedIndex < 0 || d.selectedIndex >= d.skills.Count) return -1;
+            var slot = d.skills[d.selectedIndex];
             return slot != null ? slot.skillId : -1;
         }
     }
 
-    private void OnSkillRuntimeUpdate(SCSkillRuntimeInfo info)
+    private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
-        SkillRuntime = info;
+        if (info == null || LocalPlayerEntityId == 0 || info.entityId != LocalPlayerEntityId) return;
+        LocalDisplay = info;
     }
 
     /// <summary>本地玩家世界坐标（供 UI/瞄准使用）。</summary>

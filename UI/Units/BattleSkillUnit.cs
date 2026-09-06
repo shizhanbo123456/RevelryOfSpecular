@@ -76,8 +76,8 @@ public class BattleSkillUnit
         Root.Add(cdLabel);
     }
 
-    /// <summary>刷新槽位数据。</summary>
-    public void Refresh(SCSkillRuntimeInfo.SkillSlotRuntime slot, bool selected)
+    /// <summary>刷新槽位数据（来源：实体表现摘要的技能槽列表）。</summary>
+    public void Refresh(SCEntityDisplayInfo.SkillSlotRuntime slot, bool selected)
     {
         if (slot == null || slot.skillId < 0)
         {

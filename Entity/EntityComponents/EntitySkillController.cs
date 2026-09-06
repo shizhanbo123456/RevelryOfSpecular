@@ -178,24 +178,22 @@ public class EntitySkillController
         return true;
     }
 
-    /// <summary>组装服务器下发用的技能运行时信息。</summary>
-    public SCSkillRuntimeInfo GetRuntimeInfo()
+    /// <summary>填充实体表现摘要的技能槽列表与滚轮选中下标。</summary>
+    public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
-        var info = new SCSkillRuntimeInfo() { selectedIndex = SelectedIndex };
+        if (info == null) return;
+        info.selectedIndex = SelectedIndex;
         foreach (var skillId in skillIds)
         {
-            info.slots.Add(new SCSkillRuntimeInfo.SkillSlotRuntime()
+            info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
             {
                 skillId = skillId,
                 exp = GetWeaponExp(skillId),
                 cdRemain = GetCdRemain(skillId),
                 cdTotal = GetCdTotal(skillId),
                 store = GetStore(skillId),
-                ranged = SkillManager.IsRanged(skillId),
-                hasWeaponDisplay = SkillManager.HasWeaponDisplay(skillId),
             });
         }
-        return info;
     }
     #endregion
 }

@@ -25,6 +25,8 @@ public static class NoticeMessageMap
         { 14, "获得新武器" },
         { 15, "武器升级" },
         { 16, "守护点正在被攻击" },
+        { 17, "双方人数均需 > 0 才能开始（人类 + AI）" },
+        { 18, "尚有玩家未选择队伍" },
     };
 
     public static string Get(int id)

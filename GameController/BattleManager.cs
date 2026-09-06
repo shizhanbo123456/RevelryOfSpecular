@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Ros.Transport;
 using UnityEngine;
 
@@ -23,15 +24,20 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>本局剩余时间（秒）。</summary>
     public float BattleRemainTime { get; private set; }
 
-    #region 玩家信息（clientId → 信息）
+    #region 玩家进出与组队大厅
     /// <summary>客户端进场选角信息。</summary>
     public readonly Dictionary<short, CSPlayerInfo> PlayerInfoList = new();
-    /// <summary>客户端分配阵营。</summary>
+    /// <summary>客户端分配阵营（组队大厅中选择）。</summary>
     public readonly Dictionary<short, EntityCamp> PlayerCamp = new();
-    /// <summary>客户端 → 玩家实体 id。</summary>
+    /// <summary>客户端 → 玩家实体 id（对局开始后才有值）。</summary>
     public readonly Dictionary<short, ushort> PlayerEntityId = new();
     /// <summary>实体 id → 所属客户端（-1 = 非玩家实体）。</summary>
     public readonly Dictionary<ushort, short> EntityOwnerClient = new();
+
+    /// <summary>进攻方 AI 玩家数量（组队大厅中任意玩家可编辑，房间共享）。</summary>
+    public int AttackAICount { get; private set; }
+    /// <summary>防守方 AI 玩家数量。</summary>
+    public int DefenseAICount { get; private set; }
     #endregion
 
     #region 实体容器（按分类，ChunkSearcher 区块加速）
@@ -203,41 +209,13 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 玩家进出
-    /// <summary>玩家进场（服务器，由 NetworkManager RPC 回调）。</summary>
+    /// <summary>玩家进场（服务器，由 NetworkManager RPC 回调）：组队阶段只登记信息，不创建实体。</summary>
     public void AddPlayer(short clientId, CSPlayerInfo info)
     {
         if (PlayerInfoList.ContainsKey(clientId)) return;
         PlayerInfoList[clientId] = info;
-
-        // 阵营分配：按意向；防守方最多 1 人（TODO：匹配大厅已完成分配时直接采用）
-        EntityCamp camp = ResolveCamp(clientId, info.campIntention);
-        PlayerCamp[clientId] = camp;
-
-        // 创建玩家实体（客户端具体位置/出生点 TODO）
-        EntityType characterType = camp == EntityCamp.Attack
-            ? new EntityType(EntityCategory.Character_Attack, info.type.value)
-            : new EntityType(EntityCategory.Character_Defense, info.type.value);
-        Vector3 spawnPos = camp == EntityCamp.Attack
-            ? GetAttackSpawnPos(clientId)
-            : Tool.InfoManager.DefenseSpawnPosition;
-        ushort entityId = SpawnEntity(characterType, info.level, spawnPos, camp);
-        PlayerEntityId[clientId] = entityId;
-        EntityOwnerClient[entityId] = clientId;
-
-        // 发送开局信息 + 技能运行时（TODO：初始技能列表=初始武器，待技能包与配置完善）
-        var battleInfo = new SCBattleInfo()
-        {
-            playerEntityId = entityId,
-            camp = camp,
-            characterType = characterType,
-            characterLevel = info.level,
-            weaponSlotCount = Tool.InfoManager.GetAttributeInfo(characterType)?.baseAttribute.weaponSlotCount ?? Config.default_weapon_slot_count,
-            dayNightPhase = EnvironmentManager.CurrentPhase,
-            phaseTime = EnvironmentManager.PhaseTime,
-        };
-        Tool.NetworkManager.SendBattleInfo(clientId, battleInfo);
-        Tool.NetworkManager.SendSkillRuntime(clientId, new SCSkillRuntimeInfo() { selectedIndex = -1 });
-        Debug.Log($"玩家 {clientId} 进场：{characterType} camp={camp}");
+        BroadcastRoomInfo();
+        Debug.Log($"玩家 {clientId} 进入组队大厅");
     }
 
     /// <summary>玩家退场（服务器）。</summary>
@@ -250,19 +228,79 @@ public partial class BattleManager : EnsBehaviour
         }
         PlayerInfoList.Remove(clientId);
         PlayerCamp.Remove(clientId);
+        if (!BattleStarted) BroadcastRoomInfo();
         Debug.Log($"玩家 {clientId} 退场");
     }
 
-    private EntityCamp ResolveCamp(short clientId, int intention)
+    /// <summary>接收组队大厅状态更新（服务器，由 NetworkManager RPC 回调）。</summary>
+    public void ReceiveRoomUpdate(short clientId, CSRoomUpdate update)
     {
-        if (intention == 1) return EntityCamp.Defense;
-        if (intention == 0) return EntityCamp.Attack;
-        // 意向任意：检查防守方是否已满
-        foreach (var pair in PlayerCamp)
+        if (update == null || BattleStarted || !PlayerInfoList.ContainsKey(clientId)) return;
+
+        // 选队（0 进攻 / 1 防守；-1 = 未选择/取消）
+        if (update.camp == 0) PlayerCamp[clientId] = EntityCamp.Attack;
+        else if (update.camp == 1) PlayerCamp[clientId] = EntityCamp.Defense;
+        else PlayerCamp.Remove(clientId);
+
+        // AI 数量：房间共享，任意玩家可编辑，数量不限制
+        AttackAICount = Mathf.Max(0, update.attackAICount);
+        DefenseAICount = Mathf.Max(0, update.defenseAICount);
+
+        BroadcastRoomInfo();
+    }
+
+    /// <summary>接收开始对局请求（服务器，由 NetworkManager RPC 回调）。</summary>
+    public void ReceiveStartRequest(short clientId, CSStartRequest request)
+    {
+        if (request == null || BattleStarted) return;
+
+        // 校验：所有玩家已选队伍，且双方人数（人类 + AI）均 > 0
+        foreach (var pair in PlayerInfoList)
         {
-            if (pair.Value == EntityCamp.Defense) return EntityCamp.Attack;
+            if (!PlayerCamp.ContainsKey(pair.Key))
+            {
+                Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
+                {
+                    type = SCBattleEvent.Type.ShowText,
+                    sourceId = pair.Key,
+                    value = 18, // 尚有玩家未选择队伍
+                });
+                return;
+            }
         }
-        return EntityCamp.Attack; // TODO: 防守方自愿分配规则（近期担任次数）待匹配系统实现
+        if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) + AttackAICount <= 0 ||
+            PlayerCamp.Values.Count(c => c == EntityCamp.Defense) + DefenseAICount <= 0)
+        {
+            Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
+            {
+                type = SCBattleEvent.Type.ShowText,
+                sourceId = 0,
+                value = 17, // 双方人数均需 > 0
+            });
+            return;
+        }
+
+        StartBattle();
+    }
+
+    /// <summary>组装并广播当前房间状态。</summary>
+    private void BroadcastRoomInfo()
+    {
+        var info = new SCRoomInfo()
+        {
+            attackAICount = AttackAICount,
+            defenseAICount = DefenseAICount,
+            battleStarted = BattleStarted,
+        };
+        foreach (var pair in PlayerInfoList)
+        {
+            info.members.Add(new SCRoomInfo.RoomMemberInfo()
+            {
+                clientId = pair.Key,
+                camp = PlayerCamp.TryGetValue(pair.Key, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1,
+            });
+        }
+        Tool.NetworkManager.SendRoomInfo(info);
     }
 
     private Vector3 GetAttackSpawnPos(short clientId)
@@ -285,7 +323,7 @@ public partial class BattleManager : EnsBehaviour
         if (command.skillScrollDelta != 0 && entity.skillController != null)
         {
             entity.skillController.ScrollSelect(command.skillScrollDelta);
-            Tool.NetworkManager.SendSkillRuntime(clientId, entity.skillController.GetRuntimeInfo());
+            // 选中变化随实体表现摘要（selectedIndex）同步，无需单独通道
         }
     }
 
@@ -308,16 +346,17 @@ public partial class BattleManager : EnsBehaviour
             return;
         }
         entity.skillController.TryUseSkill(request.skillId, request.dest);
-        Tool.NetworkManager.SendSkillRuntime(clientId, entity.skillController.GetRuntimeInfo());
+        // CD/库存变化随实体表现摘要（skills 列表）同步，无需单独通道
     }
     #endregion
 
     #region 子弹（统一攻击实体）
     /// <summary>
     /// 发射子弹（服务器伤害侧；客户端经表现侧同步）。
+    /// trajectory 为弹道轨迹（BulletTrajectory 基类，贝塞尔等具体实现见 Bullet 文件夹）。
     /// TODO：BulletContainer 完整实现（位置推进/命中检测/伤害结算）待后续完善。
     /// </summary>
-    public void ShootBullet(EntityData shooter, float rate, BezierCurve curve, float radius, float lifeTime,
+    public void ShootBullet(EntityData shooter, float rate, BulletTrajectory trajectory, float radius, float lifeTime,
         Damageable.IDamageable damageable, System.Action<System.Action<EntityEffectController.EffectType, int, float>> addEffectEvent)
     {
         // TODO: 生成 Bullet 记录入 BulletContainer，ManagedUpdate 中推进与命中检测
@@ -325,15 +364,53 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 战斗规则（TODO：完整实现）
-    /// <summary>开局（服务器）。</summary>
+    /// <summary>开局（服务器）：生成全部玩家/AI 实体，下发开局信息。</summary>
     public void StartBattle()
     {
         if (BattleStarted) return;
         BattleStarted = true;
         BattleRemainTime = Config.battle_duration;
         if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
+
+        // 玩家实体：按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色
+        foreach (var pair in PlayerInfoList)
+        {
+            short clientId = pair.Key;
+            if (!PlayerCamp.TryGetValue(clientId, out var camp)) continue;
+            bool isAttack = camp == EntityCamp.Attack;
+            EntityType characterType = isAttack ? pair.Value.attackCharacter : pair.Value.defenseCharacter;
+            int level = isAttack ? pair.Value.attackLevel : pair.Value.defenseLevel;
+            Vector3 spawnPos = isAttack ? GetAttackSpawnPos(clientId) : Tool.InfoManager.DefenseSpawnPosition;
+
+            ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
+            PlayerEntityId[clientId] = entityId;
+            EntityOwnerClient[entityId] = clientId;
+
+            Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
+            {
+                playerEntityId = entityId,
+                camp = camp,
+                characterType = characterType,
+                characterLevel = level,
+                dayNightPhase = EnvironmentManager.CurrentPhase,
+                phaseTime = EnvironmentManager.PhaseTime,
+            });
+            Debug.Log($"玩家 {clientId} 出战：{characterType} camp={camp}");
+        }
+
+        // AI 玩家实体：与真人判定完全一致（策划案 17.1），暂用各队 0 号角色（TODO：AI 角色配置）
+        for (int i = 0; i < AttackAICount; i++)
+        {
+            SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos((short)(-100 - i)), EntityCamp.Attack);
+        }
+        for (int i = 0; i < DefenseAICount; i++)
+        {
+            SpawnEntity(EntityType.Defense(0), 1, Tool.InfoManager.DefenseSpawnPosition, EntityCamp.Defense);
+        }
+
+        BroadcastRoomInfo();
         // TODO: 生成守护点×4 / 水晶 / 防御塔 / 瘟疫树 / 僵尸刷新生效 / 全局参数被动一次性计算
-        Debug.Log("战斗开始");
+        Debug.Log($"战斗开始：人类 {PlayerInfoList.Count}，AI {AttackAICount + DefenseAICount}");
     }
 
     /// <summary>结束对局（服务器，gameState 见 SCScoreInfo）。</summary>

@@ -129,30 +129,23 @@ public class BattlePage : PageBase
 
     public override void OnEnable()
     {
-        EventManager.AddEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
-        EventManager.AddEvent<SCBeaconInfo>(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
+        EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
 
-        // 开局信息立即应用
+        // 开局信息立即应用（守护点/技能槽随实体表现摘要到达后刷新）
         battleStartTime = Time.time;
         if (NetworkManager.battleInfo != null)
         {
-            OnSkillRuntimeUpdate(new SCSkillRuntimeInfo() { selectedIndex = -1 });
-            foreach (var beacon in NetworkManager.battleInfo.beacons)
-            {
-                OnBeaconHealthUpdate(beacon);
-            }
             phaseLabel.text = PhaseNames[Mathf.Clamp(NetworkManager.battleInfo.dayNightPhase, 0, PhaseNames.Length - 1)];
         }
     }
 
     public override void OnDisable()
     {
-        EventManager.RemoveEvent<SCSkillRuntimeInfo>(ClientEvent.OnSkillRuntimeUpdate, OnSkillRuntimeUpdate);
-        EventManager.RemoveEvent<SCBeaconInfo>(ClientEvent.OnBeaconHealthUpdate, OnBeaconHealthUpdate);
+        EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
@@ -180,31 +173,44 @@ public class BattlePage : PageBase
     }
 
     #region 事件处理
-    private void OnSkillRuntimeUpdate(SCSkillRuntimeInfo info)
+    /// <summary>实体表现摘要：守护点 → 右侧 HUD；本地玩家 → 底部技能栏。</summary>
+    private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
-        if (info == null || skillBar == null) return;
+        if (info == null) return;
+        if (info.type.category == EntityCategory.Beacon)
+        {
+            OnBeaconDisplay(info);
+        }
+        else if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
+        {
+            OnLocalSkillBarUpdate(info);
+        }
+    }
+
+    private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
+    {
+        if (skillBar == null) return;
         // 重建槽位（数量变化时）
-        while (skillSlots.Count < info.slots.Count)
+        while (skillSlots.Count < info.skills.Count)
         {
             var unit = new BattleSkillUnit();
             skillSlots.Add(unit);
             skillBar.Add(unit.Root);
         }
-        while (skillSlots.Count > info.slots.Count)
+        while (skillSlots.Count > info.skills.Count)
         {
             var last = skillSlots[skillSlots.Count - 1];
             skillSlots.RemoveAt(skillSlots.Count - 1);
             skillBar.Remove(last.Root);
         }
-        for (int i = 0; i < info.slots.Count; i++)
+        for (int i = 0; i < info.skills.Count; i++)
         {
-            skillSlots[i].Refresh(info.slots[i], i == info.selectedIndex);
+            skillSlots[i].Refresh(info.skills[i], i == info.selectedIndex);
         }
     }
 
-    private void OnBeaconHealthUpdate(SCBeaconInfo info)
+    private void OnBeaconDisplay(SCEntityDisplayInfo info)
     {
-        if (info == null) return;
         if (!beaconBars.TryGetValue(info.entityId, out var unit))
         {
             unit = new BeaconBarUnit();
@@ -212,7 +218,7 @@ public class BattlePage : PageBase
             beaconBars[info.entityId] = unit;
         }
         unit.Root.style.display = DisplayStyle.Flex;
-        if (info.destroyed) unit.SetDestroyed();
+        if (info.health <= 0) unit.SetDestroyed();
         else unit.Refresh(info);
     }
 

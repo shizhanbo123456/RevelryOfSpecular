@@ -118,8 +118,34 @@ public abstract class EntityData : MonoBehaviour
         effectController?.Clear();
     }
 
-    /// <summary>组装服务器→客户端的实体表现摘要。</summary>
-    public abstract SCEntityDisplayInfo GetDisplayInfo();
+    /// <summary>
+    /// 组装服务器→客户端的实体表现摘要（默认实现覆盖公共字段 + Buff + 技能槽 + 动画状态；
+    /// 子类可 override 补充特殊数据）。
+    /// </summary>
+    public virtual SCEntityDisplayInfo GetDisplayInfo()
+    {
+        var info = new SCEntityDisplayInfo()
+        {
+            entityId = id,
+            type = type,
+            camp = camp,
+            position = transform.position,
+            yaw = transform.eulerAngles.y,
+            health = floatingAttribute != null ? (int)floatingAttribute.health : 0,
+            maxHealth = floatingAttribute != null ? (int)floatingAttribute.maxHealth : 0,
+        };
+        var anim = GetComponentInChildren<EntityAnim>();
+        if (anim != null)
+        {
+            anim.GetDisplayAnim(out var state, out var animId, out var frame);
+            info.animState = (int)state;
+            info.animId = animId;
+            info.animFrame = frame;
+        }
+        effectController?.FillDisplayInfo(info);
+        skillController?.FillDisplayInfo(info);
+        return info;
+    }
 
     /// <summary>子弹发射位置（基于碰撞体 top）。</summary>
     public Vector3 BulletShootPos()

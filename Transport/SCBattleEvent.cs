@@ -13,8 +13,11 @@ namespace Ros.Transport
         {
             public const byte Kill = 0;
             public const byte BeaconDestroyed = 1;
+            /// <summary>水晶/未被感染的蘑菇被摧毁且有产出（正常资源收益）。</summary>
             public const byte CrystalCollected = 2;
+            /// <summary>水晶被摧毁但无产出（被「蘑菇感染」的水晶被进攻方摧毁）。</summary>
             public const byte CrystalBroken = 3;
+            /// <summary>水晶被施加「蘑菇感染」变为蘑菇形态（鹿铠怪人主动2）。</summary>
             public const byte Mushroomized = 4;
             public const byte TowerDestroyed = 5;
             public const byte PlagueTreeCaptured = 6;

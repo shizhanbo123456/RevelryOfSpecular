@@ -52,14 +52,24 @@ public class BeaconBarUnit
         Root.Add(shieldLabel);
     }
 
-    /// <summary>刷新守护点数据。</summary>
-    public void Refresh(SCBeaconInfo info)
+    /// <summary>刷新守护点数据（来源：实体表现摘要；减伤叠层按 Buff 判断）。</summary>
+    public void Refresh(SCEntityDisplayInfo info)
     {
         if (info == null) return;
         nameLabel.text = info.type == EntityType.CoreBeacon ? "中心守护点" : $"外围守护点 {info.type.value}";
         healthLabel.text = $"{info.health}/{info.maxHealth}";
         fill.style.width = Length.Percent(Mathf.Clamp01(info.maxHealth > 0 ? (float)info.health / info.maxHealth : 0f) * 100f);
-        shieldLabel.text = info.shieldLayer > 0 ? $"减伤叠层 ×{info.shieldLayer}" : "";
+
+        // 减伤叠层 = 「守护点减伤」Buff 的等级（守护点数量分层机制/教皇守护）
+        int shieldLayer = 0;
+        foreach (var buff in info.buffs)
+        {
+            if (buff != null && buff.type == (int)EntityEffectController.EffectType.BeaconDamageReduce)
+            {
+                shieldLayer = Mathf.Max(shieldLayer, buff.level);
+            }
+        }
+        shieldLabel.text = shieldLayer > 0 ? $"减伤叠层 ×{shieldLayer}" : "";
     }
 
     /// <summary>守护点被摧毁时置灰。</summary>

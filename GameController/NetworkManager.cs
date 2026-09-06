@@ -162,12 +162,13 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientSendInfo()
     {
         if (!tryingEnterWorld) return;
+        // 双方角色各自选择并随 CSPlayerInfo 上报；阵营完全在房间内确定，服务器按最终阵营取对应一侧
         var info = new CSPlayerInfo()
         {
-            type = ClientSelection.SelectionToEntityType(ClientSelection.selectedCharacterIndex),
-            level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedCharacterIndex) : 1,
-            campIntention = ClientSelection.campIntention,
-            playerLevel = Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1,
+            attackCharacter = EntityType.Attack(Mathf.Clamp(ClientSelection.selectedAttackIndex, 0, Config.attack_character_count - 1)),
+            attackLevel = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedAttackIndex) : 1,
+            defenseCharacter = EntityType.Defense(Mathf.Clamp(ClientSelection.selectedDefenseIndex, 0, Config.defense_character_count - 1)),
+            defenseLevel = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex) : 1,
         };
         CallFuncRpc(ServerReceivePlayerInfoLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
     }
@@ -186,6 +187,20 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveUseSkillLocal, SendTo.RoomOwner, Delivery.Strive, request, EnsInstance.LocalClientId);
+    }
+
+    /// <summary>发送组队大厅状态更新（选队 / AI 数量）。</summary>
+    public void SendRoomUpdate(CSRoomUpdate update)
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveRoomUpdateLocal, SendTo.RoomOwner, Delivery.Reliable, update, EnsInstance.LocalClientId);
+    }
+
+    /// <summary>发送开始对局请求。</summary>
+    public void SendStartRequest()
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveStartRequestLocal, SendTo.RoomOwner, Delivery.Reliable, new CSStartRequest(), EnsInstance.LocalClientId);
     }
     #endregion
 
@@ -221,18 +236,6 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
     }
 
-    /// <summary>发送技能运行时（定向）。</summary>
-    public void SendSkillRuntime(short clientId, SCSkillRuntimeInfo info)
-    {
-        CallFuncRpc(ClientReceiveSkillRuntimeLocal, SendTo.To(clientId), Delivery.Reliable, info);
-    }
-
-    /// <summary>发送守护点血量（定向或广播）。</summary>
-    public void SendBeaconInfo(short clientId, SCBeaconInfo info)
-    {
-        CallFuncRpc(ClientReceiveBeaconInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
-    }
-
     /// <summary>发送分数（定向）。</summary>
     public void SendScoreInfo(short clientId, SCScoreInfo info)
     {
@@ -243,6 +246,12 @@ public partial class NetworkManager : EnsBehaviour
     public void SendReviveInfo(short clientId, SCReviveInfo info)
     {
         CallFuncRpc(ClientReceiveReviveInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送房间状态（全房间广播）。</summary>
+    public void SendRoomInfo(SCRoomInfo info)
+    {
+        CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
     }
     #endregion
 
@@ -273,6 +282,20 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveExitWorldLocal(short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.RemovePlayer(clientId);
+    }
+
+    /// <summary>服务器：接收组队大厅状态更新（选队 / AI 数量）。</summary>
+    [Rpc]
+    private void ServerReceiveRoomUpdateLocal(CSRoomUpdate update, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveRoomUpdate(clientId, update);
+    }
+
+    /// <summary>服务器：接收开始对局请求。</summary>
+    [Rpc]
+    private void ServerReceiveStartRequestLocal(CSStartRequest request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveStartRequest(clientId, request);
     }
     #endregion
 
@@ -311,22 +334,6 @@ public partial class NetworkManager : EnsBehaviour
         EventManager.TrigEvent(ClientEvent.OnBattleEvent, e);
     }
 
-    /// <summary>客户端：接收技能运行时。</summary>
-    [Rpc]
-    private void ClientReceiveSkillRuntimeLocal(SCSkillRuntimeInfo info)
-    {
-        if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnSkillRuntimeUpdate, info);
-    }
-
-    /// <summary>客户端：接收守护点血量。</summary>
-    [Rpc]
-    private void ClientReceiveBeaconInfoLocal(SCBeaconInfo info)
-    {
-        if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnBeaconHealthUpdate, info);
-    }
-
     /// <summary>客户端：接收分数。</summary>
     [Rpc]
     private void ClientReceiveScoreInfoLocal(SCScoreInfo info)
@@ -341,6 +348,14 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (info == null) return;
         EventManager.TrigEvent(ClientEvent.OnReviveProgressUpdate, info);
+    }
+
+    /// <summary>客户端：接收房间状态（组队大厅）。</summary>
+    [Rpc]
+    private void ClientReceiveRoomInfoLocal(SCRoomInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
     }
     #endregion
 }

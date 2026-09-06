@@ -48,6 +48,9 @@ public class ClientDisplayManager : MonoBehaviour
         }
         ApplyDisplay(view, info);
 
+        // 转发给 UI/逻辑层（守护点 HUD、本地玩家技能栏等据此刷新）
+        EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+
         // 本地玩家：绑定相机跟随
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
@@ -125,20 +128,39 @@ public class ClientDisplayManager : MonoBehaviour
         view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
+        // 表现完全由服务器下发的动画状态驱动（animState + animId + animFrame）
         if (view.anim != null)
         {
-            view.anim.Move(info.moving && !info.dead);
-            view.anim.InAir(info.inAir);
-            if (info.sliding) view.anim.DoSlide();
-            if (info.attackType > 0) view.anim.DoAttack((EntityAnim.AttackType)info.attackType);
-            if (info.dead) view.anim.DoDie();
+            var state = (EntityAnim.AnimState)info.animState;
+            switch (state)
+            {
+                case EntityAnim.AnimState.Spawn:
+                    view.anim.DoSpawn();
+                    break;
+                case EntityAnim.AnimState.Attack:
+                    view.anim.DoAttack((EntityAnim.AttackType)info.animId);
+                    break;
+                case EntityAnim.AnimState.Hit:
+                    view.anim.DoHit();
+                    break;
+                case EntityAnim.AnimState.Die:
+                    view.anim.DoDie();
+                    break;
+                case EntityAnim.AnimState.Motion:
+                default:
+                    switch ((EntityAnim.MotionType)info.animId)
+                    {
+                        case EntityAnim.MotionType.Run: view.anim.Move(true); break;
+                        case EntityAnim.MotionType.Jump: view.anim.InAir(true); break;
+                        case EntityAnim.MotionType.Slide: view.anim.DoSlide(); break;
+                        case EntityAnim.MotionType.Roll: view.anim.Roll(); break;
+                        case EntityAnim.MotionType.Idle:
+                        default: view.anim.Move(false); break;
+                    }
+                    break;
+            }
         }
-        else if (view.animator != null)
-        {
-            view.animator.SetBool("Moving", info.moving && !info.dead);
-            if (info.dead) view.animator.SetTrigger("Death");
-        }
-        // TODO: 血条/头顶信息（BarPos）表现后续完善
+        // TODO: 血条/头顶信息（BarPos）、Buff 表现（info.buffs）后续完善
     }
     #endregion
 }

@@ -147,6 +147,21 @@ public class EntityEffectController
         return effects.TryGetValue(type, out var runtime) ? runtime.remainTime : 0f;
     }
 
+    /// <summary>填充实体表现摘要的 Buff 列表（客户端表现判断用）。</summary>
+    public void FillDisplayInfo(SCEntityDisplayInfo info)
+    {
+        if (info == null) return;
+        foreach (var pair in effects)
+        {
+            info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
+            {
+                type = (int)pair.Value.type,
+                level = pair.Value.level,
+                remainTime = pair.Value.remainTime,
+            });
+        }
+    }
+
     #region//Local 查询接口（具体计算 TODO）
     /// <summary>护盾吸收量（TODO：按 Shield 效果等级计算）。</summary>
     public float GetShieldAbsorb() => 0f;

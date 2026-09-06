@@ -1,10 +1,13 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ros.Transport
 {
     /// <summary>
     /// 服务器 → 客户端：实体表现同步信息（高频）。
-    /// 客户端不持有完整实体逻辑，仅根据该摘要更新表现（模型/动画/血条）。
+    /// 客户端不持有完整实体逻辑，仅根据该摘要更新表现。
+    /// 包含：位姿 / 血量 / 动画状态与播放进度（受击=Hit 状态，死亡=Die 状态）/ Buff 列表 / 技能槽列表。
+    /// 守护点等所有实体共用本结构，不再有独立 DTO。
     /// </summary>
     public class SCEntityDisplayInfo
     {
@@ -18,20 +21,48 @@ namespace Ros.Transport
         public Vector3 position;
         /// <summary>朝向（欧拉角 Y，度）。</summary>
         public float yaw;
-        /// <summary>当前生命。</summary>
+        /// <summary>当前生命（守护点 HUD 等直接读取；&lt;=0 视为已摧毁/死亡）。</summary>
         public int health;
         /// <summary>最大生命。</summary>
         public int maxHealth;
-        /// <summary>是否移动。</summary>
-        public bool moving;
-        /// <summary>是否在空中。</summary>
-        public bool inAir;
-        /// <summary>是否滑铲中。</summary>
-        public bool sliding;
-        /// <summary>攻击动作（EntityAnim.AttackType，0=无）。</summary>
-        public int attackType;
-        /// <summary>是否死亡。</summary>
-        public bool dead;
+        /// <summary>当前动画状态（EntityAnim.AnimState：0Spawn 1Motion 2Attack 3Hit 4Die）。</summary>
+        public int animState;
+        /// <summary>具体动画 id：Attack 状态 = EntityAnim.AttackType；Motion 状态 = EntityAnim.MotionType（0Idle 1Run 2Jump 3Slide 4Roll）；其余 0。</summary>
+        public int animId;
+        /// <summary>动画播放进度（归一化 0~1）。</summary>
+        public float animFrame;
+        /// <summary>滚轮选中槽位下标（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
+        public int selectedIndex = -1;
+        /// <summary>当前 Buff 列表（部分表现需按 Buff 判断，如守护点减伤叠层/迷雾）。</summary>
+        public List<BuffRuntime> buffs = new();
+        /// <summary>技能槽列表（顺序即滚轮循环顺序；含装载技能与 CD 情况）。</summary>
+        public List<SkillSlotRuntime> skills = new();
+
+        /// <summary>单个 Buff 的同步数据。</summary>
+        public class BuffRuntime
+        {
+            /// <summary>Buff 类型（EntityEffectController.EffectType 的 int 值）。</summary>
+            public int type;
+            /// <summary>等级/叠层。</summary>
+            public int level = 1;
+            /// <summary>剩余时长（秒，&lt;0 = 永久）。</summary>
+            public float remainTime = -1f;
+        }
+
+        /// <summary>单个技能槽的同步数据。</summary>
+        public class SkillSlotRuntime
+        {
+            /// <summary>技能 id（-1 空槽）。</summary>
+            public int skillId = -1;
+            /// <summary>武器经验（仅对局内，经验直接加成伤害）。</summary>
+            public int exp;
+            /// <summary>剩余 CD（秒）。</summary>
+            public float cdRemain;
+            /// <summary>总 CD（秒）。</summary>
+            public float cdTotal;
+            /// <summary>剩余库存（-1=无库存限制）。</summary>
+            public int store = -1;
+        }
     }
 
     /// <summary>SCEntityDisplayInfo 网络序列化器。</summary>
@@ -48,11 +79,41 @@ namespace Ros.Transport
             if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.moving, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.inAir, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.sliding, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.attackType, result, ref indexStart)) return false;
-            return BoolSerializer.Serialize(value.dead, result, ref indexStart);
+            if (!IntSerializer.Serialize(value.animState, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.animId, result, ref indexStart)) return false;
+            if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
+
+            int buffCount = value.buffs?.Count ?? 0;
+            if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
+            if (value.buffs != null)
+            {
+                foreach (var buff in value.buffs)
+                {
+                    if (!BoolSerializer.Serialize(buff != null, result, ref indexStart)) return false;
+                    if (buff == null) continue;
+                    if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
+                    if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
+                    if (!FloatSerializer.Serialize(buff.remainTime, result, ref indexStart)) return false;
+                }
+            }
+
+            int skillCount = value.skills?.Count ?? 0;
+            if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
+            if (value.skills != null)
+            {
+                foreach (var slot in value.skills)
+                {
+                    if (!BoolSerializer.Serialize(slot != null, result, ref indexStart)) return false;
+                    if (slot == null) continue;
+                    if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
+                    if (!IntSerializer.Serialize(slot.exp, result, ref indexStart)) return false;
+                    if (!FloatSerializer.Serialize(slot.cdRemain, result, ref indexStart)) return false;
+                    if (!FloatSerializer.Serialize(slot.cdTotal, result, ref indexStart)) return false;
+                    if (!IntSerializer.Serialize(slot.store, result, ref indexStart)) return false;
+                }
+            }
+            return true;
         }
 
         public static SCEntityDisplayInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -67,12 +128,37 @@ namespace Ros.Transport
                 yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                moving = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                inAir = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                sliding = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                attackType = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                dead = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                animState = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
+            int buffCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            for (int i = 0; i < buffCount; i++)
+            {
+                bool hasBuff = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                if (!hasBuff) { info.buffs.Add(null); continue; }
+                info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
+                {
+                    type = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    remainTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                });
+            }
+            int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            for (int i = 0; i < skillCount; i++)
+            {
+                bool hasSlot = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                if (!hasSlot) { info.skills.Add(null); continue; }
+                info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
+                {
+                    skillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    exp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    cdRemain = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    cdTotal = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    store = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                });
+            }
             return info;
         }
     }

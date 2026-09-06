@@ -26,22 +26,18 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     /// <summary>分数更新（param=SCScoreInfo）。</summary>
     public const int OnScoreUpdate = 10213;
-    /// <summary>守护点血量更新（param=SCBeaconInfo）。</summary>
-    public const int OnBeaconHealthUpdate = 10214;
+    // 10214~10219 已废弃：守护点血量/技能列表/技能运行时/武器获得
+    // 均随实体表现摘要（param=SCEntityDisplayInfo，OnEntityDisplayUpdate）统一同步
     /// <summary>复活进度更新（param=SCReviveInfo）。</summary>
     public const int OnReviveProgressUpdate = 10215;
     /// <summary>击杀/目标事件（param=SCBattleEvent）。</summary>
     public const int OnBattleEvent = 10216;
-    /// <summary>技能列表变化（param=SCSkillRuntimeInfo）。</summary>
-    public const int OnSkillListChange = 10217;
-    /// <summary>技能运行时更新（param=SCSkillRuntimeInfo）。</summary>
-    public const int OnSkillRuntimeUpdate = 10218;
-    /// <summary>获得武器/武器升级（param=SCSkillRuntimeInfo）。</summary>
-    public const int OnWeaponAcquired = 10219;
     /// <summary>实体死亡（param=ushort 实体 id）。</summary>
     public const int OnEntityDead = 10220;
     /// <summary>本地玩家死亡/复活（param=bool true 死亡 false 复活）。</summary>
     public const int OnLocalPlayerAliveChange = 10221;
+    /// <summary>组队大厅房间状态更新（param=SCRoomInfo）。</summary>
+    public const int OnRoomInfoUpdate = 10222;
     #endregion
 
     #region 实体表现（10230 段）
