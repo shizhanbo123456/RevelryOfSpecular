@@ -48,8 +48,8 @@ public class ClientDisplayManager : MonoBehaviour
         }
         ApplyDisplay(view, info);
 
-        // 转发给 UI/逻辑层（守护点 HUD、本地玩家技能栏等据此刷新）
-        EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+        // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
+        if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
         // 本地玩家：绑定相机跟随
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
@@ -73,6 +73,29 @@ public class ClientDisplayManager : MonoBehaviour
     {
         transform = null;
         return views.TryGetValue(id, out var view) && view != null && (transform = view.transform) != null;
+    }
+
+    /// <summary>
+    /// 取本地玩家视野内最近的敌方单位位置（自动索敌，策划案 D 组）。
+    /// </summary>
+    public bool TryGetNearestEnemyPosition(Vector3 from, float viewDistance, EntityCamp myCamp, out Vector3 pos)
+    {
+        pos = Vector3.zero;
+        float nearest = viewDistance * viewDistance;
+        bool found = false;
+        foreach (var pair in views)
+        {
+            var view = pair.Value;
+            if (view == null || view.camp == myCamp) continue;
+            float dist = Vector3.SqrMagnitude(view.transform.position - from);
+            if (dist <= nearest)
+            {
+                nearest = dist;
+                pos = view.transform.position;
+                found = true;
+            }
+        }
+        return found;
     }
 
     /// <summary>按实体 id 获取世界坐标。</summary>

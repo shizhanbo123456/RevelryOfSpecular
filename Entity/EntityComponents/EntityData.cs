@@ -183,6 +183,10 @@ public abstract class EntityData : MonoBehaviour
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
+        if (type.category == EntityCategory.Beacon)
+        {
+            Tool.BattleManager?.AddBeaconDamage(finalDamage); // 进攻方得分 = 对守护点造成的总伤害
+        }
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage();

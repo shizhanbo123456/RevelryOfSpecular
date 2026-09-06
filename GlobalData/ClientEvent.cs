@@ -58,7 +58,7 @@ public static class ClientEvent
     public const int ShowConfirm = 10302;
     /// <summary>飘字（param=SCBattleEvent 文本信息）。</summary>
     public const int ShowFloatingText = 10303;
-    /// <summary>右键阻断提示（param=string 文案，见 Config.right_click_blocked_notice）。</summary>
+    /// <summary>右键阻断提示（param=string 文案；新操作方案下由技能/状态校验触发）。</summary>
     public const int OnRightClickBlocked = 10304;
     #endregion
 }

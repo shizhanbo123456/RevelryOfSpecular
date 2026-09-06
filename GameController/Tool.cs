@@ -38,6 +38,7 @@ public class Tool : MonoBehaviour
     public static AssetsObjectPool AssetsObjectPool;
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;
+    public static LandscapeSpawns LandscapeSpawns;
     #endregion
 
     #region 通用工具

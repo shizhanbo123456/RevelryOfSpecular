@@ -11,7 +11,6 @@ public enum EffectType
     // ---- 属性修改（重算轨道，无特效；level 不用，value = 修改量）----
     AttrStrength,       // 力量提升/降低（激励法阵等）
     AttrMagic,          // 魔法提升/降低
-    AttrMoveSpeed,      // 移速提升/降低（加速/减速/泥沼）
     AttrCritRate,       // 暴击率提升/降低
     AttrCritDamage,     // 暴击伤害提升/降低
     AttrKnockback,      // 击退抗性提升/降低
@@ -58,7 +57,7 @@ public static class EffectTypeExt
     /// <summary>属性修改类（重算轨道白名单，唯一允许改属性的 Buff）。</summary>
     public static bool IsAttribute(this EffectType type) => type switch
     {
-        EffectType.AttrStrength or EffectType.AttrMagic or EffectType.AttrMoveSpeed or
+        EffectType.AttrStrength or EffectType.AttrMagic or
         EffectType.AttrCritRate or EffectType.AttrCritDamage or EffectType.AttrKnockback or
         EffectType.AttrViewDistance or EffectType.AttrWeaponSlot => true,
         _ => false,
@@ -348,7 +347,6 @@ public class EntityEffectController
         {
             case EffectType.AttrStrength: return EntityAttributeDelta.Field.Strength;
             case EffectType.AttrMagic: return EntityAttributeDelta.Field.Magic;
-            case EffectType.AttrMoveSpeed: return EntityAttributeDelta.Field.MoveSpeed;
             case EffectType.AttrCritRate: return EntityAttributeDelta.Field.CritRate;
             case EffectType.AttrCritDamage: return EntityAttributeDelta.Field.CritDamage;
             case EffectType.AttrKnockback: return EntityAttributeDelta.Field.KnockbackResistance;

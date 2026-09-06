@@ -16,8 +16,6 @@ public class EntityAttribute
     public int strength = 100;
     /// <summary>魔法：所有远程攻击与投射物伤害。</summary>
     public int magic = 100;
-    /// <summary>移动速度（米/秒）。</summary>
-    public float moveSpeed = 5f;
     /// <summary>暴击率（0~100，力量/魔法共用）。</summary>
     public int critRate = 5;
     /// <summary>暴击伤害倍率（1.5 = 150%）。</summary>
@@ -42,7 +40,6 @@ public class EntityAttribute
             maxHealth = maxHealth,
             strength = strength,
             magic = magic,
-            moveSpeed = moveSpeed,
             critRate = critRate,
             critDamage = critDamage,
             knockbackResistance = knockbackResistance,
@@ -60,7 +57,6 @@ public class EntityAttribute
             case EntityAttributeDelta.Field.Health: maxHealth += delta.value; break;
             case EntityAttributeDelta.Field.Strength: strength += (int)delta.value; break;
             case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
-            case EntityAttributeDelta.Field.MoveSpeed: moveSpeed += delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritDamage: critDamage += delta.value; break;
             case EntityAttributeDelta.Field.KnockbackResistance: knockbackResistance += delta.value; break;
@@ -78,7 +74,7 @@ public class EntityAttribute
     {
         return new List<float>()
         {
-            health, maxHealth, strength, magic, moveSpeed,
+            health, maxHealth, strength, magic,
             critRate, critDamage, knockbackResistance, viewDistance, weaponSlotCount, level
         };
     }
@@ -92,7 +88,7 @@ public class EntityAttributeDelta
 {
     public enum Field
     {
-        Health, Strength, Magic, MoveSpeed, CritRate, CritDamage,
+        Health, Strength, Magic, CritRate, CritDamage,
         KnockbackResistance, ViewDistance, WeaponSlotCount,
     }
 

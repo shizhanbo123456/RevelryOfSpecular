@@ -24,6 +24,14 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>本局剩余时间（秒）。</summary>
     public float BattleRemainTime { get; private set; }
 
+    private float syncTimer;
+    private float detailsTimer;
+    private float aiTimer;
+
+    private float syncTimer;
+    private float detailsTimer;
+    private float aiTimer;
+
     #region 玩家进出与组队大厅
     /// <summary>客户端进场选角信息。</summary>
     public readonly Dictionary<short, CSPlayerInfo> PlayerInfoList = new();
@@ -164,7 +172,12 @@ public partial class BattleManager : EnsBehaviour
         if (!EntityContainer.Entities.TryGetObject(id, out var data)) return false;
         RemoveFromContainer(data);
         data.OnDestroyed();
+        bool wasCoreBeacon = data.type.category == EntityCategory.Beacon && data.type == EntityType.CoreBeacon;
         Destroy(data.gameObject);
+        if (wasCoreBeacon && BattleStarted)
+        {
+            EndBattle(1); // 中心守护点被摧毁 → 进攻方必然获胜（策划案 17.2）
+        }
         return true;
     }
 
@@ -309,6 +322,88 @@ public partial class BattleManager : EnsBehaviour
         if (list == null || list.Count == 0) return Landscape.MapCenter;
         return list[Mathf.Abs(clientId) % list.Count];
     }
+
+    /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
+    private void UpdateAI()
+    {
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity == null || !entity.Alive) continue;
+            if (EntityOwnerClient.ContainsKey(entity.id)) continue; // 跳过真人玩家
+            if (entity.type.category != EntityCategory.Character_Attack &&
+                entity.type.category != EntityCategory.Character_Defense) continue;
+            if (entity.skillController == null) continue;
+
+            var target = EntityContainer.GetNearestEnemy(entity);
+            if (target == null) continue; // 无目标：站立
+
+            foreach (var skillId in entity.skillController.GetSkillIds())
+            {
+                if (entity.skillController.GetCdRemain(skillId) > 0f) continue;
+                if (entity.skillController.GetStore(skillId) == 0) continue;
+                entity.skillController.TryUseSkill(skillId, target.transform.position);
+                break;
+            }
+        }
+    }
+
+    /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
+    public void AddBeaconDamage(float damage)
+    {
+        AttackScore += damage;
+    }
+
+    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
+    public float DefenseScore()
+    {
+        float remaining = 0f;
+        foreach (var beacon in EntityContainer.Beacons)
+        {
+            if (beacon != null && beacon.floatingAttribute != null) remaining += beacon.floatingAttribute.health;
+        }
+        return remaining * (1f + Config.kill_score_factor * DefenseKills);
+    }
+
+    /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
+    private void UpdateAI()
+    {
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity == null || !entity.Alive) continue;
+            if (EntityOwnerClient.ContainsKey(entity.id)) continue; // 跳过真人玩家
+            if (entity.type.category != EntityCategory.Character_Attack &&
+                entity.type.category != EntityCategory.Character_Defense) continue;
+            if (entity.skillController == null) continue;
+
+            var target = EntityContainer.GetNearestEnemy(entity);
+            if (target == null) continue; // 无目标：站立
+
+            foreach (var skillId in entity.skillController.GetSkillIds())
+            {
+                if (entity.skillController.GetCdRemain(skillId) > 0f) continue;
+                if (entity.skillController.GetStore(skillId) == 0) continue;
+                entity.skillController.TryUseSkill(skillId, target.transform.position);
+                break;
+            }
+        }
+    }
+
+    /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
+    public void AddBeaconDamage(float damage)
+    {
+        AttackScore += damage;
+    }
+
+    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
+    public float DefenseScore()
+    {
+        float remaining = 0f;
+        foreach (var beacon in EntityContainer.Beacons)
+        {
+            if (beacon != null && beacon.floatingAttribute != null) remaining += beacon.floatingAttribute.health;
+        }
+        return remaining * (1f + Config.kill_score_factor * DefenseKills);
+    }
     #endregion
 
     #region 输入与技能接收（服务器）
@@ -320,11 +415,7 @@ public partial class BattleManager : EnsBehaviour
 
         // TODO: 服务器权威移动/近战/滑铲/滚轮选技能/朝向在此计算
         entity.transform.rotation = Quaternion.Euler(0f, command.yaw, 0f);
-        if (command.skillScrollDelta != 0 && entity.skillController != null)
-        {
-            entity.skillController.ScrollSelect(command.skillScrollDelta);
-            // 选中变化随实体表现摘要（selectedIndex）同步，无需单独通道
-        }
+        // TODO: 服务器权威移动/近战/滑铲/跳跃在此计算（位移由动画状态机根运动驱动）
     }
 
     /// <summary>接收客户端技能释放请求（服务器，由 NetworkManager RPC 回调）。</summary>
@@ -421,7 +512,14 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"对局结束：{gameState}");
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            Tool.NetworkManager.SendScoreInfo(clientId, new SCScoreInfo() { gameState = gameState });
+            Tool.NetworkManager.SendScoreInfo(clientId, new SCScoreInfo()
+            {
+                gameState = gameState,
+                attackScore = AttackScore,
+                defenseScore = DefenseScore(),
+                killScore = DefenseKills,
+                remainTime = Mathf.Max(0f, BattleRemainTime),
+            });
         }
     }
     #endregion
@@ -437,8 +535,8 @@ public partial class BattleManager : EnsBehaviour
             BattleRemainTime -= UnityEngine.Time.deltaTime;
             if (BattleRemainTime <= 0f)
             {
-                // TODO: 时间耗尽按分数结算（分数制）
-                EndBattle(1);
+                // 时间耗尽按分数结算（分数制，不单独处理平局）
+                EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
                 return;
             }
         }
@@ -468,7 +566,8 @@ public partial class BattleManager : EnsBehaviour
             foreach (var entity in killed)
             {
                 entity.OnKilled();
-                // TODO: 击杀事件/分数/掉落/复活进度开始
+                if (entity.camp == EntityCamp.Attack) DefenseKills++; // 防守方击杀数（得分公式用）
+                // TODO: 掉落/复活进度开始（死亡即摧毁单位，复活时重建并回满）
                 Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
                 if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
                 {
@@ -478,19 +577,37 @@ public partial class BattleManager : EnsBehaviour
             EntityData.ClearKilled();
         }
 
-        // 同步实体表现给客户端（TODO: 按可见距离过滤、节流）
-        SyncEntitiesToClients();
+        // AI 玩家行为（有可用技能攻击最近单位，否则站立；被攻击逃跑 TODO）
+        aiTimer -= UnityEngine.Time.deltaTime;
+        if (aiTimer <= 0f)
+        {
+            aiTimer = 0.5f;
+            UpdateAI();
+        }
+
+        // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；可见距离过滤 TODO）
+        syncTimer -= UnityEngine.Time.deltaTime;
+        detailsTimer -= UnityEngine.Time.deltaTime;
+        if (syncTimer <= 0f)
+        {
+            syncTimer = Config.entity_sync_interval_fast;
+            bool details = detailsTimer <= 0f;
+            if (details) detailsTimer = Config.entity_sync_interval_details;
+            SyncEntitiesToClients(details);
+        }
     }
 
-    private void SyncEntitiesToClients()
+    private void SyncEntitiesToClients(bool includeRuntime)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
             foreach (var entity in EntityContainer.Entities)
             {
                 if (entity == null) continue;
-                // TODO: 可见距离/阵营视野过滤（12 章视野系统）
-                Tool.NetworkManager.SendEntityDisplay(clientId, entity.GetDisplayInfo());
+                // TODO: 可见距离/阵营视野过滤（15 章视野系统）
+                var info = entity.GetDisplayInfo();
+                info.includeRuntime = includeRuntime;
+                Tool.NetworkManager.SendEntityDisplay(clientId, info);
             }
         }
     }

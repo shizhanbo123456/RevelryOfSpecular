@@ -4,27 +4,24 @@ namespace Ros.Transport
 {
     /// <summary>
     /// 客户端 → 服务器：输入命令（高频，建议不可靠传输）。
-    /// 操作方案见策划案 10.2：WASD 移动 / 左键近战 / 右键技能 / 滚轮选技能 / Shift 滑铲。
+    /// 操作方案见策划案 12 章：WASD 移动 / J 空手攻击（移动=出拳，静止=跃起砸地）/
+    /// K 跳跃 / U I O L H 技能槽 1~5 触发（技能释放走 CSUseSkillRequest 单独发送）。
     /// </summary>
     public struct CSInputCommand
     {
         /// <summary>是否在移动。</summary>
         public bool moving;
-        /// <summary>朝向（欧拉角 Y，弧度？度，统一用度）。</summary>
+        /// <summary>朝向（欧拉角 Y，度）。</summary>
         public float yaw;
         /// <summary>移动方向（相对相机，x=横向 z=纵向）。</summary>
         public Vector2 moveDir;
-        /// <summary>左键近身攻击按下（移动=连段动作，静止=跃起砸地）。</summary>
+        /// <summary>空手攻击按下（J 键：移动=出拳，静止=跃起砸地）。</summary>
         public bool meleePressed;
-        /// <summary>右键技能触发按下（仅选中远程/施法类技能时有效）。</summary>
-        public bool skillPressed;
-        /// <summary>Shift 滑铲按下。</summary>
+        /// <summary>跳跃按下（K 键）。</summary>
+        public bool jumpPressed;
+        /// <summary>滑铲按下（触发键待定，暂保留字段）。</summary>
         public bool slidePressed;
-        /// <summary>滚轮增量（>0 下一技能，<0 上一技能）。</summary>
-        public int skillScrollDelta;
-        /// <summary>当前选中技能 id（-1 表示未选中；C#9 下 struct 不可用字段初始化器，默认 0，调用处需显式赋值或使用带参构造）。</summary>
-        public int selectedSkillId;
-        /// <summary>瞄准点（世界坐标）。</summary>
+        /// <summary>瞄准点（世界坐标：自动索敌最近可见敌人，没有则向前方）。</summary>
         public Vector3 aimPoint;
 
         public CSInputCommand(bool moving, float yaw)
@@ -33,10 +30,8 @@ namespace Ros.Transport
             this.yaw = yaw;
             moveDir = Vector2.zero;
             meleePressed = false;
-            skillPressed = false;
+            jumpPressed = false;
             slidePressed = false;
-            skillScrollDelta = 0;
-            selectedSkillId = -1;
             aimPoint = Vector3.zero;
         }
     }
@@ -50,10 +45,8 @@ namespace Ros.Transport
             if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
             if (!Vector2Serializer.Serialize(value.moveDir, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.meleePressed, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.skillPressed, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.jumpPressed, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.slidePressed, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.skillScrollDelta, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.selectedSkillId, result, ref indexStart)) return false;
             return Vector3Serializer.Serialize(value.aimPoint, result, ref indexStart);
         }
 
@@ -65,10 +58,8 @@ namespace Ros.Transport
                 yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 moveDir = Vector2Serializer.Deserialize(data, ref indexStart, invalidIndex),
                 meleePressed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                skillPressed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                jumpPressed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 slidePressed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                skillScrollDelta = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                selectedSkillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 aimPoint = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }

@@ -105,7 +105,7 @@ public struct EntityType : IEquatable<EntityType>
 
     public static bool operator !=(EntityType left, EntityType right) => !left.Equals(right);
 
-    /// <summary>该实体类型对应的默认阵营（守护点/防御塔/蘑菇/精英僵尸归防守，瘟疫树中立，僵尸默认中立待确认）。</summary>
+    /// <summary>该实体类型对应的默认阵营（守护点/防御塔/蘑菇/普通僵尸/精英僵尸归防守，瘟疫树中立；策划案第九章：僵尸本体归防守方阵营）。</summary>
     public EntityCamp DefaultCamp()
     {
         switch (category)
@@ -115,12 +115,10 @@ public struct EntityType : IEquatable<EntityType>
             case EntityCategory.Beacon:
             case EntityCategory.Tower:
             case EntityCategory.Mushroom:
+            case EntityCategory.Zombie:
             case EntityCategory.EliteZombie:
                 return EntityCamp.Defense;
             case EntityCategory.PlagueTree:
-                return EntityCamp.Neutral;
-            case EntityCategory.Zombie:
-                // TODO【策划案 17.3】普通僵尸是否归属防守阵营尚未确认，当前默认中立
                 return EntityCamp.Neutral;
             default:
                 return EntityCamp.Neutral;

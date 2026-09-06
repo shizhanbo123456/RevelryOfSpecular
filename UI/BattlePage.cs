@@ -274,7 +274,7 @@ public class BattlePage : PageBase
 
     private void OnRightClickBlocked(string msg)
     {
-        ShowFloating(string.IsNullOrEmpty(msg) ? Config.right_click_blocked_notice : msg, new Color(1f, 0.6f, 0.2f, 1f));
+        ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.6f, 0.2f, 1f));
     }
     #endregion
 

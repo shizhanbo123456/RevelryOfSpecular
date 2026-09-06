@@ -2,9 +2,10 @@
 using UnityEngine;
 
 /// <summary>
-/// 输入管理器（客户端）。
-/// 操作方案见策划案 10.2：WASD 相对相机移动 / 鼠标转动视角 / 滚轮循环选技能 /
-/// 左键近身攻击 / 右键触发远程/施法类技能（选中非远程时阻断并提示）/ Shift 滑铲（无格挡）。
+/// 输入管理器（客户端，双手键盘方案，策划案 12 章）：
+/// WASD 移动 / 鼠标视角 / J 空手攻击（静止=跃起砸地，移动=出拳）/ K 跳跃 /
+/// U I O L H 技能槽 1~5 触发（技能释放走 CSUseSkillRequest 单独发送）。
+/// 瞄准点 = 自动索敌最近可见敌人，没有则取前方（策划案 D 组决策）。
 /// 输入 → CSInputCommand → NetworkManager.SendInputCommand（服务器权威处理）。
 /// </summary>
 public class InputManager : MonoBehaviour
@@ -18,19 +19,16 @@ public class InputManager : MonoBehaviour
     /// <summary>移动输入（相对相机，x 横向 z 纵向，范围 -1~1）。</summary>
     public static Vector2 MoveInput { get; private set; }
 
-    /// <summary>左键近身攻击按下（本帧）。</summary>
+    /// <summary>空手攻击按下（本帧，J 键）。</summary>
     public static bool MeleePressed { get; private set; }
 
-    /// <summary>右键技能触发按下（本帧）。</summary>
-    public static bool SkillPressed { get; private set; }
+    /// <summary>跳跃按下（本帧，K 键）。</summary>
+    public static bool JumpPressed { get; private set; }
 
-    /// <summary>Shift 滑铲按下（本帧）。</summary>
-    public static bool SlidePressed { get; private set; }
+    /// <summary>本帧按下的技能槽下标（-1 = 无；0~4 对应 U I O L H）。</summary>
+    public static int SkillSlotPressed { get; private set; } = -1;
 
-    /// <summary>滚轮增量（本帧累计，>0 下一技能 <0 上一技能）。</summary>
-    public static int SkillScrollDelta { get; private set; }
-
-    /// <summary>屏幕中心瞄准点（世界坐标）。</summary>
+    /// <summary>瞄准点（世界坐标）。</summary>
     public static Vector3 AimPoint { get; private set; }
 
     /// <summary>是否锁定鼠标（默认锁定，Esc 切换）。</summary>
@@ -41,6 +39,7 @@ public class InputManager : MonoBehaviour
     {
         RefreshInputStates();
         SendMoveCommand();
+        SendSkillRequests();
     }
 
     private void RefreshInputStates()
@@ -61,13 +60,21 @@ public class InputManager : MonoBehaviour
         if (Input.GetKey(KeyCode.A)) x -= 1f;
         MoveInput = new Vector2(x, z).normalized;
 
-        MeleePressed = Input.GetMouseButtonDown(0);
-        SkillPressed = Input.GetMouseButtonDown(1);
-        SlidePressed = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift);
-        SkillScrollDelta = Mathf.RoundToInt(Input.mouseScrollDelta.y);
+        MeleePressed = Input.GetKeyDown(Config.melee_key);
+        JumpPressed = Input.GetKeyDown(Config.jump_key);
 
-        // 瞄准点：屏幕中心射线（TODO: 命中层掩码与地形高度修正）
-        AimPoint = GetCenterAimPoint();
+        SkillSlotPressed = -1;
+        for (int i = 0; i < Config.skill_slot_keys.Length; i++)
+        {
+            if (Input.GetKeyDown(Config.skill_slot_keys[i]))
+            {
+                SkillSlotPressed = i;
+                break;
+            }
+        }
+
+        // 瞄准点：自动索敌最近可见敌人，没有则取屏幕中心前方
+        AimPoint = GetAimPoint();
     }
 
     private void SendMoveCommand()
@@ -79,32 +86,59 @@ public class InputManager : MonoBehaviour
             yaw = CameraController.Yaw,
             moveDir = MoveInput,
             meleePressed = MeleePressed,
-            skillPressed = SkillPressed,
-            slidePressed = SlidePressed,
-            skillScrollDelta = SkillScrollDelta,
-            selectedSkillId = GetSelectedSkillId(),
+            jumpPressed = JumpPressed,
+            slidePressed = false, // 滑铲触发键待定
             aimPoint = AimPoint,
         };
         Tool.NetworkManager.SendInputCommand(command);
     }
 
-    /// <summary>当前选中技能 id（本地技能运行时缓存，由服务器下发维护）。</summary>
-    private int GetSelectedSkillId()
+    /// <summary>技能槽触发：按槽位取技能 id，单独发送技能释放请求。</summary>
+    private void SendSkillRequests()
     {
-        if (Tool.ClientLogicManager != null)
-        {
-            return Tool.ClientLogicManager.SelectedSkillId;
-        }
-        return -1;
+        if (SkillSlotPressed < 0 || Tool.NetworkManager == null) return;
+        int skillId = GetSlotSkillId(SkillSlotPressed);
+        if (skillId < 0) return;
+        Tool.NetworkManager.SendUseSkill(new CSUseSkillRequest(skillId, AimPoint));
     }
 
-    /// <summary>屏幕中心世界瞄准点（供技能目标/武器瞄准使用）。</summary>
-    public static Vector3 GetCenterAimPoint()
+    /// <summary>按槽位下标取技能 id（本地技能运行时缓存，由服务器下发维护）。</summary>
+    private static int GetSlotSkillId(int slot)
+    {
+        var display = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.LocalDisplay : null;
+        if (display == null || slot < 0 || slot >= display.skills.Count) return -1;
+        var slotData = display.skills[slot];
+        return slotData != null ? slotData.skillId : -1;
+    }
+
+    #region//Local
+    /// <summary>
+    /// 瞄准点（策划案 D 组）：自动索敌最近可见敌人（不同阵营、可见距离内），没有则取屏幕中心前方。
+    /// </summary>
+    private static Vector3 GetAimPoint()
     {
         var cam = Camera.main;
         if (cam == null) return Vector3.zero;
-        var ray = cam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
-        // TODO: 用地形/碰撞层获取命中点，当前退化为 100m 远点
-        return ray.origin + ray.direction * 100f;
+
+        float viewDistance = GetLocalViewDistance();
+        if (Tool.ClientLogicManager != null && Tool.ClientDisplayManager != null &&
+            Tool.ClientLogicManager.TryGetLocalPlayerPosition(out var playerPos) &&
+            Tool.ClientDisplayManager.TryGetNearestEnemyPosition(playerPos, viewDistance,
+                (EntityCamp)Tool.ClientLogicManager.LocalCamp, out var enemyPos))
+        {
+            return enemyPos;
+        }
+        // 没有可见敌人：取玩家前方
+        return playerPos + cam.transform.forward * 10f;
     }
+
+    /// <summary>本地玩家可见距离（来自角色属性配置）。</summary>
+    private static float GetLocalViewDistance()
+    {
+        var battleInfo = NetworkManager.battleInfo;
+        if (battleInfo == null || Tool.InfoManager == null) return Config.default_skill_auto_target_radius;
+        var attr = Tool.InfoManager.GetAttribute(battleInfo.characterType, battleInfo.characterLevel);
+        return attr != null && attr.viewDistance > 0f ? attr.viewDistance : Config.default_skill_auto_target_radius;
+    }
+    #endregion
 }

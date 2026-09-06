@@ -21,6 +21,8 @@ namespace Ros.Transport
         public Vector3 position;
         /// <summary>朝向（欧拉角 Y，度）。</summary>
         public float yaw;
+        /// <summary>是否包含运行时数据（血量/Buff/技能槽）：高频同步(0.02s)=false 只含位姿动画，完整同步(0.2s)=true；客户端 false 时保留上一次运行时数据。</summary>
+        public bool includeRuntime;
         /// <summary>当前生命（守护点 HUD 等直接读取；&lt;=0 视为已摧毁/死亡）。</summary>
         public int health;
         /// <summary>最大生命。</summary>
@@ -77,6 +79,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
             if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.animState, result, ref indexStart)) return false;
@@ -126,6 +129,7 @@ namespace Ros.Transport
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
                 yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animState = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

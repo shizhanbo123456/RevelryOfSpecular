@@ -64,23 +64,27 @@ public class SaveManager : MonoBehaviour
         Save();
     }
 
-    /// <summary>给角色加经验（对局结算产出，TODO: 经验公式待设计，当前 1 局 = 100 经验占位）。</summary>
+    /// <summary>
+    /// 给角色加经验（策划案 17.3：获得经验 = 对水晶造成的伤害量；
+    /// 升级所需经验表见 Config.level_up_exp，从 1→2 级起依次取用）。
+    /// </summary>
     public void AddCharacterExp(int index, int exp)
     {
         EnsureListSize(index);
         characterExp[index] += exp;
         int level = characterLevels[index];
-        // TODO: 升级经验表待设计，当前简单公式：每级所需经验 = 100 * 等级
-        while (level < Config.max_entity_level && characterExp[index] >= 100 * level)
+        while (level < Config.max_entity_level)
         {
-            characterExp[index] -= 100 * level;
+            int need = Config.level_up_exp[level - 1];
+            if (characterExp[index] < need) break;
+            characterExp[index] -= need;
             level++;
         }
         characterLevels[index] = level;
         Save();
     }
 
-    /// <summary>给玩家加经验（账号级，TODO: 升级公式待设计）。</summary>
+    /// <summary>给玩家加经验（账号级）。</summary>
     public void AddPlayerExp(int exp)
     {
         playerExp += exp;
