@@ -2,8 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 出生/复活位置列表（挂在场景中的独立空物体上，如 "SpawnPoints"；
-/// ⚠️ 不要挂进地形预制体——地形是预制体，位置列表属于场景配置，避免混入预制体内容）。
+/// Landscape 生成锚点组件（置于地形预制体内，随地形摆进场景，Awake 自动注册 Tool.LandscapeSpawns）。
 /// 策划案 6.1/7/8.1/17.1：守护点、防御塔（不复活）、水晶刷新位置、瘟疫树、僵尸出生点与双方复活备选位置均在此配置。
 /// </summary>
 public class LandscapeSpawns : MonoBehaviour
