@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 地形组件（挂载在场景地形物体上）：记录各类单位出生/复活位置列表。
-/// 策划案 6.1/7/8.1/17.1：守护点、防御塔（不复活）、水晶刷新位置与双方复活备选位置均在此配置。
+/// 出生/复活位置列表（挂在场景中的独立空物体上，如 "SpawnPoints"；
+/// ⚠️ 不要挂进地形预制体——地形是预制体，位置列表属于场景配置，避免混入预制体内容）。
+/// 策划案 6.1/7/8.1/17.1：守护点、防御塔（不复活）、水晶刷新位置、瘟疫树、僵尸出生点与双方复活备选位置均在此配置。
 /// </summary>
 public class LandscapeSpawns : MonoBehaviour
 {
@@ -23,6 +24,9 @@ public class LandscapeSpawns : MonoBehaviour
 
     [Header("瘟疫树位置列表（中立争抢单位）")]
     public List<Vector3> plagueTreeSpawnPositions = new();
+
+    [Header("僵尸出生点列表（道路/墓地/守护点外围）")]
+    public List<Vector3> zombieSpawnPositions = new();
 
     [Header("进攻方复活备选位置列表")]
     public List<Vector3> attackRevivePositions = new();
