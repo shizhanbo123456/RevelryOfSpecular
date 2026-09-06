@@ -353,13 +353,13 @@ public partial class BattleManager : EnsBehaviour
     #region 子弹（统一攻击实体）
     /// <summary>
     /// 发射子弹（服务器伤害侧；客户端经表现侧同步）。
-    /// trajectory 为弹道轨迹（BulletTrajectory 基类，贝塞尔等具体实现见 Bullet 文件夹）。
+    /// attack 为攻击数据（近战与子弹共用，含破霸体等，见策划案 12.1）；
+    /// trajectory 为弹道轨迹（BulletTrajectory 基类，各实现见 Bullet 文件夹）。
     /// TODO：BulletContainer 完整实现（位置推进/命中检测/伤害结算）待后续完善。
     /// </summary>
-    public void ShootBullet(EntityData shooter, float rate, BulletTrajectory trajectory, float radius, float lifeTime,
-        Damageable.IDamageable damageable, System.Action<System.Action<EntityEffectController.EffectType, int, float>> addEffectEvent)
+    public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime)
     {
-        // TODO: 生成 Bullet 记录入 BulletContainer，ManagedUpdate 中推进与命中检测
+        // TODO: 生成 Bullet{ attack, trajectory, lifeTime, spawnTime = Time.time } 记录入 BulletContainer，ManagedUpdate 中推进与命中检测
     }
     #endregion
 

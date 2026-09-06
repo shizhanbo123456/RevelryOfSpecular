@@ -79,13 +79,18 @@ namespace Ros.Skill
             context.AddVectors(origin, dest);    // 天降：施放者位置 + 目标点
 
             // 服务器子弹逻辑（TODO：BulletContainer 完成后在此结算命中与伤害）
+            // 直射三连共用一份攻击数据（不破霸体）
+            AttackData shotAttack = AttackData.Create(entity, rate: 20f, radius: 0.3f, breakEndure: false);
             for (int i = 0; i < dests.Length; i++)
             {
                 BulletTrajectory trajectory = BuildShotTrajectory(context, i);
-                Tool.BattleManager?.ShootBullet(entity, 20f, trajectory, 0.3f, ShotLifeTime, null, null);
+                Tool.BattleManager?.ShootBullet(entity, shotAttack, trajectory, ShotLifeTime);
             }
+
+            // 天降轰炸（破霸体：命中可打破霸体等级 1 的目标，见策划案 12.1）
+            AttackData fallAttack = AttackData.Create(entity, rate: 40f, radius: 0.8f, breakEndure: true);
             BulletTrajectory skyFall = BuildSkyFallTrajectory(context);
-            Tool.BattleManager?.ShootBullet(entity, 10f, skyFall, 0.8f, SkyFallLifeTime, null, null);
+            Tool.BattleManager?.ShootBullet(entity, fallAttack, skyFall, SkyFallLifeTime);
 
             // 广播"使用技能"（技能 id + 上下文），客户端用同一构建函数重建轨迹播放特效
             BroadcastSkillCast(Id, context);

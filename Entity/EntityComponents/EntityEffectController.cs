@@ -178,6 +178,9 @@ public class EntityEffectController
     /// <summary>是否禁止远程技能（麻痹·封远程，TODO 判定）。</summary>
     public bool IsRangedBlocked() => HasEffect(EffectType.ParalysisRange);
 
+    /// <summary>是否处于强制霸体（绝对霸体，如「死灵漫步」期间；TODO：Buff 重构后按新枚举判定）。</summary>
+    public bool HasSuperArmor() => false; // TODO: 「死灵漫步」绝对霸体期间返回 true（见策划案 12.1）
+
     /// <summary>是否无法行动（眩晕/冻结/麻痹·定身/催眠，TODO 判定）。</summary>
     public bool IsActionBlocked() =>
         HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) ||

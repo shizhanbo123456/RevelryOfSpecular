@@ -45,6 +45,11 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>碰撞体信息（判定柱：bottom~top，radius）。</summary>
     public EntityColliderInfo colliderInfo;
 
+    /// <summary>当前位移效果（null = 无）；SetMotion 设置并调用 Enter，时间到由 OnUpdate 调用 Exit。</summary>
+    [HideInInspector] public MotionBase motion;
+    /// <summary>位移效果产出的当前速度（服务器权威移动逻辑 TODO 中消费；无位移效果时为零）。</summary>
+    [HideInInspector] public Vector3 motionVelocity;
+
     /// <summary>血条锚点。</summary>
     public Transform BarPos;
 
@@ -82,6 +87,43 @@ public abstract class EntityData : MonoBehaviour
     {
         effectController?.OnUpdate();
         skillController?.OnUpdate();
+        UpdateMotion();
+    }
+
+    /// <summary>设置位移效果（替换已有效果时先对旧效果调用 Exit；设置时对新效果调用 Enter）。</summary>
+    public void SetMotion(MotionBase motion)
+    {
+        if (this.motion != null) this.motion.Exit(this);
+        this.motion = motion;
+        motionVelocity = motion != null ? motion.Enter(this, Vector3.zero) : Vector3.zero;
+    }
+
+    /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
+    public bool MotionCanMove => motion == null || motion.canMove;
+
+    /// <summary>位移效果每帧推进：时间到调用 Exit 并清除；否则 Update 产出本帧速度。</summary>
+    private void UpdateMotion()
+    {
+        if (motion == null) return;
+        if (Time.time >= motion.endTime)
+        {
+            motion.Exit(this);
+            motion = null;
+            motionVelocity = Vector3.zero;
+            return;
+        }
+        motionVelocity = motion.Update(this, motionVelocity);
+    }
+
+    /// <summary>
+    /// 计算当前霸体等级（实时换算，不储存字段，见策划案 12.1）：
+    /// Buff 强制霸体（绝对霸体）优先；否则由当前动画状态换算（对应 Entity/Attribute/Endure.cs）。
+    /// </summary>
+    public EndureType GetEndureLevel()
+    {
+        if (effectController != null && effectController.HasSuperArmor()) return EndureType.Super;
+        var anim = GetComponentInChildren<EntityAnim>();
+        return anim != null ? anim.currentState.GetEndure() : EndureType.None;
     }
 
     /// <summary>
