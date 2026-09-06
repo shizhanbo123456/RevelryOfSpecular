@@ -21,11 +21,12 @@ namespace Ros.Skill
     }
 
     /// <summary>
-    /// [E] 示例技能：扇形三连直射飞弹（展示轨迹上下文体系的标准写法）。
+    /// [E] 示例技能：扇形三连直射飞弹 + 一发天降轰炸（展示轨迹上下文体系的标准写法）。
     ///
     /// 上下文约定（本技能自定义，无全局含义）：
-    /// - ints[0] = 弹道数量 N；
-    /// - vectors = 每发飞弹 2 个 Vector3（起点、终点），共 2N 个；第 i 发读 vectors[i*2] 与 vectors[i*2+1]。
+    /// - ints[0] = 直射弹道数量 N；ints[1] = 天降弹道升空高度；
+    /// - vectors[0 .. 2N-1] = 直射弹道每发 2 个 Vector3（起点、终点），第 i 发读 vectors[i*2] 与 vectors[i*2+1]；
+    /// - vectors[2N] = 施放者位置，vectors[2N+1] = 天降目标点。
     ///
     /// 流程：服务器 DoDamageActs 填装上下文 → 用构建函数重建轨迹发射子弹（逻辑判定）→
     /// BroadcastSkillCast 广播（技能 id + 上下文）→ 客户端 PlayVFX 用【同一个】构建函数重建轨迹播放特效。
@@ -37,14 +38,27 @@ namespace Ros.Skill
         public override bool HasWeaponDisplay => true;
         public override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
 
+        private const int ShotCount = 3;
+        private const float ShotLifeTime = 1.5f;
+        private const float SkyFallLifeTime = 2.5f;
+
         // ---- 轨迹构建函数：每种轨迹一个，输入上下文，输出轨迹（服务器/客户端共用）----
 
-        /// <summary>构建第 index 发飞弹的直线弹道（读取上下文中本发对应的下标段）。</summary>
+        /// <summary>构建第 index 发直射飞弹的直线弹道（读取上下文中本发对应的下标段）。</summary>
         private BulletTrajectory BuildShotTrajectory(TrajectoryContext context, int index)
         {
             Vector3 start = context.vectors[index * 2];
             Vector3 end = context.vectors[index * 2 + 1];
-            return BezierTrajectory.GetLine(start, end);
+            return new LineTrajectory(start, end);
+        }
+
+        /// <summary>构建天降轰炸弹道（升空超出视野 → 目标位置上空 → 天降命中）。</summary>
+        private BulletTrajectory BuildSkyFallTrajectory(TrajectoryContext context)
+        {
+            int shotCount = context.ints[0];
+            Vector3 origin = context.vectors[shotCount * 2];
+            Vector3 target = context.vectors[shotCount * 2 + 1];
+            return new SkyFallTrajectory(origin, target, context.ints[1]);
         }
 
         // ---- 服务器：填装上下文 → 构建轨迹 → 子弹逻辑 → 广播 ----
@@ -53,21 +67,25 @@ namespace Ros.Skill
         {
             var context = new TrajectoryContext();
 
-            // 计算三发扇形终点，填装轨迹参数（ints 与 vectors 的含义由本技能自行定义）
+            // 计算三发扇形终点，填装直射弹道参数（ints 与 vectors 的含义由本技能自行定义）
             Vector3 origin = entity.transform.position;
-            Vector3[] dests = FanDests(origin, dest, 3, 10f);
-            context.ints.Add(dests.Length);
+            Vector3[] dests = FanDests(origin, dest, ShotCount, 10f);
+            context.ints.Add(dests.Length);      // ints[0] = 直射弹道数量
+            context.ints.Add(30f);               // ints[1] = 天降升空高度（超出视野）
             foreach (var d in dests)
             {
                 context.AddVectors(origin, d);
             }
+            context.AddVectors(origin, dest);    // 天降：施放者位置 + 目标点
 
             // 服务器子弹逻辑（TODO：BulletContainer 完成后在此结算命中与伤害）
             for (int i = 0; i < dests.Length; i++)
             {
                 BulletTrajectory trajectory = BuildShotTrajectory(context, i);
-                Tool.BattleManager?.ShootBullet(entity, 20f, trajectory, 0.3f, 1.5f, null, null);
+                Tool.BattleManager?.ShootBullet(entity, 20f, trajectory, 0.3f, ShotLifeTime, null, null);
             }
+            BulletTrajectory skyFall = BuildSkyFallTrajectory(context);
+            Tool.BattleManager?.ShootBullet(entity, 10f, skyFall, 0.8f, SkyFallLifeTime, null, null);
 
             // 广播"使用技能"（技能 id + 上下文），客户端用同一构建函数重建轨迹播放特效
             BroadcastSkillCast(Id, context);
@@ -77,17 +95,24 @@ namespace Ros.Skill
 
         public override void PlayVFX(TrajectoryContext context)
         {
-            int count = context.ints[0];
-            for (int i = 0; i < count; i++)
+            if (Tool.AssetsManager == null || Tool.AssetsManager.BulletVFX.Count == 0) return;
+            GameObject vfxPrefab = Tool.AssetsManager.BulletVFX[0];
+
+            // 直射飞弹
+            int shotCount = context.ints[0];
+            for (int i = 0; i < shotCount; i++)
             {
                 BulletTrajectory trajectory = BuildShotTrajectory(context, i);
-
-                // 特效物体取自 AssetsManager（客户端专属）；示例取 0 号子弹特效
-                if (Tool.AssetsManager == null || Tool.AssetsManager.BulletVFX.Count == 0) continue;
-                var vfx = Object.Instantiate(Tool.AssetsManager.BulletVFX[0]);
-                vfx.name = $"SkillFanShot_{Id}_{i}";
-                BulletPlayer.Create(vfx, trajectory, 1.5f, BulletPlayer.RotationMode.Tangent);
+                var vfx = Object.Instantiate(vfxPrefab);
+                vfx.name = $"SkillFanShot_{Id}_shot_{i}";
+                BulletPlayer.Create(vfx, trajectory, ShotLifeTime, BulletPlayer.RotationMode.Tangent);
             }
+
+            // 天降轰炸
+            BulletTrajectory skyFall = BuildSkyFallTrajectory(context);
+            var fallVfx = Object.Instantiate(vfxPrefab);
+            fallVfx.name = $"SkillFanShot_{Id}_skyfall";
+            BulletPlayer.Create(fallVfx, skyFall, SkyFallLifeTime, BulletPlayer.RotationMode.Tangent);
         }
     }
 }
