@@ -47,6 +47,8 @@ public static class Config
     #endregion
 
     #region 资源与中立单位
+    /// <summary>水晶类型数（策划案第七章：4 种类型对应 4 类武器刀/长枪/枪械/魔法球）。</summary>
+    public const int crystal_type_count = 4;
     /// <summary>可采集水晶数量（暂定）。</summary>
     public const int crystal_count = 8;
     /// <summary>防御塔（瘟疫孢子）数量。</summary>

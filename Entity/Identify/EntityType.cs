@@ -67,10 +67,10 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType OuterBeacon2 => Beacon(2);
     public static EntityType CoreBeacon => Beacon(Config.outer_beacon_count);
 
-    // 水晶（0~7，TODO 数量待定）
+    // 水晶（value = 类型 0~3，对应刀/长枪/枪械/魔法球 4 类武器，见第七章）
     public static EntityType Crystal0 => Crystal(0);
     public static EntityType CrystalFirst => Crystal(0);
-    public static EntityType CrystalLast => Crystal(Config.crystal_count - 1);
+    public static EntityType CrystalLast => Crystal(Config.crystal_type_count - 1);
 
     // 防御塔（0~3）
     public static EntityType Tower0 => Tower(0);
@@ -88,7 +88,7 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType EliteZombieFirst => EliteZombie(0);
     public static EntityType EliteZombieLast => EliteZombie(13);
 
-    // 感染蘑菇
+    // 感染蘑菇（value = 被感染水晶的类型 0~3；外观多种由客户端随机选用）
     public static EntityType Mushroom0 => Mushroom(0);
     #endregion
 
