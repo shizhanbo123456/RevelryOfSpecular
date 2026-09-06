@@ -121,12 +121,12 @@ public class EntityAnim : MonoBehaviour
         }
         var behaviours=animator.GetBehaviours<AnimEvent>();
         animEventMap.Clear();
-        foreach (var be in behaviours)
+        // animId 自动分配：按控制器资产内的状态顺序编号（0 起）。
+        // 服务器与客户端使用同一 Controller 资产，遍历顺序一致 → 编号一致，可安全跨端同步。
+        for (int i = 0; i < behaviours.Length; i++)
         {
-            be.Init(this,data);
-            if (be.AnimId < 0) continue; // 未配置编号的状态（如过渡用中转态）
-            if (!animEventMap.TryAdd(be.AnimId, be))
-                Debug.LogWarning($"{gameObject.name} 状态编号 {be.AnimId} 重复配置，后配置的覆盖检查：{be.name}");
+            behaviours[i].Init(this, data, i);
+            animEventMap.Add(i, behaviours[i]);
         }
     }
     public void SetType(CharcterAnimType type)
