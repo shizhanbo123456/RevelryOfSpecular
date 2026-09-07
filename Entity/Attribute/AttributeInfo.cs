@@ -65,7 +65,7 @@ namespace Ros.Info
         /// <summary>取升到 lv 级时应用的升级枚举（2 级 = A，3 级 = B，4 级 = C，轮询）。</summary>
         private LevelUpType GetUpgradeType(int lv)
         {
-            return (lv - 2) % 3 switch
+            return ((lv - 2) % 3) switch
             {
                 0 => upgradeA,
                 1 => upgradeB,

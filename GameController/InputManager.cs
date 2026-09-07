@@ -125,8 +125,9 @@ public class InputManager : MonoBehaviour
         if (cam == null) return Vector3.zero;
 
         float viewDistance = GetLocalViewDistance();
+        Vector3 playerPos = Vector3.zero;
         if (Tool.ClientLogicManager != null && Tool.ClientDisplayManager != null &&
-            Tool.ClientLogicManager.TryGetLocalPlayerPosition(out var playerPos) &&
+            Tool.ClientLogicManager.TryGetLocalPlayerPosition(out playerPos) &&
             Tool.ClientDisplayManager.TryGetNearestEnemyPosition(playerPos, viewDistance,
                 (EntityCamp)Tool.ClientLogicManager.LocalCamp, out var enemyPos))
         {

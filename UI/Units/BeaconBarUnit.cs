@@ -64,7 +64,7 @@ public class BeaconBarUnit
         int shieldLayer = 0;
         foreach (var buff in info.buffs)
         {
-            if (buff != null && buff.type == (int)EntityEffectController.EffectType.BeaconDamageReduce)
+            if (buff != null && buff.type == (int)EffectType.BeaconReduce)
             {
                 shieldLayer = Mathf.Max(shieldLayer, buff.level);
             }

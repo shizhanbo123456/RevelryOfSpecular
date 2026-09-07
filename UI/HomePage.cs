@@ -173,7 +173,7 @@ public class HomePage : PageBase
         if (info != null)
         {
             var attr = info.GetAttribute(level);
-            sb.AppendLine($"生命 {attr.maxHealth}  力量 {attr.strength}  魔法 {attr.magic}  移速 {attr.moveSpeed}");
+            sb.AppendLine($"生命 {attr.maxHealth}  力量 {attr.strength}  魔法 {attr.magic}");
             sb.AppendLine($"暴击 {attr.critRate}% / {attr.critDamage:F1}倍  击退抗性 {attr.knockbackResistance}  可见距离 {attr.viewDistance}m  技能槽位 {attr.weaponSlotCount}");
         }
     }

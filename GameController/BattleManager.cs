@@ -24,6 +24,11 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>本局剩余时间（秒）。</summary>
     public float BattleRemainTime { get; private set; }
 
+    /// <summary>进攻方得分 = 对守护点造成的总伤害（策划案 17.2）。</summary>
+    public float AttackScore { get; private set; }
+    /// <summary>防守方击杀数（击杀进攻方单位）。</summary>
+    public int DefenseKills { get; private set; }
+
     private float syncTimer;
     private float detailsTimer;
     private float aiTimer;
@@ -79,7 +84,7 @@ public partial class BattleManager : EnsBehaviour
         private static readonly HashSet<int> s_buffer = new();
 
         /// <summary>范围内最近敌方实体（敌方=与 entity 不同阵营）。</summary>
-        public static EntityData GetNearestEnemy(EntityData entity, float radius)
+        public static EntityData GetNearestEnemy(EntityData entity, float radius = Config.default_skill_auto_target_radius)
         {
             if (entity == null) return null;
             return GetNearestInCamp(entity.transform.position, radius, OppositeCamp(entity.camp), entity.id);
@@ -280,7 +285,7 @@ public partial class BattleManager : EnsBehaviour
                 Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
                 {
                     type = SCBattleEvent.Type.ShowText,
-                    sourceId = pair.Key,
+                    sourceId = (ushort)pair.Key,
                     value = 18, // 尚有玩家未选择队伍
                 });
                 return;
@@ -425,8 +430,10 @@ public partial class BattleManager : EnsBehaviour
         BattleRemainTime = Config.battle_duration;
         if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
 
-        // 开战重置：id 源置零、子弹/移动/复活/重生状态清空
+        // 开战重置：id 源置零、计分清零、子弹/移动/复活/重生状态清空
         ResetEntityIdSource();
+        AttackScore = 0f;
+        DefenseKills = 0;
         ClearBattleState();
 
         // 玩家实体：按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色

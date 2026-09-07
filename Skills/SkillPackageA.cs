@@ -72,7 +72,7 @@ namespace Ros.Skill
             Vector3 origin = entity.transform.position;
             Vector3[] dests = FanDests(origin, dest, ShotCount, 10f);
             context.ints.Add(dests.Length);      // ints[0] = 直射弹道数量
-            context.ints.Add(30f);               // ints[1] = 天降升空高度（超出视野）
+            context.ints.Add(30);                // ints[1] = 天降升空高度（超出视野）
             foreach (var d in dests)
             {
                 context.AddVectors(origin, d);

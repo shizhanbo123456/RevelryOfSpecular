@@ -116,6 +116,9 @@ public class EntityEffectController
 
     public EntityData owner;
 
+    /// <summary>清空全部效果（实体销毁时调用）。</summary>
+    public void Clear() => effects.Clear();
+
     private readonly Dictionary<EffectType, EffectRuntime> effects = new();
     private static readonly List<EffectType> s_expired = new();
     private static readonly List<EntityData> s_tickTargets = new();
