@@ -43,8 +43,8 @@ namespace Ros.Info
         public EntityAttribute GetAttribute(int level = 1)
         {
             var attr = baseAttribute.Clone();
-            attr.level = Mathf.Max(1, level);
-            for (int lv = 2; lv <= attr.level; lv++)
+            level = Mathf.Max(1, level);
+            for (int lv = 2; lv <= level; lv++)
             {
                 var type = GetUpgradeType(lv);
                 ApplyUpgrade(attr, type);

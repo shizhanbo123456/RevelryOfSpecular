@@ -26,8 +26,6 @@ public class EntityAttribute
     public float viewDistance = 20f;
     /// <summary>武器槽位数量（技能列表可容纳武器数，双方角色均为此属性）。</summary>
     public int weaponSlotCount = 3;
-    /// <summary>角色等级。</summary>
-    public int level = 1;
 
     /// <summary>是否存活。</summary>
     public bool Alive => health > 0f;
@@ -45,7 +43,6 @@ public class EntityAttribute
             knockbackResistance = knockbackResistance,
             viewDistance = viewDistance,
             weaponSlotCount = weaponSlotCount,
-            level = level,
         };
     }
 
@@ -75,7 +72,7 @@ public class EntityAttribute
         return new List<float>()
         {
             health, maxHealth, strength, magic,
-            critRate, critDamage, knockbackResistance, viewDistance, weaponSlotCount, level
+            critRate, critDamage, knockbackResistance, viewDistance, weaponSlotCount
         };
     }
 }
