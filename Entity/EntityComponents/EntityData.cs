@@ -104,7 +104,14 @@ public abstract class EntityData : MonoBehaviour
         {
             moveSpeed = Config.base_move_speed;
         }
+
+        // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
+        // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
+        GetComponentInChildren<EntityAnim>()?.Init(this, OnAnimAttack);
     }
+
+    /// <summary>动画攻击帧回调（AnimAttackEvent 触发；攻击帧相关逻辑如武器判定后续在此实现）。</summary>
+    protected virtual void OnAnimAttack(EntityAnim.AttackType type) { }
 
     /// <summary>每帧更新（BattleManager 遍历调用）。技能 CD 为时间戳惰性计算，无需每帧推进。</summary>
     public virtual void OnUpdate()

@@ -186,7 +186,13 @@ public class ClientDisplayManager : MonoBehaviour
         view.type = info.type;
         view.camp = info.camp;
         view.animator = go.GetComponentInChildren<Animator>();
-        if (view.animator != null) view.anim = view.animator.GetComponent<EntityAnim>();
+        if (view.animator != null)
+        {
+            view.anim = view.animator.GetComponent<EntityAnim>();
+            // 客户端动画初始化：激活 animator 引用与 AnimEvent 状态推送（与服务器同一 Controller 资产）；
+            // 无 EntityData，攻击帧伤害回调不传（客户端动画完全由服务器下发的 animState 驱动）
+            view.anim?.Init(null, null);
+        }
 
         // 玩家名字（头顶文字，无血条；攻红守蓝）
         if (info.type.category == EntityCategory.Character_Attack ||

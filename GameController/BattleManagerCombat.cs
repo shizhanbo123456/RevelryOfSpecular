@@ -58,6 +58,9 @@ public partial class BattleManager
 
         if (anim == null) return;
 
+        // 移动输入 → 动画（走 EntityAnim，服务器权威状态随表现摘要同步，客户端 Run/Idle 由此区分）
+        anim.Move(command.moving);
+
         // 跳跃：InAir 一段时间后落回（时间戳延时）
         if (command.jumpPressed)
         {
