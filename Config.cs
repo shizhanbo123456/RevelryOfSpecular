@@ -24,8 +24,6 @@ public static class Config
     public const int max_entity_level = 10;
     /// <summary>玩家等级达到该值解锁全部角色。</summary>
     public const int player_max_level = 50;
-    /// <summary>初始免费角色数量。</summary>
-    public const int initial_unlocked_character_count = 3;
     /// <summary>
     /// 角色升级所需经验（下标 0 = 1→2 级，依次到 9→10 级）。
     /// 获得经验 = 对水晶造成的伤害量。

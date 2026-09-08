@@ -41,10 +41,11 @@ public class SaveManager : MonoBehaviour
         return characterLevels[index];
     }
 
+    /// <summary>是否已解锁：解锁完全由角色 SO 的 unlockPlayerLevel 决定（存档标记仅作手动解锁的附加记录，当前无写入方）。</summary>
     public bool IsCharacterUnlocked(int index)
     {
-        if (index < 0 || index >= characterUnlocked.Count) return false;
-        return characterUnlocked[index];
+        if (index < 0 || index >= characterUnlocked.Count) return IsUnlockedByPlayerLevel(index);
+        return characterUnlocked[index] || IsUnlockedByPlayerLevel(index);
     }
 
     /// <summary>按玩家等级是否解锁：读角色 SO 的 unlockPlayerLevel（策划案 10.2，达标自动解锁；SO 未配置视为已解锁）。</summary>
@@ -104,7 +105,7 @@ public class SaveManager : MonoBehaviour
         while (characterExp.Count < CharacterTotalCount) characterExp.Add(0);
         while (characterUnlocked.Count < CharacterTotalCount)
         {
-            characterUnlocked.Add(characterUnlocked.Count < Config.initial_unlocked_character_count);
+            characterUnlocked.Add(false); // 解锁由角色 SO 的 unlockPlayerLevel 判定，存档标记默认全 false
         }
     }
 
