@@ -42,7 +42,7 @@ public static class GenericTimer
 
     /// <summary>
     /// 每帧更新：推进所有任务计时，到期的执行回调并移除。
-    /// 由 Tool.Update 每帧驱动。
+    /// 由 Tool.Update 每帧驱动。先移除再执行：回调抛异常不会导致任务每帧重试。
     /// </summary>
     public static void Update()
     {
@@ -52,8 +52,15 @@ public static class GenericTimer
             var task = _tasks[i];
             task.Elapsed += Time.deltaTime;
             if (task.Elapsed < task.Delay) continue;
-            task.Action?.Invoke();
             _tasks.RemoveAt(i);
+            try
+            {
+                task.Action?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
     }
 }

@@ -31,6 +31,12 @@ public static class Config
     /// 获得经验 = 对水晶造成的伤害量。
     /// </summary>
     public static readonly int[] level_up_exp = { 50000, 60000, 90000, 120000, 160000, 200000, 250000, 300000, 360000 };
+
+    /// <summary>
+    /// 玩家（账号级）从当前等级升到下一级所需经验：700 + 300 × 当前等级。
+    /// 公式集中于此，SaveManager 不持有数值公式。
+    /// </summary>
+    public static int GetPlayerLevelUpExp(int currentLevel) => 700 + 300 * Mathf.Max(1, currentLevel);
     #endregion
 
     #region 守护点（瘟疫信标）

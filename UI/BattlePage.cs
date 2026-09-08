@@ -26,6 +26,7 @@ public class BattlePage : PageBase
     private VisualElement reviveFill;
     private Label reviveLabel;
     private float battleStartTime;
+    private bool expSettled; // 对局经验只结算一次（防 SCScoreInfo 重复到达）
 
     protected override void Build(VisualElement root)
     {
@@ -134,9 +135,11 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
+        EventManager.AddEvent<int>(ClientEvent.OnDayNightChange, OnDayNightChange);
 
         // 开局信息立即应用（守护点/技能槽随实体表现摘要到达后刷新）
         battleStartTime = Time.time;
+        expSettled = false;
         if (NetworkManager.battleInfo != null)
         {
             phaseLabel.text = PhaseNames[Mathf.Clamp(NetworkManager.battleInfo.dayNightPhase, 0, PhaseNames.Length - 1)];
@@ -150,6 +153,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
+        EventManager.RemoveEvent<int>(ClientEvent.OnDayNightChange, OnDayNightChange);
     }
 
     public override void OnUpdate()
@@ -231,6 +235,24 @@ public class BattlePage : PageBase
         if (info.gameState != 0)
         {
             ShowFloating(GetEndText(info.gameState), new Color(1f, 0.9f, 0.3f, 1f));
+            TrySettleExp(info);
+        }
+    }
+
+    /// <summary>结算局外经验（策划案 17.3：获得经验 = 对水晶造成的伤害量，服务器随 SCScoreInfo 下发）。</summary>
+    private void TrySettleExp(SCScoreInfo info)
+    {
+        if (expSettled || Tool.SaveManager == null || info.expGain <= 0) return;
+        expSettled = true;
+        Tool.SaveManager.AddPlayerExp(info.expGain);
+        var battle = NetworkManager.battleInfo;
+        if (battle != null)
+        {
+            // 全局角色索引：进攻 0~17 / 防守 18~23（SaveManager 双等级制）
+            int index = battle.camp == EntityCamp.Attack
+                ? battle.characterType.value
+                : Config.attack_character_count + battle.characterType.value;
+            Tool.SaveManager.AddCharacterExp(index, info.expGain);
         }
     }
 
@@ -239,9 +261,6 @@ public class BattlePage : PageBase
         if (e == null) return;
         switch (e.type)
         {
-            case SCBattleEvent.Type.DayNight:
-                phaseLabel.text = PhaseNames[Mathf.Clamp(e.value, 0, PhaseNames.Length - 1)];
-                break;
             case SCBattleEvent.Type.Kill:
                 ShowFloating("击杀！", new Color(1f, 0.5f, 0.3f, 1f));
                 break;
@@ -275,6 +294,12 @@ public class BattlePage : PageBase
     private void OnRightClickBlocked(string msg)
     {
         ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.6f, 0.2f, 1f));
+    }
+
+    /// <summary>昼夜阶段变化（EnvironmentManager 权威同步/推演触发）。</summary>
+    private void OnDayNightChange(int phase)
+    {
+        if (phaseLabel != null) phaseLabel.text = PhaseNames[Mathf.Clamp(phase, 0, PhaseNames.Length - 1)];
     }
     #endregion
 

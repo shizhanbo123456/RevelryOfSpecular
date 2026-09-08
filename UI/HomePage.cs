@@ -114,7 +114,7 @@ public class HomePage : PageBase
         RefreshInfo();
     }
 
-    private void AddCharacterButtons(string groupTitle, bool isDefense, System.Collections.Generic.List<EntityAttributeInfo> infoList)
+    private void AddCharacterButtons(string groupTitle, bool isDefense, System.Collections.Generic.List<PlayerCharacterInfo> infoList)
     {
         var group = new Label(groupTitle) { style = { color = new Color(0.85f, 0.7f, 0.3f, 1f), fontSize = 16, marginTop = 8, marginBottom = 4 } };
         characterList.Add(group);

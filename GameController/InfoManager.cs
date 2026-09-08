@@ -15,10 +15,10 @@ public class InfoManager : MonoBehaviour
     }
 
     #region 角色属性配置（Info）
-    /// <summary>进攻方角色属性（18 人）。</summary>
-    public List<EntityAttributeInfo> AttackCharacterInfoList = new();
-    /// <summary>防守方角色属性（6 人）。</summary>
-    public List<EntityAttributeInfo> DefenseCharacterInfoList = new();
+    /// <summary>进攻方角色（18 人，玩家角色信息含解锁等级）。</summary>
+    public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
+    /// <summary>防守方角色（6 人，玩家角色信息含解锁等级）。</summary>
+    public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
     /// <summary>普通僵尸属性（21 种暂用）。</summary>
     public List<EntityAttributeInfo> ZombieInfoList = new();
     /// <summary>精英僵尸属性（14 种）。</summary>
@@ -114,10 +114,6 @@ public class InfoManager : MonoBehaviour
     #region 血条与层级
     /// <summary>实体类别 → 血条 Y 偏移。</summary>
     public Dictionary<EntityCategory, float> EntityBarYOffsetMap = new();
-    /// <summary>实体层。</summary>
-    public LayerMask EntityLayer = 1;
-    /// <summary>技能目标层。</summary>
-    public LayerMask SkillTargetLayerMask = ~0;
 
     /// <summary>实体血条 Y 偏移（默认头顶 0.9m）。</summary>
     public float GetEntityBarYOffset(EntityType type)
@@ -136,6 +132,18 @@ public class InfoManager : MonoBehaviour
     {
         var info = GetAttributeInfo(type);
         return info != null ? info.GetAttribute(level) : new EntityAttribute();
+    }
+
+    /// <summary>按全局角色索引取玩家角色信息（进攻 0~17 / 防守 18~23；无配置返回 null）。</summary>
+    public PlayerCharacterInfo GetPlayerCharacterInfo(int globalIndex)
+    {
+        if (globalIndex < 0) return null;
+        if (globalIndex < Config.attack_character_count)
+        {
+            return globalIndex < AttackCharacterInfoList.Count ? AttackCharacterInfoList[globalIndex] : null;
+        }
+        int defIndex = globalIndex - Config.attack_character_count;
+        return defIndex < DefenseCharacterInfoList.Count ? DefenseCharacterInfoList[defIndex] : null;
     }
 
     /// <summary>按实体类型取属性配置资产。</summary>

@@ -18,10 +18,29 @@ public class ClientDisplayManager : MonoBehaviour
         public Animator animator;
         public EntityAnim anim;
         public TextMesh nameLabel; // 玩家名字（仅玩家实体）
+        public Vector3 velocity;   // 服务器下发速度（包间推演用）
+        public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
+        public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
+
+        private void Update()
+        {
+            // 包间推演：位置 + 速度 / 朝向 + 角速度（收到同步包时已重置为权威值）
+            if (velocity.sqrMagnitude > 0f)
+            {
+                transform.position += velocity * Time.deltaTime;
+            }
+            if (!Mathf.Approximately(yawSpeed, 0f))
+            {
+                transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y + yawSpeed * Time.deltaTime, 0f);
+            }
+        }
     }
 
     /// <summary>实体 id → 表现视图。</summary>
     private readonly Dictionary<ushort, ClientEntityView> views = new();
+
+    /// <summary>表现超时移除时长（秒）：超过该时长未收到同步即移除，兜底防漏删。</summary>
+    private const float ViewTimeoutSeconds = 3f;
 
     /// <summary>客户端表现根节点（父物体）。</summary>
     public Transform displayRoot;
@@ -47,6 +66,9 @@ public class ClientDisplayManager : MonoBehaviour
             if (view == null) return;
             views[info.entityId] = view;
         }
+        view.lastSeenTime = Time.time;
+        view.velocity = info.velocity;
+        view.yawSpeed = info.yawSpeed;
         ApplyDisplay(view, info);
 
         // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
@@ -66,6 +88,27 @@ public class ClientDisplayManager : MonoBehaviour
         {
             views.Remove((ushort)entityId);
             Destroy(view.gameObject);
+            EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
+        }
+    }
+
+    /// <summary>超时兜底移除：超过 ViewTimeoutSeconds 未收到同步的表现自动移除（防服务器漏发移除消息）。</summary>
+    private void Update()
+    {
+        float now = Time.time;
+        List<ushort> expired = null;
+        foreach (var pair in views)
+        {
+            var view = pair.Value;
+            if (view == null || now - view.lastSeenTime > ViewTimeoutSeconds)
+            {
+                (expired ??= new List<ushort>()).Add(pair.Key);
+            }
+        }
+        if (expired == null) return;
+        foreach (var id in expired)
+        {
+            OnRemoveEntity(id);
         }
     }
 

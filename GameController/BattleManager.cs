@@ -49,6 +49,17 @@ public partial class BattleManager : EnsBehaviour
     public int AttackAICount { get; private set; }
     /// <summary>防守方 AI 玩家数量。</summary>
     public int DefenseAICount { get; private set; }
+
+    /// <summary>对局中各客户端对水晶造成的累计伤害（结算经验用，策划案 17.3）。</summary>
+    public readonly Dictionary<short, float> CrystalExpByClient = new();
+
+    /// <summary>累计水晶伤害经验（EntityData.OnDamaged 调用；经验 = 对水晶造成的伤害量）。</summary>
+    public void AddCrystalExp(short clientId, float damage)
+    {
+        if (damage <= 0f) return;
+        CrystalExpByClient.TryGetValue(clientId, out float exp);
+        CrystalExpByClient[clientId] = exp + damage;
+    }
     #endregion
 
     #region 实体容器（按分类，ChunkSearcher 区块加速）
@@ -57,8 +68,6 @@ public partial class BattleManager : EnsBehaviour
     {
         /// <summary>全部实体。</summary>
         public static readonly ChunkSearcher<EntityData> Entities = new(d => d.transform.position);
-        /// <summary>角色（玩家）。</summary>
-        public static readonly ChunkSearcher<EntityData> Characters = new(d => d.transform.position);
         /// <summary>守护点。</summary>
         public static readonly ChunkSearcher<EntityData> Beacons = new(d => d.transform.position);
         /// <summary>可采集水晶。</summary>
@@ -67,18 +76,14 @@ public partial class BattleManager : EnsBehaviour
         public static readonly ChunkSearcher<EntityData> Towers = new(d => d.transform.position);
         /// <summary>僵尸。</summary>
         public static readonly ChunkSearcher<EntityData> Zombies = new(d => d.transform.position);
-        /// <summary>中立/其它。</summary>
-        public static readonly ChunkSearcher<EntityData> Others = new(d => d.transform.position);
 
         public static void Clear()
         {
             Entities.Clear();
-            Characters.Clear();
             Beacons.Clear();
             Crystals.Clear();
             Towers.Clear();
             Zombies.Clear();
-            Others.Clear();
         }
 
         private static readonly HashSet<int> s_buffer = new();
@@ -176,11 +181,23 @@ public partial class BattleManager : EnsBehaviour
     public static EntityData GetEntity(ushort id) =>
         EntityContainer.Entities.TryGetObject(id, out var e) ? e : null;
 
-    /// <summary>销毁实体（服务器）。</summary>
+    /// <summary>销毁实体（服务器）：统一在此通知所有客户端移除表现。</summary>
     public bool DestroyEntity(ushort id)
     {
         if (!EntityContainer.Entities.TryGetObject(id, out var data)) return false;
         RemoveFromContainer(data);
+
+        // 通知所有客户端移除该实体表现（死亡/离场/摧毁统一走此入口）
+        foreach (var clientId in PlayerInfoList.Keys)
+        {
+            Tool.NetworkManager.SendRemoveEntity(clientId, id);
+        }
+        // 守护点被摧毁事件（UI 飘字/表现用）
+        if (BattleStarted && data.type.category == EntityCategory.Beacon)
+        {
+            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.BeaconDestroyed, id);
+        }
+
         data.OnDestroyed();
         bool wasCoreBeacon = data.type.category == EntityCategory.Beacon && data.type == EntityType.CoreBeacon;
         Destroy(data.gameObject);
@@ -196,10 +213,6 @@ public partial class BattleManager : EnsBehaviour
         EntityContainer.Entities.Add(data.id, data);
         switch (data.type.category)
         {
-            case EntityCategory.Character_Attack:
-            case EntityCategory.Character_Defense:
-                EntityContainer.Characters.Add(data.id, data);
-                break;
             case EntityCategory.Beacon:
                 EntityContainer.Beacons.Add(data.id, data);
                 break;
@@ -213,21 +226,16 @@ public partial class BattleManager : EnsBehaviour
             case EntityCategory.EliteZombie:
                 EntityContainer.Zombies.Add(data.id, data);
                 break;
-            default:
-                EntityContainer.Others.Add(data.id, data);
-                break;
         }
     }
 
     private void RemoveFromContainer(EntityData data)
     {
         EntityContainer.Entities.Remove(data.id);
-        EntityContainer.Characters.Remove(data.id);
         EntityContainer.Beacons.Remove(data.id);
         EntityContainer.Crystals.Remove(data.id);
         EntityContainer.Towers.Remove(data.id);
         EntityContainer.Zombies.Remove(data.id);
-        EntityContainer.Others.Remove(data.id);
     }
     #endregion
 
@@ -478,6 +486,14 @@ public partial class BattleManager : EnsBehaviour
         // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
 
+        // 昼夜同步（客户端收到后按配置时长与流速自行推演）
+        Tool.NetworkManager.SendDayNightInfo(new SCDayNightInfo()
+        {
+            phase = EnvironmentManager.CurrentPhase,
+            phaseTime = EnvironmentManager.PhaseTime,
+            rate = 1f,
+        });
+
         BroadcastRoomInfo();
         Debug.Log($"战斗开始：人类 {PlayerInfoList.Count}，AI {AttackAICount + DefenseAICount}");
     }
@@ -490,6 +506,7 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"对局结束：{gameState}");
         foreach (var clientId in PlayerInfoList.Keys)
         {
+            CrystalExpByClient.TryGetValue(clientId, out float crystalExp);
             Tool.NetworkManager.SendScoreInfo(clientId, new SCScoreInfo()
             {
                 gameState = gameState,
@@ -497,6 +514,7 @@ public partial class BattleManager : EnsBehaviour
                 defenseScore = DefenseScore(),
                 killScore = DefenseKills,
                 remainTime = Mathf.Max(0f, BattleRemainTime),
+                expGain = Mathf.RoundToInt(crystalExp), // 经验 = 对水晶造成的伤害量（策划案 17.3）
             });
         }
     }
@@ -519,7 +537,7 @@ public partial class BattleManager : EnsBehaviour
             }
         }
 
-        // 昼夜推进（服务器权威，见策划案 13 章）
+        // 昼夜推进（服务器权威，见策划案 13 章；阶段切换下发同步包，客户端自行推演）
         if (Tool.EnvironmentManager != null)
         {
             Tool.EnvironmentManager.TickPhase(UnityEngine.Time.deltaTime);
@@ -527,7 +545,12 @@ public partial class BattleManager : EnsBehaviour
             {
                 int next = (EnvironmentManager.CurrentPhase + 1) % EnvironmentManager.PhaseCount;
                 Tool.EnvironmentManager.SetPhase(next);
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.DayNight, 0, (byte)next);
+                Tool.NetworkManager.SendDayNightInfo(new SCDayNightInfo()
+                {
+                    phase = EnvironmentManager.CurrentPhase,
+                    phaseTime = EnvironmentManager.PhaseTime,
+                    rate = 1f,
+                });
             }
         }
 
@@ -610,8 +633,26 @@ public partial class BattleManager : EnsBehaviour
                 var info = entity.GetDisplayInfo();
                 info.includeRuntime = includeRuntime;
                 info.ownerClientId = EntityOwnerClient.TryGetValue(entity.id, out var oc) ? oc : (short)-1;
+                FillDisplayVelocity(entity, info);
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
             }
+        }
+    }
+
+    /// <summary>填充表现推演数据：速度（权威移动 + 位移效果）与绕 Y 角速度（客户端包间推演用）。</summary>
+    private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
+    {
+        if (moveStates.TryGetValue(entity.id, out var ms))
+        {
+            bool movingVisibly = ms.moving && !ms.blocked && entity.MotionCanMove;
+            info.velocity = (movingVisibly ? new Vector3(ms.dir.x, 0f, ms.dir.y) * entity.moveSpeed : Vector3.zero)
+                            + entity.motionVelocity;
+            info.yawSpeed = ms.yawSpeed;
+        }
+        else
+        {
+            info.velocity = entity.motionVelocity;
+            info.yawSpeed = 0f;
         }
     }
     #endregion

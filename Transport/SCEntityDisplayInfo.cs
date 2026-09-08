@@ -21,6 +21,10 @@ namespace Ros.Transport
         public Vector3 position;
         /// <summary>朝向（欧拉角 Y，度）。</summary>
         public float yaw;
+        /// <summary>速度（米/秒，客户端包间推演用；= 权威移动方向×速度 + 位移效果速度，静止为零）。</summary>
+        public Vector3 velocity;
+        /// <summary>绕 Y 轴角速度（度/秒，客户端推演朝向用；静止为零）。</summary>
+        public float yawSpeed;
         /// <summary>是否包含运行时数据（血量/Buff/技能槽）：高频同步(0.02s)=false 只含位姿动画，完整同步(0.2s)=true；客户端 false 时保留上一次运行时数据。</summary>
         public bool includeRuntime;
         /// <summary>当前生命（守护点 HUD 等直接读取；&lt;=0 视为已摧毁/死亡）。</summary>
@@ -81,6 +85,8 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
             if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
+            if (!Vector3Serializer.Serialize(value.velocity, result, ref indexStart)) return false;
+            if (!FloatSerializer.Serialize(value.yawSpeed, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
@@ -132,6 +138,8 @@ namespace Ros.Transport
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
                 yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                velocity = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
+                yawSpeed = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

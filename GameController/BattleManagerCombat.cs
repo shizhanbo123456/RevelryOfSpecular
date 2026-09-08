@@ -18,6 +18,9 @@ public partial class BattleManager
         public Vector3 startPos;
         public float startTime;
         public bool blocked;
+        public float lastYaw;      // 最近一次朝向（度）
+        public float lastYawTime;  // 最近一次朝向变化时间（秒）
+        public float yawSpeed;     // 绕 Y 角速度（度/秒，客户端推演用）
     }
     private readonly Dictionary<ushort, MoveState> moveStates = new();
 
@@ -41,6 +44,16 @@ public partial class BattleManager
             st.dir = command.moveDir;
             st.startPos = entity.transform.position;
             st.startTime = Time.time;
+        }
+
+        // 绕 Y 角速度（客户端推演朝向用）：最近一次 yaw 变化的平均角速度
+        float yawDelta = Mathf.DeltaAngle(st.lastYaw, command.yaw);
+        if (!Mathf.Approximately(yawDelta, 0f))
+        {
+            float dt = Mathf.Max(0.001f, Time.time - st.lastYawTime);
+            st.yawSpeed = yawDelta / dt;
+            st.lastYaw = command.yaw;
+            st.lastYawTime = Time.time;
         }
 
         if (anim == null) return;
@@ -217,10 +230,14 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
-    /// <summary>死亡统一处理：摧毁单位；水晶排重生；玩家进入复活流程并下发进度。</summary>
+    /// <summary>死亡统一处理：摧毁单位；水晶排重生并广播采集事件；玩家进入复活流程并下发进度。</summary>
     private void HandleDeath(EntityData entity)
     {
-        if (entity.type.category == EntityCategory.Crystal) ScheduleCrystalRespawn(entity);
+        if (entity.type.category == EntityCategory.Crystal)
+        {
+            ScheduleCrystalRespawn(entity);
+            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected, entity.id);
+        }
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
@@ -344,13 +361,14 @@ public partial class BattleManager
         });
     }
 
-    /// <summary>开战清空战斗运行状态（id 源、子弹、移动、复活、水晶重生）。</summary>
+    /// <summary>开战清空战斗运行状态（id 源、子弹、移动、复活、水晶重生、经验统计）。</summary>
     private void ClearBattleState()
     {
         activeBullets.Clear();
         moveStates.Clear();
         reviveStates.Clear();
         crystalRespawns.Clear();
+        CrystalExpByClient.Clear();
     }
     #endregion
 }

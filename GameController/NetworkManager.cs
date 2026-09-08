@@ -15,10 +15,6 @@ public partial class NetworkManager : EnsBehaviour
     private void Awake()
     {
         Tool.NetworkManager = this;
-        if (Application.platform != RuntimePlatform.WindowsServer && GetComponent<InputManager>() == null)
-        {
-            gameObject.AddComponent<InputManager>();
-        }
         ResetClientNetworkInfo();
         ClientBindEvents();
     }
@@ -254,6 +250,18 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
     }
 
+    /// <summary>发送昼夜同步（定向；战斗开始/阶段切换时下发，客户端自行推演）。</summary>
+    public void SendDayNightInfo(short clientId, SCDayNightInfo info)
+    {
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
+    /// <summary>发送昼夜同步（全房间广播）。</summary>
+    public void SendDayNightInfo(SCDayNightInfo info)
+    {
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
+    }
+
     /// <summary>
     /// 广播"使用技能"（技能 id + 轨迹上下文）。
     /// 客户端收到后按技能 id 调用 SkillManager.PlayVFX，用与服务器相同的构建函数从上下文重建轨迹播放表现。
@@ -365,6 +373,14 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (info == null) return;
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
+    }
+
+    /// <summary>客户端：接收昼夜同步（权威校正后按流速自行推演）。</summary>
+    [Rpc]
+    private void ClientReceiveDayNightInfoLocal(SCDayNightInfo info)
+    {
+        if (info == null) return;
+        Tool.EnvironmentManager?.ApplyServerSync(info.phase, info.phaseTime, info.rate);
     }
 
     /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>

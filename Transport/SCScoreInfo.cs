@@ -18,6 +18,8 @@ namespace Ros.Transport
         public float remainTime;
         /// <summary>中心守护点是否被摧毁。</summary>
         public bool coreDestroyed;
+        /// <summary>本局获得经验（= 对水晶造成的伤害量，策划案 17.3；客户端结算写入存档）。</summary>
+        public int expGain;
     }
 
     /// <summary>SCScoreInfo 网络序列化器。</summary>
@@ -32,7 +34,8 @@ namespace Ros.Transport
             if (!FloatSerializer.Serialize(value.defenseScore, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.killScore, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.remainTime, result, ref indexStart)) return false;
-            return BoolSerializer.Serialize(value.coreDestroyed, result, ref indexStart);
+            if (!BoolSerializer.Serialize(value.coreDestroyed, result, ref indexStart)) return false;
+            return IntSerializer.Serialize(value.expGain, result, ref indexStart);
         }
 
         public static SCScoreInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -46,6 +49,7 @@ namespace Ros.Transport
                 killScore = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 remainTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 coreDestroyed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                expGain = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }

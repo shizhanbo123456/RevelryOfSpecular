@@ -47,9 +47,14 @@ public class SaveManager : MonoBehaviour
         return characterUnlocked[index];
     }
 
-    /// <summary>按玩家等级是否解锁（TODO：具体解锁表待定，当前按初始数量 + 每级解锁一个）。</summary>
+    /// <summary>
+    /// 按玩家等级是否解锁：读角色 SO 的 unlockPlayerLevel（策划案 10.2，达标自动解锁）；
+    /// 角色 SO 未配置时兜底按旧规则（初始 3 个 + 每升 5 级解锁一个）。
+    /// </summary>
     public bool IsUnlockedByPlayerLevel(int characterIndex)
     {
+        var info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(characterIndex) : null;
+        if (info != null) return playerLevel >= info.unlockPlayerLevel;
         if (characterIndex < Config.initial_unlocked_character_count) return true;
         return playerLevel >= (characterIndex - Config.initial_unlocked_character_count + 1) * 5;
     }
@@ -84,13 +89,13 @@ public class SaveManager : MonoBehaviour
         Save();
     }
 
-    /// <summary>给玩家加经验（账号级）。</summary>
+    /// <summary>给玩家加经验（账号级；每级所需经验公式见 Config.GetPlayerLevelUpExp）。</summary>
     public void AddPlayerExp(int exp)
     {
         playerExp += exp;
-        while (playerLevel < Config.player_max_level && playerExp >= 200 * playerLevel)
+        while (playerLevel < Config.player_max_level && playerExp >= Config.GetPlayerLevelUpExp(playerLevel))
         {
-            playerExp -= 200 * playerLevel;
+            playerExp -= Config.GetPlayerLevelUpExp(playerLevel);
             playerLevel++;
         }
         Save();
