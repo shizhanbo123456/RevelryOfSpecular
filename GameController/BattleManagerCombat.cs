@@ -4,57 +4,36 @@ using UnityEngine;
 
 /// <summary>
 /// 战斗核心（partial BattleManager）：服务器权威移动、子弹容器、近战、死亡复活与愈战愈勇。
-/// 时间戳原则：位置/CD/重生等尽量由时间戳外推（记录起点 + 时刻，按当前时间算当前表现），
-/// 仅动态项（MotionBase 位移速度、DoT tick）做必要的推进。
+/// 时间戳原则：CD/重生/子弹等尽量由时间戳外推；
+/// 移动为角色相对移动 + 渐转（路径为曲线），按帧增量积分；仅动态项（渐转/位移速度、DoT tick）做必要的推进。
 /// </summary>
 public partial class BattleManager
 {
-    #region 服务器权威移动
-    /// <summary>玩家移动状态（方向变化时重锚时间戳；位置 = 起点 + 方向 × 速度 × 时长）。</summary>
+    #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
+    /// <summary>玩家移动状态。</summary>
     private class MoveState
     {
         public bool moving;
-        public Vector2 dir;
-        public Vector3 startPos;
-        public float startTime;
+        public Vector2 dir;       // 原始按键输入（x = 左右横移，y = 前后）
+        public float yaw;         // 角色朝向（度，服务器权威渐转推进）
+        public float yawSpeed;    // 绕 Y 角速度（度/秒，客户端推演用）
         public bool blocked;
-        public float lastYaw;      // 最近一次朝向（度）
-        public float lastYawTime;  // 最近一次朝向变化时间（秒）
-        public float yawSpeed;     // 绕 Y 角速度（度/秒，客户端推演用）
     }
     private readonly Dictionary<ushort, MoveState> moveStates = new();
 
-    /// <summary>记录客户端输入（权威移动模拟 + 跳跃/滑铲/空手攻击动作触发）。</summary>
+    /// <summary>记录客户端输入（权威移动 + 跳跃/滑铲/空手攻击动作触发）。</summary>
     private void RecordInput(EntityData entity, CSInputCommand command)
     {
         var anim = entity.GetComponentInChildren<EntityAnim>();
 
-        // 朝向
-        entity.transform.rotation = Quaternion.Euler(0f, command.yaw, 0f);
-
-        // 移动状态（方向/启停变化时重锚时间戳）
+        // 移动状态（原始按键输入；朝向由服务器渐转权威推进，客户端不再上报 yaw）
         if (!moveStates.TryGetValue(entity.id, out var st))
         {
-            st = new MoveState();
+            st = new MoveState { yaw = entity.transform.eulerAngles.y }; // 初始朝向 = 生成时的朝向
             moveStates[entity.id] = st;
         }
-        if (st.moving != command.moving || st.dir != command.moveDir)
-        {
-            st.moving = command.moving;
-            st.dir = command.moveDir;
-            st.startPos = entity.transform.position;
-            st.startTime = Time.time;
-        }
-
-        // 绕 Y 角速度（客户端推演朝向用）：最近一次 yaw 变化的平均角速度
-        float yawDelta = Mathf.DeltaAngle(st.lastYaw, command.yaw);
-        if (!Mathf.Approximately(yawDelta, 0f))
-        {
-            float dt = Mathf.Max(0.001f, Time.time - st.lastYawTime);
-            st.yawSpeed = yawDelta / dt;
-            st.lastYaw = command.yaw;
-            st.lastYawTime = Time.time;
-        }
+        st.moving = command.moving;
+        st.dir = command.moveDir;
 
         if (anim == null) return;
 
@@ -118,35 +97,46 @@ public partial class BattleManager
     }
 
     /// <summary>
-    /// 移动推进：位置由时间戳外推（起点 + 方向 × 速度 × 时长，强控/位移锁输入时冻结）；
-    /// MotionBase 位移速度为动态值，做积分并重锚。
+    /// 移动推进（双手键盘：角色相对移动 + 渐转）：
+    /// 朝向服务器权威——前后 + 左右同按时按 Config.move_turn_rate 渐转（纯前后/纯左右不转向）；
+    /// 移动方向 = 当前朝向 × 原始输入（渐转路径为曲线，故按帧增量积分而非时间戳外推）；
+    /// 强控/位移锁输入时冻结；MotionBase 位移速度独立积分。
     /// </summary>
     private void TickMovement()
     {
-        float now = Time.time;
+        float dt = Time.deltaTime;
         foreach (var pair in moveStates)
         {
             if (!EntityContainer.Entities.TryGetObject(pair.Key, out var e) || e == null || !e.Alive) continue;
             var st = pair.Value;
-            bool blocked = e.effectController != null && !e.effectController.CanMove();
-            if (st.blocked != blocked)
+            st.blocked = e.effectController != null && !e.effectController.CanMove();
+
+            if (!st.blocked && st.moving && e.MotionCanMove)
             {
-                st.blocked = blocked;
-                st.startPos = e.transform.position;
-                st.startTime = now;
+                // 渐转：前后 + 左右同按时朝向逐渐偏向横移侧（yaw 正 = 右转，负 = 左转）
+                float yawDelta = 0f;
+                if (Mathf.Abs(st.dir.x) > 0.01f && Mathf.Abs(st.dir.y) > 0.01f)
+                {
+                    yawDelta = Config.move_turn_rate * Mathf.Sign(st.dir.x) * dt;
+                    st.yaw += yawDelta;
+                }
+                st.yawSpeed = dt > 0f ? yawDelta / dt : 0f;
+                e.transform.rotation = Quaternion.Euler(0f, st.yaw, 0f);
+
+                // 角色相对移动：前 = 角色前方，左右 = 角色侧方，方向随朝向变化
+                Vector3 dir = Quaternion.Euler(0f, st.yaw, 0f) * new Vector3(st.dir.x, 0f, st.dir.y).normalized;
+                e.transform.position += dir * e.moveSpeed * dt;
             }
-            Vector3 pos = st.startPos;
-            if (!blocked && st.moving && e.MotionCanMove)
+            else
             {
-                pos += new Vector3(st.dir.x, 0f, st.dir.y) * e.moveSpeed * (now - st.startTime);
+                st.yawSpeed = 0f;
             }
+
+            // 位移效果速度（MotionBase）独立积分
             if (e.motionVelocity.sqrMagnitude > 0f)
             {
-                pos += e.motionVelocity * (now - st.startTime);
-                st.startPos = pos;
-                st.startTime = now;
+                e.transform.position += e.motionVelocity * dt;
             }
-            e.transform.position = pos;
         }
     }
     #endregion

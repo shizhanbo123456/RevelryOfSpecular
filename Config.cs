@@ -110,7 +110,9 @@ public static class Config
     public const float yz_growth_per_stack = 0.1f;
     #endregion
 
-    #region 玩家操作（双手键盘：WASD 移动 / J 空手攻击 / K 跳跃 / U I O L H 技能槽 1~5）
+    #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
+    /// <summary>移动渐转速率（度/秒）：前后 + 左右同按时角色按此速率逐渐转向（服务器权威推进）。</summary>
+    public const float move_turn_rate = 120f;
     /// <summary>技能槽触发键（按槽位顺序：U I O L H）。</summary>
     public static readonly KeyCode[] skill_slot_keys = { KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.L, KeyCode.H };
     /// <summary>空手攻击键（静止 = 跃起砸地，移动 = 出拳）。</summary>

@@ -639,13 +639,14 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>填充表现推演数据：速度（权威移动 + 位移效果）与绕 Y 角速度（客户端包间推演用）。</summary>
+    /// <summary>填充表现推演数据：速度（权威移动 + 位移效果，世界系）与绕 Y 角速度（客户端包间推演用）。</summary>
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
         if (moveStates.TryGetValue(entity.id, out var ms))
         {
             bool movingVisibly = ms.moving && !ms.blocked && entity.MotionCanMove;
-            info.velocity = (movingVisibly ? new Vector3(ms.dir.x, 0f, ms.dir.y) * entity.moveSpeed : Vector3.zero)
+            Vector3 worldDir = Quaternion.Euler(0f, ms.yaw, 0f) * new Vector3(ms.dir.x, 0f, ms.dir.y).normalized;
+            info.velocity = (movingVisibly ? worldDir * entity.moveSpeed : Vector3.zero)
                             + entity.motionVelocity;
             info.yawSpeed = ms.yawSpeed;
         }

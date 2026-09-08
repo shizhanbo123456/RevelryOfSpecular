@@ -2,10 +2,11 @@
 using UnityEngine;
 
 /// <summary>
-/// 输入管理器（客户端，双手键盘方案，策划案 12 章）：
-/// WASD 移动 / 鼠标视角 / J 空手攻击（静止=跃起砸地，移动=出拳）/ K 跳跃 /
-/// U I O L H 技能槽 1~5 触发（技能释放走 CSUseSkillRequest 单独发送）。
-/// 瞄准点 = 自动索敌最近可见敌人，没有则取前方（策划案 D 组决策）。
+/// 输入管理器（客户端，双手键盘方案，无鼠标操控）：
+/// W/S 前后移动 / A/D 左右移动 / 前后+左右同按 = 向前后移动并逐渐转向（转向由服务器权威推进）/
+/// J 空手攻击（静止=跃起砸地，移动=出拳）/ K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽 1~5 触发
+/// （技能释放走 CSUseSkillRequest 单独发送）。
+/// 瞄准点 = 自动索敌最近可见敌人，没有则取角色前方。
 /// 输入 → CSInputCommand → NetworkManager.SendInputCommand（服务器权威处理）。
 /// </summary>
 public class InputManager : MonoBehaviour
@@ -16,7 +17,7 @@ public class InputManager : MonoBehaviour
     }
 
     #region 静态输入状态（每帧刷新，供其它模块读取）
-    /// <summary>移动输入（相对相机，x 横向 z 纵向，范围 -1~1）。</summary>
+    /// <summary>原始按键输入（相对角色自身：x = 左右横移 -1~1，z = 前后 -1~1）。</summary>
     public static Vector2 MoveInput { get; private set; }
 
     /// <summary>空手攻击按下（本帧，J 键）。</summary>
@@ -33,9 +34,6 @@ public class InputManager : MonoBehaviour
 
     /// <summary>瞄准点（世界坐标）。</summary>
     public static Vector3 AimPoint { get; private set; }
-
-    /// <summary>是否锁定鼠标（默认锁定，Esc 切换）。</summary>
-    public static bool MouseLocked { get; private set; } = true;
     #endregion
 
     private void Update()
@@ -47,15 +45,7 @@ public class InputManager : MonoBehaviour
 
     private void RefreshInputStates()
     {
-        // 鼠标锁定切换
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            MouseLocked = !MouseLocked;
-            Cursor.visible = !MouseLocked;
-            Cursor.lockState = MouseLocked ? CursorLockMode.Locked : CursorLockMode.None;
-        }
-
-        // 移动（相对相机）
+        // 原始按键输入（相对角色自身，不做相机相对换算）
         float x = 0f, z = 0f;
         if (Input.GetKey(KeyCode.W)) z += 1f;
         if (Input.GetKey(KeyCode.S)) z -= 1f;
@@ -77,7 +67,7 @@ public class InputManager : MonoBehaviour
             }
         }
 
-        // 瞄准点：自动索敌最近可见敌人，没有则取屏幕中心前方
+        // 瞄准点：自动索敌最近可见敌人，没有则取角色前方
         AimPoint = GetAimPoint();
     }
 
@@ -87,7 +77,6 @@ public class InputManager : MonoBehaviour
         var command = new CSInputCommand()
         {
             moving = MoveInput.sqrMagnitude > 0.01f,
-            yaw = CameraController.Yaw,
             moveDir = MoveInput,
             meleePressed = MeleePressed,
             jumpPressed = JumpPressed,
@@ -117,24 +106,28 @@ public class InputManager : MonoBehaviour
 
     #region//Local
     /// <summary>
-    /// 瞄准点（策划案 D 组）：自动索敌最近可见敌人（不同阵营、可见距离内），没有则取屏幕中心前方。
+    /// 瞄准点：自动索敌最近可见敌人（不同阵营、可见距离内），没有则取角色前方。
     /// </summary>
     private static Vector3 GetAimPoint()
     {
-        var cam = Camera.main;
-        if (cam == null) return Vector3.zero;
+        if (Tool.ClientLogicManager == null || Tool.ClientDisplayManager == null) return Vector3.zero;
+        if (!Tool.ClientLogicManager.TryGetLocalPlayerPosition(out var playerPos)) return Vector3.zero;
 
         float viewDistance = GetLocalViewDistance();
-        Vector3 playerPos = Vector3.zero;
-        if (Tool.ClientLogicManager != null && Tool.ClientDisplayManager != null &&
-            Tool.ClientLogicManager.TryGetLocalPlayerPosition(out playerPos) &&
-            Tool.ClientDisplayManager.TryGetNearestEnemyPosition(playerPos, viewDistance,
+        if (Tool.ClientDisplayManager.TryGetNearestEnemyPosition(playerPos, viewDistance,
                 (EntityCamp)Tool.ClientLogicManager.LocalCamp, out var enemyPos))
         {
             return enemyPos;
         }
-        // 没有可见敌人：取玩家前方
-        return playerPos + cam.transform.forward * 10f;
+
+        // 没有可见敌人：取角色前方（朝向由服务器渐转权威推进，读本地玩家表现物体 forward）
+        if (Tool.ClientDisplayManager.TryGetEntityTransform(Tool.ClientLogicManager.LocalPlayerEntityId, out var t))
+        {
+            Vector3 forward = t.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude > 0.001f) return playerPos + forward.normalized * 10f;
+        }
+        return playerPos;
     }
 
     /// <summary>本地玩家可见距离（来自角色属性配置）。</summary>
