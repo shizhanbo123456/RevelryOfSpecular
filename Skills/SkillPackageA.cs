@@ -97,28 +97,26 @@ namespace Ros.Skill
             BroadcastSkillCast(Id, context);
         }
 
-        // ---- 客户端：用同一构建函数重建轨迹 → 播放特效 ----
+        // ---- 客户端：用同一构建函数重建轨迹 → 经 VfxManager 统一播放特效 ----
+
+        /// <summary>本技能使用的子弹特效下标（AssetsManager.BulletVFX 列表，见特效清单）。</summary>
+        private const int ShotVfxIndex = 0;
 
         public override void PlayVFX(TrajectoryContext context)
         {
-            if (Tool.AssetsManager == null || Tool.AssetsManager.BulletVFX.Count == 0) return;
-            GameObject vfxPrefab = Tool.AssetsManager.BulletVFX[0];
+            if (Tool.VfxManager == null) return;
 
             // 直射飞弹
             int shotCount = context.ints[0];
             for (int i = 0; i < shotCount; i++)
             {
                 BulletTrajectory trajectory = BuildShotTrajectory(context, i);
-                var vfx = Object.Instantiate(vfxPrefab);
-                vfx.name = $"SkillFanShot_{Id}_shot_{i}";
-                BulletPlayer.Create(vfx, trajectory, ShotLifeTime, BulletPlayer.RotationMode.Tangent);
+                Tool.VfxManager.PlayBulletVFX(ShotVfxIndex, trajectory, ShotLifeTime);
             }
 
             // 天降轰炸
             BulletTrajectory skyFall = BuildSkyFallTrajectory(context);
-            var fallVfx = Object.Instantiate(vfxPrefab);
-            fallVfx.name = $"SkillFanShot_{Id}_skyfall";
-            BulletPlayer.Create(fallVfx, skyFall, SkyFallLifeTime, BulletPlayer.RotationMode.Tangent);
+            Tool.VfxManager.PlayBulletVFX(ShotVfxIndex, skyFall, SkyFallLifeTime);
         }
     }
 }

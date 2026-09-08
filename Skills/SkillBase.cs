@@ -13,7 +13,9 @@ namespace Ros.Skill
     ///    → 用于服务器子弹逻辑（BattleManager.ShootBullet）→ 调用 BroadcastSkillCast 把
     ///    (技能 id, 上下文) 通过"使用技能"RPC 广播给客户端。
     /// 2. 客户端收到 (技能 id, 上下文) 后经 SkillManager.PlayVFX 调用本技能 PlayVFX(context)：
-    ///    用【同一个】轨迹构建函数重建轨迹 → BulletPlayer 播放特效。服务器与客户端显示逻辑因此完全相同。
+    ///    用【同一个】轨迹构建函数重建轨迹 → 调用 VfxManager.PlayBulletVFX(特效下标, 轨迹, 时长)
+    ///    统一播放特效（技能内不直接 Instantiate / 引用 AssetsManager）。
+    ///    服务器只做攻击判定（ShootBullet），特效表现完全在客户端由 VfxManager 管理。
     /// 3. 约定：技能中要为该技能涉及的每一种轨迹写一个构建函数——传入 TrajectoryContext，
     ///    传出 BulletTrajectory；函数内读取上下文中自己约定的下标段（多种轨迹各读各的，互不重叠）。
     /// 4. 若技能需要向客户端传递额外信息（目标点/施放者 id 等），一律放入 TrajectoryContext 传递。
@@ -47,7 +49,7 @@ namespace Ros.Skill
 
         /// <summary>
         /// 释放效果（必须）：客户端表现侧。
-        /// 用与服务器相同的轨迹构建函数从上下文重建轨迹，播放特效（BulletPlayer 等）。
+        /// 用与服务器相同的轨迹构建函数从上下文重建轨迹，经 VfxManager 接口播放特效。
         /// </summary>
         public abstract void PlayVFX(TrajectoryContext context);
 

@@ -2,7 +2,9 @@ using UnityEngine;
 
 /// <summary>
 /// 特效管理器（统一播放入口，资源编号与《特效清单与分配表.md》对应）。
-/// 客户端表现侧调用；服务端不播特效。
+/// 客户端表现侧统一调用；服务端不播特效。
+/// 技能表现侧约定：技能 PlayVFX 用与服务器相同的构建函数重建轨迹后，统一经本管理器播放特效，
+/// 技能内不直接 Instantiate / 引用 AssetsManager（资产下标映射集中于此）。
 /// </summary>
 public class VfxManager : MonoBehaviour
 {
@@ -17,6 +19,20 @@ public class VfxManager : MonoBehaviour
     {
         var prefab = GetVFX(Tool.AssetsManager?.BulletVFX, index);
         PlayAndDestroy(prefab, pos, rot, lifeTime);
+    }
+
+    /// <summary>
+    /// 沿弹道轨迹播放子弹特效（客户端技能表现侧统一入口）：
+    /// 轨迹由技能用与服务器相同的构建函数重建，实例化与到期销毁由本管理器负责。
+    /// </summary>
+    public GameObject PlayBulletVFX(int index, BulletTrajectory trajectory, float lifeTime,
+        BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
+    {
+        var prefab = GetVFX(Tool.AssetsManager?.BulletVFX, index);
+        if (prefab == null || trajectory == null) return null;
+        var obj = Instantiate(prefab);
+        BulletPlayer.Create(obj, trajectory, lifeTime, rotation);
+        return obj;
     }
 
     /// <summary>播放护盾特效（13 种），跟随父物体。</summary>
