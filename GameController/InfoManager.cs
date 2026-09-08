@@ -19,9 +19,9 @@ public class InfoManager : MonoBehaviour
     public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
     /// <summary>防守方角色（6 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
-    /// <summary>普通僵尸属性（21 种暂用）。</summary>
+    /// <summary>普通僵尸属性（全场共用 1 份；21 种为外观变体，强弱由「僵尸刷新等级」驱动，见策划案 10.3/二十章）。</summary>
     public List<EntityAttributeInfo> ZombieInfoList = new();
-    /// <summary>精英僵尸属性（14 种）。</summary>
+    /// <summary>精英僵尸属性（14 份，对应 14 个素材模型，按 type.value 索引，由技能召唤产生）。</summary>
     public List<EntityAttributeInfo> EliteZombieInfoList = new();
     /// <summary>守护点属性（外围信标）。</summary>
     public EntityAttributeInfo BeaconInfo;
