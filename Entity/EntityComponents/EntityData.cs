@@ -222,7 +222,8 @@ public abstract class EntityData : MonoBehaviour
             Tool.BattleManager?.AddBeaconDamage(finalDamage); // 进攻方得分 = 对守护点造成的总伤害
         }
         else if (type.category == EntityCategory.Crystal && attacker != null && finalDamage > 0f &&
-                 BattleManager.EntityOwnerClient.TryGetValue(attacker.id, out var expOwner))
+                 Tool.BattleManager != null &&
+                 Tool.BattleManager.EntityOwnerClient.TryGetValue(attacker.id, out var expOwner))
         {
             Tool.BattleManager?.AddCrystalExp(expOwner, finalDamage); // 经验 = 对水晶造成的伤害量（策划案 17.3）
         }
