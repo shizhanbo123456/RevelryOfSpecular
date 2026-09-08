@@ -47,16 +47,11 @@ public class SaveManager : MonoBehaviour
         return characterUnlocked[index];
     }
 
-    /// <summary>
-    /// 按玩家等级是否解锁：读角色 SO 的 unlockPlayerLevel（策划案 10.2，达标自动解锁）；
-    /// 角色 SO 未配置时兜底按旧规则（初始 3 个 + 每升 5 级解锁一个）。
-    /// </summary>
+    /// <summary>按玩家等级是否解锁：读角色 SO 的 unlockPlayerLevel（策划案 10.2，达标自动解锁；SO 未配置视为已解锁）。</summary>
     public bool IsUnlockedByPlayerLevel(int characterIndex)
     {
         var info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(characterIndex) : null;
-        if (info != null) return playerLevel >= info.unlockPlayerLevel;
-        if (characterIndex < Config.initial_unlocked_character_count) return true;
-        return playerLevel >= (characterIndex - Config.initial_unlocked_character_count + 1) * 5;
+        return info == null || playerLevel >= info.unlockPlayerLevel;
     }
     #endregion
 
