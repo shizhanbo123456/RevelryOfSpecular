@@ -31,7 +31,7 @@ public class ClientLogicManager : MonoBehaviour
     /// <summary>本地玩家阵营（0进攻 1防守 2中立）。</summary>
     public int LocalCamp => NetworkManager.battleInfo != null ? (int)NetworkManager.battleInfo.camp : 2;
 
-    /// <summary>当前滚轮选中技能 id（-1 无）。</summary>
+    /// <summary>最近触发的技能 id（-1 无；键盘槽位直触时由服务器同步 selectedIndex 推得）。</summary>
     public int SelectedSkillId
     {
         get

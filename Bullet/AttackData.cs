@@ -27,11 +27,13 @@ public class AttackData
     public Action<Action<EffectType, int, float>> addEffectEvent;
     /// <summary>伤害计算属性快照（攻击者命中时的运行时属性）。</summary>
     public EntityAttribute attribute;
+    /// <summary>武器经验点数（伤害 = 基础 × (1 + 10% × 经验)，策划案 14 章）。</summary>
+    public int weaponExp;
 
-    /// <summary>由施放者便捷构建（属性快照取施放者当前运行时属性）。</summary>
+    /// <summary>由施放者便捷构建（属性快照取施放者当前运行时属性；武器技能传该武器经验点数）。</summary>
     public static AttackData Create(EntityData shooter, float rate, float radius, bool breakEndure,
         bool useMagic = false, Damageable.IDamageable damageable = null,
-        Action<Action<EffectType, int, float>> addEffectEvent = null)
+        Action<Action<EffectType, int, float>> addEffectEvent = null, int weaponExp = 0)
     {
         return new AttackData()
         {
@@ -44,17 +46,19 @@ public class AttackData
             damageable = damageable,
             addEffectEvent = addEffectEvent,
             attribute = shooter != null ? shooter.floatingAttribute : null,
+            weaponExp = weaponExp,
         };
     }
 
     /// <summary>
-    /// 结算本次攻击的最终伤害：基础 = rate × (魔法或力量)，按攻击者暴击率掷暴击（× 暴击伤害倍率）。
-    /// 出伤乘区（愈战愈勇等）在目标侧管线统一应用。
+    /// 结算本次攻击的最终伤害：基础 = rate × (魔法或力量) × (1 + 10% × 武器经验)，
+    /// 按攻击者暴击率掷暴击（× 暴击伤害倍率）。出伤乘区（愈战愈勇等）在目标侧管线统一应用。
     /// </summary>
     public float GetDamage()
     {
         if (attribute == null) return 0f;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
+        final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤（策划案 14 章）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
             final *= attribute.critDamage; // 暴击伤害为倍率（默认 1.5 = 150%）

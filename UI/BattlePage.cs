@@ -27,6 +27,9 @@ public class BattlePage : PageBase
     private Label reviveLabel;
     private float battleStartTime;
     private bool expSettled; // 对局经验只结算一次（防 SCScoreInfo 重复到达）
+    private VisualElement settlePanel;
+    private Label settleTitle;
+    private Label settleDetail;
 
     protected override void Build(VisualElement root)
     {
@@ -126,6 +129,36 @@ public class BattlePage : PageBase
             beaconBars[(ushort)(i + 1)] = unit;
             unit.Root.style.display = DisplayStyle.None;
         }
+
+        // 结算面板（对局结束显示；关闭后回组队大厅，准备开始下一轮）
+        settlePanel = new VisualElement
+        {
+            style =
+            {
+                position = Position.Absolute,
+                left = 0, right = 0, top = 0, bottom = 0,
+                alignItems = Align.Center,
+                justifyContent = Justify.Center,
+                backgroundColor = new Color(0f, 0f, 0f, 0.8f),
+                display = DisplayStyle.None,
+            }
+        };
+        var settleBox = new VisualElement
+        {
+            style =
+            {
+                width = 420, paddingLeft = 24, paddingRight = 24, paddingTop = 20, paddingBottom = 20,
+                backgroundColor = new Color(0.1f, 0.1f, 0.15f, 0.98f),
+            }
+        };
+        settleTitle = new Label("对局结束") { style = { color = Color.white, fontSize = 30, unityFontStyleAndWeight = FontStyle.Bold, unityTextAlign = TextAnchor.MiddleCenter, marginBottom = 12 } };
+        settleDetail = new Label("") { style = { color = new Color(0.85f, 0.85f, 0.9f, 1f), fontSize = 17, whiteSpace = WhiteSpace.Normal, marginBottom = 18 } };
+        var settleClose = new Button(OnSettleClose) { text = "回到组队大厅", style = { height = 44, fontSize = 17 } };
+        settleBox.Add(settleTitle);
+        settleBox.Add(settleDetail);
+        settleBox.Add(settleClose);
+        settlePanel.Add(settleBox);
+        root.Add(settlePanel);
     }
 
     public override void OnEnable()
@@ -140,6 +173,7 @@ public class BattlePage : PageBase
         // 开局信息立即应用（守护点/技能槽随实体表现摘要到达后刷新）
         battleStartTime = Time.time;
         expSettled = false;
+        if (settlePanel != null) settlePanel.style.display = DisplayStyle.None; // 新对局隐藏结算面板
         if (NetworkManager.battleInfo != null)
         {
             phaseLabel.text = PhaseNames[Mathf.Clamp(NetworkManager.battleInfo.dayNightPhase, 0, PhaseNames.Length - 1)];
@@ -236,7 +270,29 @@ public class BattlePage : PageBase
         {
             ShowFloating(GetEndText(info.gameState), new Color(1f, 0.9f, 0.3f, 1f));
             TrySettleExp(info);
+            ShowSettlement(info);
         }
+    }
+
+    /// <summary>显示结算面板（胜负/比分/经验；玩家关闭后回组队大厅准备下一轮）。</summary>
+    private void ShowSettlement(SCScoreInfo info)
+    {
+        if (settlePanel == null) return;
+        settleTitle.text = GetEndText(info.gameState);
+        settleTitle.style.color = info.gameState == 1 ? new Color(1f, 0.5f, 0.4f, 1f)
+            : info.gameState == 2 ? new Color(0.4f, 0.8f, 1f, 1f) : Color.white;
+        settleDetail.text = $"进攻方（拆塔）：{(int)info.attackScore}\n" +
+                            $"防守方：{(int)info.defenseScore}（击杀 ×{info.killScore}）\n" +
+                            $"本局获得经验：{info.expGain}";
+        settlePanel.style.display = DisplayStyle.Flex;
+    }
+
+    /// <summary>关闭结算面板：清空表现残留，回组队大厅（组队状态保留，点"准备"开启下一轮）。</summary>
+    private void OnSettleClose()
+    {
+        if (settlePanel != null) settlePanel.style.display = DisplayStyle.None;
+        Tool.ClientDisplayManager?.ClearAll();
+        Owner.ShowPage(UIManager.PageType.Lobby);
     }
 
     /// <summary>结算局外经验（策划案 17.3：获得经验 = 对水晶造成的伤害量，服务器随 SCScoreInfo 下发）。</summary>

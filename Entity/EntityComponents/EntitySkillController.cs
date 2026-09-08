@@ -6,15 +6,16 @@ using UnityEngine;
 /// 实体技能控制器 API。
 /// 技能统一模型见策划案 11.1：武器与角色技能是同一实体（武器显示可选 / 释放动作可配置 / 释放效果必须）。
 /// 外部只向 SkillManager 传入技能 id 和上下文即可（技能包实现待完善，本类先提供列表/选择/CD 框架）。
+/// 触发方式：键盘技能槽（U I O L H）直接触发对应槽位技能，无滚轮/鼠标选择。
 /// </summary>
 public class EntitySkillController
 {
     public EntityData owner;
 
-    /// <summary>技能列表（顺序 = 滚轮循环顺序）：初始武器/局内武器/角色主动技能/大招。</summary>
+    /// <summary>技能列表（顺序 = 键盘槽位顺序 U I O L H）：初始武器/局内武器/角色主动技能/大招。</summary>
     private readonly List<int> skillIds = new();
 
-    /// <summary>滚轮当前选中下标（-1 无）。</summary>
+    /// <summary>最近触发的槽位下标（-1 无；键盘槽位直触时更新，供 UI 高亮）。</summary>
     public int SelectedIndex { get; private set; } = -1;
 
     /// <summary>CD 结束时间戳（技能 id → Time.time 时刻；时间戳惰性计算，不每帧推进）。</summary>
@@ -61,27 +62,14 @@ public class EntitySkillController
     /// <summary>技能列表拷贝。</summary>
     public List<int> GetSkillIds() => new(skillIds);
 
-    /// <summary>当前选中技能 id（-1 无）。</summary>
+    /// <summary>当前选中技能 id（-1 无；= 最近触发的槽位技能）。</summary>
     public int GetSelectedSkillId()
     {
         if (SelectedIndex < 0 || SelectedIndex >= skillIds.Count) return -1;
         return skillIds[SelectedIndex];
     }
 
-    /// <summary>滚轮循环选择（delta &gt; 0 下一项，&lt; 0 上一项）。</summary>
-    public void ScrollSelect(int delta)
-    {
-        if (skillIds.Count == 0)
-        {
-            SelectedIndex = -1;
-            return;
-        }
-        if (SelectedIndex < 0) SelectedIndex = 0;
-        SelectedIndex = (SelectedIndex + delta) % skillIds.Count;
-        if (SelectedIndex < 0) SelectedIndex += skillIds.Count;
-    }
-
-    /// <summary>直接选中某槽位（服务器同步用）。</summary>
+    /// <summary>直接选中某槽位（键盘槽位触发时由服务器更新，供 UI 高亮）。</summary>
     public void SelectIndex(int index)
     {
         SelectedIndex = index;

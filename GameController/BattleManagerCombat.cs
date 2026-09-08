@@ -223,13 +223,14 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
-    /// <summary>死亡统一处理：摧毁单位；水晶排重生并广播采集事件；玩家进入复活流程并下发进度。</summary>
+    /// <summary>死亡统一处理：摧毁单位；水晶排重生/掉武器并广播采集事件；守护点重算分层减伤；玩家进入复活流程并下发进度。</summary>
     private void HandleDeath(EntityData entity)
     {
         if (entity.type.category == EntityCategory.Crystal)
         {
             ScheduleCrystalRespawn(entity);
             Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected, entity.id);
+            TryDropCrystalWeapon(entity);
         }
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
 
@@ -250,6 +251,54 @@ public partial class BattleManager
         }
 
         DestroyEntity(entity.id);
+
+        // 守护点阵亡后重算中心守护点的分层减伤（走 effectController 的 BeaconReduce 通道）
+        if (entity.type.category == EntityCategory.Beacon) UpdateCoreBeaconReduce();
+    }
+
+    /// <summary>
+    /// 水晶掉武器（策划案第七章：摧毁水晶 15% 概率获得该类型中的一把）。
+    /// 已持有 → 该武器经验 +1；未持有且槽未满 → 入槽；未持有但槽满 → 转经验随机分配（策划案 5.2）。
+    /// 仅真人玩家（有归属客户端的攻击者）可拾取。
+    /// </summary>
+    private void TryDropCrystalWeapon(EntityData crystal)
+    {
+        var killer = crystal.lastAttacker;
+        if (killer == null) return;
+        if (!EntityOwnerClient.TryGetValue(killer.id, out var clientId)) return;
+        if (!PlayerEntityId.TryGetValue(clientId, out var playerId)) return;
+        if (!EntityContainer.Entities.TryGetObject(playerId, out var player) || player.skillController == null) return;
+        if (UnityEngine.Random.value > Config.crystal_skill_drop_chance) return;
+
+        int weaponId = Config.GetRandomWeaponId(Mathf.Clamp(crystal.type.value, 0, Config.crystal_type_count - 1));
+        int slotMax = player.floatingAttribute != null ? player.floatingAttribute.weaponSlotCount : Config.default_weapon_slot_count;
+        var sc = player.skillController;
+        if (sc.GetSkillIds().Contains(weaponId))
+        {
+            sc.AddWeaponExp(weaponId);
+            NotifyPlayer(clientId, playerId, 15); // 武器升级
+        }
+        else if (sc.GetSkillIds().Count < slotMax)
+        {
+            sc.AddSkill(weaponId);
+            NotifyPlayer(clientId, playerId, 14); // 获得新武器
+        }
+        else
+        {
+            sc.AddWeaponExpToRandom();
+            NotifyPlayer(clientId, playerId, 13); // 槽满转经验
+        }
+    }
+
+    /// <summary>给指定玩家发文字提示（飘字，走 NoticeMessageMap）。</summary>
+    private void NotifyPlayer(short clientId, ushort sourceEntityId, int messageId)
+    {
+        Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.ShowText,
+            sourceId = sourceEntityId,
+            value = messageId,
+        });
     }
 
     /// <summary>

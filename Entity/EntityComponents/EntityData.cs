@@ -50,8 +50,11 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>当前位移效果（null = 无）；SetMotion 设置并调用 Enter，时间到由 OnUpdate 调用 Exit。</summary>
     [HideInInspector] public MotionBase motion;
-    /// <summary>位移效果产出的当前速度（服务器权威移动逻辑 TODO 中消费；无位移效果时为零）。</summary>
+    /// <summary>位移效果产出的当前速度（服务器权威移动逻辑中消费；无位移效果时为零）。</summary>
     [HideInInspector] public Vector3 motionVelocity;
+
+    /// <summary>最近一次伤害来源（水晶掉武器归属判定等；死亡时保留供结算读取）。</summary>
+    [HideInInspector] public EntityData lastAttacker;
 
     /// <summary>血条锚点。</summary>
     public Transform BarPos;
@@ -198,6 +201,7 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true)
     {
         if (floatingAttribute == null || !Alive) return;
+        if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
         if (effectController != null)
         {

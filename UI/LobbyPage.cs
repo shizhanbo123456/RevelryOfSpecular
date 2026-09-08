@@ -111,7 +111,7 @@ public class LobbyPage : PageBase
         // 底部按钮
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
         var backButton = new Button(OnBackClicked) { text = "断开并返回", style = { width = 180, height = 44 } };
-        startButton = new Button(OnStartClicked) { text = "开始游戏", style = { width = 200, height = 44, fontSize = 18 } };
+        startButton = new Button(OnStartClicked) { text = "准备", style = { width = 200, height = 44, fontSize = 18 } };
         bottomRow.Add(backButton);
         bottomRow.Add(startButton);
         container.Add(bottomRow);

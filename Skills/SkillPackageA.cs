@@ -79,9 +79,10 @@ namespace Ros.Skill
             }
             context.AddVectors(origin, dest);    // 天降：施放者位置 + 目标点
 
-            // 服务器子弹逻辑（TODO：BulletContainer 完成后在此结算命中与伤害）
-            // 直射三连共用一份攻击数据（不破霸体）
-            AttackData shotAttack = AttackData.Create(entity, rate: 20f, radius: 0.3f, breakEndure: false);
+            // 服务器子弹逻辑：直射三连共用一份攻击数据（不破霸体）；武器经验随攻击数据加伤（策划案 14 章）
+            int weaponExp = entity.skillController?.GetWeaponExp(Id) ?? 0;
+            AttackData shotAttack = AttackData.Create(entity, rate: 20f, radius: 0.3f, breakEndure: false,
+                weaponExp: weaponExp);
             for (int i = 0; i < dests.Length; i++)
             {
                 BulletTrajectory trajectory = BuildShotTrajectory(context, i);
@@ -89,7 +90,8 @@ namespace Ros.Skill
             }
 
             // 天降轰炸（破霸体：命中可打破霸体等级 1 的目标，见策划案 12.1）
-            AttackData fallAttack = AttackData.Create(entity, rate: 40f, radius: 0.8f, breakEndure: true);
+            AttackData fallAttack = AttackData.Create(entity, rate: 40f, radius: 0.8f, breakEndure: true,
+                weaponExp: weaponExp);
             BulletTrajectory skyFall = BuildSkyFallTrajectory(context);
             Tool.BattleManager?.ShootBullet(entity, fallAttack, skyFall, SkyFallLifeTime);
 

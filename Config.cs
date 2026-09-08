@@ -132,6 +132,31 @@ public static class Config
     public const int default_weapon_slot_count = 5;
     /// <summary>无施法动作弹幕的武器前摇（秒，暂定）。</summary>
     public const float weapon_short_windup = 0.15f;
+    /// <summary>技能经验伤害加成：每点经验 +10%（策划案 14 章：基础 × (1 + 10% × 经验)，未设上限）。</summary>
+    public const float skill_exp_damage_bonus = 0.1f;
+
+    #region 武器技能 id 区间（见策划案 21 章；水晶掉武器按水晶类型从对应区间随机）
+    public const int weapon_id_melee_min = 0;   // 近战刀 0~10
+    public const int weapon_id_melee_max = 10;
+    public const int weapon_id_spear_min = 11;  // 长枪 11~17
+    public const int weapon_id_spear_max = 17;
+    public const int weapon_id_gun_min = 18;    // 枪械 18~32
+    public const int weapon_id_gun_max = 32;
+    public const int weapon_id_magic_min = 33;  // 魔法球 33~48
+    public const int weapon_id_magic_max = 48;
+
+    /// <summary>按水晶类型随机取一把该类型武器技能 id（类型对应：0刀 1长枪 2枪械 3魔法球）。</summary>
+    public static int GetRandomWeaponId(int crystalType)
+    {
+        return crystalType switch
+        {
+            0 => Random.Range(weapon_id_melee_min, weapon_id_melee_max + 1),
+            1 => Random.Range(weapon_id_spear_min, weapon_id_spear_max + 1),
+            2 => Random.Range(weapon_id_gun_min, weapon_id_gun_max + 1),
+            _ => Random.Range(weapon_id_magic_min, weapon_id_magic_max + 1),
+        };
+    }
+    #endregion
     #endregion
 
     #region 结算与得分

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Ros.Transport
 {
     /// <summary>
-    /// 客户端 → 服务器：技能释放请求（右键触发远程/施法类技能）。
+    /// 客户端 → 服务器：技能释放请求（键盘技能槽 U I O L H 直接触发对应槽位技能）。
     /// </summary>
     public struct CSUseSkillRequest
     {

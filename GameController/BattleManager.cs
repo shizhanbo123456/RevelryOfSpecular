@@ -371,6 +371,26 @@ public partial class BattleManager : EnsBehaviour
         AttackScore += damage;
     }
 
+    /// <summary>
+    /// 重算中心守护点的分层减伤（策划案 9.2：每个存活外围守护点提供 25% 减伤）。
+    /// 统一走 effectController 的 BeaconReduce 通道（Add/Remove 内部重算），外部不做 Buff 遍历。
+    /// </summary>
+    private void UpdateCoreBeaconReduce()
+    {
+        int aliveOuter = 0;
+        foreach (var beacon in EntityContainer.Beacons)
+        {
+            if (beacon != null && beacon.Alive && beacon.type != EntityType.CoreBeacon) aliveOuter++;
+        }
+        foreach (var beacon in EntityContainer.Beacons)
+        {
+            if (beacon != null && beacon.type == EntityType.CoreBeacon)
+            {
+                beacon.effectController?.AddEffect(EffectType.BeaconReduce, aliveOuter, float.MaxValue);
+            }
+        }
+    }
+
     /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
     public float DefenseScore()
     {
@@ -393,24 +413,17 @@ public partial class BattleManager : EnsBehaviour
         RecordInput(entity, command);
     }
 
-    /// <summary>接收客户端技能释放请求（服务器，由 NetworkManager RPC 回调）。</summary>
+    /// <summary>接收客户端技能释放请求（服务器，由 NetworkManager RPC 回调）：键盘槽位直触。</summary>
     public void ReceiveUseSkill(short clientId, CSUseSkillRequest request)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
         if (entity.skillController == null) return;
 
-        // 右键仅对远程/施法类技能有效；选中非远程时阻断（服务器校验）
-        if (!SkillManager.IsRanged(request.skillId))
-        {
-            Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-            {
-                type = SCBattleEvent.Type.ShowText,
-                sourceId = entityId,
-                value = 12,
-            });
-            return;
-        }
+        // 键盘槽位直触：选中下标 = 该技能所在槽位（供 UI 高亮），CD/库存/强控校验在 TryUseSkill 内
+        int slot = entity.skillController.GetSkillIds().IndexOf(request.skillId);
+        if (slot >= 0) entity.skillController.SelectIndex(slot);
+
         entity.skillController.TryUseSkill(request.skillId, request.dest);
         // CD/库存变化随实体表现摘要（skills 列表）同步，无需单独通道
     }
@@ -434,6 +447,18 @@ public partial class BattleManager : EnsBehaviour
     public void StartBattle()
     {
         if (BattleStarted) return;
+
+        // 清场上局残留实体（结算期间实体保留展示；须在 BattleStarted 置位前清除，避免触发中心守护点结束判定）
+        var stale = new List<EntityData>();
+        foreach (var e in EntityContainer.Entities)
+        {
+            if (e != null) stale.Add(e);
+        }
+        foreach (var e in stale)
+        {
+            DestroyEntity(e.id);
+        }
+
         BattleStarted = true;
         BattleRemainTime = Config.battle_duration;
         if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
@@ -485,6 +510,7 @@ public partial class BattleManager : EnsBehaviour
 
         // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
+        UpdateCoreBeaconReduce(); // 初始分层减伤 = 存活外围数 × 25%
 
         // 昼夜同步（客户端收到后按配置时长与流速自行推演）
         Tool.NetworkManager.SendDayNightInfo(new SCDayNightInfo()
@@ -498,7 +524,7 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"战斗开始：人类 {PlayerInfoList.Count}，AI {AttackAICount + DefenseAICount}");
     }
 
-    /// <summary>结束对局（服务器，gameState 见 SCScoreInfo）。</summary>
+    /// <summary>结束对局（服务器，gameState 见 SCScoreInfo）：玩家回到组队状态，房间状态广播以便下一轮准备。</summary>
     public void EndBattle(int gameState)
     {
         if (!BattleStarted) return;
@@ -517,6 +543,7 @@ public partial class BattleManager : EnsBehaviour
                 expGain = Mathf.RoundToInt(crystalExp), // 经验 = 对水晶造成的伤害量（策划案 17.3）
             });
         }
+        BroadcastRoomInfo(); // battleStarted = false：客户端结算页关闭后回组队大厅准备下一轮
     }
     #endregion
 
