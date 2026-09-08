@@ -29,12 +29,10 @@ public class InfoManager : MonoBehaviour
     public EntityAttributeInfo CoreBeaconInfo;
     /// <summary>可采集水晶属性。</summary>
     public EntityAttributeInfo CrystalInfo;
-    /// <summary>防御塔（瘟疫孢子）属性。</summary>
-    public EntityAttributeInfo TowerInfo;
+    /// <summary>防御塔（瘟疫孢子）属性（4 种，按 type.value 索引）。</summary>
+    public List<EntityAttributeInfo> TowerInfoList = new();
     /// <summary>瘟疫树属性。</summary>
     public EntityAttributeInfo PlagueTreeInfo;
-    /// <summary>感染蘑菇属性。</summary>
-    public EntityAttributeInfo MushroomInfo;
     #endregion
 
     #region 技能配置
@@ -166,9 +164,10 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Beacon:
                 return type.value < Config.outer_beacon_count ? BeaconInfo : CoreBeaconInfo;
             case EntityCategory.Crystal: return CrystalInfo;
-            case EntityCategory.Tower: return TowerInfo;
+            case EntityCategory.Tower:
+                return type.value >= 0 && type.value < TowerInfoList.Count ? TowerInfoList[type.value] : null;
             case EntityCategory.PlagueTree: return PlagueTreeInfo;
-            case EntityCategory.Mushroom: return MushroomInfo;
+            case EntityCategory.Mushroom: return null; // 感染蘑菇仅为表现物，不需要属性配置
         }
         return null;
     }
