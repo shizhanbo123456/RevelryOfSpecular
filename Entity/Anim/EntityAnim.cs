@@ -150,6 +150,51 @@ public class EntityAnim : MonoBehaviour
         animator?.SetFloat(key_moveSpeed, scale);
     }
 
+    #region 手持物体（客户端表现：武器/道具模型挂到手部）
+    [Header("手持物体挂点（不配置时按 Humanoid 骨骼自动定位手部）")]
+    [SerializeField] private Transform handMountR;
+    [SerializeField] private Transform handMountL;
+
+    /// <summary>已挂载的手持物体实例（[0] = 右手，[1] = 左手）。</summary>
+    private readonly GameObject[] heldObjects = new GameObject[2];
+
+    /// <summary>
+    /// 设置手持物体：把预制体实例挂到手部，替换该手上的旧实例（prefab 传 null = 清除该手）。
+    /// 预制体由调用方从 AssetsManager 武器列表取得（客户端表现专用，服务器模板无图形）。
+    /// 依赖 animator 字段（Init 时赋值，Init 后续接线调用）。
+    /// </summary>
+    public void SetHeldObject(GameObject prefab, bool leftHand = false)
+    {
+        int slot = leftHand ? 1 : 0;
+        if (heldObjects[slot] != null) Destroy(heldObjects[slot]);
+        heldObjects[slot] = null;
+        if (prefab == null) return;
+
+        Transform mount = GetHandMount(leftHand);
+        if (mount == null)
+        {
+            Debug.LogWarning($"{gameObject.name} 未找到{(leftHand ? "左" : "右")}手挂点：模型非 Humanoid 时请在 Inspector 配置 handMount{(leftHand ? "L" : "R")}");
+            return;
+        }
+        heldObjects[slot] = Instantiate(prefab, mount);
+        heldObjects[slot].transform.localPosition = Vector3.zero;
+        heldObjects[slot].transform.localRotation = Quaternion.identity;
+    }
+
+    /// <summary>清除手持物体（leftHand = 清左手，默认清右手）。</summary>
+    public void ClearHeldObject(bool leftHand = false) => SetHeldObject(null, leftHand);
+
+    /// <summary>取手部挂点：优先 Inspector 配置的挂点，否则按 Humanoid 骨骼自动定位手部。</summary>
+    private Transform GetHandMount(bool leftHand)
+    {
+        var configured = leftHand ? handMountL : handMountR;
+        if (configured != null) return configured;
+        return animator != null
+            ? animator.GetBoneTransform(leftHand ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand)
+            : null;
+    }
+    #endregion
+
     public void DoSpawn()
     {
         animator.SetTrigger(key_spawn);
