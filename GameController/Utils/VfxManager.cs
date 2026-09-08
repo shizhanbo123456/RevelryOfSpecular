@@ -4,7 +4,7 @@ using UnityEngine;
 /// 特效管理器（全项目唯一的特效取用入口，资源编号与《特效清单与分配表.md》对应）。
 /// 两层结构：
 /// 1. 模板获取：GetXxxVfx(index) 返回特效预制体 GameObject（按类别区分，下标见特效清单）；
-/// 2. 播放：PlayXxxVFX(index, ...) 按下标取模板并按需求播放（定点/跟随父物体/沿轨迹），
+/// 2. 播放：PlayXxxVFX(index, ...) 按下标取模板并按需求播放（定点 / 沿轨迹 / 跟随实体轨迹），
 ///    或已持有模板时调用 Play(vfxPrefab, ...) 重载直接播放。
 /// 技能表现侧约定：技能 PlayVFX 用与服务器相同的构建函数重建轨迹后，统一经本管理器播放特效，
 /// 技能内禁止直接 Instantiate 或引用 AssetsManager。
@@ -44,16 +44,9 @@ public class VfxManager : MonoBehaviour
         return obj;
     }
 
-    /// <summary>跟随播放：挂在 parent 下（局部位置归零），返回实例（跟随类特效如护盾/Buff 由调用方管理销毁时机）。</summary>
-    public GameObject Play(GameObject vfxPrefab, Transform parent)
-    {
-        if (vfxPrefab == null) return null;
-        var obj = Instantiate(vfxPrefab, parent);
-        obj.transform.localPosition = Vector3.zero;
-        return obj;
-    }
-
-    /// <summary>沿弹道轨迹播放：实例化后由 BulletPlayer 驱动沿轨迹移动，到期自动销毁。</summary>
+    /// <summary>沿轨迹播放：实例化后由 BulletPlayer 驱动沿轨迹移动，lifeTime 到期自动销毁。
+    /// 跟随类特效（护盾/Buff）用 FollowTrajectory(实体id, 偏移) 作为轨迹——位置恒等于目标当前位置，
+    /// 服务器判定与客户端表现共用；持续期用 Buff 剩余时长作 lifeTime，或传极大值后手动销毁返回的实例。</summary>
     public GameObject Play(GameObject vfxPrefab, BulletTrajectory trajectory, float lifeTime,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
@@ -79,10 +72,12 @@ public class VfxManager : MonoBehaviour
         return Play(GetBulletVfx(index), trajectory, lifeTime, rotation);
     }
 
-    /// <summary>播放护盾特效（13 种），跟随父物体。</summary>
-    public GameObject PlayShieldVFX(int index, Transform parent)
+    /// <summary>沿轨迹播放护盾特效（13 种）。跟随实体用 FollowTrajectory(实体id, 偏移)；
+    /// 持续期建议 = 护盾来源 Buff 的剩余时长，或传极大值后手动销毁返回的实例。</summary>
+    public GameObject PlayShieldVFX(int index, BulletTrajectory trajectory, float lifeTime,
+        BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
-        return Play(GetShieldVfx(index), parent);
+        return Play(GetShieldVfx(index), trajectory, lifeTime, rotation);
     }
 
     /// <summary>播放范围魔法特效（10 种）。</summary>
@@ -101,10 +96,12 @@ public class VfxManager : MonoBehaviour
         return obj;
     }
 
-    /// <summary>播放 Buff 特效（31 种），跟随父物体。</summary>
-    public GameObject PlayBuffVFX(int index, Transform parent)
+    /// <summary>沿轨迹播放 Buff 特效（31 种）。跟随实体用 FollowTrajectory(实体id, 偏移)；
+    /// 持续期建议 = Buff 剩余时长（服务器随 BuffRuntime 下发，永续传极大值），Buff 移除时手动销毁返回的实例。</summary>
+    public GameObject PlayBuffVFX(int index, BulletTrajectory trajectory, float lifeTime,
+        BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
-        return Play(GetBuffVfx(index), parent);
+        return Play(GetBuffVfx(index), trajectory, lifeTime, rotation);
     }
     #endregion
 
