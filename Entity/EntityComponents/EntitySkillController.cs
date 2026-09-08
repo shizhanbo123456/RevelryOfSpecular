@@ -38,7 +38,7 @@ public class EntitySkillController
     }
 
     #region 技能列表管理
-    /// <summary>设置完整技能列表（服务器权威下发，顺序即滚轮循环顺序）。</summary>
+    /// <summary>设置完整技能列表（服务器权威下发，顺序即键盘槽位顺序）。</summary>
     public void SetSkillList(List<int> ids)
     {
         skillIds.Clear();
@@ -161,7 +161,7 @@ public class EntitySkillController
         return true;
     }
 
-    /// <summary>填充实体表现摘要的技能槽列表与滚轮选中下标。</summary>
+    /// <summary>填充实体表现摘要的技能槽列表与最近触发槽位下标。</summary>
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;

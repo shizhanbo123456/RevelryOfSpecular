@@ -37,13 +37,13 @@ namespace Ros.Transport
         public int animId;
         /// <summary>动画播放进度（归一化 0~1）。</summary>
         public float animFrame;
-        /// <summary>滚轮选中槽位下标（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
+        /// <summary>最近触发槽位下标（键盘槽位直触）（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;
         /// <summary>所属客户端 id（非玩家实体 = -1；客户端据此显示玩家名字）。</summary>
         public int ownerClientId = -1;
         /// <summary>当前 Buff 列表（部分表现需按 Buff 判断，如守护点减伤叠层/迷雾）。</summary>
         public List<BuffRuntime> buffs = new();
-        /// <summary>技能槽列表（顺序即滚轮循环顺序；含装载技能与 CD 情况）。</summary>
+        /// <summary>技能槽列表（顺序即键盘槽位顺序；含装载技能与 CD 情况）。</summary>
         public List<SkillSlotRuntime> skills = new();
 
         /// <summary>单个 Buff 的同步数据。</summary>

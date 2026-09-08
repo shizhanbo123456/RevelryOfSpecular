@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// 战斗 HUD（策划案 3.2/10/13/14 章）：
-/// 底部技能栏（滚轮循环选中）/ 右侧守护点血量 / 顶部时间·昼夜·分数 / 复活进度 / 飘字提示。
+/// 底部技能栏（键盘槽位 U I O L H 直触）/ 右侧守护点血量 / 顶部时间·昼夜·分数 / 复活进度 / 飘字提示。
 /// </summary>
 public class BattlePage : PageBase
 {
