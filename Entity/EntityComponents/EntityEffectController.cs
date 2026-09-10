@@ -54,7 +54,7 @@ public enum EffectType
     YzCy,               // 愈战愈勇（增伤/减伤乘区，按层数）
     TowerBlaze,         // 灵火（塔攻击附加爆炸：攻击生成时查询）
     DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT）
-    MushroomInfect,     // 蘑菇感染（水晶状态：客户端模型替换/被摧毁不掉落）
+    MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
 }
 
 /// <summary>EffectType 分类扩展。</summary>

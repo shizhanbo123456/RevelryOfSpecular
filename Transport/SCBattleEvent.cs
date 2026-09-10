@@ -3,8 +3,9 @@ using UnityEngine;
 namespace Ros.Transport
 {
     /// <summary>
-    /// 服务器 → 客户端：战斗事件（击杀/拆除守护点/采集水晶/蘑菇化/攻占瘟疫树等）。
+    /// 服务器 → 客户端：战斗事件（击杀/拆除守护点/采集水晶/攻占瘟疫树等）。
     /// 客户端据此播放表现与提示，不参与规则判定。
+    /// 注意：蘑菇感染不使用事件——客户端按实体同步 Buff 中的 MushroomInfect 显隐切换模型。
     /// </summary>
     public class SCBattleEvent
     {
@@ -13,12 +14,10 @@ namespace Ros.Transport
         {
             public const byte Kill = 0;
             public const byte BeaconDestroyed = 1;
-            /// <summary>水晶/未被感染的蘑菇被摧毁且有产出（正常资源收益）。</summary>
+            /// <summary>水晶被摧毁且有产出（正常资源收益）。</summary>
             public const byte CrystalCollected = 2;
             /// <summary>水晶被摧毁但无产出（被「蘑菇感染」的水晶被进攻方摧毁）。</summary>
             public const byte CrystalBroken = 3;
-            /// <summary>水晶被施加「蘑菇感染」变为蘑菇形态（鹿铠怪人主动2）。</summary>
-            public const byte Mushroomized = 4;
             public const byte TowerDestroyed = 5;
             public const byte PlagueTreeCaptured = 6;
             public const byte Respawn = 7;

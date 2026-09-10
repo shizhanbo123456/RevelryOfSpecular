@@ -22,6 +22,32 @@ public class ClientDisplayManager : MonoBehaviour
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
+        // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
+        // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
+        public Renderer[] crystalRenderers; // 水晶模型渲染器（CreateView 时缓存）
+        public GameObject mushroomVisual;   // 蘑菇模型（首次感染时懒实例化）
+        private bool mushroomized;
+
+        /// <summary>按「蘑菇感染」Buff 显隐切换：隐藏水晶模型、显示蘑菇模型（随机外观仅选一次，避免刷新跳变）。</summary>
+        public void SetMushroomized(bool on)
+        {
+            if (mushroomized == on) return;
+            mushroomized = on;
+            if (crystalRenderers != null)
+            {
+                foreach (var r in crystalRenderers) if (r != null) r.enabled = !on;
+            }
+            if (on && mushroomVisual == null)
+            {
+                var assets = Tool.AssetsManager;
+                if (assets != null && assets.MushroomGraphics.Count > 0)
+                {
+                    mushroomVisual = Instantiate(assets.MushroomGraphics[Random.Range(0, assets.MushroomGraphics.Count)], transform, false);
+                }
+            }
+            if (mushroomVisual != null) mushroomVisual.SetActive(on);
+        }
+
         private void Update()
         {
             // 包间推演：位置 + 速度 / 朝向 + 角速度（收到同步包时已重置为权威值）
@@ -185,6 +211,11 @@ public class ClientDisplayManager : MonoBehaviour
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
+        // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
+        if (info.type.category == EntityCategory.Crystal)
+        {
+            view.crystalRenderers = go.GetComponentsInChildren<Renderer>(true);
+        }
         view.animator = go.GetComponentInChildren<Animator>();
         if (view.animator != null)
         {
@@ -260,6 +291,21 @@ public class ClientDisplayManager : MonoBehaviour
                 if (b != null) types.Add(b.type);
             }
             view.anim.SetMoveSpeedScale(EntityEffectController.ComputeMoveAnimSpeedMultiplier(types));
+        }
+
+        // 蘑菇感染表现：完整同步时按 Buff 列表切换水晶/蘑菇模型（仅水晶缓存了 crystalRenderers）
+        if (info.includeRuntime && view.crystalRenderers != null)
+        {
+            bool infected = false;
+            foreach (var b in info.buffs)
+            {
+                if (b != null && b.type == (int)EffectType.MushroomInfect)
+                {
+                    infected = true;
+                    break;
+                }
+            }
+            view.SetMushroomized(infected);
         }
     }
     #endregion

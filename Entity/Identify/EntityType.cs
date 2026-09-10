@@ -24,7 +24,6 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType Crystal(int value) => new EntityType(EntityCategory.Crystal, value);
     public static EntityType Tower(int value) => new EntityType(EntityCategory.Tower, value);
     public static EntityType PlagueTree(int value) => new EntityType(EntityCategory.PlagueTree, value);
-    public static EntityType Mushroom(int value) => new EntityType(EntityCategory.Mushroom, value);
     public static EntityType Prop(int value) => new EntityType(EntityCategory.Prop, value);
     #endregion
 
@@ -87,9 +86,6 @@ public struct EntityType : IEquatable<EntityType>
     // 精英僵尸（0~13，14 种）
     public static EntityType EliteZombieFirst => EliteZombie(0);
     public static EntityType EliteZombieLast => EliteZombie(13);
-
-    // 感染蘑菇（value = 被感染水晶的类型 0~3；外观多种由客户端随机选用）
-    public static EntityType Mushroom0 => Mushroom(0);
     #endregion
 
     #region common class func
@@ -105,7 +101,7 @@ public struct EntityType : IEquatable<EntityType>
 
     public static bool operator !=(EntityType left, EntityType right) => !left.Equals(right);
 
-    /// <summary>该实体类型对应的默认阵营（守护点/防御塔/蘑菇/普通僵尸/精英僵尸归防守，瘟疫树中立；策划案第九章：僵尸本体归防守方阵营）。</summary>
+    /// <summary>该实体类型对应的默认阵营（守护点/防御塔/普通僵尸/精英僵尸归防守，瘟疫树中立；策划案第九章：僵尸本体归防守方阵营）。</summary>
     public EntityCamp DefaultCamp()
     {
         switch (category)
@@ -114,7 +110,6 @@ public struct EntityType : IEquatable<EntityType>
             case EntityCategory.Character_Defense:
             case EntityCategory.Beacon:
             case EntityCategory.Tower:
-            case EntityCategory.Mushroom:
             case EntityCategory.Zombie:
             case EntityCategory.EliteZombie:
                 return EntityCamp.Defense;

@@ -223,14 +223,27 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
-    /// <summary>死亡统一处理：摧毁单位；水晶排重生/掉武器并广播采集事件；守护点重算分层减伤；玩家进入复活流程并下发进度。</summary>
+    /// <summary>死亡统一处理：摧毁单位；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；玩家进入复活流程并下发进度。</summary>
     private void HandleDeath(EntityData entity)
     {
         if (entity.type.category == EntityCategory.Crystal)
         {
-            ScheduleCrystalRespawn(entity);
-            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected, entity.id);
-            TryDropCrystalWeapon(entity);
+            // 蘑菇感染判定走 Buff 查询（服务器不存在蘑菇实体，见策划案 11.3 蘑菇感染）：
+            // 被感染水晶被进攻方摧毁 → 无产出（不掉武器，广播 CrystalBroken）；防守方摧毁或未感染 → 正常产出
+            bool infectedAndBrokenByAttack = entity.effectController != null &&
+                                             entity.effectController.HasEffect(EffectType.MushroomInfect) &&
+                                             entity.lastAttacker != null &&
+                                             entity.lastAttacker.camp == EntityCamp.Attack;
+            if (infectedAndBrokenByAttack)
+            {
+                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalBroken, entity.id);
+            }
+            else
+            {
+                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected, entity.id);
+                TryDropCrystalWeapon(entity);
+            }
+            ScheduleCrystalRespawn(entity); // 蘑菇状态下的水晶被摧毁后就相当于水晶被摧毁（重生排程照常，见策划案第七章）
         }
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
 

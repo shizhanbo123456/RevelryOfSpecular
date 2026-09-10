@@ -60,7 +60,6 @@ public class InfoManager : MonoBehaviour
     public GameObject CrystalTemplate;
     public GameObject TowerTemplate;
     public GameObject PlagueTreeTemplate;
-    public GameObject MushroomTemplate;
 
     /// <summary>按实体类型取服务器模板（TODO：各分类模板配置后生效）。</summary>
     public bool TryGetTemplate(EntityType type, out GameObject template)
@@ -86,7 +85,6 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Crystal: template = CrystalTemplate; break;
             case EntityCategory.Tower: template = TowerTemplate; break;
             case EntityCategory.PlagueTree: template = PlagueTreeTemplate; break;
-            case EntityCategory.Mushroom: template = MushroomTemplate; break;
         }
         return template != null;
     }
@@ -167,7 +165,6 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Tower:
                 return type.value >= 0 && type.value < TowerInfoList.Count ? TowerInfoList[type.value] : null;
             case EntityCategory.PlagueTree: return PlagueTreeInfo;
-            case EntityCategory.Mushroom: return null; // 感染蘑菇仅为表现物，不需要属性配置
         }
         return null;
     }

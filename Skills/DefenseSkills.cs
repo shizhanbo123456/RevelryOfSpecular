@@ -50,6 +50,7 @@ namespace Ros.Skill
 
     // ---- PC104 鹿铠怪人 ----
     public class SkillRockShield : SkillStub { public SkillRockShield() : base(50, 15f, 8) { } }      // 岩石护盾
+    /// <summary>蘑菇感染（实现时：给范围内水晶实体 AddEffect(MushroomInfect)——服务器只存 Buff 剩余时间，不生成蘑菇实体，客户端按同步 Buff 显隐换模）。</summary>
     public class SkillMushroomInfect : SkillStub { public SkillMushroomInfect() : base(51, 12f, 5) { } } // 蘑菇感染
     public class SkillTowerBlazeCast : SkillStub { public SkillTowerBlazeCast() : base(52, 60f, 2) { } } // 灵火（大招）
     public class PassiveCritParalysis : PassiveStub { public PassiveCritParalysis() : base(53) { } }   // 暴击麻痹
