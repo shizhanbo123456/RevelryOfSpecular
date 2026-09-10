@@ -334,11 +334,16 @@ public partial class BattleManager : EnsBehaviour
         Tool.NetworkManager.SendRoomInfo(info);
     }
 
+    /// <summary>进攻方开局出生点（地形组件备选位置，按玩家序号轮流分配避免扎堆）。</summary>
     private Vector3 GetAttackSpawnPos(short clientId)
     {
-        var list = Tool.InfoManager.AttackSpawnPositions;
-        if (list == null || list.Count == 0) return Landscape.MapCenter;
-        return list[Mathf.Abs(clientId) % list.Count];
+        return LandscapeSpawns.IndexedOf(Tool.LandscapeSpawns.attackSpawnPositions, clientId);
+    }
+
+    /// <summary>防守方开局出生点（地形组件备选位置，按玩家序号轮流分配避免扎堆）。</summary>
+    private Vector3 GetDefenseSpawnPos(short clientId)
+    {
+        return LandscapeSpawns.IndexedOf(Tool.LandscapeSpawns.defenseSpawnPositions, clientId);
     }
 
     /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
@@ -477,7 +482,7 @@ public partial class BattleManager : EnsBehaviour
             bool isAttack = camp == EntityCamp.Attack;
             EntityType characterType = isAttack ? pair.Value.attackCharacter : pair.Value.defenseCharacter;
             int level = isAttack ? pair.Value.attackLevel : pair.Value.defenseLevel;
-            Vector3 spawnPos = isAttack ? GetAttackSpawnPos(clientId) : Tool.InfoManager.DefenseSpawnPosition;
+            Vector3 spawnPos = isAttack ? GetAttackSpawnPos(clientId) : GetDefenseSpawnPos(clientId);
 
             ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
             PlayerEntityId[clientId] = entityId;
@@ -504,7 +509,7 @@ public partial class BattleManager : EnsBehaviour
         }
         for (int i = 0; i < DefenseAICount; i++)
         {
-            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, Tool.InfoManager.DefenseSpawnPosition, EntityCamp.Defense);
+            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, GetDefenseSpawnPos((short)(-200 - i)), EntityCamp.Defense);
             GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
         }
 

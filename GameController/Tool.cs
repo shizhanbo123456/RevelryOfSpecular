@@ -38,7 +38,25 @@ public class Tool : MonoBehaviour
     public static AssetsObjectPool AssetsObjectPool;
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;
-    public static LandscapeSpawns LandscapeSpawns;
+
+    /// <summary>
+    /// 地形生成锚点（全项目唯一地图点位来源）。
+    /// 读取前提：地形预制体（挂 LandscapeSpawns 组件）已随场景加载——服务器场景同样必须加载。
+    /// 未注册时取用即报错，调用方不做事后兜底。
+    /// </summary>
+    public static LandscapeSpawns LandscapeSpawns
+    {
+        get
+        {
+            if (s_landscapeSpawns == null)
+            {
+                Debug.LogError("[Tool] LandscapeSpawns 未注册：地形预制体（挂 LandscapeSpawns 组件）必须先随场景加载。");
+            }
+            return s_landscapeSpawns;
+        }
+        set => s_landscapeSpawns = value;
+    }
+    private static LandscapeSpawns s_landscapeSpawns;
     #endregion
 
     #region 通用工具

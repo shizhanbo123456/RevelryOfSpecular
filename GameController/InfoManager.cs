@@ -6,6 +6,7 @@ using UnityEngine;
 /// 简易配置信息管理器。
 /// 持有各类 ScriptableObject 配置（Info）与服务器实体模板引用；简易数据可直接在 Inspector 配置。
 /// 服务器模板 = 只含组件没有图形的预制体（架构说明）；客户端图形另见 AssetsManager。
+/// 注：**地图点位不在此配置**，统一由地形组件 LandscapeSpawns 承载（全项目唯一点位来源）。
 /// </summary>
 public class InfoManager : MonoBehaviour
 {
@@ -88,23 +89,6 @@ public class InfoManager : MonoBehaviour
         }
         return template != null;
     }
-    #endregion
-
-    #region 地图配置
-    /// <summary>守护点出生点（前 3 个外围 + 最后 1 个中心）。</summary>
-    public List<Vector3> BeaconSpawnPositions = new();
-    /// <summary>水晶出生点。</summary>
-    public List<Vector3> CrystalSpawnPositions = new();
-    /// <summary>防御塔出生点。</summary>
-    public List<Vector3> TowerSpawnPositions = new();
-    /// <summary>瘟疫树出生点。</summary>
-    public Vector3 PlagueTreeSpawnPosition;
-    /// <summary>僵尸出生点（道路/墓地/守护点外围）。</summary>
-    public List<Vector3> ZombieSpawnPositions = new();
-    /// <summary>进攻方出生点。</summary>
-    public List<Vector3> AttackSpawnPositions = new();
-    /// <summary>防守方出生点。</summary>
-    public Vector3 DefenseSpawnPosition;
     #endregion
 
     #region 血条与层级

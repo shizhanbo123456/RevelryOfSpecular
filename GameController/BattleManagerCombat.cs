@@ -364,10 +364,8 @@ public partial class BattleManager
 
         var spawns = Tool.LandscapeSpawns;
         Vector3 pos = isAttack
-            ? LandscapeSpawns.RandomOf(spawns != null && spawns.attackRevivePositions.Count > 0
-                ? spawns.attackRevivePositions : Tool.InfoManager.AttackSpawnPositions)
-            : LandscapeSpawns.RandomOf(spawns != null && spawns.defenseRevivePositions.Count > 0
-                ? spawns.defenseRevivePositions : new List<Vector3> { Tool.InfoManager.DefenseSpawnPosition });
+            ? LandscapeSpawns.RandomOf(spawns.attackRevivePositions)
+            : LandscapeSpawns.RandomOf(spawns.defenseRevivePositions);
 
         ushort entityId = SpawnEntity(characterType, level, pos, camp);
         if (entityId == 0)
