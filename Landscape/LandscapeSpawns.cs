@@ -74,6 +74,15 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>物理检测缓冲（半径 0.5m 内重叠的 collider 数，超出即视为拥挤）。</summary>
     private static readonly Collider[] s_overlapBuffer = new Collider[32];
 
+    /// <summary>Gizmos 标记大小 = 相机距离 × 该系数（约视口高度的 1%，保证任何缩放下都可见）。</summary>
+    private const float MarkerScreenFactor = 0.012f;
+
+    /// <summary>Gizmos 标记半径下限（米）：相机贴近时避免标记糊住点位。</summary>
+    private const float MarkerMinRadius = 0.15f;
+
+    /// <summary>Gizmos 标记半径上限（米）：相机远离时避免标记铺满屏幕 / 连成一片。</summary>
+    private const float MarkerMaxRadius = 8f;
+
     /// <summary>
     /// 组件右键菜单：清空后按「越靠 Terrain 中心密度越高」随机重建水晶刷新点。
     /// 每个点位的高度取自 Terrain 表面；并保证其周围 0.5m 内没有其它 collider、且不与其它已配置点位重叠。
@@ -222,7 +231,12 @@ public class LandscapeSpawns : MonoBehaviour
         return false;
     }
 
-    /// <summary>Gizmos：以净空半径显示全部点位（实心点 = 点位位置，线框球 = 0.5m 净空范围）。</summary>
+    /// <summary>Gizmos：显示全部点位（点位本体 + 向上立柱 + 0.5m 真实净空范围）。</summary>
+    /// <remarks>
+    /// 点位坐标是**世界坐标**，Gizmos.DrawSphere/DrawLine/DrawWireSphere 默认就在世界空间绘制
+    /// （Gizmos.matrix 保持单位矩阵，本文件不改动它）。
+    /// 注意：标记大小按 Scene 视图相机距离自适应——地图达 1280 单位时，固定半径的球体在远景下会小到亚像素而看不见。
+    /// </remarks>
     private void OnDrawGizmos()
     {
         DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f));   // 守护点：绿
@@ -243,9 +257,26 @@ public class LandscapeSpawns : MonoBehaviour
         Gizmos.color = color;
         for (int i = 0; i < list.Count; i++)
         {
-            Gizmos.DrawSphere(list[i], 0.12f);
-            Gizmos.DrawWireSphere(list[i], ClearanceRadius);
+            Vector3 p = list[i];
+            float r = ResolveMarkerRadius(p);
+            Gizmos.DrawSphere(p, r * 0.4f);                 // 点位本体（随缩放自适应，保证可见）
+            Gizmos.DrawLine(p, p + Vector3.up * r * 2f);    // 向上立柱：远景/斜视下也容易定位
+            Gizmos.DrawWireSphere(p, ClearanceRadius);      // 0.5m 真实净空范围（世界尺寸，不缩放）
         }
+    }
+
+    /// <summary>按 Scene 视图相机距离自适应标记大小，保证任意缩放级别下都可见（非编辑器环境退回固定值）。</summary>
+    private static float ResolveMarkerRadius(Vector3 worldPos)
+    {
+#if UNITY_EDITOR
+        var view = UnityEditor.SceneView.currentDrawingSceneView;
+        if (view != null && view.camera != null)
+        {
+            float distance = Vector3.Distance(view.camera.transform.position, worldPos);
+            return Mathf.Clamp(distance * MarkerScreenFactor, MarkerMinRadius, MarkerMaxRadius);
+        }
+#endif
+        return MarkerMinRadius;
     }
 
     #endregion
