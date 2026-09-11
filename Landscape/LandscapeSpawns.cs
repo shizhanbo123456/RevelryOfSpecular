@@ -4,13 +4,15 @@ using UnityEngine;
 /// <summary>
 /// Landscape 生成锚点组件（置于地形预制体内，随地形摆进场景，Awake 自动注册 Tool.LandscapeSpawns）。
 /// **全项目唯一的地图点位来源**：守护点、防御塔（不复活）、水晶刷新位置、瘟疫树、僵尸出生点、
-/// 双方开局出生点与复活备选位置均在此配置（策划案 6.1/7/8.1/17.1）。任何其它组件不得再持有地图点位数据。
-/// 存储形态：**水晶刷新点为 Vector3 列表**（由右键菜单按 Terrain 表面批量生成）；
-/// **其余点位均为场景锚点的 Transform**——在场景中摆空物体后拖进来，可直接拖动调整，运行时读取其世界坐标。
+/// 双方出生/复活位置均在此配置（策划案 6.1/7/8.1/17.1）。任何其它组件不得再持有地图点位数据。
+/// 存储形态：
+/// ① **锚点（Transform）**——守护点、防御塔、瘟疫树、双方出生/复活位置：在场景摆空物体后拖进列表，
+///    之后直接拖动对象即可调整，运行时读取其世界坐标；
+/// ② **坐标（Vector3）**——水晶刷新点、僵尸出生点：由组件右键菜单按 Terrain 表面批量生成。
+/// 出生与复活：双方各自的「出生/复活位置列表」是**同一个列表**，开局出生与复活都从中随机取点（不做去重）。
 /// 部署形态：**服务器与客户端场景各挂一份**，使用同一套锚点——服务器侧只提供点位（不含贴图与图形表现），
 /// 因此锚点对象必须是地形预制体的一部分，否则服务器那份引用会丢失。
-/// 点位列表由关卡搭建时人工配置，允许暂时为空（为空时回退地图中心 Landscape.MapCenter，不影响编译与加载）。
-/// 编辑器辅助：组件右键菜单「随机生成水晶刷新点」可批量生成水晶点位。
+/// 点位列表允许暂时为空（为空时回退地图中心 Landscape.MapCenter，不影响编译与加载）。
 /// 注：本组件是战斗逻辑的绝对前提，未注册时 Tool.LandscapeSpawns 取用即报错。
 /// </summary>
 public class LandscapeSpawns : MonoBehaviour
@@ -35,27 +37,24 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("瘟疫树位置列表（中立争抢单位，多个候选随机取一个）")]
     public List<Transform> plagueTreeSpawnPositions = new();
 
-    [Header("僵尸出生点列表（道路/墓地/守护点外围，随机取一个）")]
-    public List<Transform> zombieSpawnPositions = new();
+    [Header("僵尸出生点列表（Vector3，由右键菜单生成；道路/墓地/守护点外围，随机取一个）")]
+    public List<Vector3> zombieSpawnPositions = new();
 
-    [Header("进攻方开局出生点列表（按玩家序号轮流分配）")]
-    public List<Transform> attackSpawnPositions = new();
+    [Tooltip("右键菜单「随机生成僵尸出生点」单次生成的数量；生成时会先清空 zombieSpawnPositions")]
+    [Min(1)] public int zombieGenerateCount = 100;
 
-    [Header("防守方开局出生点列表（按玩家序号轮流分配）")]
-    public List<Transform> defenseSpawnPositions = new();
+    [Header("进攻方出生/复活位置列表（同一个列表，出生与复活均随机取一个）")]
+    public List<Transform> attackPositions = new();
 
-    [Header("进攻方复活备选位置列表（随机取一个）")]
-    public List<Transform> attackRevivePositions = new();
-
-    [Header("防守方复活备选位置列表（随机取一个）")]
-    public List<Transform> defenseRevivePositions = new();
+    [Header("防守方出生/复活位置列表（同一个列表，出生与复活均随机取一个）")]
+    public List<Transform> defensePositions = new();
 
     [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
     [Tooltip("水晶刷新点（Vector3 列表）的 Gizmos 球半径")]
     [Min(0.1f)] public float crystalGizmoRadius = 1f;
 
-    [Tooltip("其余点位（Transform 锚点：守护点/防御塔/瘟疫树/僵尸/双方出生点/双方复活点）的 Gizmos 球半径")]
-    [Min(0.1f)] public float anchorGizmoRadius = 1f;
+    [Tooltip("除水晶外的全部点位（僵尸出生点 + 守护点/防御塔/瘟疫树/双方出生复活锚点）的 Gizmos 球半径")]
+    [Min(0.1f)] public float otherGizmoRadius = 1f;
 
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
 
@@ -78,26 +77,6 @@ public class LandscapeSpawns : MonoBehaviour
         return list[Random.Range(0, list.Count)];
     }
 
-    /// <summary>按序号轮流取锚点位置（开局出生点均摊用；跳过空位，全部为空回退地图中心）。</summary>
-    public static Vector3 IndexedOf(List<Transform> list, int index)
-    {
-        if (list == null || list.Count == 0) return Landscape.MapCenter;
-        int start = Mathf.Abs(index) % list.Count;
-        for (int i = 0; i < list.Count; i++)
-        {
-            var t = list[(start + i) % list.Count];
-            if (t != null) return t.position;
-        }
-        return Landscape.MapCenter;
-    }
-
-    /// <summary>按序号轮流取坐标位置（空列表回退到地图中心）。</summary>
-    public static Vector3 IndexedOf(List<Vector3> list, int index)
-    {
-        if (list == null || list.Count == 0) return Landscape.MapCenter;
-        return list[Mathf.Abs(index) % list.Count];
-    }
-
     #endregion
 
     #region 点位生成（编辑器工具）
@@ -114,36 +93,56 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>物理检测缓冲（半径 0.5m 内重叠的 collider 数，超出即视为拥挤）。</summary>
     private static readonly Collider[] s_overlapBuffer = new Collider[32];
 
-    /// <summary>
-    /// 组件右键菜单：清空后按「越靠 Terrain 中心密度越高」随机重建水晶刷新点。
-    /// 每个点位的高度取自 Terrain 表面；并保证其周围 0.5m 内没有其它 collider、且不与其它已配置点位重叠。
-    /// </summary>
+    /// <summary>随机取点的密度偏向。</summary>
+    private enum DensityBias
+    {
+        /// <summary>越靠 Terrain 中心越密（水晶刷新点）。</summary>
+        Center,
+
+        /// <summary>越靠 Terrain 边界越密（僵尸出生点）。</summary>
+        Boundary,
+    }
+
+    /// <summary>组件右键菜单：清空后按「越靠 Terrain 中心密度越高」重建水晶刷新点。</summary>
     [ContextMenu("随机生成水晶刷新点（清空后重建）")]
     public void GenerateCrystalSpawnPositions()
+    {
+        GeneratePointsOnTerrain(crystalSpawnPositions, crystalGenerateCount, DensityBias.Center, "水晶刷新点");
+    }
+
+    /// <summary>组件右键菜单：清空后按「越靠 Terrain 边界密度越高」重建僵尸出生点。</summary>
+    [ContextMenu("随机生成僵尸出生点（清空后重建）")]
+    public void GenerateZombieSpawnPositions()
+    {
+        GeneratePointsOnTerrain(zombieSpawnPositions, zombieGenerateCount, DensityBias.Boundary, "僵尸出生点");
+    }
+
+    /// <summary>清空目标列表后，在 Terrain 表面按指定密度偏向重新生成 count 个净空点位。</summary>
+    private void GeneratePointsOnTerrain(List<Vector3> target, int count, DensityBias bias, string label)
     {
         var terrain = FindTerrain();
         if (terrain == null)
         {
-            Debug.LogError("[LandscapeSpawns] 场景中找不到可用的 Terrain（含 TerrainData），无法生成水晶刷新点。");
+            Debug.LogError($"[LandscapeSpawns] 场景中找不到可用的 Terrain（含 TerrainData），无法生成{label}。");
             return;
         }
 
-        crystalSpawnPositions.Clear();
+        target.Clear();
 
         int failed = 0;
-        for (int i = 0; i < crystalGenerateCount; i++)
+        for (int i = 0; i < count; i++)
         {
-            if (TryFindFreePointOnTerrain(terrain, out Vector3 pos)) crystalSpawnPositions.Add(pos);
+            if (TryFindFreePointOnTerrain(terrain, bias, out Vector3 pos)) target.Add(pos);
             else failed++;
         }
 
         if (failed > 0)
         {
-            Debug.LogWarning($"[LandscapeSpawns] 水晶刷新点：已生成 {crystalSpawnPositions.Count} 个，{failed} 个因找不到净空位置而放弃。");
+            Debug.LogWarning($"[LandscapeSpawns] {label}：已生成 {target.Count} 个，{failed} 个因找不到净空位置而放弃（Terrain = {terrain.name}）。");
         }
         else
         {
-            Debug.Log($"[LandscapeSpawns] 水晶刷新点：已生成 {crystalSpawnPositions.Count} 个（Terrain = {terrain.name}）。");
+            Debug.Log($"[LandscapeSpawns] {label}：已生成 {target.Count} 个（Terrain = {terrain.name}）。");
         }
     }
 
@@ -183,24 +182,18 @@ public class LandscapeSpawns : MonoBehaviour
         return null;
     }
 
-    /// <summary>在 Terrain 上找一个净空点：XZ 随机取点（越靠中心越容易被接受）→ 采样高度 → 净空校验。</summary>
-    private bool TryFindFreePointOnTerrain(Terrain terrain, out Vector3 result)
+    /// <summary>在 Terrain 上找一个净空点：随机取 XZ → 按密度偏向决定是否接受 → 采样高度 → 净空校验。</summary>
+    private bool TryFindFreePointOnTerrain(Terrain terrain, DensityBias bias, out Vector3 result)
     {
         Vector3 origin = terrain.transform.position;
         Vector3 size = terrain.terrainData.size;
-        float centerX = origin.x + size.x * 0.5f;
-        float centerZ = origin.z + size.z * 0.5f;
-        // 中心到四角的最远距离：作为密度衰减半径，越靠外接受概率越低（四角趋近 0）
-        float biasRadius = new Vector2(size.x * 0.5f, size.z * 0.5f).magnitude;
 
         for (int i = 0; i < MaxAttemptsPerPoint; i++)
         {
             float x = origin.x + Random.value * size.x;
             float z = origin.z + Random.value * size.z;
 
-            // 中心密度加权：接受概率 p = 1 - d / biasRadius
-            float d = new Vector2(x - centerX, z - centerZ).magnitude;
-            if (Random.value > 1f - d / biasRadius) continue;
+            if (Random.value > AcceptProbability(x, z, origin, size, bias)) continue;
 
             // 高度贴 Terrain 表面（SampleHeight 返回相对 Terrain 原点的高度，需加回 transform.position.y）
             float y = origin.y + terrain.SampleHeight(new Vector3(x, 0f, z));
@@ -214,6 +207,30 @@ public class LandscapeSpawns : MonoBehaviour
 
         result = default;
         return false;
+    }
+
+    /// <summary>
+    /// 密度偏向给出的接受概率（0~1）：
+    /// Center 越靠 Terrain 中心越接近 1（衰减半径 = 中心到四角的最远距离）；
+    /// Boundary 越靠 Terrain 边界越接近 1（到最近边的距离 / 短边一半）。
+    /// </summary>
+    private static float AcceptProbability(float x, float z, Vector3 origin, Vector3 size, DensityBias bias)
+    {
+        float minX = origin.x, maxX = origin.x + size.x;
+        float minZ = origin.z, maxZ = origin.z + size.z;
+
+        if (bias == DensityBias.Center)
+        {
+            float centerX = (minX + maxX) * 0.5f;
+            float centerZ = (minZ + maxZ) * 0.5f;
+            float radius = new Vector2(size.x * 0.5f, size.z * 0.5f).magnitude;
+            return 1f - new Vector2(x - centerX, z - centerZ).magnitude / radius;
+        }
+
+        // 矩形中心处「到最近边的距离」最大，等于短边的一半，用它做归一化上限
+        float halfShort = Mathf.Min(size.x, size.z) * 0.5f;
+        float toEdge = Mathf.Min(Mathf.Min(x - minX, maxX - x), Mathf.Min(z - minZ, maxZ - z));
+        return 1f - toEdge / halfShort;
     }
 
     /// <summary>净空校验：半径 0.5m 内无其它 collider（Terrain 自身不计），且不与任何已配置点位重叠。</summary>
@@ -244,10 +261,8 @@ public class LandscapeSpawns : MonoBehaviour
             || NearIn(towerSpawnPositions, pos)
             || NearIn(plagueTreeSpawnPositions, pos)
             || NearIn(zombieSpawnPositions, pos)
-            || NearIn(attackSpawnPositions, pos)
-            || NearIn(defenseSpawnPositions, pos)
-            || NearIn(attackRevivePositions, pos)
-            || NearIn(defenseRevivePositions, pos);
+            || NearIn(attackPositions, pos)
+            || NearIn(defensePositions, pos);
     }
 
     /// <summary>锚点列表中是否存在与 pos 距离小于净空半径的点位（跳过空位）。</summary>
@@ -278,21 +293,19 @@ public class LandscapeSpawns : MonoBehaviour
 
     /// <summary>
     /// Gizmos：为每种点位类型绘制颜色互不相同的球 + 一条向上立柱（便于远景/斜视定位）。
-    /// 半径分两类：**水晶用 crystalGizmoRadius**，**其余锚点用 anchorGizmoRadius**（均可在 Inspector 调）。
-    /// 点位均为**世界坐标**：锚点取 Transform.position，水晶列表本身即世界坐标。
+    /// 半径分两类：**水晶用 crystalGizmoRadius**，**其余全部点位用 otherGizmoRadius**（均可在 Inspector 调）。
+    /// 点位均为**世界坐标**：锚点取 Transform.position，水晶/僵尸列表本身即世界坐标。
     /// 注意：在能看全 1280 单位地图的缩放下，半径 1 的球直径约 1.6 像素，需要放近观察或调大半径。
     /// </summary>
     private void OnDrawGizmos()
     {
-        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), anchorGizmoRadius);   // 守护点：绿
+        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);   // 守护点：绿
         DrawPoints(crystalSpawnPositions, new Color(0.25f, 0.80f, 1.00f), crystalGizmoRadius); // 水晶：青
-        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), anchorGizmoRadius);    // 防御塔：红
-        DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), anchorGizmoRadius); // 瘟疫树：紫
-        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), anchorGizmoRadius);   // 僵尸：橙
-        DrawPoints(attackSpawnPositions, new Color(0.35f, 0.55f, 1.00f), anchorGizmoRadius);   // 进攻方出生：蓝
-        DrawPoints(defenseSpawnPositions, new Color(0.10f, 0.90f, 0.90f), anchorGizmoRadius);  // 防守方出生：青绿
-        DrawPoints(attackRevivePositions, new Color(1.00f, 0.90f, 0.30f), anchorGizmoRadius);  // 进攻方复活：黄
-        DrawPoints(defenseRevivePositions, new Color(1.00f, 0.40f, 0.80f), anchorGizmoRadius); // 防守方复活：粉
+        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);    // 防御塔：红
+        DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 瘟疫树：紫
+        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), otherGizmoRadius);   // 僵尸：橙
+        DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);        // 进攻方出生/复活：蓝
+        DrawPoints(defensePositions, new Color(0.10f, 0.90f, 0.90f), otherGizmoRadius);       // 防守方出生/复活：青绿
     }
 
     /// <summary>绘制锚点列表（跳过空位）。</summary>

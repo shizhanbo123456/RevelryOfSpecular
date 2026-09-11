@@ -363,9 +363,10 @@ public partial class BattleManager
         int level = isAttack ? info.attackLevel : info.defenseLevel;
 
         var spawns = Tool.LandscapeSpawns;
+        // 复活点：与开局出生共用同一个「出生/复活位置列表」，随机取点（不去重）
         Vector3 pos = isAttack
-            ? LandscapeSpawns.RandomOf(spawns.attackRevivePositions)
-            : LandscapeSpawns.RandomOf(spawns.defenseRevivePositions);
+            ? LandscapeSpawns.RandomOf(spawns.attackPositions)
+            : LandscapeSpawns.RandomOf(spawns.defensePositions);
 
         ushort entityId = SpawnEntity(characterType, level, pos, camp);
         if (entityId == 0)

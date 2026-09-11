@@ -334,16 +334,16 @@ public partial class BattleManager : EnsBehaviour
         Tool.NetworkManager.SendRoomInfo(info);
     }
 
-    /// <summary>进攻方开局出生点（地形组件备选位置，按玩家序号轮流分配避免扎堆）。</summary>
-    private Vector3 GetAttackSpawnPos(short clientId)
+    /// <summary>进攻方开局出生点（从「出生/复活位置列表」随机取，与复活共用同一列表，不去重）。</summary>
+    private Vector3 GetAttackSpawnPos()
     {
-        return LandscapeSpawns.IndexedOf(Tool.LandscapeSpawns.attackSpawnPositions, clientId);
+        return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.attackPositions);
     }
 
-    /// <summary>防守方开局出生点（地形组件备选位置，按玩家序号轮流分配避免扎堆）。</summary>
-    private Vector3 GetDefenseSpawnPos(short clientId)
+    /// <summary>防守方开局出生点（从「出生/复活位置列表」随机取，与复活共用同一列表，不去重）。</summary>
+    private Vector3 GetDefenseSpawnPos()
     {
-        return LandscapeSpawns.IndexedOf(Tool.LandscapeSpawns.defenseSpawnPositions, clientId);
+        return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.defensePositions);
     }
 
     /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
@@ -482,7 +482,7 @@ public partial class BattleManager : EnsBehaviour
             bool isAttack = camp == EntityCamp.Attack;
             EntityType characterType = isAttack ? pair.Value.attackCharacter : pair.Value.defenseCharacter;
             int level = isAttack ? pair.Value.attackLevel : pair.Value.defenseLevel;
-            Vector3 spawnPos = isAttack ? GetAttackSpawnPos(clientId) : GetDefenseSpawnPos(clientId);
+            Vector3 spawnPos = isAttack ? GetAttackSpawnPos() : GetDefenseSpawnPos();
 
             ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
             PlayerEntityId[clientId] = entityId;
@@ -504,12 +504,12 @@ public partial class BattleManager : EnsBehaviour
         // AI 玩家实体：与真人判定完全一致（策划案 17.1），暂用各队 0 号角色（TODO：AI 角色配置）
         for (int i = 0; i < AttackAICount; i++)
         {
-            ushort aiId = SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos((short)(-100 - i)), EntityCamp.Attack);
+            ushort aiId = SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos(), EntityCamp.Attack);
             GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
         }
         for (int i = 0; i < DefenseAICount; i++)
         {
-            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, GetDefenseSpawnPos((short)(-200 - i)), EntityCamp.Defense);
+            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, GetDefenseSpawnPos(), EntityCamp.Defense);
             GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
         }
 
