@@ -24,11 +24,13 @@ public partial class BattleManager
     {
         var spawns = Tool.LandscapeSpawns;
 
-        // 守护点：列表前 3 个外围（value 0~2）+ 最后 1 个中心
+        // 守护点：列表前 3 个外围（value 0~2）+ 最后 1 个中心（锚点未赋值的槽位跳过）
         for (int i = 0; i < spawns.beaconSpawnPositions.Count; i++)
         {
+            var beaconAnchor = spawns.beaconSpawnPositions[i];
+            if (beaconAnchor == null) continue;
             bool core = i >= Config.outer_beacon_count;
-            SpawnEntity(core ? EntityType.CoreBeacon : EntityType.Beacon(i), 1, spawns.beaconSpawnPositions[i], EntityCamp.Defense);
+            SpawnEntity(core ? EntityType.CoreBeacon : EntityType.Beacon(i), 1, beaconAnchor.position, EntityCamp.Defense);
         }
 
         // 水晶：类型按序循环（4 类对应 4 类武器，被摧毁后 30~60s 随机重生）
@@ -37,10 +39,12 @@ public partial class BattleManager
             SpawnEntity(EntityType.Crystal(i % Config.crystal_type_count), 1, spawns.crystalSpawnPositions[i], EntityCamp.Neutral);
         }
 
-        // 防御塔（瘟疫孢子，不复活）
+        // 防御塔（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
         for (int i = 0; i < spawns.towerSpawnPositions.Count; i++)
         {
-            SpawnEntity(EntityType.Tower(i), 1, spawns.towerSpawnPositions[i], EntityCamp.Defense);
+            var towerAnchor = spawns.towerSpawnPositions[i];
+            if (towerAnchor == null) continue;
+            SpawnEntity(EntityType.Tower(i), 1, towerAnchor.position, EntityCamp.Defense);
         }
 
         // 瘟疫树（中立争抢单位）：多个候选位置随机取一个

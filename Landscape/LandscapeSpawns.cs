@@ -1,15 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Landscape 生成锚点组件（置于地形预制体内，随地形摆进场景，Awake 自动注册 Tool.LandscapeSpawns）。
 /// **全项目唯一的地图点位来源**：守护点、防御塔（不复活）、水晶刷新位置、瘟疫树、僵尸出生点、
 /// 双方开局出生点与复活备选位置均在此配置（策划案 6.1/7/8.1/17.1）。任何其它组件不得再持有地图点位数据。
-/// 部署形态：**服务器与客户端场景各挂一份**，使用同一套世界坐标点位——服务器侧只提供点位
-/// （不含贴图与图形表现），客户端侧才是完整地形。
+/// 存储形态：**水晶刷新点为 Vector3 列表**（由右键菜单按 Terrain 表面批量生成）；
+/// **其余点位均为场景锚点的 Transform**——在场景中摆空物体后拖进来，可直接拖动调整，运行时读取其世界坐标。
+/// 部署形态：**服务器与客户端场景各挂一份**，使用同一套锚点——服务器侧只提供点位（不含贴图与图形表现），
+/// 因此锚点对象必须是地形预制体的一部分，否则服务器那份引用会丢失。
 /// 点位列表由关卡搭建时人工配置，允许暂时为空（为空时回退地图中心 Landscape.MapCenter，不影响编译与加载）。
-/// 编辑器辅助：组件右键菜单「随机生成水晶刷新点」可按 Terrain 表面高度批量生成水晶点位，详见文件末尾 #region。
+/// 编辑器辅助：组件右键菜单「随机生成水晶刷新点」可批量生成水晶点位。
 /// 注：本组件是战斗逻辑的绝对前提，未注册时 Tool.LandscapeSpawns 取用即报错。
 /// </summary>
 public class LandscapeSpawns : MonoBehaviour
@@ -20,48 +21,77 @@ public class LandscapeSpawns : MonoBehaviour
     }
 
     [Header("守护点出生点（前 3 个外围 + 最后 1 个中心）")]
-    public List<Vector3> beaconSpawnPositions = new();
+    public List<Transform> beaconSpawnPositions = new();
 
-    [Header("水晶刷新位置列表")]
+    [Header("水晶刷新位置列表（Vector3，由右键菜单生成）")]
     public List<Vector3> crystalSpawnPositions = new();
 
     [Tooltip("右键菜单「随机生成水晶刷新点」单次生成的数量；生成时会先清空 crystalSpawnPositions")]
     [Min(1)] public int crystalGenerateCount = 100;
 
     [Header("防御塔位置列表（防御塔被摧毁后不会复活）")]
-    public List<Vector3> towerSpawnPositions = new();
+    public List<Transform> towerSpawnPositions = new();
 
     [Header("瘟疫树位置列表（中立争抢单位，多个候选随机取一个）")]
-    public List<Vector3> plagueTreeSpawnPositions = new();
+    public List<Transform> plagueTreeSpawnPositions = new();
 
     [Header("僵尸出生点列表（道路/墓地/守护点外围，随机取一个）")]
-    public List<Vector3> zombieSpawnPositions = new();
+    public List<Transform> zombieSpawnPositions = new();
 
     [Header("进攻方开局出生点列表（按玩家序号轮流分配）")]
-    public List<Vector3> attackSpawnPositions = new();
+    public List<Transform> attackSpawnPositions = new();
 
     [Header("防守方开局出生点列表（按玩家序号轮流分配）")]
-    public List<Vector3> defenseSpawnPositions = new();
+    public List<Transform> defenseSpawnPositions = new();
 
     [Header("进攻方复活备选位置列表（随机取一个）")]
-    public List<Vector3> attackRevivePositions = new();
+    public List<Transform> attackRevivePositions = new();
 
     [Header("防守方复活备选位置列表（随机取一个）")]
-    public List<Vector3> defenseRevivePositions = new();
+    public List<Transform> defenseRevivePositions = new();
 
-    /// <summary>取列表中的随机备选位置（空列表回退到地图中心）。</summary>
+    #region 点位读取（锚点列表允许留空位，读取时自动跳过）
+
+    /// <summary>取锚点列表中的随机位置（跳过未赋值的空位；空列表回退到地图中心）。</summary>
+    public static Vector3 RandomOf(List<Transform> list)
+    {
+        if (list == null || list.Count == 0) return Landscape.MapCenter;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var t = list[Random.Range(0, list.Count)];
+            if (t != null) return t.position;
+        }
+        return Landscape.MapCenter; // 全部是空位
+    }
+
+    /// <summary>取坐标列表中的随机位置（空列表回退到地图中心）。</summary>
     public static Vector3 RandomOf(List<Vector3> list)
     {
         if (list == null || list.Count == 0) return Landscape.MapCenter;
         return list[Random.Range(0, list.Count)];
     }
 
-    /// <summary>按序号轮流取列表中的位置（开局出生点均摊用；空列表回退到地图中心）。</summary>
+    /// <summary>按序号轮流取锚点位置（开局出生点均摊用；跳过空位，全部为空回退地图中心）。</summary>
+    public static Vector3 IndexedOf(List<Transform> list, int index)
+    {
+        if (list == null || list.Count == 0) return Landscape.MapCenter;
+        int start = Mathf.Abs(index) % list.Count;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var t = list[(start + i) % list.Count];
+            if (t != null) return t.position;
+        }
+        return Landscape.MapCenter;
+    }
+
+    /// <summary>按序号轮流取坐标位置（空列表回退到地图中心）。</summary>
     public static Vector3 IndexedOf(List<Vector3> list, int index)
     {
         if (list == null || list.Count == 0) return Landscape.MapCenter;
         return list[Mathf.Abs(index) % list.Count];
     }
+
+    #endregion
 
     #region 点位生成（编辑器工具）
 
@@ -71,17 +101,14 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>单个点位的最大尝试次数，超过则放弃该点。</summary>
     private const int MaxAttemptsPerPoint = 500;
 
+    /// <summary>Gizmos 球半径（米）——所有点位类型统一 r = 1。</summary>
+    private const float GizmoSphereRadius = 1f;
+
+    /// <summary>Gizmos 向上立柱长度（米），便于远景/斜视时定位。</summary>
+    private const float GizmoPinLength = 2f;
+
     /// <summary>物理检测缓冲（半径 0.5m 内重叠的 collider 数，超出即视为拥挤）。</summary>
     private static readonly Collider[] s_overlapBuffer = new Collider[32];
-
-    /// <summary>Gizmos 标记大小 = 相机距离 × 该系数（约视口高度的 1%，保证任何缩放下都可见）。</summary>
-    private const float MarkerScreenFactor = 0.012f;
-
-    /// <summary>Gizmos 标记半径下限（米）：相机贴近时避免标记糊住点位。</summary>
-    private const float MarkerMinRadius = 0.15f;
-
-    /// <summary>Gizmos 标记半径上限（米）：相机远离时避免标记铺满屏幕 / 连成一片。</summary>
-    private const float MarkerMaxRadius = 8f;
 
     /// <summary>
     /// 组件右键菜单：清空后按「越靠 Terrain 中心密度越高」随机重建水晶刷新点。
@@ -122,9 +149,9 @@ public class LandscapeSpawns : MonoBehaviour
         Terrain found = BreadthFirstSearch(transform != null ? transform.root : null);
         if (found != null) return found;
 
-        for (int i = 0; i < SceneManager.sceneCount; i++)
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
         {
-            var roots = SceneManager.GetSceneAt(i).GetRootGameObjects();
+            var roots = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).GetRootGameObjects();
             for (int j = 0; j < roots.Length; j++)
             {
                 found = BreadthFirstSearch(roots[j].transform);
@@ -219,7 +246,21 @@ public class LandscapeSpawns : MonoBehaviour
             || NearIn(defenseRevivePositions, pos);
     }
 
-    /// <summary>列表中是否存在与 pos 距离小于净空半径的点位。</summary>
+    /// <summary>锚点列表中是否存在与 pos 距离小于净空半径的点位（跳过空位）。</summary>
+    private static bool NearIn(List<Transform> list, Vector3 pos)
+    {
+        if (list == null) return false;
+        float sqr = ClearanceRadius * ClearanceRadius;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var t = list[i];
+            if (t == null) continue;
+            if ((t.position - pos).sqrMagnitude < sqr) return true;
+        }
+        return false;
+    }
+
+    /// <summary>坐标列表中是否存在与 pos 距离小于净空半径的点位。</summary>
     private static bool NearIn(List<Vector3> list, Vector3 pos)
     {
         if (list == null) return false;
@@ -231,12 +272,11 @@ public class LandscapeSpawns : MonoBehaviour
         return false;
     }
 
-    /// <summary>Gizmos：显示全部点位（点位本体 + 向上立柱 + 0.5m 真实净空范围）。</summary>
-    /// <remarks>
-    /// 点位坐标是**世界坐标**，Gizmos.DrawSphere/DrawLine/DrawWireSphere 默认就在世界空间绘制
-    /// （Gizmos.matrix 保持单位矩阵，本文件不改动它）。
-    /// 注意：标记大小按 Scene 视图相机距离自适应——地图达 1280 单位时，固定半径的球体在远景下会小到亚像素而看不见。
-    /// </remarks>
+    /// <summary>
+    /// Gizmos：为每种点位类型绘制半径统一为 1、颜色互不相同的球，并加一条向上立柱便于远景/斜视定位。
+    /// 点位均为**世界坐标**：锚点取 Transform.position，水晶列表本身即世界坐标。
+    /// 注意：在能看全 1280 单位地图的缩放下，r=1 的球直径约 1.6 像素，需要放近观察。
+    /// </summary>
     private void OnDrawGizmos()
     {
         DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f));   // 守护点：绿
@@ -250,33 +290,32 @@ public class LandscapeSpawns : MonoBehaviour
         DrawPoints(defenseRevivePositions, new Color(1.00f, 0.40f, 0.80f)); // 防守方复活：粉
     }
 
-    /// <summary>绘制一个点位列表。</summary>
-    private static void DrawPoints(List<Vector3> list, Color color)
+    /// <summary>绘制锚点列表（跳过空位）。</summary>
+    private static void DrawPoints(List<Transform> list, Color color)
     {
         if (list == null || list.Count == 0) return;
         Gizmos.color = color;
         for (int i = 0; i < list.Count; i++)
         {
-            Vector3 p = list[i];
-            float r = ResolveMarkerRadius(p);
-            Gizmos.DrawSphere(p, r * 0.4f);                 // 点位本体（随缩放自适应，保证可见）
-            Gizmos.DrawLine(p, p + Vector3.up * r * 2f);    // 向上立柱：远景/斜视下也容易定位
-            Gizmos.DrawWireSphere(p, ClearanceRadius);      // 0.5m 真实净空范围（世界尺寸，不缩放）
+            var t = list[i];
+            if (t == null) continue;
+            DrawPoint(t.position);
         }
     }
 
-    /// <summary>按 Scene 视图相机距离自适应标记大小，保证任意缩放级别下都可见（非编辑器环境退回固定值）。</summary>
-    private static float ResolveMarkerRadius(Vector3 worldPos)
+    /// <summary>绘制坐标列表。</summary>
+    private static void DrawPoints(List<Vector3> list, Color color)
     {
-#if UNITY_EDITOR
-        var view = UnityEditor.SceneView.currentDrawingSceneView;
-        if (view != null && view.camera != null)
-        {
-            float distance = Vector3.Distance(view.camera.transform.position, worldPos);
-            return Mathf.Clamp(distance * MarkerScreenFactor, MarkerMinRadius, MarkerMaxRadius);
-        }
-#endif
-        return MarkerMinRadius;
+        if (list == null || list.Count == 0) return;
+        Gizmos.color = color;
+        for (int i = 0; i < list.Count; i++) DrawPoint(list[i]);
+    }
+
+    /// <summary>单个点位：r = 1 的球 + 向上立柱。</summary>
+    private static void DrawPoint(Vector3 pos)
+    {
+        Gizmos.DrawSphere(pos, GizmoSphereRadius);
+        Gizmos.DrawLine(pos, pos + Vector3.up * GizmoPinLength);
     }
 
     #endregion
