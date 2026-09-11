@@ -50,6 +50,13 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("防守方复活备选位置列表（随机取一个）")]
     public List<Transform> defenseRevivePositions = new();
 
+    [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
+    [Tooltip("水晶刷新点（Vector3 列表）的 Gizmos 球半径")]
+    [Min(0.1f)] public float crystalGizmoRadius = 1f;
+
+    [Tooltip("其余点位（Transform 锚点：守护点/防御塔/瘟疫树/僵尸/双方出生点/双方复活点）的 Gizmos 球半径")]
+    [Min(0.1f)] public float anchorGizmoRadius = 1f;
+
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
 
     /// <summary>取锚点列表中的随机位置（跳过未赋值的空位；空列表回退到地图中心）。</summary>
@@ -101,11 +108,8 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>单个点位的最大尝试次数，超过则放弃该点。</summary>
     private const int MaxAttemptsPerPoint = 500;
 
-    /// <summary>Gizmos 球半径（米）——所有点位类型统一 r = 1。</summary>
-    private const float GizmoSphereRadius = 1f;
-
-    /// <summary>Gizmos 向上立柱长度（米），便于远景/斜视时定位。</summary>
-    private const float GizmoPinLength = 2f;
+    /// <summary>Gizmos 向上立柱长度 = 该类型的球半径 × 该系数（半径 1 时为 2m），便于远景/斜视定位。</summary>
+    private const float GizmoPinFactor = 2f;
 
     /// <summary>物理检测缓冲（半径 0.5m 内重叠的 collider 数，超出即视为拥挤）。</summary>
     private static readonly Collider[] s_overlapBuffer = new Collider[32];
@@ -273,25 +277,26 @@ public class LandscapeSpawns : MonoBehaviour
     }
 
     /// <summary>
-    /// Gizmos：为每种点位类型绘制半径统一为 1、颜色互不相同的球，并加一条向上立柱便于远景/斜视定位。
+    /// Gizmos：为每种点位类型绘制颜色互不相同的球 + 一条向上立柱（便于远景/斜视定位）。
+    /// 半径分两类：**水晶用 crystalGizmoRadius**，**其余锚点用 anchorGizmoRadius**（均可在 Inspector 调）。
     /// 点位均为**世界坐标**：锚点取 Transform.position，水晶列表本身即世界坐标。
-    /// 注意：在能看全 1280 单位地图的缩放下，r=1 的球直径约 1.6 像素，需要放近观察。
+    /// 注意：在能看全 1280 单位地图的缩放下，半径 1 的球直径约 1.6 像素，需要放近观察或调大半径。
     /// </summary>
     private void OnDrawGizmos()
     {
-        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f));   // 守护点：绿
-        DrawPoints(crystalSpawnPositions, new Color(0.25f, 0.80f, 1.00f));  // 水晶：青
-        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f));    // 防御塔：红
-        DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f)); // 瘟疫树：紫
-        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f));   // 僵尸：橙
-        DrawPoints(attackSpawnPositions, new Color(0.35f, 0.55f, 1.00f));   // 进攻方出生：蓝
-        DrawPoints(defenseSpawnPositions, new Color(0.10f, 0.90f, 0.90f));  // 防守方出生：青绿
-        DrawPoints(attackRevivePositions, new Color(1.00f, 0.90f, 0.30f));  // 进攻方复活：黄
-        DrawPoints(defenseRevivePositions, new Color(1.00f, 0.40f, 0.80f)); // 防守方复活：粉
+        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), anchorGizmoRadius);   // 守护点：绿
+        DrawPoints(crystalSpawnPositions, new Color(0.25f, 0.80f, 1.00f), crystalGizmoRadius); // 水晶：青
+        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), anchorGizmoRadius);    // 防御塔：红
+        DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), anchorGizmoRadius); // 瘟疫树：紫
+        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), anchorGizmoRadius);   // 僵尸：橙
+        DrawPoints(attackSpawnPositions, new Color(0.35f, 0.55f, 1.00f), anchorGizmoRadius);   // 进攻方出生：蓝
+        DrawPoints(defenseSpawnPositions, new Color(0.10f, 0.90f, 0.90f), anchorGizmoRadius);  // 防守方出生：青绿
+        DrawPoints(attackRevivePositions, new Color(1.00f, 0.90f, 0.30f), anchorGizmoRadius);  // 进攻方复活：黄
+        DrawPoints(defenseRevivePositions, new Color(1.00f, 0.40f, 0.80f), anchorGizmoRadius); // 防守方复活：粉
     }
 
     /// <summary>绘制锚点列表（跳过空位）。</summary>
-    private static void DrawPoints(List<Transform> list, Color color)
+    private static void DrawPoints(List<Transform> list, Color color, float radius)
     {
         if (list == null || list.Count == 0) return;
         Gizmos.color = color;
@@ -299,23 +304,23 @@ public class LandscapeSpawns : MonoBehaviour
         {
             var t = list[i];
             if (t == null) continue;
-            DrawPoint(t.position);
+            DrawPoint(t.position, radius);
         }
     }
 
     /// <summary>绘制坐标列表。</summary>
-    private static void DrawPoints(List<Vector3> list, Color color)
+    private static void DrawPoints(List<Vector3> list, Color color, float radius)
     {
         if (list == null || list.Count == 0) return;
         Gizmos.color = color;
-        for (int i = 0; i < list.Count; i++) DrawPoint(list[i]);
+        for (int i = 0; i < list.Count; i++) DrawPoint(list[i], radius);
     }
 
-    /// <summary>单个点位：r = 1 的球 + 向上立柱。</summary>
-    private static void DrawPoint(Vector3 pos)
+    /// <summary>单个点位：半径 radius 的球 + 高度为 radius × 2 的向上立柱。</summary>
+    private static void DrawPoint(Vector3 pos, float radius)
     {
-        Gizmos.DrawSphere(pos, GizmoSphereRadius);
-        Gizmos.DrawLine(pos, pos + Vector3.up * GizmoPinLength);
+        Gizmos.DrawSphere(pos, radius);
+        Gizmos.DrawLine(pos, pos + Vector3.up * (radius * GizmoPinFactor));
     }
 
     #endregion
