@@ -50,10 +50,10 @@ public class LandscapeSpawns : MonoBehaviour
     public List<Transform> defensePositions = new();
 
     [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
-    [Tooltip("水晶刷新点（Vector3 列表）的 Gizmos 球半径")]
+    [Tooltip("由菜单生成的坐标点位（水晶刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
     [Min(0.1f)] public float crystalGizmoRadius = 1f;
 
-    [Tooltip("除水晶外的全部点位（僵尸出生点 + 守护点/防御塔/瘟疫树/双方出生复活锚点）的 Gizmos 球半径")]
+    [Tooltip("其余 Transform 锚点（守护点/防御塔/瘟疫树/双方出生-复活位置）的 Gizmos 球半径")]
     [Min(0.1f)] public float otherGizmoRadius = 1f;
 
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
@@ -292,20 +292,24 @@ public class LandscapeSpawns : MonoBehaviour
     }
 
     /// <summary>
-    /// Gizmos：为每种点位类型绘制颜色互不相同的球 + 一条向上立柱（便于远景/斜视定位）。
-    /// 半径分两类：**水晶用 crystalGizmoRadius**，**其余全部点位用 otherGizmoRadius**（均可在 Inspector 调）。
+    /// Gizmos：为每组点位绘制颜色互不相同的球 + 一条向上立柱（便于远景/斜视定位）。
+    /// 半径分两类：**菜单生成的坐标点位（水晶 + 僵尸）共用 crystalGizmoRadius**，
+    /// **其余 Transform 锚点用 otherGizmoRadius**（均可在 Inspector 调）。
     /// 点位均为**世界坐标**：锚点取 Transform.position，水晶/僵尸列表本身即世界坐标。
     /// 注意：在能看全 1280 单位地图的缩放下，半径 1 的球直径约 1.6 像素，需要放近观察或调大半径。
     /// </summary>
     private void OnDrawGizmos()
     {
-        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);   // 守护点：绿
+        // 菜单生成的坐标点位（Vector3 列表）——与水晶共用 crystalGizmoRadius
         DrawPoints(crystalSpawnPositions, new Color(0.25f, 0.80f, 1.00f), crystalGizmoRadius); // 水晶：青
-        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);    // 防御塔：红
+        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), crystalGizmoRadius);  // 僵尸：橙
+
+        // Transform 锚点——共用 otherGizmoRadius
+        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);     // 守护点：绿
+        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);      // 防御塔：红
         DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 瘟疫树：紫
-        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), otherGizmoRadius);   // 僵尸：橙
-        DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);        // 进攻方出生/复活：蓝
-        DrawPoints(defensePositions, new Color(0.10f, 0.90f, 0.90f), otherGizmoRadius);       // 防守方出生/复活：青绿
+        DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);          // 进攻方出生/复活：蓝
+        DrawPoints(defensePositions, new Color(0.10f, 0.90f, 0.90f), otherGizmoRadius);         // 防守方出生/复活：青绿
     }
 
     /// <summary>绘制锚点列表（跳过空位）。</summary>
