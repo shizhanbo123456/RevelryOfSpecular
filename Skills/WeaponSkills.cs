@@ -39,7 +39,7 @@ namespace Ros.Skill
                 Execute(entity, dest);
                 return;
             }
-            SetHeldWeapon(entity, Weapon); // 释放技能时赋值手持武器（攻击动作结束由 AnimAttackEvent 清空）
+            SetHeldWeapon(entity, Weapon); // 仅会进入攻击状态的技能赋值手持武器：无攻击状态时 AnimAttackEvent 无从清空
             anim.onAttack = _ => Execute(entity, dest);
             anim.DoAttack(CastAnim);
         }
