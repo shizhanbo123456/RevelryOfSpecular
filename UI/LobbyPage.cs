@@ -27,31 +27,46 @@ public class LobbyPage : PageBase
 
     protected override void Build(VisualElement root)
     {
-        var container = new VisualElement
-        {
-            style =
-            {
-                flexGrow = 1,
-                paddingLeft = 40, paddingRight = 40, paddingTop = 24, paddingBottom = 24,
-                backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.97f),
-            }
-        };
-        container.Add(new Label("组队大厅")
-        {
-            style = { color = Color.white, fontSize = 32, unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 6 }
-        });
-        container.Add(new Label("已连接服务器 · 选择队伍并自由编辑双方 AI 数量（双方人数均 > 0 可开始）")
-        {
-            style = { color = new Color(0.7f, 0.7f, 0.75f, 1f), fontSize = 15, marginBottom = 16 }
-        });
+        var page = UITheme.Page();
+
+        page.Add(UITheme.Title("组队大厅"));
+        var subtitle = UITheme.Subtitle("已连接服务器 · 选择队伍并自由编辑双方 AI 数量（双方人数均 > 0 可开始）");
+        subtitle.style.marginBottom = 18;
+        page.Add(subtitle);
 
         // 队伍选择
-        var campRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginBottom = 12 } };
-        attackToggle = new Toggle("加入进攻方") { style = { marginRight = 24 } };
-        defenseToggle = new Toggle("加入防守方") { style = { marginRight = 24 } };
+        var campCard = UITheme.Card();
+        campCard.style.marginBottom = 12;
+        campCard.Add(UITheme.Section("我的队伍"));
+        var campRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+        campRow.style.marginTop = 6;
+        attackToggle = UITheme.StyleToggle(new Toggle("加入进攻方"));
+        attackToggle.style.marginRight = 28;
+        defenseToggle = UITheme.StyleToggle(new Toggle("加入防守方"));
         campRow.Add(attackToggle);
         campRow.Add(defenseToggle);
-        container.Add(campRow);
+        campCard.Add(campRow);
+        page.Add(campCard);
+
+        // AI 数量（任意玩家可编辑双方数量）
+        var aiCard = UITheme.Card();
+        aiCard.style.marginBottom = 12;
+        aiCard.Add(UITheme.Section("AI 玩家数量"));
+        var aiRow = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+        aiRow.style.marginTop = 6;
+        var attackTag = UITheme.Text("进攻方", UITheme.Attack, UITheme.FontBody, true);
+        attackTag.style.marginRight = 8;
+        aiRow.Add(attackTag);
+        attackAIField = UITheme.StyleField(new IntegerField { value = 0, isReadOnly = false }, 80f);
+        attackAIField.style.marginRight = 28;
+        aiRow.Add(attackAIField);
+        var defenseTag = UITheme.Text("防守方", UITheme.Defense, UITheme.FontBody, true);
+        defenseTag.style.marginRight = 8;
+        aiRow.Add(defenseTag);
+        defenseAIField = UITheme.StyleField(new IntegerField { value = 0, isReadOnly = false }, 80f);
+        aiRow.Add(defenseAIField);
+        aiCard.Add(aiRow);
+        page.Add(aiCard);
 
         attackToggle.RegisterValueChangedCallback(e =>
         {
@@ -82,41 +97,30 @@ public class LobbyPage : PageBase
             SendRoomState();
         });
 
-        // AI 数量（任意玩家可编辑双方数量）
-        var aiRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginBottom = 16, alignItems = Align.Center } };
-        aiRow.Add(new Label("进攻方 AI 数量") { style = { color = Color.white, marginRight = 8 } });
-        attackAIField = new IntegerField { value = 0, isReadOnly = false, style = { width = 80, marginRight = 24 } };
-        aiRow.Add(attackAIField);
-        aiRow.Add(new Label("防守方 AI 数量") { style = { color = Color.white, marginRight = 8 } });
-        defenseAIField = new IntegerField { value = 0, isReadOnly = false, style = { width = 80 } };
-        aiRow.Add(defenseAIField);
-        container.Add(aiRow);
-
         attackAIField.RegisterValueChangedCallback(e => OnAICountChanged());
         defenseAIField.RegisterValueChangedCallback(e => OnAICountChanged());
 
         // 房间状态（服务器权威广播）
-        roomLabel = new Label("等待房间状态...")
-        {
-            style = { color = new Color(0.8f, 0.8f, 0.85f, 1f), fontSize = 16, marginBottom = 12, whiteSpace = WhiteSpace.Normal }
-        };
-        container.Add(roomLabel);
+        var roomCard = UITheme.Card();
+        roomCard.style.marginBottom = 12;
+        roomCard.Add(UITheme.Section("房间状态"));
+        roomLabel = UITheme.Text("等待房间状态...", UITheme.TextDim, UITheme.FontBody);
+        roomLabel.style.marginTop = 6;
+        roomCard.Add(roomLabel);
+        page.Add(roomCard);
 
-        statusLabel = new Label("")
-        {
-            style = { color = new Color(1f, 0.8f, 0.3f, 1f), fontSize = 15, minHeight = 22, marginBottom = 8, whiteSpace = WhiteSpace.Normal }
-        };
-        container.Add(statusLabel);
+        statusLabel = UITheme.Text("", UITheme.Warn, UITheme.FontSmall);
+        statusLabel.style.marginBottom = 8;
+        page.Add(statusLabel);
 
         // 底部按钮
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
-        var backButton = new Button(OnBackClicked) { text = "断开并返回", style = { width = 180, height = 44 } };
-        startButton = new Button(OnStartClicked) { text = "准备", style = { width = 200, height = 44, fontSize = 18 } };
-        bottomRow.Add(backButton);
+        page.Add(bottomRow);
+        bottomRow.Add(UITheme.StyleButton(new Button(OnBackClicked) { text = "断开并返回" }, false, 180f, 44f));
+        startButton = UITheme.StyleButton(new Button(OnStartClicked) { text = "准备" }, true, 200f, 44f);
         bottomRow.Add(startButton);
-        container.Add(bottomRow);
 
-        root.Add(container);
+        root.Add(page);
     }
 
     public override void OnEnable()
@@ -174,7 +178,7 @@ public class LobbyPage : PageBase
         roomLabel.text = $"进攻方：人类 {attackHumans} + AI {info.attackAICount}\n" +
                          $"防守方：人类 {defenseHumans} + AI {info.defenseAICount}\n" +
                          (canStart ? "满足开局条件（双方人数均 > 0）" : "双方人数均需 > 0 才能开始");
-        startButton.SetEnabled(canStart && !info.battleStarted);
+        UITheme.SetButtonEnabled(startButton, canStart && !info.battleStarted);
         syncingFromServer = false;
     }
 

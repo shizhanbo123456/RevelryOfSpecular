@@ -17,24 +17,17 @@ public class NoticeUnit
     {
         var runnerGo = new GameObject("NoticeCoroutineRunner");
         runner = runnerGo.AddComponent<CoroutineRunner>();
+
         root = new VisualElement
         {
-            style =
-            {
-                position = Position.Absolute,
-                bottom = 40,
-                right = 20,
-                maxWidth = 500,
-                backgroundColor = new Color(0f, 0f, 0f, 0.75f),
-                paddingLeft = 14,
-                paddingRight = 14,
-                paddingTop = 8,
-                paddingBottom = 8,
-                unityFontStyleAndWeight = FontStyle.Bold,
-                display = DisplayStyle.None,
-            }
+            style = { position = Position.Absolute, bottom = 44, right = 24, maxWidth = 460, display = DisplayStyle.None }
         };
-        label = new Label { style = { color = Color.white, fontSize = 16 } };
+        root.style.backgroundColor = UITheme.CardBg;
+        UITheme.SetBorder(root, 1f, UITheme.Accent);
+        UITheme.SetRadius(root, UITheme.Radius);
+        UITheme.SetPadding(root, 12f);
+
+        label = UITheme.Text("", UITheme.TextMain, 16, true);
         root.Add(label);
         parent.Add(root);
     }

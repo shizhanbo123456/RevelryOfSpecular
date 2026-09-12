@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// 技能槽 UI 单元（战斗 HUD 底部技能栏的一项）。
-/// 展示：图标名 / 选中高亮 / CD 遮罩 / 库存 / 武器经验。
+/// 展示：图标 / 技能名 / CD 遮罩 / 库存 / 武器经验。
 /// </summary>
 public class BattleSkillUnit
 {
@@ -23,70 +23,49 @@ public class BattleSkillUnit
     /// <summary>缓存的技能配置（可能为 null = 未配置该技能）。</summary>
     private SkillInfo cachedInfo;
 
-    private static readonly Color NormalBg = new Color(0.15f, 0.15f, 0.2f, 0.95f);
-    private static readonly Color SelectedBg = new Color(0.3f, 0.6f, 1f, 0.95f);
-    private static readonly Color CdMask = new Color(0f, 0f, 0f, 0.65f);
-
     public BattleSkillUnit()
     {
         Root = new VisualElement
         {
-            style =
-            {
-                width = 96, height = 108,
-                backgroundColor = NormalBg,
-                borderTopWidth = 2, borderBottomWidth = 2, borderLeftWidth = 2, borderRightWidth = 2,
-                borderTopColor = Color.gray, borderBottomColor = Color.gray,
-                borderLeftColor = Color.gray, borderRightColor = Color.gray,
-                marginRight = 8,
-                alignItems = Align.Center,
-                justifyContent = Justify.Center,
-                position = Position.Relative,
-            }
+            style = { width = 96, height = 112, marginRight = 8, alignItems = Align.Center, justifyContent = Justify.Center }
         };
+        Root.style.backgroundColor = UITheme.SlotBg;
+        UITheme.SetBorder(Root, 2f, UITheme.Border);
+        UITheme.SetRadius(Root, UITheme.Radius);
+        Root.style.overflow = Overflow.Hidden;
 
         // 技能图标（InfoManager 技能配置的 icon；未配置时不占位）
         iconImage = new Image
         {
             scaleMode = ScaleMode.ScaleToFit,
-            style = { width = 40, height = 40, marginBottom = 2 },
+            style = { width = 42, height = 42, marginBottom = 2 },
         };
         iconImage.pickingMode = PickingMode.Ignore;
         Root.Add(iconImage);
 
-        nameLabel = new Label { style = { color = Color.white, fontSize = 14, unityFontStyleAndWeight = FontStyle.Bold } };
+        nameLabel = UITheme.Text("", UITheme.TextMain, UITheme.FontSmall, true);
+        nameLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
         Root.Add(nameLabel);
 
-        storeLabel = new Label { style = { color = new Color(0.8f, 0.8f, 0.85f, 1f), fontSize = 12, marginTop = 4 } };
+        storeLabel = UITheme.Text("", UITheme.TextDim, UITheme.FontTiny);
+        storeLabel.style.marginTop = 4;
         Root.Add(storeLabel);
 
-        expLabel = new Label { style = { color = new Color(0.4f, 0.9f, 0.5f, 1f), fontSize = 12 } };
+        expLabel = UITheme.Text("", UITheme.Green, UITheme.FontTiny);
         Root.Add(expLabel);
 
-        // CD 遮罩（从底部生长）
-        cdFill = new VisualElement
-        {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 0,
-                height = 0,
-                backgroundColor = CdMask,
-            }
-        };
+        // CD 遮罩（自上而下生长）
+        cdFill = new VisualElement { style = { position = Position.Absolute, left = 0, right = 0, top = 0, height = 0 } };
+        cdFill.style.backgroundColor = UITheme.CdMask;
         cdFill.pickingMode = PickingMode.Ignore;
         Root.Add(cdFill);
 
-        cdLabel = new Label
-        {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 30,
-                color = Color.white, fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold,
-                unityTextAlign = TextAnchor.MiddleCenter,
-            }
-        };
+        cdLabel = UITheme.Text("", UITheme.TextMain, 20, true);
+        cdLabel.style.position = Position.Absolute;
+        cdLabel.style.left = 0;
+        cdLabel.style.right = 0;
+        cdLabel.style.top = 32;
+        cdLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
         cdLabel.pickingMode = PickingMode.Ignore;
         Root.Add(cdLabel);
     }
@@ -107,11 +86,8 @@ public class BattleSkillUnit
         expLabel.text = slot.exp > 0 ? $"+{slot.exp}" : "";
 
         // 选中高亮
-        Root.style.backgroundColor = selected ? SelectedBg : NormalBg;
-        Root.style.borderTopColor = selected ? Color.yellow : Color.gray;
-        Root.style.borderBottomColor = selected ? Color.yellow : Color.gray;
-        Root.style.borderLeftColor = selected ? Color.yellow : Color.gray;
-        Root.style.borderRightColor = selected ? Color.yellow : Color.gray;
+        Root.style.backgroundColor = selected ? UITheme.SlotSelectedBg : UITheme.SlotBg;
+        UITheme.SetBorder(Root, 2f, selected ? UITheme.Accent : UITheme.Border);
 
         // CD 遮罩（按剩余比例遮挡）
         if (slot.cdTotal > 0f && slot.cdRemain > 0f)
@@ -137,11 +113,8 @@ public class BattleSkillUnit
         expLabel.text = "";
         cdFill.style.height = 0;
         cdLabel.text = "";
-        Root.style.backgroundColor = NormalBg;
-        Root.style.borderTopColor = Color.gray;
-        Root.style.borderBottomColor = Color.gray;
-        Root.style.borderLeftColor = Color.gray;
-        Root.style.borderRightColor = Color.gray;
+        Root.style.backgroundColor = UITheme.SlotBg;
+        UITheme.SetBorder(Root, 2f, UITheme.Border);
     }
 
     /// <summary>按技能 id 取配置（带缓存，避免每帧线性扫描 SkillInfoList）。</summary>

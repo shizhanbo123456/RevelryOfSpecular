@@ -1,5 +1,4 @@
 using System;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 /// <summary>
@@ -16,31 +15,15 @@ public class ConfirmUnit
     /// <summary>初始化并挂载。</summary>
     public void Init(VisualElement parent)
     {
-        root = new VisualElement
-        {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 0, bottom = 0,
-                backgroundColor = new Color(0f, 0f, 0f, 0.4f),
-                alignItems = Align.Center,
-                justifyContent = Justify.Center,
-                display = DisplayStyle.None,
-            }
-        };
-        var panel = new VisualElement
-        {
-            style =
-            {
-                backgroundColor = new Color(0.15f, 0.15f, 0.18f, 0.98f),
-                width = 380,
-                paddingLeft = 20, paddingRight = 20, paddingTop = 16, paddingBottom = 16,
-            }
-        };
-        label = new Label { style = { color = Color.white, fontSize = 16, whiteSpace = WhiteSpace.Normal, marginBottom = 18 } };
+        root = UITheme.Overlay(0.45f);
+
+        var panel = UITheme.Card(400f, 20f);
+        label = UITheme.Text("", UITheme.TextMain, 16);
+        label.style.marginBottom = 22;
+
         var row = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
-        confirmButton = new Button { text = "确定", style = { width = 150 } };
-        cancelButton = new Button { text = "取消", style = { width = 150 } };
+        confirmButton = UITheme.StyleButton(new Button { text = "确定" }, true, 160f, 40f);
+        cancelButton = UITheme.StyleButton(new Button { text = "取消" }, false, 160f, 40f);
         confirmButton.clicked += () =>
         {
             Hide();
@@ -50,6 +33,7 @@ public class ConfirmUnit
         cancelButton.clicked += Hide;
         row.Add(confirmButton);
         row.Add(cancelButton);
+
         panel.Add(label);
         panel.Add(row);
         root.Add(panel);

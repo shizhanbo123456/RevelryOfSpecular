@@ -34,71 +34,61 @@ public class BattlePage : PageBase
 
     protected override void Build(VisualElement root)
     {
-        // 顶部信息
+        // 顶部信息条
         var topBar = new VisualElement
         {
             style =
             {
+                position = Position.Absolute,
+                left = 0, right = 0, top = 0, height = 42,
                 flexDirection = FlexDirection.Row,
+                alignItems = Align.Center,
                 justifyContent = Justify.Center,
-                paddingTop = 8,
-                backgroundColor = new Color(0f, 0f, 0f, 0.55f),
             }
         };
-        timeLabel = new Label("15:00") { style = { color = Color.white, fontSize = 22, unityFontStyleAndWeight = FontStyle.Bold, marginRight = 24 } };
-        phaseLabel = new Label(DayName) { style = { color = new Color(1f, 0.9f, 0.4f, 1f), fontSize = 18, marginRight = 24 } };
-        attackScoreLabel = new Label("拆塔 0") { style = { color = new Color(1f, 0.5f, 0.4f, 1f), fontSize = 18, marginRight = 16 } };
-        defenseScoreLabel = new Label("防守 0") { style = { color = new Color(0.4f, 0.8f, 1f, 1f), fontSize = 18 } };
+        topBar.style.backgroundColor = UITheme.BarBg;
+        topBar.style.borderBottomWidth = 1f;
+        topBar.style.borderBottomColor = UITheme.Border;
+        root.Add(topBar);
+
+        timeLabel = UITheme.Text("15:00", UITheme.TextMain, 22, true);
+        timeLabel.style.marginRight = 28;
+        phaseLabel = UITheme.Text(DayName, UITheme.Gold, 18, true);
+        phaseLabel.style.marginRight = 28;
+        attackScoreLabel = UITheme.Text("拆塔 0", UITheme.Attack, 18, true);
+        attackScoreLabel.style.marginRight = 20;
+        defenseScoreLabel = UITheme.Text("防守 0", UITheme.Defense, 18, true);
         topBar.Add(timeLabel);
         topBar.Add(phaseLabel);
         topBar.Add(attackScoreLabel);
         topBar.Add(defenseScoreLabel);
-        root.Add(topBar);
 
         // 右侧守护点血量（常驻显示，防守方 HUD）
         beaconPanel = new VisualElement
         {
-            style =
-            {
-                position = Position.Absolute,
-                right = 12, top = 60,
-                width = 260,
-            }
+            style = { position = Position.Absolute, right = 16, top = 60, width = 240 }
         };
+        var beaconTitle = UITheme.Section("守护点");
+        beaconTitle.style.marginBottom = 6;
+        beaconPanel.Add(beaconTitle);
         root.Add(beaconPanel);
 
         // 飘字区（中央偏上）
         floatingPanel = new VisualElement
         {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 90,
-                alignItems = Align.Center,
-            }
+            style = { position = Position.Absolute, left = 0, right = 0, top = 96, alignItems = Align.Center }
         };
         root.Add(floatingPanel);
 
         // 复活进度（死亡时显示）
-        revivePanel = new VisualElement
-        {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 0, bottom = 0,
-                alignItems = Align.Center,
-                justifyContent = Justify.Center,
-                display = DisplayStyle.None,
-            }
-        };
-        var reviveBox = new VisualElement
-        {
-            style = { width = 300, backgroundColor = new Color(0f, 0f, 0f, 0.75f), paddingLeft = 16, paddingRight = 16, paddingTop = 16, paddingBottom = 16 }
-        };
-        reviveLabel = new Label("复活中...") { style = { color = Color.white, fontSize = 18, unityTextAlign = TextAnchor.MiddleCenter, marginBottom = 8 } };
-        var reviveBar = new VisualElement { style = { height = 14, backgroundColor = new Color(0.25f, 0.25f, 0.3f, 1f) } };
-        reviveFill = new VisualElement { style = { width = Length.Percent(0f), height = 14, backgroundColor = new Color(0.3f, 0.9f, 0.4f, 1f) } };
-        reviveFill.pickingMode = PickingMode.Ignore;
+        revivePanel = UITheme.Overlay(0.45f);
+        var reviveBox = UITheme.Card(320f, 18f);
+        reviveLabel = UITheme.Text("复活中...", UITheme.TextMain, 18, true);
+        reviveLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        reviveLabel.style.marginBottom = 10;
+        var reviveBar = UITheme.BarTrack(12f);
+        reviveFill = UITheme.BarFill(UITheme.Green, 12f);
+        reviveFill.style.width = Length.Percent(0f);
         reviveBar.Add(reviveFill);
         reviveBox.Add(reviveLabel);
         reviveBox.Add(reviveBar);
@@ -114,10 +104,12 @@ public class BattlePage : PageBase
                 left = 0, right = 0, bottom = 0,
                 flexDirection = FlexDirection.Row,
                 justifyContent = Justify.Center,
-                paddingBottom = 10, paddingTop = 10,
-                backgroundColor = new Color(0f, 0f, 0f, 0.5f),
+                paddingTop = 12, paddingBottom = 12,
             }
         };
+        bottomBar.style.backgroundColor = UITheme.BarBg;
+        bottomBar.style.borderTopWidth = 1f;
+        bottomBar.style.borderTopColor = UITheme.Border;
         skillBar = new VisualElement { style = { flexDirection = FlexDirection.Row } };
         bottomBar.Add(skillBar);
         root.Add(bottomBar);
@@ -132,29 +124,14 @@ public class BattlePage : PageBase
         }
 
         // 结算面板（对局结束显示；关闭后回组队大厅，准备开始下一轮）
-        settlePanel = new VisualElement
-        {
-            style =
-            {
-                position = Position.Absolute,
-                left = 0, right = 0, top = 0, bottom = 0,
-                alignItems = Align.Center,
-                justifyContent = Justify.Center,
-                backgroundColor = new Color(0f, 0f, 0f, 0.8f),
-                display = DisplayStyle.None,
-            }
-        };
-        var settleBox = new VisualElement
-        {
-            style =
-            {
-                width = 420, paddingLeft = 24, paddingRight = 24, paddingTop = 20, paddingBottom = 20,
-                backgroundColor = new Color(0.1f, 0.1f, 0.15f, 0.98f),
-            }
-        };
-        settleTitle = new Label("对局结束") { style = { color = Color.white, fontSize = 30, unityFontStyleAndWeight = FontStyle.Bold, unityTextAlign = TextAnchor.MiddleCenter, marginBottom = 12 } };
-        settleDetail = new Label("") { style = { color = new Color(0.85f, 0.85f, 0.9f, 1f), fontSize = 17, whiteSpace = WhiteSpace.Normal, marginBottom = 18 } };
-        var settleClose = new Button(OnSettleClose) { text = "回到组队大厅", style = { height = 44, fontSize = 17 } };
+        settlePanel = UITheme.Overlay(0.75f);
+        var settleBox = UITheme.Card(440f, 22f);
+        settleTitle = UITheme.Text("对局结束", UITheme.TextMain, 30, true);
+        settleTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+        settleTitle.style.marginBottom = 14;
+        settleDetail = UITheme.Text("", UITheme.TextDim, 17);
+        settleDetail.style.marginBottom = 20;
+        var settleClose = UITheme.StyleButton(new Button(OnSettleClose) { text = "回到组队大厅" }, true, 0f, 44f);
         settleBox.Add(settleTitle);
         settleBox.Add(settleDetail);
         settleBox.Add(settleClose);
@@ -268,7 +245,7 @@ public class BattlePage : PageBase
         timeLabel.text = FormatTime(Mathf.Max(0f, info.remainTime));
         if (info.gameState != 0)
         {
-            ShowFloating(GetEndText(info.gameState), new Color(1f, 0.9f, 0.3f, 1f));
+            ShowFloating(GetEndText(info.gameState), UITheme.Gold);
             TrySettleExp(info);
             ShowSettlement(info);
         }
@@ -279,8 +256,8 @@ public class BattlePage : PageBase
     {
         if (settlePanel == null) return;
         settleTitle.text = GetEndText(info.gameState);
-        settleTitle.style.color = info.gameState == 1 ? new Color(1f, 0.5f, 0.4f, 1f)
-            : info.gameState == 2 ? new Color(0.4f, 0.8f, 1f, 1f) : Color.white;
+        settleTitle.style.color = info.gameState == 1 ? UITheme.Attack
+            : info.gameState == 2 ? UITheme.Defense : UITheme.TextMain;
         settleDetail.text = $"进攻方（拆塔）：{(int)info.attackScore}\n" +
                             $"防守方：{(int)info.defenseScore}（击杀 ×{info.killScore}）\n" +
                             $"本局获得经验：{info.expGain}";
@@ -318,16 +295,16 @@ public class BattlePage : PageBase
         switch (e.type)
         {
             case SCBattleEvent.Type.Kill:
-                ShowFloating("击杀！", new Color(1f, 0.5f, 0.3f, 1f));
+                ShowFloating("击杀！", UITheme.Attack);
                 break;
             case SCBattleEvent.Type.BeaconDestroyed:
-                ShowFloating("守护点被摧毁！", new Color(1f, 0.3f, 0.2f, 1f));
+                ShowFloating("守护点被摧毁！", UITheme.Danger);
                 break;
             case SCBattleEvent.Type.CrystalCollected:
-                ShowFloating("采集水晶，获得收益", new Color(0.5f, 0.9f, 0.6f, 1f));
+                ShowFloating("采集水晶，获得收益", UITheme.Green);
                 break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
-                ShowFloating("攻占瘟疫树！CD 加速", new Color(0.6f, 0.8f, 1f, 1f));
+                ShowFloating("攻占瘟疫树！CD 加速", UITheme.Defense);
                 break;
             case SCBattleEvent.Type.ShowText:
                 Owner.ShowNotice(NoticeMessageMap.Get(e.value));
@@ -344,12 +321,12 @@ public class BattlePage : PageBase
         reviveFill.style.width = Length.Percent(Mathf.Clamp01(info.progress) * 100f);
         reviveLabel.text = info.ready
             ? "可复活！"
-            : $"复活中 {Mathf.RoundToInt(info.progress * 100f)}%  （愈战愈勇 ×{info.yzStack}）";
+            : $"复活中 {Mathf.RoundToInt(info.progress * 100f)}%   （愈战愈勇 ×{info.yzStack}）";
     }
 
     private void OnRightClickBlocked(string msg)
     {
-        ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.6f, 0.2f, 1f));
+        ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, UITheme.Warn);
     }
 
     /// <summary>昼夜状态变化（EnvironmentManager 权威同步/推演触发；1 = 白天，0 = 晚上）。</summary>
@@ -370,7 +347,8 @@ public class BattlePage : PageBase
     private void ShowFloating(string text, Color color)
     {
         if (floatingPanel == null) return;
-        var label = new Label(text) { style = { color = color, fontSize = 20, unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } };
+        var label = UITheme.Text(text, color, 20, true);
+        label.style.marginBottom = 4;
         floatingPanel.Add(label);
         floatingLabels.Add((label, Time.time));
     }

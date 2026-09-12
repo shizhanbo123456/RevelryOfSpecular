@@ -17,38 +17,27 @@ public class BeaconBarUnit
 
     public BeaconBarUnit()
     {
-        Root = new VisualElement
-        {
-            style =
-            {
-                width = 240, height = 56,
-                backgroundColor = new Color(0.12f, 0.12f, 0.16f, 0.95f),
-                paddingLeft = 6, paddingRight = 6, paddingTop = 6, paddingBottom = 6, marginBottom = 6,
-            }
-        };
+        Root = new VisualElement { style = { width = 240, marginBottom = 8 } };
+        Root.style.backgroundColor = UITheme.CardBg;
+        UITheme.SetBorder(Root, 1f, UITheme.Border);
+        UITheme.SetRadius(Root, UITheme.RadiusSmall);
+        UITheme.SetPadding(Root, 8f);
+
         var row = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
-        nameLabel = new Label("守护点") { style = { color = Color.white, fontSize = 14, unityFontStyleAndWeight = FontStyle.Bold } };
-        healthLabel = new Label("5000/5000") { style = { color = Color.white, fontSize = 13 } };
+        nameLabel = UITheme.Text("守护点", UITheme.TextMain, UITheme.FontSmall, true);
+        healthLabel = UITheme.Text("5000/5000", UITheme.TextDim, UITheme.FontSmall);
         row.Add(nameLabel);
         row.Add(healthLabel);
         Root.Add(row);
 
-        var bar = new VisualElement
-        {
-            style = { height = 12, backgroundColor = new Color(0.3f, 0f, 0f, 1f), marginTop = 4, position = Position.Relative }
-        };
-        fill = new VisualElement { style = { width = Length.Percent(100f), height = 12, backgroundColor = new Color(1f, 0.2f, 0.1f, 1f) } };
-        fill.pickingMode = PickingMode.Ignore;
+        var bar = UITheme.BarTrack(10f);
+        bar.style.marginTop = 6;
+        fill = UITheme.BarFill(UITheme.Danger, 10f);
         bar.Add(fill);
         Root.Add(bar);
 
-        shieldLabel = new Label("")
-        {
-            style =
-            {
-                color = new Color(0.4f, 0.8f, 1f, 1f), fontSize = 12, marginTop = 2,
-            }
-        };
+        shieldLabel = UITheme.Text("", UITheme.Defense, UITheme.FontTiny);
+        shieldLabel.style.marginTop = 3;
         Root.Add(shieldLabel);
     }
 
@@ -77,6 +66,7 @@ public class BeaconBarUnit
     {
         fill.style.width = Length.Percent(0f);
         healthLabel.text = "已摧毁";
+        healthLabel.style.color = UITheme.TextFaint;
         shieldLabel.text = "";
     }
 }

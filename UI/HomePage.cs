@@ -15,80 +15,59 @@ public class HomePage : PageBase
     private TextField ipField;
     private Label connectStatusLabel;
     private Button connectButton;
-    private readonly Color selectedColor = new Color(0.3f, 0.6f, 1f, 0.9f);
-    private readonly Color normalColor = new Color(0.2f, 0.2f, 0.25f, 0.9f);
 
     protected override void Build(VisualElement root)
     {
-        var container = new VisualElement
-        {
-            style =
-            {
-                flexGrow = 1,
-                paddingLeft = 40, paddingRight = 40, paddingTop = 24, paddingBottom = 24,
-                backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.97f),
-            }
-        };
-        var title = new Label("墓园狂欢 · 非对称攻防")
-        {
-            style = { color = Color.white, fontSize = 34, unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 6 }
-        };
-        var subtitle = new Label("分别选择进攻方与防守方角色，连接服务器后进入组队大厅")
-        {
-            style = { color = new Color(0.7f, 0.7f, 0.75f, 1f), fontSize = 16, marginBottom = 18 }
-        };
-        container.Add(title);
-        container.Add(subtitle);
+        var page = UITheme.Page();
 
-        // 角色列表（左）与信息（右）
+        page.Add(UITheme.Title("墓园狂欢 · 非对称攻防"));
+        var subtitle = UITheme.Subtitle("分别选择进攻方与防守方角色，连接服务器后进入组队大厅");
+        subtitle.style.marginBottom = 18;
+        page.Add(subtitle);
+
+        // 角色列表（左）与选中信息（右）
         var contentRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexGrow = 1 } };
+        page.Add(contentRow);
 
-        characterList = new ScrollView { style = { flexGrow = 1, flexBasis = 480, marginRight = 20 } };
-        contentRow.Add(characterList);
+        var listCard = UITheme.Card();
+        listCard.style.flexGrow = 1;
+        listCard.style.marginRight = 16;
+        listCard.Add(UITheme.Section("角色列表"));
+        characterList = new ScrollView { style = { flexGrow = 1 } };
+        listCard.Add(characterList);
+        contentRow.Add(listCard);
 
-        var infoPanel = new VisualElement
-        {
-            style = { width = 420, backgroundColor = new Color(0.15f, 0.15f, 0.2f, 1f), paddingLeft = 16, paddingRight = 16, paddingTop = 16, paddingBottom = 16 }
-        };
-        infoLabel = new Label("未选择角色") { style = { color = Color.white, fontSize = 16, whiteSpace = WhiteSpace.Normal } };
-        levelUpLabel = new Label("") { style = { color = new Color(0.4f, 0.9f, 0.5f, 1f), fontSize = 15, whiteSpace = WhiteSpace.Normal, marginTop = 10 } };
-        infoPanel.Add(infoLabel);
-        infoPanel.Add(levelUpLabel);
-        contentRow.Add(infoPanel);
-
-        container.Add(contentRow);
+        var infoCard = UITheme.Card(400f);
+        infoCard.Add(UITheme.Section("角色信息"));
+        infoLabel = UITheme.Text("未选择角色", UITheme.TextMain, UITheme.FontBody);
+        infoLabel.style.marginBottom = 8;
+        levelUpLabel = UITheme.Text("", UITheme.Green, UITheme.FontSmall);
+        infoCard.Add(infoLabel);
+        infoCard.Add(levelUpLabel);
+        contentRow.Add(infoCard);
 
         // 底部：连接服务器（成功后进入组队大厅）
-        var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 16, alignItems = Align.Center } };
-        bottomRow.Add(new Label("服务器 IP（空=本机）") { style = { color = Color.white, marginRight = 10 } });
-        ipField = new TextField { value = "", style = { width = 260, height = 36, marginRight = 16 } };
-        //输入框的尺寸与配色全部显式指定，不依赖主题（否则文字可能不可见）
-        ipField.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
-        var ipBorder = new Color(0.45f, 0.45f, 0.5f, 1f);
-        ipField.style.borderLeftWidth = ipField.style.borderRightWidth = ipField.style.borderTopWidth = ipField.style.borderBottomWidth = 1f;
-        ipField.style.borderLeftColor = ipField.style.borderRightColor = ipField.style.borderTopColor = ipField.style.borderBottomColor = ipBorder;
-        var ipInput = ipField.Q("unity-text-input") ?? ipField.Q<TextElement>();
-        if (ipInput != null)
-        {
-            //内层元素自带主题背景（白色），必须在这里覆盖，否则会盖住外层的深色背景
-            ipInput.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
-            ipInput.style.color = Color.white;
-            ipInput.style.fontSize = 16;
-            ipInput.style.flexGrow = 1;
-            ipInput.style.paddingLeft = 8;
-            ipInput.style.paddingRight = 8;
-        }
-        bottomRow.Add(ipField);
-        connectButton = new Button(OnConnectClicked) { text = "连接服务器", style = { width = 160, height = 44, fontSize = 18 } };
-        bottomRow.Add(connectButton);
-        connectStatusLabel = new Label("")
-        {
-            style = { color = new Color(1f, 0.8f, 0.3f, 1f), fontSize = 15, marginLeft = 16, whiteSpace = WhiteSpace.Normal, flexGrow = 1 }
-        };
-        bottomRow.Add(connectStatusLabel);
-        container.Add(bottomRow);
+        var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+        bottomRow.style.marginTop = 16;
+        page.Add(bottomRow);
 
-        root.Add(container);
+        var ipTip = UITheme.Text("服务器 IP（空=本机）", UITheme.TextDim);
+        ipTip.style.marginRight = 10;
+        bottomRow.Add(ipTip);
+
+        ipField = UITheme.StyleField(new TextField { value = "" }, 260f);
+        ipField.style.marginRight = 16;
+        bottomRow.Add(ipField);
+
+        connectButton = UITheme.StyleButton(new Button(OnConnectClicked) { text = "连接服务器" }, true, 170f, 40f);
+        bottomRow.Add(connectButton);
+
+        connectStatusLabel = UITheme.Text("", UITheme.Warn, UITheme.FontSmall);
+        connectStatusLabel.style.marginLeft = 16;
+        connectStatusLabel.style.flexGrow = 1;
+        bottomRow.Add(connectStatusLabel);
+
+        root.Add(page);
     }
 
     /// <summary>连接服务器（成功后自动加入房间并进入组队大厅）。</summary>
@@ -99,18 +78,18 @@ public class HomePage : PageBase
             connectStatusLabel.text = "缺少 NetworkManager，请检查场景配置";
             return;
         }
-        connectButton.SetEnabled(false);
+        UITheme.SetButtonEnabled(connectButton, false);
         connectStatusLabel.text = "正在连接服务器...";
         var result = await Tool.NetworkManager.TryConnect(ipField.value);
         if (result != NetworkManager.ConnectResult.Success)
         {
-            connectButton.SetEnabled(true);
+            UITheme.SetButtonEnabled(connectButton, true);
             connectStatusLabel.text = result == NetworkManager.ConnectResult.Failed ? "连接失败，请检查服务器地址" : "操作过于频繁，请稍候";
             return;
         }
         connectStatusLabel.text = "已连接，正在进入组队大厅...";
         Tool.NetworkManager.EnterWorld();
-        connectButton.SetEnabled(true);
+        UITheme.SetButtonEnabled(connectButton, true);
         Owner.ShowPage(UIManager.PageType.Lobby);
     }
 
@@ -125,15 +104,14 @@ public class HomePage : PageBase
         if (characterList == null) return;
         characterList.Clear();
 
-        AddCharacterButtons("—— 进攻方角色 ——", isDefense: false, Tool.InfoManager != null ? Tool.InfoManager.AttackCharacterInfoList : null);
-        AddCharacterButtons("—— 防守方角色 ——", isDefense: true, Tool.InfoManager != null ? Tool.InfoManager.DefenseCharacterInfoList : null);
+        AddCharacterButtons("进攻方角色", isDefense: false, Tool.InfoManager != null ? Tool.InfoManager.AttackCharacterInfoList : null);
+        AddCharacterButtons("防守方角色", isDefense: true, Tool.InfoManager != null ? Tool.InfoManager.DefenseCharacterInfoList : null);
         RefreshInfo();
     }
 
     private void AddCharacterButtons(string groupTitle, bool isDefense, System.Collections.Generic.List<PlayerCharacterInfo> infoList)
     {
-        var group = new Label(groupTitle) { style = { color = new Color(0.85f, 0.7f, 0.3f, 1f), fontSize = 16, marginTop = 8, marginBottom = 4 } };
-        characterList.Add(group);
+        characterList.Add(UITheme.Section(groupTitle));
 
         for (int i = 0; i < infoList?.Count; i++)
         {
@@ -144,12 +122,9 @@ public class HomePage : PageBase
             bool unlocked = Tool.SaveManager != null && Tool.SaveManager.IsCharacterUnlocked(saveIndex);
             int selectedIndex = isDefense ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
 
-            var btn = new Button
-            {
-                text = $"{name}  Lv{level}  {(unlocked ? "" : "[未解锁]")}",
-                style = { marginBottom = 4, unityTextAlign = TextAnchor.MiddleLeft, height = 36 }
-            };
-            btn.style.backgroundColor = i == selectedIndex ? selectedColor : normalColor;
+            var btn = UITheme.StyleListItem(
+                new Button { text = $"{name}   Lv{level}{(unlocked ? "" : "   [未解锁]")}" },
+                i == selectedIndex);
             int captured = i;
             btn.clicked += () =>
             {
@@ -185,12 +160,13 @@ public class HomePage : PageBase
     {
         var info = GetAttributeInfo(index, isDefense);
         int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(isDefense ? Config.attack_character_count + index : index) : 1;
-        sb.AppendLine($"{campName}选中：{(info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : $"角色 {index}")}  Lv{level}");
+        sb.AppendLine($"{campName}选中：{(info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : $"角色 {index}")}   Lv{level}");
         if (info != null)
         {
             var attr = info.GetAttribute(level);
-            sb.AppendLine($"生命 {attr.maxHealth}  力量 {attr.strength}  魔法 {attr.magic}");
-            sb.AppendLine($"暴击 {attr.critRate}% / {attr.critDamage:F1}倍  击退抗性 {attr.knockbackResistance}  可见距离 {attr.viewDistance}m  技能槽位 {attr.weaponSlotCount}");
+            sb.AppendLine($"生命 {attr.maxHealth}   力量 {attr.strength}   魔法 {attr.magic}");
+            sb.AppendLine($"暴击 {attr.critRate}% / {attr.critDamage:F1}倍   击退抗性 {attr.knockbackResistance}");
+            sb.AppendLine($"可见距离 {attr.viewDistance}m   技能槽位 {attr.weaponSlotCount}");
         }
     }
 
