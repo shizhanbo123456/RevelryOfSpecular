@@ -13,6 +13,7 @@ public partial class BattleManager
     /// <summary>玩家移动状态。</summary>
     private class MoveState
     {
+        public PlayerKey held;    // 当前按住的移动键（按下/抬起边沿维护）
         public bool moving;
         public Vector2 dir;       // 原始按键输入（x = 左右横移，y = 前后）
         public float yaw;         // 角色朝向（度，服务器权威渐转推进）
@@ -21,29 +22,35 @@ public partial class BattleManager
     }
     private readonly Dictionary<ushort, MoveState> moveStates = new();
 
-    /// <summary>记录客户端输入（权威移动 + 跳跃/滑铲/空手攻击动作触发）。</summary>
-    private void RecordInput(EntityData entity, CSInputCommand command)
+    /// <summary>记录移动输入（按下/抬起边沿 → 按住掩码；朝向仍由服务器渐转权威推进）。</summary>
+    private void RecordMoveInput(EntityData entity, CSMoveInput move)
     {
-        var anim = entity.GetComponentInChildren<EntityAnim>();
-
-        // 移动状态（原始按键输入；朝向由服务器渐转权威推进，客户端不再上报 yaw）
         if (!moveStates.TryGetValue(entity.id, out var st))
         {
             st = new MoveState { yaw = entity.transform.eulerAngles.y }; // 初始朝向 = 生成时的朝向
             moveStates[entity.id] = st;
         }
-        st.moving = command.moving;
-        st.dir = command.moveDir;
+        st.held = (st.held | move.pressed) & ~move.released;
 
-        if (anim == null) return;
+        float x = ((st.held & PlayerKey.D) != 0 ? 1f : 0f) - ((st.held & PlayerKey.A) != 0 ? 1f : 0f);
+        float z = ((st.held & PlayerKey.W) != 0 ? 1f : 0f) - ((st.held & PlayerKey.S) != 0 ? 1f : 0f);
+        st.dir = new Vector2(x, z).normalized;
+        st.moving = x != 0f || z != 0f;
 
-        // 移动输入 → 动画（走 EntityAnim，服务器权威状态随表现摘要同步，客户端 Run/Idle 由此区分）
-        anim.Move(command.moving);
+        // Run/Idle 随表现摘要同步给客户端
+        entity.GetComponentInChildren<EntityAnim>()?.Move(st.moving);
+    }
+
+    /// <summary>记录动作输入（攻击/跳跃/滑铲/技能槽，均为按下边沿）。</summary>
+    private void RecordActionInput(EntityData entity, CSActionInput action)
+    {
+        var anim = entity.GetComponentInChildren<EntityAnim>();
+        bool moving = moveStates.TryGetValue(entity.id, out var st) && st.moving;
 
         // 跳跃：InAir 一段时间后落回（时间戳延时）
-        if (command.jumpPressed)
+        if ((action.pressed & PlayerKey.K) != 0)
         {
-            anim.InAir(true);
+            anim?.InAir(true);
             var weak = entity;
             GenericTimer.AddTimer(0, Config.jump_duration, _ =>
             {
@@ -51,9 +58,9 @@ public partial class BattleManager
             });
         }
         // 滑铲：进入滑铲状态，持续时间后结束
-        if (command.slidePressed)
+        if ((action.pressed & PlayerKey.LShift) != 0)
         {
-            anim.DoSlide();
+            anim?.DoSlide();
             var weak = entity;
             GenericTimer.AddTimer(0, Config.slide_duration, _ =>
             {
@@ -61,10 +68,42 @@ public partial class BattleManager
             });
         }
         // 空手/近战攻击：静止 = 跃起砸地，移动 = 出拳（策划案 12 章）
-        if (command.meleePressed)
+        if ((action.pressed & PlayerKey.J) != 0) DoMelee(entity, moving);
+
+        // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
+        for (int i = 0; i < Config.skill_slot_player_keys.Length; i++)
         {
-            DoMelee(entity, command.moving);
+            if ((action.pressed & Config.skill_slot_player_keys[i]) == 0) continue;
+            UseSkillSlot(entity, i);
+            break;
         }
+    }
+
+    /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
+    private void UseSkillSlot(EntityData entity, int slot)
+    {
+        if (entity.skillController == null) return;
+        var ids = entity.skillController.GetSkillIds();
+        if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return;
+
+        entity.skillController.SelectIndex(slot); // 选中下标供 UI 高亮
+        entity.skillController.TryUseSkill(ids[slot], GetAimPoint(entity));
+    }
+
+    /// <summary>瞄准点：最近敌方单位，没有则角色前方 10m（服务器权威计算，客户端不再上报）。</summary>
+    private Vector3 GetAimPoint(EntityData entity)
+    {
+        float viewDistance = entity.floatingAttribute != null && entity.floatingAttribute.viewDistance > 0f
+            ? entity.floatingAttribute.viewDistance
+            : Config.default_skill_auto_target_radius;
+        var target = EntityContainer.GetNearestEnemy(entity, viewDistance);
+        if (target != null) return target.transform.position;
+
+        Vector3 forward = entity.transform.forward;
+        forward.y = 0f;
+        return forward.sqrMagnitude > 0.001f
+            ? entity.transform.position + forward.normalized * 10f
+            : entity.transform.position;
     }
 
     /// <summary>空手/近战攻击：播放攻击动作，前摇结束后对面前锥形内最近敌人结算（AttackData 共用链路）。</summary>

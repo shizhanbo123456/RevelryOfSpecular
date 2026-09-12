@@ -466,27 +466,20 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 输入与技能接收（服务器）
-    /// <summary>接收客户端输入命令（服务器，由 NetworkManager RPC 回调）：权威移动与动作触发见 BattleManagerCombat。</summary>
-    public void ReceiveInputCommand(short clientId, CSInputCommand command)
+    /// <summary>接收移动输入（服务器，由 NetworkManager RPC 回调）：权威移动见 BattleManagerCombat。</summary>
+    public void ReceiveMoveInput(short clientId, CSMoveInput move)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        RecordInput(entity, command);
+        RecordMoveInput(entity, move);
     }
 
-    /// <summary>接收客户端技能释放请求（服务器，由 NetworkManager RPC 回调）：键盘槽位直触。</summary>
-    public void ReceiveUseSkill(short clientId, CSUseSkillRequest request)
+    /// <summary>接收动作输入（服务器，由 NetworkManager RPC 回调）：攻击/跳跃/滑铲/技能槽。</summary>
+    public void ReceiveActionInput(short clientId, CSActionInput action)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        if (entity.skillController == null) return;
-
-        // 键盘槽位直触：选中下标 = 该技能所在槽位（供 UI 高亮），CD/库存/强控校验在 TryUseSkill 内
-        int slot = entity.skillController.GetSkillIds().IndexOf(request.skillId);
-        if (slot >= 0) entity.skillController.SelectIndex(slot);
-
-        entity.skillController.TryUseSkill(request.skillId, request.dest);
-        // CD/库存变化随实体表现摘要（skills 列表）同步，无需单独通道
+        RecordActionInput(entity, action);
     }
     #endregion
 
@@ -532,7 +525,7 @@ public partial class BattleManager : EnsBehaviour
 
         // 玩家实体：真人与 AI 完全同一条路径（AI 也在此处，clientId 为负数虚拟 id），
         // 按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色；初始技能表与所选角色强制绑定。
-        // 唯一差异是输入来源：真人来自网络 CSInputCommand/CSUseSkillRequest，AI 来自 UpdateAI。
+        // 唯一差异是输入来源：真人来自网络 CSMoveInput/CSActionInput，AI 来自 UpdateAI。
         foreach (var pair in PlayerInfoList)
         {
             short clientId = pair.Key;

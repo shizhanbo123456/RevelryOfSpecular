@@ -175,18 +175,18 @@ public partial class NetworkManager : EnsBehaviour
     #endregion
 
     #region//发送封装：客户端 → 服务器
-    /// <summary>发送输入命令（高频，不可靠）。</summary>
-    public void SendInputCommand(CSInputCommand command)
+    /// <summary>发送移动输入（WASD，高频不可靠）。</summary>
+    public void SendMoveInput(CSMoveInput move)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveInputCommandLocal, SendTo.RoomOwner, Delivery.Unreliable, command, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveMoveInputLocal, SendTo.RoomOwner, Delivery.Unreliable, move, EnsInstance.LocalClientId);
     }
 
-    /// <summary>发送技能释放请求。</summary>
-    public void SendUseSkill(CSUseSkillRequest request)
+    /// <summary>发送动作输入（攻击/跳跃/滑铲/技能槽，可靠）。</summary>
+    public void SendActionInput(CSActionInput action)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveUseSkillLocal, SendTo.RoomOwner, Delivery.Strive, request, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveActionInputLocal, SendTo.RoomOwner, Delivery.Reliable, action, EnsInstance.LocalClientId);
     }
 
     /// <summary>发送组队大厅状态更新（选队 / AI 数量）。</summary>
@@ -297,18 +297,18 @@ public partial class NetworkManager : EnsBehaviour
         if (Tool.BattleManager != null) Tool.BattleManager.AddPlayer(clientId, info);
     }
 
-    /// <summary>服务器：接收输入命令。</summary>
+    /// <summary>服务器：接收移动输入。</summary>
     [Rpc]
-    private void ServerReceiveInputCommandLocal(CSInputCommand command, short clientId)
+    private void ServerReceiveMoveInputLocal(CSMoveInput move, short clientId)
     {
-        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveInputCommand(clientId, command);
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveMoveInput(clientId, move);
     }
 
-    /// <summary>服务器：接收技能释放请求。</summary>
+    /// <summary>服务器：接收动作输入。</summary>
     [Rpc]
-    private void ServerReceiveUseSkillLocal(CSUseSkillRequest request, short clientId)
+    private void ServerReceiveActionInputLocal(CSActionInput action, short clientId)
     {
-        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveUseSkill(clientId, request);
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveActionInput(clientId, action);
     }
 
     /// <summary>服务器：接收退出世界。</summary>
