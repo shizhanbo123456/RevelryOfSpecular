@@ -142,36 +142,6 @@ public class ClientDisplayManager : MonoBehaviour
         }
     }
 
-    /// <summary>按实体 id 获取表现物体 transform。</summary>
-    public bool TryGetEntityTransform(ushort id, out Transform transform)
-    {
-        transform = null;
-        return views.TryGetValue(id, out var view) && view != null && (transform = view.transform) != null;
-    }
-
-    /// <summary>
-    /// 取本地玩家视野内最近的敌方单位位置（自动索敌，策划案 D 组）。
-    /// </summary>
-    public bool TryGetNearestEnemyPosition(Vector3 from, float viewDistance, EntityCamp myCamp, out Vector3 pos)
-    {
-        pos = Vector3.zero;
-        float nearest = viewDistance * viewDistance;
-        bool found = false;
-        foreach (var pair in views)
-        {
-            var view = pair.Value;
-            if (view == null || view.camp == myCamp) continue;
-            float dist = Vector3.SqrMagnitude(view.transform.position - from);
-            if (dist <= nearest)
-            {
-                nearest = dist;
-                pos = view.transform.position;
-                found = true;
-            }
-        }
-        return found;
-    }
-
     /// <summary>按实体 id 获取世界坐标。</summary>
     public bool TryGetEntityPosition(ushort id, out Vector3 pos)
     {
