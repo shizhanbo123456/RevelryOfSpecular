@@ -5,7 +5,7 @@ namespace Ros.Skill
 {
     /// <summary>
     /// 技能占位基类：只定 id / CD / 库存（数值来自策划案第二十一章技能池），效果留空待实现。
-    /// 实现时继承占位类替换空方法即可（写法范例见 SkillFanShot 的轨迹上下文体系）。
+    /// 实现时继承占位类替换空方法即可（弹道/近战通用基类见下方 ProjectileSkill / MeleeWeaponSkill）。
     /// </summary>
     public abstract class SkillStub : SkillBase
     {
@@ -51,8 +51,8 @@ namespace Ros.Skill
 
     #region 武器技能通用基类（数值为占位初值，待策划统一调整）
 
-    /// <summary>特效类别（对应 AssetsManager 的五个特效列表与 VfxManager 的播放接口）。</summary>
-    public enum SkillVfxKind { None, Bullet, RangeMagic, MagicCircle, Shield, Buff }
+    /// <summary>特效类别（Bullet~Buff 对应 AssetsManager 的五个特效列表；Weapon = 直接以武器模型作弹体）。</summary>
+    public enum SkillVfxKind { None, Bullet, RangeMagic, MagicCircle, Shield, Buff, Weapon }
 
     /// <summary>弹道形态（对应策划案 21 章的轨迹缩写）。</summary>
     public enum ProjectilePattern { Line, Fan, Circle, SkyFall, Point, Self }
@@ -106,6 +106,11 @@ namespace Ros.Skill
         protected void PlayVfx(SkillVfxKind kind, int[] list, BulletTrajectory trajectory, int index, float lifeTime)
         {
             if (Tool.VfxManager == null || trajectory == null || kind == SkillVfxKind.None) return;
+            if (kind == SkillVfxKind.Weapon) // 模板由技能自身的武器引用决定，不需要特效下标
+            {
+                Tool.VfxManager.PlayWeaponVFX(Weapon, trajectory, lifeTime);
+                return;
+            }
             int v = Pick(list, index);
             if (v < 0) return;
             switch (kind)
@@ -330,13 +335,13 @@ namespace Ros.Skill
             vfxKind: SkillVfxKind.Bullet, vfx: new[] { 39 }, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
     }
 
-    /// <summary>飞刀投掷（id 1·Knife）：飞掷短刀（拖尾 B45；刀模型弹体待做）。</summary>
+    /// <summary>飞刀投掷（id 1·Knife）：飞掷短刀，刀模型本身作弹体沿轨迹飞行。</summary>
     public class SkillFlyingKnife : ProjectileSkill
     {
         public SkillFlyingKnife() : base(1, 2f, 12, WeaponCategory.Knife, 1, EntityAnim.AttackType.Attack_Weapon_R,
             ProjectilePattern.Line, 1, 0f, 1.2f, 0.45f, 0.9f,
             circleRadius: 0f, skyHeight: 0f, breakEndure: false,
-            vfxKind: SkillVfxKind.Bullet, vfx: new[] { 45 }, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
+            vfxKind: SkillVfxKind.Weapon, vfx: null, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
     }
 
     /// <summary>十字斩（id 2·Knife）：两道交叉剑气（蓝 + 紫）。</summary>
@@ -420,13 +425,13 @@ namespace Ros.Skill
 
 
     // ---- 长枪 11~18 ----
-    /// <summary>投枪（id 11·Spear）：投掷长枪（拖尾 B48；枪模型弹体待做）。</summary>
+    /// <summary>投枪（id 11·Spear）：投掷长枪，枪模型本身作弹体沿轨迹飞行。</summary>
     public class SkillJavelinThrow : ProjectileSkill
     {
         public SkillJavelinThrow() : base(11, 1.5f, 15, WeaponCategory.Spear, 0, EntityAnim.AttackType.Attack_Weapon_R,
             ProjectilePattern.Line, 1, 0f, 1.2f, 0.45f, 1.0f,
             circleRadius: 0f, skyHeight: 0f, breakEndure: false,
-            vfxKind: SkillVfxKind.Bullet, vfx: new[] { 48 }, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
+            vfxKind: SkillVfxKind.Weapon, vfx: null, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
     }
 
     /// <summary>贯穿之枪（id 12·Spear）：贯穿之枪：细长直刺（子弹本身穿透）。</summary>
@@ -438,13 +443,13 @@ namespace Ros.Skill
             vfxKind: SkillVfxKind.Bullet, vfx: new[] { 51 }, landingVfxKind: SkillVfxKind.None, landingVfx: null) { }
     }
 
-    /// <summary>落雷枪（id 13·Spear）：落雷枪：升空天降 + 落点小型爆炸。</summary>
+    /// <summary>落雷枪（id 13·Spear）：枪模型升空后从天砸下，落点小型爆炸。</summary>
     public class SkillThunderSpear : ProjectileSkill
     {
         public SkillThunderSpear() : base(13, 10f, 3, WeaponCategory.Spear, 2, EntityAnim.AttackType.Attack_Weapon_R,
             ProjectilePattern.SkyFall, 1, 0f, 1.9f, 0.8f, 1.2f,
             circleRadius: 0f, skyHeight: 30f, breakEndure: false,
-            vfxKind: SkillVfxKind.Bullet, vfx: null, landingVfxKind: SkillVfxKind.RangeMagic, landingVfx: new[] { 5 }) { }
+            vfxKind: SkillVfxKind.Weapon, vfx: null, landingVfxKind: SkillVfxKind.RangeMagic, landingVfx: new[] { 5 }) { }
     }
 
     /// <summary>束缚钉（id 14·Spear）：束缚钉：落点禁锢圆环（束缚逻辑待实现）。</summary>

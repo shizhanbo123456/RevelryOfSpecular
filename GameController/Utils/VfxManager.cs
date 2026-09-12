@@ -72,6 +72,15 @@ public class VfxManager : MonoBehaviour
         return Play(GetBulletVfx(index), trajectory, lifeTime, rotation);
     }
 
+    /// <summary>用武器模型作为弹体沿轨迹播放（模板按技能声明的 WeaponRef 取，如飞刀 / 投枪）。
+    /// 与子弹特效同一条播放路径：实例化 → BulletPlayer 沿轨迹移动 → 到期销毁。</summary>
+    public GameObject PlayWeaponVFX(WeaponRef weapon, BulletTrajectory trajectory, float lifeTime,
+        BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
+    {
+        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return null;
+        return Play(prefab, trajectory, lifeTime, rotation);
+    }
+
     /// <summary>沿轨迹播放护盾特效（13 种）。跟随实体用 FollowTrajectory(实体id, 偏移)；
     /// 持续期建议 = 护盾来源 Buff 的剩余时长，或传极大值后手动销毁返回的实例。</summary>
     public GameObject PlayShieldVFX(int index, BulletTrajectory trajectory, float lifeTime,
