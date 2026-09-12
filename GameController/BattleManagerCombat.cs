@@ -285,7 +285,7 @@ public partial class BattleManager
         if (UnityEngine.Random.value > Config.crystal_skill_drop_chance) return;
 
         int weaponId = Config.GetRandomWeaponId(crystal.type.value); // 类别由函数内部按 % crystal_type_count 推出
-        int slotMax = player.floatingAttribute != null ? player.floatingAttribute.weaponSlotCount : Config.default_weapon_slot_count;
+        int slotMax = player.floatingAttribute.weaponSlotCount;
         var sc = player.skillController;
         if (sc.GetSkillIds().Contains(weaponId))
         {

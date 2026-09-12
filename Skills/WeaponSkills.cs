@@ -39,7 +39,7 @@ namespace Ros.Skill
                 Execute(entity, dest);
                 return;
             }
-            SetHeldWeapon(entity, Weapon); // 仅会进入攻击状态的技能赋值手持武器：无攻击状态时 AnimAttackEvent 无从清空
+            if (WeaponInHand) SetHeldWeapon(entity, Weapon); // 近战类才把武器拿到手上（攻击动作结束由 AnimAttackEvent 清空）
             anim.onAttack = _ => Execute(entity, dest);
             anim.DoAttack(CastAnim);
         }
@@ -96,10 +96,12 @@ namespace Ros.Skill
                 weaponExp: entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0);
         }
 
-        /// <summary>远程发射点：有武器时从悬浮武器处发射（与客户端显示同一偏移），否则用通用发射点。</summary>
+        /// <summary>远程发射点：有武器时从「本技能所在槽位」的悬浮武器处发射（与客户端显示同一挂点）；无武器用通用发射点。</summary>
         protected Vector3 GetShootPos(EntityData entity)
         {
-            return Weapon.IsValid ? entity.GetWeaponFloatPos() : entity.BulletShootPos();
+            if (!Weapon.IsValid) return entity.BulletShootPos();
+            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+            return entity.GetWeaponFloatPos(slot < 0 ? 0 : slot);
         }
 
         /// <summary>按角色持有的武器下标取特效（发数多于特效数时复用最后一个）。</summary>
@@ -192,7 +194,6 @@ namespace Ros.Skill
 
         protected override void Execute(EntityData entity, Vector3 dest)
         {
-            if (vfxKind == SkillVfxKind.Weapon) ClearHeldWeapon(entity); // 武器作弹体：已离手
             var context = new TrajectoryContext();
             Vector3 origin = GetShootPos(entity);
             Vector3[] dests = BuildDests(entity, origin, dest);
@@ -234,6 +235,9 @@ namespace Ros.Skill
         private static readonly EntityData[] s_hitBuffer = new EntityData[16];
 
         private readonly bool leftHand;
+
+        /// <summary>近战类：释放动作期间武器从悬浮位置到手部，动作结束清空。</summary>
+        public override bool WeaponInHand => true;
 
         protected MeleeWeaponSkill(int id, float cd, int store, WeaponCategory category, int weaponIndex,
             EntityAnim.AttackType castAnim, bool leftHand, float rate, float radius,

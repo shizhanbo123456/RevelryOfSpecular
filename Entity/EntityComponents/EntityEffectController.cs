@@ -16,7 +16,7 @@ public enum EffectType
     AttrCritDamage,     // 暴击伤害提升/降低
     AttrKnockback,      // 击退抗性提升/降低
     AttrViewDistance,   // 可见距离提升/降低（无限视野 = +99999）
-    AttrWeaponSlot,     // 技能槽位提升/降低
+    AttrWeaponSlot,     // 已废弃：技能槽位数不可被 Buff 影响（保留枚举值以免后续条目数值平移）
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
     Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
@@ -65,7 +65,7 @@ public static class EffectTypeExt
     {
         EffectType.AttrStrength or EffectType.AttrMagic or
         EffectType.AttrCritRate or EffectType.AttrCritDamage or EffectType.AttrKnockback or
-        EffectType.AttrViewDistance or EffectType.AttrWeaponSlot => true,
+        EffectType.AttrViewDistance => true,
         _ => false,
     };
 

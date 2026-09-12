@@ -266,8 +266,8 @@ public abstract class EntityData : MonoBehaviour
         return info;
     }
 
-    /// <summary>悬浮武器位置（有武器的远程技能从此处发射；与客户端显示共用 Config.weapon_float_offset）。</summary>
-    public Vector3 GetWeaponFloatPos() => transform.TransformPoint(Config.weapon_float_offset);
+    /// <summary>槽位对应的悬浮武器位置（远程技能从此处发射；与客户端显示共用 Config.weapon_float_offsets）。</summary>
+    public Vector3 GetWeaponFloatPos(int slotIndex) => transform.TransformPoint(Config.GetWeaponFloatOffset(slotIndex));
 
     /// <summary>通用子弹发射位置（碰撞体从底部往上 75% 处；无武器单位用）。</summary>
     public Vector3 BulletShootPos()

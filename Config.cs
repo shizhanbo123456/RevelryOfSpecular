@@ -135,8 +135,6 @@ public static class Config
     #endregion
 
     #region 武器与技能
-    /// <summary>默认技能槽位数量（U I O L H 共 5 键；角色属性可覆盖）。</summary>
-    public const int default_weapon_slot_count = 5;
     /// <summary>无施法动作弹幕的武器前摇（秒，暂定）。</summary>
     public const float weapon_short_windup = 0.15f;
     /// <summary>技能经验伤害加成：每点经验 +10%（策划案 14 章：基础 × (1 + 10% × 经验)，未设上限）。</summary>
@@ -258,7 +256,25 @@ public static class Config
     /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
 
-    /// <summary>悬浮武器相对实体根物体的本地偏移（身侧）：客户端显示与服务器发射点共用，任何实体通用。</summary>
-    public static readonly Vector3 weapon_float_offset = new Vector3(0.45f, 1.1f, 0f);
+    /// <summary>悬浮武器挂点表（本地坐标，相对实体根物体）：槽位 i 用第 i 个，左右交替分布。
+    /// 客户端显示与服务器远程发射点共用本表，任何实体通用（不依赖 EntityAnim）。</summary>
+    public static readonly Vector3[] weapon_float_offsets =
+    {
+        new Vector3( 0.55f, 1.15f,  0.35f),  // 槽 1 右前
+        new Vector3(-0.55f, 1.15f,  0.35f),  // 槽 2 左前
+        new Vector3( 0.70f, 1.45f,  0.00f),  // 槽 3 右中
+        new Vector3(-0.70f, 1.45f,  0.00f),  // 槽 4 左中
+        new Vector3( 0.70f, 1.15f, -0.40f),  // 槽 5 右后
+        new Vector3(-0.70f, 1.15f, -0.40f),  // 槽 6 左后
+        new Vector3( 0.45f, 0.75f,  0.20f),  // 槽 7 右下
+        new Vector3(-0.45f, 0.75f,  0.20f),  // 槽 8 左下
+    };
+
+    /// <summary>取槽位对应的悬浮武器本地偏移（越界取末位）。</summary>
+    public static Vector3 GetWeaponFloatOffset(int slotIndex)
+    {
+        if (weapon_float_offsets.Length == 0) return Vector3.zero;
+        return weapon_float_offsets[Mathf.Clamp(slotIndex, 0, weapon_float_offsets.Length - 1)];
+    }
     #endregion
 }

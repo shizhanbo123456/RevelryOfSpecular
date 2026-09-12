@@ -35,9 +35,9 @@ namespace Ros.Transport
         public int animId;
         /// <summary>动画播放进度（归一化 0~1）。</summary>
         public float animFrame;
-        /// <summary>手持武器类别（WeaponCategory 的 int 值；0 = 空手）。服务器权威，客户端据此取模型挂到手部。</summary>
+        /// <summary>手上临时握着的武器类别（WeaponCategory；0 = 无）。仅近战类技能期间有值，攻击动作结束清空。</summary>
         public int weaponCategory;
-        /// <summary>手持武器在该类别列表中的下标（-1 = 无）。</summary>
+        /// <summary>手上临时握着的武器在该类别列表中的下标（-1 = 无）。</summary>
         public int weaponIndex = -1;
         /// <summary>最近触发槽位下标（键盘槽位直触）（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;

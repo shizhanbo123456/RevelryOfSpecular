@@ -23,10 +23,12 @@ public class ClientDisplayManager : MonoBehaviour
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
-        /// <summary>当前悬浮武器引用（服务器下发；用于变化检测）。</summary>
+        /// <summary>手上临时握着的武器（服务器下发；近战类技能期间才有，用于变化检测）。</summary>
         public WeaponRef heldWeapon;
-        /// <summary>当前悬浮武器实例（挂在实体根物体的身侧偏移处）。</summary>
-        public GameObject heldWeaponObj;
+        /// <summary>常驻悬浮武器实例（按槽位下标；null = 该槽无武器）。</summary>
+        public GameObject[] weaponVisuals;
+        /// <summary>各槽当前显示的武器（变化检测用）。</summary>
+        public WeaponRef[] weaponRefs;
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -220,21 +222,51 @@ public class ClientDisplayManager : MonoBehaviour
         return view;
     }
 
-    /// <summary>按服务器下发的武器引用显示悬浮武器（无效武器 = 不显示）</summary>
+    /// <summary>手上武器：近战类技能期间武器从悬浮位置到手部，攻击动作结束由服务器清空</summary>
     private void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
     {
         var weapon = new WeaponRef((WeaponCategory)weaponCategory, weaponIndex);
         if (view.heldWeapon == weapon) return;
         view.heldWeapon = weapon;
-        if (view.heldWeaponObj != null) Destroy(view.heldWeaponObj);
-        view.heldWeaponObj = null;
-        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return;
+        if (view.anim == null) return; // 非人形单位没有手部，不显示手上武器
+        if (!weapon.IsValid || Tool.AssetsManager == null
+            || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab))
+        {
+            view.anim.SetHeldObject(null);
+            return;
+        }
+        view.anim.SetHeldObject(prefab); // 挂点未配置时自动取 Humanoid 手部骨骼，无需手工配置
+    }
 
-        // 悬浮武器挂在实体根物体的身侧偏移处：任何实体通用，不依赖 EntityAnim / 手部挂点
-        var obj = Instantiate(prefab, view.transform);
-        obj.transform.localPosition = Config.weapon_float_offset;
-        obj.transform.localRotation = Quaternion.identity;
-        view.heldWeaponObj = obj;
+    /// <summary>常驻悬浮武器：每个技能槽一把（武器 = 该槽技能对应的武器），按槽位下标取挂点</summary>
+    private void ApplyFloatingWeapons(ClientEntityView view, SCEntityDisplayInfo info)
+    {
+        int count = Config.weapon_float_offsets.Length;
+        if (view.weaponVisuals == null || view.weaponVisuals.Length != count)
+        {
+            view.weaponVisuals = new GameObject[count];
+            view.weaponRefs = new WeaponRef[count];
+        }
+        for (int i = 0; i < count; i++)
+        {
+            var weapon = WeaponRef.None;
+            if (i < info.skills.Count && info.skills[i] != null)
+            {
+                weapon = SkillManager.GetWeapon(info.skills[i].skillId);
+                if (weapon == view.heldWeapon) weapon = WeaponRef.None; // 已拿到手上，不重复漂浮
+            }
+            if (view.weaponRefs[i] == weapon) continue;
+            view.weaponRefs[i] = weapon;
+            if (view.weaponVisuals[i] != null) Destroy(view.weaponVisuals[i]);
+            view.weaponVisuals[i] = null;
+            if (!weapon.IsValid || Tool.AssetsManager == null
+                || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) continue;
+
+            var obj = Instantiate(prefab, view.transform); // 挂在实体根物体上，任何实体通用
+            obj.transform.localPosition = Config.GetWeaponFloatOffset(i);
+            obj.transform.localRotation = Quaternion.identity;
+            view.weaponVisuals[i] = obj;
+        }
     }
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
@@ -242,7 +274,8 @@ public class ClientDisplayManager : MonoBehaviour
         view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
-        ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 悬浮武器完全按服务器下发
+        ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 手上武器（近战类）按服务器下发
+        ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算
 
         // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续
         if (view.animator != null && info.animId > 0 && info.animId != view.animHash)

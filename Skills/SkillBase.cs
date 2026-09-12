@@ -43,6 +43,9 @@ namespace Ros.Skill
         /// <summary>释放动作（0=None，无施法动作弹幕可配置为 None 由武器直接发射）。</summary>
         public virtual EntityAnim.AttackType CastAnim => 0;
 
+        /// <summary>是否把武器拿到手上（近战类 = true，攻击动作结束清空）；false = 武器常驻漂浮在原位。</summary>
+        public virtual bool WeaponInHand => false;
+
         /// <summary>
         /// 释放效果（必须）：服务器伤害侧。
         /// 实现内容：填装 TrajectoryContext → 构建轨迹 → ShootBullet 逻辑判定 → BroadcastSkillCast 广播。
@@ -67,9 +70,6 @@ namespace Ros.Skill
         #region 通用工具（服务端/客户端共用，保证伤害与特效一致）
         /// <summary>服务器：为手部赋值武器（表现随实体摘要同步给客户端）。</summary>
         protected static void SetHeldWeapon(EntityData entity, WeaponRef weapon) => entity.heldWeapon = weapon;
-
-        /// <summary>服务器：清空手持武器（武器已作为弹体射出）。</summary>
-        protected static void ClearHeldWeapon(EntityData entity) => entity.heldWeapon = WeaponRef.None;
 
         /// <summary>以 pos→dest 为基准方向生成扇形终点（水平展开 spreadDeg）。</summary>
         protected static Vector3[] FanDests(Vector3 pos, Vector3 dest, int count, float spreadDeg)

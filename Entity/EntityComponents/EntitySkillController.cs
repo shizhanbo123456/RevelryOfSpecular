@@ -18,6 +18,9 @@ public class EntitySkillController
     /// <summary>最近触发的槽位下标（-1 无；键盘槽位直触时更新，供 UI 高亮）。</summary>
     public int SelectedIndex { get; private set; } = -1;
 
+    /// <summary>本次释放的技能所在槽位下标（-1 = 不在槽位，如空手攻击）；远程技能据此取悬浮武器发射点。</summary>
+    public int CastingSlotIndex { get; private set; } = -1;
+
     /// <summary>CD 结束时间戳（技能 id → Time.time 时刻；时间戳惰性计算，不每帧推进）。</summary>
     private readonly Dictionary<int, float> cdEndTimes = new();
 
@@ -35,6 +38,7 @@ public class EntitySkillController
         stores.Clear();
         weaponExp.Clear();
         SelectedIndex = -1;
+        CastingSlotIndex = -1;
     }
 
     #region 技能列表管理
@@ -156,6 +160,7 @@ public class EntitySkillController
         if (GetStore(skillId) == 0) return false;
         if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
 
+        CastingSlotIndex = skillIds.IndexOf(skillId);
         SkillManager.DoDamageActs(skillId, owner, dest);
         StartCd(skillId);
         ConsumeStore(skillId);
