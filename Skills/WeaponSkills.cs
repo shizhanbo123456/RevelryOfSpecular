@@ -96,6 +96,17 @@ namespace Ros.Skill
                 weaponExp: entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0);
         }
 
+        /// <summary>远程发射点：有武器时从悬浮武器处发射（与客户端显示同一挂点），否则用通用发射点。</summary>
+        protected Vector3 GetShootPos(EntityData entity)
+        {
+            if (Weapon.IsValid)
+            {
+                var mount = entity.GetComponentInChildren<EntityAnim>()?.GetHandMount(false);
+                if (mount != null) return mount.position;
+            }
+            return entity.BulletShootPos();
+        }
+
         /// <summary>按角色持有的武器下标取特效（发数多于特效数时复用最后一个）。</summary>
         private static int Pick(int[] list, int index)
         {
@@ -188,7 +199,7 @@ namespace Ros.Skill
         {
             if (vfxKind == SkillVfxKind.Weapon) ClearHeldWeapon(entity); // 武器作弹体：已离手
             var context = new TrajectoryContext();
-            Vector3 origin = entity.BulletShootPos();
+            Vector3 origin = GetShootPos(entity);
             Vector3[] dests = BuildDests(entity, origin, dest);
             context.AddInts(dests.Length, (int)pattern, entity.id);
             for (int i = 0; i < dests.Length; i++) context.AddVectors(origin, dests[i]);
