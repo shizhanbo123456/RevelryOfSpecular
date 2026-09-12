@@ -11,9 +11,9 @@ namespace Ros.Transport
         /// <summary>归一化周期时间 [0,2)：0 与 2 = 午夜，1 = 正午；[0,1) 变亮、[1,2) 变暗。</summary>
         public float cycleTime = 1f;
         /// <summary>白天时长（秒）：光照值 ≥ 0.5 区间的总耗时。</summary>
-        public float dayDuration = 120f;
+        public float dayDuration = 90f;
         /// <summary>晚上时长（秒）：光照值 &lt; 0.5 区间的总耗时。</summary>
-        public float nightDuration = 60f;
+        public float nightDuration = 90f;
     }
 
     /// <summary>SCDayNightInfo 网络序列化器。</summary>

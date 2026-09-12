@@ -48,10 +48,10 @@ public class EnvironmentManager : MonoBehaviour
 
     [Header("昼夜时长（秒）")]
     [Tooltip("白天时长：光照值 ≥ 0.5 区间的总耗时。修改后只改变推进速率，当前时间不变。\n（客户端上的值仅作首帧前的初始值，运行时会被服务器下发的值覆盖）")]
-    [Min(0.01f)] public float dayDuration = 120f;
+    [Min(0.01f)] public float dayDuration = 90f;
 
     [Tooltip("晚上时长：光照值 < 0.5 区间的总耗时。修改后只改变推进速率，当前时间不变。\n（客户端上的值仅作首帧前的初始值，运行时会被服务器下发的值覆盖）")]
-    [Min(0.01f)] public float nightDuration = 60f;
+    [Min(0.01f)] public float nightDuration = 90f;
 
     [Header("表现引用（两套场景各自挂自己那份；服务器可不填）")]
     [Tooltip("天空盒材质球：昼夜变化时线性调整其 " + SkyExposureProperty + "（午夜 0.28 ~ 正午 1.92）")]
