@@ -62,6 +62,8 @@ public static class UITheme
     public const float Radius = 8f;
     public const float RadiusSmall = 5f;
     public const float BtnHeight = 36f;
+    /// <summary>输入框最小高度（实际高度按中文字体行高自适应）。</summary>
+    public const float FieldHeight = 34f;
     #endregion
 
     #region 元素
@@ -241,7 +243,8 @@ public static class UITheme
     #region//Local
     private static void StyleFieldBase(VisualElement field, float width)
     {
-        field.style.height = 32f;
+        //只设最小高度：中文行高比英文高，锁死高度会把文字上下裁掉
+        field.style.minHeight = FieldHeight;
         if (width > 0f) field.style.width = width;
         field.style.backgroundColor = FieldBg;
         SetBorder(field, 1f, Border);
@@ -252,9 +255,12 @@ public static class UITheme
         input.style.backgroundColor = FieldBg;
         input.style.color = TextMain;
         input.style.fontSize = FontBody;
+        input.style.height = StyleKeyword.Auto;
         input.style.flexGrow = 1f;
         input.style.paddingLeft = 8f;
         input.style.paddingRight = 8f;
+        input.style.paddingTop = 0f;
+        input.style.paddingBottom = 0f;
     }
 
     private static void ApplySkin(Button button, Color color)
