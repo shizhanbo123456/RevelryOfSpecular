@@ -62,6 +62,10 @@ public class HomePage : PageBase
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 16, alignItems = Align.Center } };
         bottomRow.Add(new Label("服务器 IP（空=本机）") { style = { color = Color.white, marginRight = 10 } });
         ipField = new TextField { value = "", style = { width = 260, marginRight = 16 } };
+        //输入框配色显式指定，避免主题色与深色背景撞色导致文字不可见
+        ipField.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
+        var ipInput = ipField.Q("unity-text-input") ?? ipField.Q<TextElement>();
+        if (ipInput != null) ipInput.style.color = Color.white;
         bottomRow.Add(ipField);
         connectButton = new Button(OnConnectClicked) { text = "连接服务器", style = { width = 160, height = 44, fontSize = 18 } };
         bottomRow.Add(connectButton);
