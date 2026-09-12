@@ -38,8 +38,6 @@ namespace Ros.Skill
 
         /// <summary>释放动作 = 该拳法对应的攻击动作（AnimAttackEvent 按此播动画并在攻击帧回调）。</summary>
         public override EntityAnim.AttackType CastAnim => castAnim;
-        /// <summary>近战接触判定，非远程（不参与右键触发）。</summary>
-        public override bool Ranged => false;
 
         protected override void Execute(EntityData entity, Vector3 dest)
         {

@@ -31,9 +31,6 @@ namespace Ros.Skill
         /// <summary>库存（-1 无限制）。</summary>
         public virtual int Store => -1;
 
-        /// <summary>是否远程/施法类（决定右键是否可触发）。</summary>
-        public virtual bool Ranged => true;
-
         /// <summary>
         /// 技能对应的武器（悬浮武器模型）：类别 + 该类别列表中的下标。
         /// <see cref="WeaponRef.IsValid"/> == 是否有武器显示；防守方主动技能/大招与被动均为 <see cref="WeaponRef.None"/>。

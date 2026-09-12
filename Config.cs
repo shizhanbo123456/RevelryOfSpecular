@@ -9,10 +9,6 @@ using UnityEngine;
 public static class Config
 {
     #region 匹配与人数
-    /// <summary>标准对局进攻方人数（4v1，可 AI 填充）。</summary>
-    public const int attack_player_max = 4;
-    /// <summary>标准对局防守方人数。</summary>
-    public const int defense_player_max = 1;
     /// <summary>单局时长（秒）= 10 分钟。</summary>
     public const float battle_duration = 600f;
     #endregion
@@ -44,12 +40,6 @@ public static class Config
     public const int outer_beacon_count = 3;
     /// <summary>中心守护点数量。</summary>
     public const int core_beacon_count = 1;
-    /// <summary>每个存活外围守护点给中心提供的减伤比例。</summary>
-    public const float core_damage_reduce_per_outer = 0.25f;
-    /// <summary>守护点血量（暂定）。</summary>
-    public const int beacon_max_health = 5000;
-    /// <summary>中心守护点血量（暂定）。</summary>
-    public const int core_beacon_max_health = 8000;
     #endregion
 
     #region 资源与中立单位
@@ -62,17 +52,8 @@ public static class Config
     /// **类别 = 下标 % crystal_type_count**，即 k、k+4、k+8（k=0~3）属同一类。
     /// </summary>
     public const int crystal_graphics_count = crystal_type_count * crystal_variant_count;
-    /// <summary>可采集水晶数量（暂定）。</summary>
-    public const int crystal_count = 8;
     /// <summary>防御塔（瘟疫孢子）数量。</summary>
     public const int tower_count = 4;
-    /// <summary>瘟疫树数量。</summary>
-    public const int plague_tree_count = 1;
-    /// <summary>瘟疫树攻占后 CD 恢复速度倍率。</summary>
-    public const float plague_tree_cd_multiplier = 0.5f;
-    /// <summary>瘟疫树攻占持续时间下限/上限（秒，30~60s 随机）。</summary>
-    public const float plague_tree_effect_duration_min = 30f;
-    public const float plague_tree_effect_duration_max = 60f;
     /// <summary>水晶刷新冷却下限/上限（秒，30~60s 随机）。</summary>
     public const float crystal_respawn_min = 30f;
     public const float crystal_respawn_max = 60f;
@@ -83,8 +64,6 @@ public static class Config
     #region 僵尸
     /// <summary>全场僵尸数量上限（普通 + 精英，达上限停止刷新）。</summary>
     public const int zombie_max = 30;
-    /// <summary>僵尸最大追击距离。</summary>
-    public const float zombie_chase_range = 25f;
     /// <summary>夜间刷新 cd 进度增速——僵尸数为 0 时（每秒进度，越少越快）。</summary>
     public const float zombie_refresh_rate_fast = 0.5f;
     /// <summary>夜间刷新 cd 进度增速——僵尸数接近上限时（每秒进度）。</summary>
@@ -111,8 +90,6 @@ public static class Config
     public const float defense_revive_duration = 25f;
     /// <summary>愈战愈勇每条命层数序列（第 1 条命起；超出取末位 5，见策划案 11.3）。</summary>
     public static readonly int[] yz_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
-    /// <summary>愈战愈勇每层增伤/减伤比例（10%）。</summary>
-    public const float yz_growth_per_stack = 0.1f;
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
@@ -130,13 +107,9 @@ public static class Config
     public const KeyCode slide_key = KeyCode.LeftShift;
     /// <summary>滑铲持续时间。</summary>
     public const float slide_duration = 0.6f;
-    /// <summary>近战武器剑气射程上限（暂定）。</summary>
-    public const float sword_qi_max_range = 8f;
     #endregion
 
     #region 武器与技能
-    /// <summary>无施法动作弹幕的武器前摇（秒，暂定）。</summary>
-    public const float weapon_short_windup = 0.15f;
     /// <summary>技能经验伤害加成：每点经验 +10%（策划案 14 章：基础 × (1 + 10% × 经验)，未设上限）。</summary>
     public const float skill_exp_damage_bonus = 0.1f;
 

@@ -43,12 +43,6 @@ public static class SkillManager
         return s_map.TryGetValue(id, out var skill) ? skill.Store : -1;
     }
 
-    /// <summary>是否远程/施法类（右键可触发）。</summary>
-    public static bool IsRanged(int id)
-    {
-        return s_map.TryGetValue(id, out var skill) && skill.Ranged;
-    }
-
     /// <summary>技能对应的武器引用（无武器返回 <see cref="WeaponRef.None"/>）。</summary>
     public static WeaponRef GetWeapon(int id)
     {

@@ -66,13 +66,6 @@ public class EntitySkillController
     /// <summary>技能列表拷贝。</summary>
     public List<int> GetSkillIds() => new(skillIds);
 
-    /// <summary>当前选中技能 id（-1 无；= 最近触发的槽位技能）。</summary>
-    public int GetSelectedSkillId()
-    {
-        if (SelectedIndex < 0 || SelectedIndex >= skillIds.Count) return -1;
-        return skillIds[SelectedIndex];
-    }
-
     /// <summary>直接选中某槽位（键盘槽位触发时由服务器更新，供 UI 高亮）。</summary>
     public void SelectIndex(int index)
     {

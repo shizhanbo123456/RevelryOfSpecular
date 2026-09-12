@@ -45,7 +45,6 @@ namespace Ros.Skill
     public abstract class PassiveStub : SkillStub
     {
         protected PassiveStub(int id) : base(id, 0f, 0) { }
-        public override bool Ranged => false;
     }
 
     // ---- PC104 鹿铠怪人 ----

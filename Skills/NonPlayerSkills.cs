@@ -46,8 +46,6 @@ namespace Ros.Skill
 
         /// <summary>释放动作 = 该攻击对应的 AttackType（与 AnimEvent 推送给客户端的 animId 同源）。</summary>
         public override EntityAnim.AttackType CastAnim => castAnim;
-        /// <summary>近战/直接接触。</summary>
-        public override bool Ranged => false;
     }
 
     /// <summary>非玩家单位·远程占位基类（塔的孢子喷射等）。</summary>

@@ -8,9 +8,6 @@ public class ClientLogicManager : MonoBehaviour
         Tool.ClientLogicManager = this;
     }
 
-    /// <summary>本地玩家实体 id。</summary>
-    public ushort LocalPlayerEntityId => NetworkManager.battleInfo != null ? NetworkManager.battleInfo.playerEntityId : (ushort)0;
-
     // TODO: 子管理器框架（EntityPlayerManager / LabelPlayerManager / SettlementManager /
     //        ClientSkillManager / ClientBattleTimeManager 等）后续按需拆分完善
 }
