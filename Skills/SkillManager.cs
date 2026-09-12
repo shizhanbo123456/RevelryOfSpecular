@@ -49,10 +49,10 @@ public static class SkillManager
         return s_map.TryGetValue(id, out var skill) && skill.Ranged;
     }
 
-    /// <summary>是否有武器显示。</summary>
-    public static bool HasWeaponDisplay(int id)
+    /// <summary>技能对应的武器引用（无武器返回 <see cref="WeaponRef.None"/>）。</summary>
+    public static WeaponRef GetWeapon(int id)
     {
-        return s_map.TryGetValue(id, out var skill) && skill.HasWeaponDisplay;
+        return s_map.TryGetValue(id, out var skill) ? skill.Weapon : WeaponRef.None;
     }
 
     /// <summary>释放动作。</summary>
@@ -93,5 +93,6 @@ public static class SkillManager
         SkillPackageC.PackageManager.RegisterAll();
         SkillPoolWeapons.RegisterAll();   // 武器技能 0~48（占位，效果待实现）
         SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73（占位，效果待实现）
+        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位与空手攻击 100~199（占位，效果待实现）
     }
 }

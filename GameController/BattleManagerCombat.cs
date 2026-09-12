@@ -283,7 +283,7 @@ public partial class BattleManager
         if (!EntityContainer.Entities.TryGetObject(playerId, out var player) || player.skillController == null) return;
         if (UnityEngine.Random.value > Config.crystal_skill_drop_chance) return;
 
-        int weaponId = Config.GetRandomWeaponId(Mathf.Clamp(crystal.type.value, 0, Config.crystal_type_count - 1));
+        int weaponId = Config.GetRandomWeaponId(crystal.type.value); // 类别由函数内部按 % crystal_type_count 推出
         int slotMax = player.floatingAttribute != null ? player.floatingAttribute.weaponSlotCount : Config.default_weapon_slot_count;
         var sc = player.skillController;
         if (sc.GetSkillIds().Contains(weaponId))
@@ -330,7 +330,7 @@ public partial class BattleManager
             if (!PlayerCamp.TryGetValue(clientId, out var camp)) continue;
             if (camp == EntityCamp.Attack)
             {
-                float rate = EnvironmentManager.CurrentPhase == 0
+                float rate = EnvironmentManager.IsDay
                     ? Config.revive_day_progress_per_second
                     : Config.revive_night_progress_per_second;
                 var mults = Config.revive_progress_multiplier_by_death;
@@ -378,7 +378,7 @@ public partial class BattleManager
         EntityOwnerClient[entityId] = clientId;
 
         var data = GetEntity(entityId);
-        data?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
+        data?.skillController?.SetSkillList(Config.GetInitialSkills(characterType)); // 初始技能表与角色绑定
 
         // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）
         var stacks = Config.yz_stack_by_life;
@@ -396,8 +396,6 @@ public partial class BattleManager
             camp = camp,
             characterType = characterType,
             characterLevel = level,
-            dayNightPhase = EnvironmentManager.CurrentPhase,
-            phaseTime = EnvironmentManager.PhaseTime,
         });
         SendReviveProgress(clientId, rs, entityId, ready: true);
     }

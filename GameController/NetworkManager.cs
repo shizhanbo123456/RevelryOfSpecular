@@ -32,6 +32,9 @@ public partial class NetworkManager : EnsBehaviour
     /// <summary>本地玩家开局信息（服务器下发）。</summary>
     public static SCBattleInfo battleInfo;
 
+    /// <summary>对局是否进行中（客户端；由服务器 SCRoomInfo.battleStarted 同步，用于昼夜推演门禁）。</summary>
+    public static bool BattleRunning { get; private set; }
+
     #region//Client 连接流程
     private static bool connecting;
     private static bool rejected;
@@ -50,6 +53,7 @@ public partial class NetworkManager : EnsBehaviour
         connected = false;
         serverHello = null;
         battleInfo = null;
+        BattleRunning = false;
         hasRoomInfo = false;
         tryingEnterWorld = false;
         intentionalExitWorld = false;
@@ -201,27 +205,37 @@ public partial class NetworkManager : EnsBehaviour
     #endregion
 
     #region//发送封装：服务器 → 客户端
+    /// <summary>
+    /// 该客户端是否持有真实连接。AI 玩家使用负数虚拟 id（见 BattleManager.AIClients），
+    /// 没有网络连接，所有定向发送一律丢弃；真实客户端 id ≥ 0（房主为 0）。
+    /// </summary>
+    private static bool HasClient(short clientId) => clientId >= 0;
+
     /// <summary>发送开局信息（定向）。</summary>
     public void SendBattleInfo(short clientId, SCBattleInfo info)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveBattleInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
     }
 
     /// <summary>发送实体表现（定向）。</summary>
     public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Unreliable, info);
     }
 
     /// <summary>移除实体（定向）。</summary>
     public void SendRemoveEntity(short clientId, int entityId)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientRemoveEntityLocal, SendTo.To(clientId), Delivery.Reliable, entityId);
     }
 
     /// <summary>发送战斗事件（定向或广播）。</summary>
     public void SendBattleEvent(short clientId, SCBattleEvent e)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Reliable, e);
     }
 
@@ -235,12 +249,14 @@ public partial class NetworkManager : EnsBehaviour
     /// <summary>发送分数（定向）。</summary>
     public void SendScoreInfo(short clientId, SCScoreInfo info)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveScoreInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
     }
 
     /// <summary>发送复活进度（定向）。</summary>
     public void SendReviveInfo(short clientId, SCReviveInfo info)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveReviveInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
     }
 
@@ -253,6 +269,7 @@ public partial class NetworkManager : EnsBehaviour
     /// <summary>发送昼夜同步（定向；战斗开始/阶段切换时下发，客户端自行推演）。</summary>
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
     {
+        if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
     }
 
@@ -372,15 +389,16 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveRoomInfoLocal(SCRoomInfo info)
     {
         if (info == null) return;
+        BattleRunning = info.battleStarted;
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
     }
 
-    /// <summary>客户端：接收昼夜同步（权威校正后按流速自行推演）。</summary>
+    /// <summary>客户端：接收昼夜快照（周期时间 + 白天时长 + 晚上时长），之后按这组参数自行推演。</summary>
     [Rpc]
     private void ClientReceiveDayNightInfoLocal(SCDayNightInfo info)
     {
         if (info == null) return;
-        Tool.EnvironmentManager?.ApplyServerSync(info.phase, info.phaseTime, info.rate);
+        Tool.EnvironmentManager?.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
     }
 
     /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>

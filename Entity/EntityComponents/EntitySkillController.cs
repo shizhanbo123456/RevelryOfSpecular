@@ -27,6 +27,11 @@ public class EntitySkillController
     /// <summary>武器经验（技能 id → 本局累计经验；无等级，经验直接加成武器伤害，见策划案 11.4）。</summary>
     private readonly Dictionary<int, int> weaponExp = new();
 
+    /// <summary>正在释放的技能 id（-1 = 无）；随实体表现摘要同步给客户端，用于显示悬浮武器。</summary>
+    private int castingSkillId = -1;
+    /// <summary>手持武器显示到期时刻（Time.time）。</summary>
+    private float castingEndTime;
+
     public void Init(EntityData data)
     {
         owner = data;
@@ -34,6 +39,8 @@ public class EntitySkillController
         cdEndTimes.Clear();
         stores.Clear();
         weaponExp.Clear();
+        castingSkillId = -1;
+        castingEndTime = 0f;
         SelectedIndex = -1;
     }
 
@@ -139,6 +146,15 @@ public class EntitySkillController
             stores[skillId] = store - 1;
         }
     }
+
+    /// <summary>正在释放的技能 id（-1 = 无）。</summary>
+    public int CastingSkillId => castingSkillId;
+
+    /// <summary>帧推进：手持武器显示到期后切回空手（武器模型只在攻击动作期间存在）。</summary>
+    public void OnUpdate()
+    {
+        if (castingSkillId >= 0 && Time.time >= castingEndTime) castingSkillId = -1;
+    }
     #endregion
 
     #region 释放
@@ -158,6 +174,9 @@ public class EntitySkillController
         SkillManager.DoDamageActs(skillId, owner, dest);
         StartCd(skillId);
         ConsumeStore(skillId);
+        // 记录本次释放：客户端据此显示悬浮武器，到期或攻击动画播完即切回空手
+        castingSkillId = skillId;
+        castingEndTime = Time.time + Config.weapon_display_duration;
         return true;
     }
 
@@ -166,6 +185,7 @@ public class EntitySkillController
     {
         if (info == null) return;
         info.selectedIndex = SelectedIndex;
+        info.castSkillId = castingSkillId;
         foreach (var skillId in skillIds)
         {
             info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()

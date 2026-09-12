@@ -120,6 +120,7 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnUpdate()
     {
         effectController?.OnUpdate();
+        skillController?.OnUpdate();
         UpdateMotion();
     }
 

@@ -4,6 +4,7 @@ namespace Ros.Transport
     /// 服务器 → 客户端：开局同步信息（进入世界后发送一次）。
     /// 不传槽位数/技能列表/守护点：槽位与技能随 SCEntityDisplayInfo 同步（客户端可经 InfoManager
     /// 按阵营+角色读取属性配置）；守护点与其它实体一样走统一的实体表现同步。
+    /// 昼夜状态不在此处：统一由 SCDayNightInfo 快照下发（战斗开始时必发一次）。
     /// </summary>
     public class SCBattleInfo
     {
@@ -15,10 +16,6 @@ namespace Ros.Transport
         public EntityType characterType;
         /// <summary>角色等级。</summary>
         public int characterLevel = 1;
-        /// <summary>当前昼夜阶段（0白天 1黄昏 2夜晚 3黎明）。</summary>
-        public int dayNightPhase;
-        /// <summary>当前阶段已进行时间（秒）。</summary>
-        public float phaseTime;
     }
 
     /// <summary>SCBattleInfo 网络序列化器。</summary>
@@ -31,9 +28,7 @@ namespace Ros.Transport
             if (!UshortSerializer.Serialize(value.playerEntityId, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
             if (!EntityTypeSerializer.Serialize(value.characterType, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.characterLevel, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.dayNightPhase, result, ref indexStart)) return false;
-            return FloatSerializer.Serialize(value.phaseTime, result, ref indexStart);
+            return IntSerializer.Serialize(value.characterLevel, result, ref indexStart);
         }
 
         public static SCBattleInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -45,8 +40,6 @@ namespace Ros.Transport
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 characterType = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 characterLevel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                dayNightPhase = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                phaseTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
             return info;
         }

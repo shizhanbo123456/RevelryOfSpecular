@@ -76,23 +76,26 @@ public class EntityAnim : MonoBehaviour
     }
     public Action<AnimState, AnimState> OnStateChange;
 
-    /// <summary>当前状态的编号（由 AnimEvent 推送，供 SCEntityDisplayInfo.animId 同步；-1 = 尚未进入任何已配置状态）。</summary>
+    /// <summary>当前状态 hash（-1 = 尚未进入任何状态）</summary>
     private int currentAnimId = -1;
 
-    /// <summary>animId → AnimEvent 映射（Init 时从全部状态机行为构建，供客户端按编号定位状态脚本）。</summary>
+    /// <summary>状态 hash → 状态脚本（进入状态时登记）</summary>
     private readonly Dictionary<int, AnimEvent> animEventMap = new Dictionary<int, AnimEvent>();
 
-    /// <summary>
-    /// AnimEvent 进入状态时回调（推送制状态追踪）。
-    /// 注意：OnStateEnter 在进入过渡的第一帧触发，即过渡开始即切换，不等混合完成。
-    /// </summary>
+    /// <summary>状态脚本进入状态时回调（OnStateEnter 在过渡第一帧触发）</summary>
     public void NotifyStateEnter(int animId, AnimState state)
     {
         currentAnimId = animId;
         CurrentState = state;
     }
 
-    /// <summary>按编号取状态机事件脚本（客户端收到同步的 animId 后定位用）。</summary>
+    /// <summary>登记状态脚本（按其状态 hash 索引）</summary>
+    public void RegisterAnimEvent(AnimEvent animEvent)
+    {
+        animEventMap[animEvent.AnimId] = animEvent;
+    }
+
+    /// <summary>按状态 hash 取状态脚本</summary>
     public bool TryGetAnimEvent(int animId, out AnimEvent animEvent)
     {
         return animEventMap.TryGetValue(animId, out animEvent);
@@ -122,13 +125,7 @@ public class EntityAnim : MonoBehaviour
         }
         var behaviours=animator.GetBehaviours<AnimEvent>();
         animEventMap.Clear();
-        // animId 自动分配：按控制器资产内的状态顺序编号（0 起）。
-        // 服务器与客户端使用同一 Controller 资产，遍历顺序一致 → 编号一致，可安全跨端同步。
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            behaviours[i].Init(this, data, i);
-            animEventMap.Add(i, behaviours[i]);
-        }
+        foreach (var behaviour in behaviours) behaviour.Init(this, data);
     }
     public void SetType(CharcterAnimType type)
     {

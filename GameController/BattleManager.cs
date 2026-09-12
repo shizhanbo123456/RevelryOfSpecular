@@ -31,6 +31,7 @@ public partial class BattleManager : EnsBehaviour
 
     private float syncTimer;
     private float detailsTimer;
+    private float dayNightSyncTimer;
     private float aiTimer;
     /// <summary>夜间僵尸刷新 cd 进度（满 1 刷新一只并清零，见 Config.zombie_refresh_*）。</summary>
     private float zombieRefreshProgress;
@@ -42,8 +43,15 @@ public partial class BattleManager : EnsBehaviour
     public readonly Dictionary<short, EntityCamp> PlayerCamp = new();
     /// <summary>客户端 → 玩家实体 id（对局开始后才有值）。</summary>
     public readonly Dictionary<short, ushort> PlayerEntityId = new();
-    /// <summary>实体 id → 所属客户端（-1 = 非玩家实体）。</summary>
+    /// <summary>实体 id → 所属客户端（真人与 AI 共用；不在表中 = 非玩家实体，如僵尸/防御塔/瘟疫树）。</summary>
     public readonly Dictionary<ushort, short> EntityOwnerClient = new();
+
+    /// <summary>AI 玩家的虚拟客户端 id 起始值（向负方向分配；真实客户端 id ≥ 0，房主为 0）。</summary>
+    private const short AIClientIdStart = -1000;
+    /// <summary>AI 虚拟客户端 id 分配游标。</summary>
+    private short nextAIClientId = AIClientIdStart;
+    /// <summary>AI 玩家的虚拟客户端 id：AI 与真人共用玩家容器与创建/复活路径，唯一差异是输入来源。</summary>
+    public readonly HashSet<short> AIClients = new();
 
     /// <summary>进攻方 AI 玩家数量（组队大厅中任意玩家可编辑，房间共享）。</summary>
     public int AttackAICount { get; private set; }
@@ -263,6 +271,46 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"玩家 {clientId} 退场");
     }
 
+    /// <summary>
+    /// 重建 AI 玩家（组队大厅 AI 数量变化时调用）。
+    /// AI 与真人使用同一套容器与创建/复活路径，唯一差异是 clientId 为负数虚拟 id、输入由 UpdateAI 提供。
+    /// </summary>
+    private void RebuildAIPlayers()
+    {
+        foreach (var aiClientId in AIClients)
+        {
+            PlayerInfoList.Remove(aiClientId);
+            PlayerCamp.Remove(aiClientId);
+        }
+        AIClients.Clear();
+
+        nextAIClientId = AIClientIdStart;
+        for (int i = 0; i < AttackAICount; i++) AddAIPlayer(EntityCamp.Attack);
+        for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(EntityCamp.Defense);
+    }
+
+    /// <summary>加入一个 AI 玩家：随机选取该阵营的一个角色（策划案 17.1：AI 与真人判定完全一致）。</summary>
+    private void AddAIPlayer(EntityCamp camp)
+    {
+        short aiClientId = nextAIClientId--;
+        var info = new CSPlayerInfo()
+        {
+            attackLevel = 1,
+            defenseLevel = 1,
+        };
+        if (camp == EntityCamp.Attack)
+        {
+            info.attackCharacter = EntityType.Attack(UnityEngine.Random.Range(0, Config.attack_character_count));
+        }
+        else
+        {
+            info.defenseCharacter = EntityType.Defense(UnityEngine.Random.Range(0, Config.defense_character_count));
+        }
+        PlayerInfoList[aiClientId] = info;
+        PlayerCamp[aiClientId] = camp;
+        AIClients.Add(aiClientId);
+    }
+
     /// <summary>接收组队大厅状态更新（服务器，由 NetworkManager RPC 回调）。</summary>
     public void ReceiveRoomUpdate(short clientId, CSRoomUpdate update)
     {
@@ -273,9 +321,15 @@ public partial class BattleManager : EnsBehaviour
         else if (update.camp == 1) PlayerCamp[clientId] = EntityCamp.Defense;
         else PlayerCamp.Remove(clientId);
 
-        // AI 数量：房间共享，任意玩家可编辑，数量不限制
-        AttackAICount = Mathf.Max(0, update.attackAICount);
-        DefenseAICount = Mathf.Max(0, update.defenseAICount);
+        // AI 数量：房间共享，任意玩家可编辑，数量不限制。数量变化时重建 AI 玩家（= AI 进场随机选角）
+        int attackAI = Mathf.Max(0, update.attackAICount);
+        int defenseAI = Mathf.Max(0, update.defenseAICount);
+        if (attackAI != AttackAICount || defenseAI != DefenseAICount)
+        {
+            AttackAICount = attackAI;
+            DefenseAICount = defenseAI;
+            RebuildAIPlayers();
+        }
 
         BroadcastRoomInfo();
     }
@@ -285,9 +339,10 @@ public partial class BattleManager : EnsBehaviour
     {
         if (request == null || BattleStarted) return;
 
-        // 校验：所有玩家已选队伍，且双方人数（人类 + AI）均 > 0
+        // 校验：所有真人玩家已选队伍，且双方人数（人类 + AI）均 > 0
         foreach (var pair in PlayerInfoList)
         {
+            if (AIClients.Contains(pair.Key)) continue; // AI 开战前已定阵营
             if (!PlayerCamp.ContainsKey(pair.Key))
             {
                 Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
@@ -299,8 +354,9 @@ public partial class BattleManager : EnsBehaviour
                 return;
             }
         }
-        if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) + AttackAICount <= 0 ||
-            PlayerCamp.Values.Count(c => c == EntityCamp.Defense) + DefenseAICount <= 0)
+        // AI 已并入 PlayerCamp，此处不再另加 AI 数量（否则重复计数）
+        if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) <= 0 ||
+            PlayerCamp.Values.Count(c => c == EntityCamp.Defense) <= 0)
         {
             Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
             {
@@ -325,6 +381,7 @@ public partial class BattleManager : EnsBehaviour
         };
         foreach (var pair in PlayerInfoList)
         {
+            if (AIClients.Contains(pair.Key)) continue; // AI 只以 attackAICount/defenseAICount 展示
             info.members.Add(new SCRoomInfo.RoomMemberInfo()
             {
                 clientId = pair.Key,
@@ -352,9 +409,8 @@ public partial class BattleManager : EnsBehaviour
         foreach (var entity in EntityContainer.Entities)
         {
             if (entity == null || !entity.Alive) continue;
-            if (EntityOwnerClient.ContainsKey(entity.id)) continue; // 跳过真人玩家
-            if (entity.type.category != EntityCategory.Character_Attack &&
-                entity.type.category != EntityCategory.Character_Defense) continue;
+            // 只驱动 AI 玩家：真人玩家的操作来自网络，AI 的"操作"在这里产生
+            if (!EntityOwnerClient.TryGetValue(entity.id, out var owner) || !AIClients.Contains(owner)) continue;
             if (entity.skillController == null) continue;
 
             var target = EntityContainer.GetNearestEnemy(entity);
@@ -474,7 +530,9 @@ public partial class BattleManager : EnsBehaviour
         DefenseKills = 0;
         ClearBattleState();
 
-        // 玩家实体：按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色
+        // 玩家实体：真人与 AI 完全同一条路径（AI 也在此处，clientId 为负数虚拟 id），
+        // 按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色；初始技能表与所选角色强制绑定。
+        // 唯一差异是输入来源：真人来自网络 CSInputCommand/CSUseSkillRequest，AI 来自 UpdateAI。
         foreach (var pair in PlayerInfoList)
         {
             short clientId = pair.Key;
@@ -485,48 +543,34 @@ public partial class BattleManager : EnsBehaviour
             Vector3 spawnPos = isAttack ? GetAttackSpawnPos() : GetDefenseSpawnPos();
 
             ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
+            if (entityId == 0) continue; // 服务器模板缺失（SpawnEntity 已告警）
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
-            GetEntity(entityId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
+            GetEntity(entityId)?.skillController?.SetSkillList(Config.GetInitialSkills(characterType));
 
+            // AI 无连接：SendBattleInfo 内部按 HasClient 丢弃负数 id
             Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
             {
                 playerEntityId = entityId,
                 camp = camp,
                 characterType = characterType,
                 characterLevel = level,
-                dayNightPhase = EnvironmentManager.CurrentPhase,
-                phaseTime = EnvironmentManager.PhaseTime,
             });
-            Debug.Log($"玩家 {clientId} 出战：{characterType} camp={camp}");
-        }
-
-        // AI 玩家实体：与真人判定完全一致（策划案 17.1），暂用各队 0 号角色（TODO：AI 角色配置）
-        for (int i = 0; i < AttackAICount; i++)
-        {
-            ushort aiId = SpawnEntity(EntityType.Attack(0), 1, GetAttackSpawnPos(), EntityCamp.Attack);
-            GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
-        }
-        for (int i = 0; i < DefenseAICount; i++)
-        {
-            ushort aiId = SpawnEntity(EntityType.Defense(0), 1, GetDefenseSpawnPos(), EntityCamp.Defense);
-            GetEntity(aiId)?.skillController?.SetSkillList(new List<int> { Config.initial_skill_id });
+            Debug.Log($"{(AIClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp}");
         }
 
         // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
         UpdateCoreBeaconReduce(); // 初始分层减伤 = 存活外围数 × 25%
 
-        // 昼夜同步（客户端收到后按配置时长与流速自行推演）
-        Tool.NetworkManager.SendDayNightInfo(new SCDayNightInfo()
+        // 昼夜快照（周期时间 + 白天时长 + 晚上时长）：客户端据此自行推演，中途改时长会再补发
+        if (Tool.EnvironmentManager != null)
         {
-            phase = EnvironmentManager.CurrentPhase,
-            phaseTime = EnvironmentManager.PhaseTime,
-            rate = 1f,
-        });
+            Tool.NetworkManager.SendDayNightInfo(Tool.EnvironmentManager.BuildSnapshot());
+        }
 
         BroadcastRoomInfo();
-        Debug.Log($"战斗开始：人类 {PlayerInfoList.Count}，AI {AttackAICount + DefenseAICount}");
+        Debug.Log($"战斗开始：人类 {PlayerInfoList.Count - AIClients.Count}，AI {AIClients.Count}");
     }
 
     /// <summary>结束对局（服务器，gameState 见 SCScoreInfo）：玩家回到组队状态，房间状态广播以便下一轮准备。</summary>
@@ -569,20 +613,16 @@ public partial class BattleManager : EnsBehaviour
             }
         }
 
-        // 昼夜推进（服务器权威，见策划案 13 章；阶段切换下发同步包，客户端自行推演）
+        // 昼夜推进（服务器权威，见策划案 13 章）：周期值在 [0,2) 循环（0/2 午夜、1 正午），方向由周期值推导。
+        // 时长或时间被改动时立即补发快照；此外每 Config.daynight_sync_interval 秒心跳一次，兜底两端漂移
         if (Tool.EnvironmentManager != null)
         {
-            Tool.EnvironmentManager.TickPhase(UnityEngine.Time.deltaTime);
-            if (EnvironmentManager.PhaseTime >= EnvironmentManager.GetPhaseDuration(EnvironmentManager.CurrentPhase))
+            Tool.EnvironmentManager.Tick(UnityEngine.Time.deltaTime);
+            dayNightSyncTimer -= UnityEngine.Time.deltaTime;
+            if (Tool.EnvironmentManager.ConsumeSyncRequest() || dayNightSyncTimer <= 0f)
             {
-                int next = (EnvironmentManager.CurrentPhase + 1) % EnvironmentManager.PhaseCount;
-                Tool.EnvironmentManager.SetPhase(next);
-                Tool.NetworkManager.SendDayNightInfo(new SCDayNightInfo()
-                {
-                    phase = EnvironmentManager.CurrentPhase,
-                    phaseTime = EnvironmentManager.PhaseTime,
-                    rate = 1f,
-                });
+                dayNightSyncTimer = Config.daynight_sync_interval;
+                Tool.NetworkManager.SendDayNightInfo(Tool.EnvironmentManager.BuildSnapshot());
             }
         }
 
@@ -620,8 +660,8 @@ public partial class BattleManager : EnsBehaviour
         }
 
         // 夜间僵尸刷新（策划案第九章）：cd 进度满 1 → 刷新一只并清零；
-        // 僵尸数量达上限时不刷新且进度清零；白天/黄昏/黎明进度不增加
-        if (EnvironmentManager.CurrentPhase == 2) // 2 = 夜晚
+        // 僵尸数量达上限时不刷新且进度清零；白天（t ≥ 0.5）进度不增加
+        if (!EnvironmentManager.IsDay) // t < 0.5 = 晚上
         {
             int zombieCount = EntityContainer.Zombies.Count;
             if (zombieCount >= Config.zombie_max)

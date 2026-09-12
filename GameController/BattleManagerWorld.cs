@@ -33,10 +33,10 @@ public partial class BattleManager
             SpawnEntity(core ? EntityType.CoreBeacon : EntityType.Beacon(i), 1, beaconAnchor.position, EntityCamp.Defense);
         }
 
-        // 水晶：类型按序循环（4 类对应 4 类武器，被摧毁后 30~60s 随机重生）
+        // 水晶：外观下标按序循环（0~11，类别 = 下标 % 4 对应 4 类武器；被摧毁后 30~60s 随机重生）
         for (int i = 0; i < spawns.crystalSpawnPositions.Count; i++)
         {
-            SpawnEntity(EntityType.Crystal(i % Config.crystal_type_count), 1, spawns.crystalSpawnPositions[i], EntityCamp.Neutral);
+            SpawnEntity(EntityType.Crystal(i % Config.crystal_graphics_count), 1, spawns.crystalSpawnPositions[i], EntityCamp.Neutral);
         }
 
         // 防御塔（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
@@ -73,7 +73,7 @@ public partial class BattleManager
         {
             time = Time.time + Random.Range(Config.crystal_respawn_min, Config.crystal_respawn_max),
             pos = crystal.transform.position,
-            type = Mathf.Clamp(crystal.type.value, 0, Config.crystal_type_count - 1),
+            type = Mathf.Clamp(crystal.type.value, 0, Config.crystal_graphics_count - 1), // 重生保持同一外观/类别
         });
     }
 

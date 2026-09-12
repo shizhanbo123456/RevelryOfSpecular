@@ -17,10 +17,14 @@ public class ClientDisplayManager : MonoBehaviour
         public EntityCamp camp;
         public Animator animator;
         public EntityAnim anim;
+        public int animHash = int.MinValue; // 当前动画片段 hash（判断是否需要切换）
         public TextMesh nameLabel; // 玩家名字（仅玩家实体）
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
+
+        /// <summary>当前已挂载的悬浮武器预制体（避免每次同步都销毁重建；由服务器下发的 castSkillId 决定）。</summary>
+        public GameObject heldWeapon;
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -220,8 +224,7 @@ public class ClientDisplayManager : MonoBehaviour
         if (view.animator != null)
         {
             view.anim = view.animator.GetComponent<EntityAnim>();
-            // 客户端动画初始化：激活 animator 引用与 AnimEvent 状态推送（与服务器同一 Controller 资产）；
-            // 无 EntityData，攻击帧伤害回调不传（客户端动画完全由服务器下发的 animState 驱动）
+            // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传
             view.anim?.Init(null, null);
         }
 
@@ -245,42 +248,33 @@ public class ClientDisplayManager : MonoBehaviour
         return view;
     }
 
+    /// <summary>按 castSkillId 挂悬浮武器（&lt;0 或技能无武器 = 空手）</summary>
+    private static void ApplyHeldWeapon(ClientEntityView view, int castSkillId)
+    {
+        if (view == null || view.anim == null) return;
+        GameObject prefab = null;
+        if (castSkillId >= 0 && Tool.AssetsManager != null
+            && SkillManager.TryGet(castSkillId, out var skill))
+        {
+            Tool.AssetsManager.TryGetWeaponPrefab(skill.Weapon, out prefab);
+        }
+        if (view.heldWeapon == prefab) return;
+        view.heldWeapon = prefab;
+        view.anim.SetHeldObject(prefab);
+    }
+
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
     {
         view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
-        // 表现完全由服务器下发的动画状态驱动（animState + animId + animFrame）
-        if (view.anim != null)
+        ApplyHeldWeapon(view, info.castSkillId); // 悬浮武器按 castSkillId 驱动
+
+        // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续
+        if (view.animator != null && info.animId > 0 && info.animId != view.animHash)
         {
-            var state = (EntityAnim.AnimState)info.animState;
-            switch (state)
-            {
-                case EntityAnim.AnimState.Spawn:
-                    view.anim.DoSpawn();
-                    break;
-                case EntityAnim.AnimState.Attack:
-                    view.anim.DoAttack((EntityAnim.AttackType)info.animId);
-                    break;
-                case EntityAnim.AnimState.Hit:
-                    view.anim.DoHit();
-                    break;
-                case EntityAnim.AnimState.Die:
-                    view.anim.DoDie();
-                    break;
-                case EntityAnim.AnimState.Motion:
-                default:
-                    switch ((EntityAnim.MotionType)info.animId)
-                    {
-                        case EntityAnim.MotionType.Run: view.anim.Move(true); break;
-                        case EntityAnim.MotionType.Jump: view.anim.InAir(true); break;
-                        case EntityAnim.MotionType.Slide: view.anim.DoSlide(); break;
-                        case EntityAnim.MotionType.Roll: view.anim.Roll(); break;
-                        case EntityAnim.MotionType.Idle:
-                        default: view.anim.Move(false); break;
-                    }
-                    break;
-            }
+            view.animHash = info.animId;
+            view.animator.Play(info.animId, 0, info.animFrame);
         }
         // 动画移速载体（加速/减速/泥沼 = 移动状态播放速度）：完整同步时按 Buff 重算
         if (info.includeRuntime && view.anim != null && info.buffs.Count > 0)
@@ -306,6 +300,24 @@ public class ClientDisplayManager : MonoBehaviour
                 }
             }
             view.SetMushroomized(infected);
+        }
+
+        // 迷雾表现（PC103 苍白舞者大招「为全体敌方添加」，策划案 125/322/474 行）：
+        // 本地玩家身上有「迷雾」Buff 时开启体积雾，Buff 消失后由 EnvironmentManager 按
+        // fogTransitionDuration 平滑关闭（「缩小视野」的机制由可见距离负责，这里只做画面表现）
+        if (info.includeRuntime && NetworkManager.battleInfo != null
+            && info.entityId == NetworkManager.battleInfo.playerEntityId)
+        {
+            bool fogged = false;
+            foreach (var b in info.buffs)
+            {
+                if (b != null && b.type == (int)EffectType.Fog)
+                {
+                    fogged = true;
+                    break;
+                }
+            }
+            Tool.EnvironmentManager?.SetFogEnabled(fogged);
         }
     }
     #endregion

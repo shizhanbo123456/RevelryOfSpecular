@@ -33,10 +33,15 @@ namespace Ros.Transport
         public int maxHealth;
         /// <summary>当前动画状态（EntityAnim.AnimState：0Spawn 1Motion 2Attack 3Hit 4Die）。</summary>
         public int animState;
-        /// <summary>具体动画 id：Attack 状态 = EntityAnim.AttackType；Motion 状态 = EntityAnim.MotionType（0Idle 1Run 2Jump 3Slide 4Roll）；其余 0。</summary>
+        /// <summary>动画片段标识 = 状态的 fullPathHash（两端一致，客户端据此定位并播放）。</summary>
         public int animId;
         /// <summary>动画播放进度（归一化 0~1）。</summary>
         public float animFrame;
+        /// <summary>
+        /// 当前正在释放的技能 id（-1 = 无）。客户端据此经 SkillManager.GetWeapon 取「使用的武器」，
+        /// 从 AssetsManager 取悬浮武器模型挂到手部；技能结束（或攻击动画播完）即切回空手。
+        /// </summary>
+        public int castSkillId = -1;
         /// <summary>最近触发槽位下标（键盘槽位直触）（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;
         /// <summary>所属客户端 id（非玩家实体 = -1；客户端据此显示玩家名字）。</summary>
@@ -92,6 +97,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.animState, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.animId, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.castSkillId, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
@@ -145,6 +151,7 @@ namespace Ros.Transport
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animState = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                castSkillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

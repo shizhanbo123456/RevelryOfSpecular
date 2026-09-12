@@ -11,11 +11,17 @@ public class BattleSkillUnit
     /// <summary>根元素。</summary>
     public VisualElement Root { get; }
 
+    private readonly Image iconImage;
     private readonly Label nameLabel;
     private readonly VisualElement cdFill;
     private readonly Label cdLabel;
     private readonly Label storeLabel;
     private readonly Label expLabel;
+
+    /// <summary>已取过配置的技能 id（-1 = 未取）。技能配置查询是线性扫描，按 id 变化才重查，避免每帧扫表。</summary>
+    private int cachedSkillId = -1;
+    /// <summary>缓存的技能配置（可能为 null = 未配置该技能）。</summary>
+    private SkillInfo cachedInfo;
 
     private static readonly Color NormalBg = new Color(0.15f, 0.15f, 0.2f, 0.95f);
     private static readonly Color SelectedBg = new Color(0.3f, 0.6f, 1f, 0.95f);
@@ -38,6 +44,15 @@ public class BattleSkillUnit
                 position = Position.Relative,
             }
         };
+
+        // 技能图标（InfoManager 技能配置的 icon；未配置时不占位）
+        iconImage = new Image
+        {
+            scaleMode = ScaleMode.ScaleToFit,
+            style = { width = 40, height = 40, marginBottom = 2 },
+        };
+        iconImage.pickingMode = PickingMode.Ignore;
+        Root.Add(iconImage);
 
         nameLabel = new Label { style = { color = Color.white, fontSize = 14, unityFontStyleAndWeight = FontStyle.Bold } };
         Root.Add(nameLabel);
@@ -85,8 +100,9 @@ public class BattleSkillUnit
             return;
         }
 
-        string skillName = GetSkillName(slot.skillId);
-        nameLabel.text = skillName;
+        var info = GetInfo(slot.skillId);
+        ApplyIcon(info);
+        nameLabel.text = info != null && !string.IsNullOrEmpty(info.skillName) ? info.skillName : $"技能{slot.skillId}";
         storeLabel.text = slot.store >= 0 ? $"x{slot.store}" : "";
         expLabel.text = slot.exp > 0 ? $"+{slot.exp}" : "";
 
@@ -114,6 +130,8 @@ public class BattleSkillUnit
     /// <summary>空槽位。</summary>
     public void SetEmpty()
     {
+        iconImage.sprite = null;
+        iconImage.style.display = DisplayStyle.None;
         nameLabel.text = "—";
         storeLabel.text = "";
         expLabel.text = "";
@@ -126,13 +144,22 @@ public class BattleSkillUnit
         Root.style.borderRightColor = Color.gray;
     }
 
-    private static string GetSkillName(int skillId)
+    /// <summary>按技能 id 取配置（带缓存，避免每帧线性扫描 SkillInfoList）。</summary>
+    private SkillInfo GetInfo(int skillId)
     {
-        if (Tool.InfoManager != null)
+        if (skillId != cachedSkillId)
         {
-            var info = Tool.InfoManager.GetSkillInfo(skillId);
-            if (info != null && !string.IsNullOrEmpty(info.skillName)) return info.skillName;
+            cachedSkillId = skillId;
+            cachedInfo = Tool.InfoManager != null ? Tool.InfoManager.GetSkillInfo(skillId) : null;
         }
-        return $"技能{skillId}";
+        return cachedInfo;
+    }
+
+    /// <summary>应用技能图标（SkillInfo.icon；未配置则隐藏该元素）。</summary>
+    private void ApplyIcon(SkillInfo info)
+    {
+        var icon = info != null ? info.icon : null;
+        if (iconImage.sprite != icon) iconImage.sprite = icon;
+        iconImage.style.display = icon != null ? DisplayStyle.Flex : DisplayStyle.None;
     }
 }

@@ -34,8 +34,11 @@ namespace Ros.Skill
         /// <summary>是否远程/施法类（决定右键是否可触发）。</summary>
         public virtual bool Ranged => true;
 
-        /// <summary>是否有武器显示（悬浮武器）。</summary>
-        public virtual bool HasWeaponDisplay => false;
+        /// <summary>
+        /// 技能对应的武器（悬浮武器模型）：类别 + 该类别列表中的下标。
+        /// <see cref="WeaponRef.IsValid"/> == 是否有武器显示；防守方主动技能/大招与被动均为 <see cref="WeaponRef.None"/>。
+        /// </summary>
+        public virtual WeaponRef Weapon => WeaponRef.None;
 
         /// <summary>释放动作（0=None，无施法动作弹幕可配置为 None 由武器直接发射）。</summary>
         public virtual EntityAnim.AttackType CastAnim => 0;

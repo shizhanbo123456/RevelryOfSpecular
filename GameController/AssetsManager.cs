@@ -50,7 +50,7 @@ public class AssetsManager : MonoBehaviour
     #region 武器（悬浮武器模型，SelectedWeaponPrefabCreator 生成到 Assets/Files/Prefabs/Weapons）
     /// <summary>近战武器（刀，11 把）。</summary>
     public List<GameObject> MeleeWeaponPrefabs = new();
-    /// <summary>长枪（7 把）。</summary>
+    /// <summary>长枪（8 把）。</summary>
     public List<GameObject> SpearWeaponPrefabs = new();
     /// <summary>枪械（15 把）。</summary>
     public List<GameObject> GunWeaponPrefabs = new();
@@ -85,8 +85,8 @@ public class AssetsManager : MonoBehaviour
                 if (BeaconGraphics.Count > 0) graphic = BeaconGraphics[type.value < Config.outer_beacon_count ? 0 : (BeaconGraphics.Count > 1 ? 1 : 0)];
                 break;
             case EntityCategory.Crystal:
-                // 下标 = 水晶类型（0~3 对应刀/长枪/枪械/魔法球）；越界时取末位兜底
-                if (CrystalGraphics.Count > 0) graphic = CrystalGraphics[Mathf.Clamp(type.value, 0, CrystalGraphics.Count - 1)];
+                // 下标 = 水晶外观下标（0~11）；k/k+4/k+8 为一类，类别 = 下标 % 4；配置不足时取模循环
+                if (CrystalGraphics.Count > 0) graphic = CrystalGraphics[Mathf.Max(0, type.value) % CrystalGraphics.Count];
                 break;
             case EntityCategory.Tower:
                 // 4 种外观按实例编号选用（Config.tower_count = 4）；配置不足时取模循环
@@ -95,5 +95,28 @@ public class AssetsManager : MonoBehaviour
             case EntityCategory.PlagueTree: graphic = PlagueTreeGraphic; break;
         }
         return graphic != null;
+    }
+
+    /// <summary>
+    /// 按技能声明的武器引用取悬浮武器预制体（客户端表现）。
+    /// 类别 → 对应的武器列表，下标 → 列表内位置；越界或无效返回 false。
+    /// </summary>
+    public bool TryGetWeaponPrefab(WeaponRef weapon, out GameObject prefab)
+    {
+        prefab = null;
+        if (!weapon.IsValid) return false;
+        switch (weapon.category)
+        {
+            case WeaponCategory.Knife:    prefab = WeaponAt(MeleeWeaponPrefabs, weapon.index); break;
+            case WeaponCategory.Spear:    prefab = WeaponAt(SpearWeaponPrefabs, weapon.index); break;
+            case WeaponCategory.Gun:      prefab = WeaponAt(GunWeaponPrefabs, weapon.index); break;
+            case WeaponCategory.MagicOrb: prefab = WeaponAt(MagicOrbPrefabs, weapon.index); break;
+        }
+        return prefab != null;
+    }
+
+    private static GameObject WeaponAt(List<GameObject> list, int index)
+    {
+        return list != null && index >= 0 && index < list.Count ? list[index] : null;
     }
 }

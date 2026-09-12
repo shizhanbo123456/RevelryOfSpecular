@@ -20,8 +20,8 @@ public class InfoManager : MonoBehaviour
     public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
     /// <summary>防守方角色（6 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
-    /// <summary>普通僵尸属性（全场共用 1 份；21 种为外观变体，强弱由「僵尸刷新等级」驱动，见策划案 10.3/二十章）。</summary>
-    public List<EntityAttributeInfo> ZombieInfoList = new();
+    /// <summary>普通僵尸属性（全场共用 1 份；21 种只是外观变体，强弱由「僵尸刷新等级」驱动，见策划案 10.3/二十章）。</summary>
+    public EntityAttributeInfo ZombieInfo;
     /// <summary>精英僵尸属性（14 份，对应 14 个素材模型，按 type.value 索引，由技能召唤产生）。</summary>
     public List<EntityAttributeInfo> EliteZombieInfoList = new();
     /// <summary>守护点属性（外围信标）。</summary>
@@ -52,14 +52,16 @@ public class InfoManager : MonoBehaviour
     }
     #endregion
 
-    #region 服务器实体模板（只含组件，无图形）
+    #region 服务器实体模板（只含组件，无图形；下标语义与 AssetsManager 的图形列表保持一致）
     public List<GameObject> AttackCharacterTemplates = new();
     public List<GameObject> DefenseCharacterTemplates = new();
     public List<GameObject> ZombieTemplates = new();
     public List<GameObject> EliteZombieTemplates = new();
     public List<GameObject> BeaconTemplates = new();
-    public GameObject CrystalTemplate;
-    public GameObject TowerTemplate;
+    /// <summary>水晶模板：按类别配 4 项即可（对应 4 类武器，见 Config.crystal_type_count）；取用时按 下标 % Count 归到类别（与 AssetsManager.CrystalGraphics 一致）。</summary>
+    public List<GameObject> CrystalTemplates = new();
+    /// <summary>防御塔模板（瘟疫孢子）：4 种外观，按塔实例编号取模选用（与 AssetsManager.TowerGraphics 一致）。</summary>
+    public List<GameObject> TowerTemplates = new();
     public GameObject PlagueTreeTemplate;
 
     /// <summary>按实体类型取服务器模板（TODO：各分类模板配置后生效）。</summary>
@@ -83,8 +85,13 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Beacon:
                 if (BeaconTemplates.Count > 0) template = BeaconTemplates[type.value < Config.outer_beacon_count ? 0 : (BeaconTemplates.Count > 1 ? 1 : 0)];
                 break;
-            case EntityCategory.Crystal: template = CrystalTemplate; break;
-            case EntityCategory.Tower: template = TowerTemplate; break;
+            case EntityCategory.Crystal:
+                // 下标 = 水晶外观下标；配 4 项时取模即按类别，配 12 项时即按外观（与 AssetsManager.TryGetGraphic 一致）
+                if (CrystalTemplates.Count > 0) template = CrystalTemplates[Mathf.Max(0, type.value) % CrystalTemplates.Count];
+                break;
+            case EntityCategory.Tower:
+                if (TowerTemplates.Count > 0) template = TowerTemplates[type.value % TowerTemplates.Count];
+                break;
             case EntityCategory.PlagueTree: template = PlagueTreeTemplate; break;
         }
         return template != null;
@@ -137,9 +144,7 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Character_Defense:
                 if (type.value >= 0 && type.value < DefenseCharacterInfoList.Count) return DefenseCharacterInfoList[type.value];
                 break;
-            case EntityCategory.Zombie:
-                if (ZombieInfoList.Count > 0) return ZombieInfoList[type.value % ZombieInfoList.Count];
-                break;
+            case EntityCategory.Zombie: return ZombieInfo;
             case EntityCategory.EliteZombie:
                 if (EliteZombieInfoList.Count > 0) return EliteZombieInfoList[type.value % EliteZombieInfoList.Count];
                 break;

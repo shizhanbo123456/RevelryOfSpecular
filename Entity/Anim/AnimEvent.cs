@@ -1,34 +1,33 @@
 using UnityEngine;
 
 /// <summary>
-/// 状态机事件脚本（挂在 Animator 状态上，每个状态一个实例；运行时实例按 Animator 独立，互不串扰）。
-/// animId 在 Init 时由 EntityAnim 按控制器资产顺序自动分配（双端同资产 → 同顺序 → 同编号），无需手动配置；
-/// state（状态大类）仍需在 Inspector 逐状态配置（驱动 CurrentState / 霸体换算等逻辑）。
-/// 进入状态（进入过渡的第一帧）时推送回 EntityAnim，状态追踪为纯推送制；
-/// 子类可继续叠加帧事件逻辑（范例：AnimAttackEvent 的攻击帧触发）。
+/// 状态机事件脚本（挂在 Animator 状态上，每状态一个实例）。
+/// state 需在 Inspector 逐状态配置；子类可叠加帧事件（见 AnimAttackEvent）。
 /// </summary>
 public class AnimEvent : StateMachineBehaviour
 {
     [SerializeField] private EntityAnim.AnimState state = EntityAnim.AnimState.Motion;
     public EntityAnim.AnimState State => state;
+    /// <summary>用于传递给客户端识别动画片段</summary>
     public int AnimId { get; private set; } = -1;
 
     protected EntityAnim anim;
     protected EntityData data;
     protected bool initialized = false;
 
-    public void Init(EntityAnim anim, EntityData data, int animId)
+    public void Init(EntityAnim anim, EntityData data)
     {
         this.anim = anim;
         this.data = data;
-        AnimId = animId;
         initialized = true;
     }
 
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateEnter(animator, stateInfo, layerIndex);
-        // Init 前状态机可能已开始评估，未初始化时忽略（首次进入由默认值兜底）
-        if (initialized) anim.NotifyStateEnter(AnimId, state);
+        if (!initialized) return; // Init 前状态机可能已评估，忽略
+        AnimId = stateInfo.fullPathHash; // 状态 hash，两端一致
+        anim.RegisterAnimEvent(this);
+        anim.NotifyStateEnter(AnimId, state);
     }
 }

@@ -36,7 +36,7 @@ namespace Ros.Skill
     {
         public override int Id => 999;
         public override bool Ranged => true;
-        public override bool HasWeaponDisplay => true;
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 0); // 示例技能：一把枪械（正式技能按需声明）
         public override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
 
         private const int ShotCount = 3;

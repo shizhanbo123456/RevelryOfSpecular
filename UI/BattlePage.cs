@@ -9,7 +9,8 @@ using UnityEngine.UIElements;
 /// </summary>
 public class BattlePage : PageBase
 {
-    private static readonly string[] PhaseNames = { "白天", "黄昏", "夜晚", "黎明" };
+    private const string DayName = "白天";
+    private const string NightName = "晚上";
 
     private readonly List<BattleSkillUnit> skillSlots = new();
     private readonly Dictionary<ushort, BeaconBarUnit> beaconBars = new();
@@ -45,7 +46,7 @@ public class BattlePage : PageBase
             }
         };
         timeLabel = new Label("15:00") { style = { color = Color.white, fontSize = 22, unityFontStyleAndWeight = FontStyle.Bold, marginRight = 24 } };
-        phaseLabel = new Label("白天") { style = { color = new Color(1f, 0.9f, 0.4f, 1f), fontSize = 18, marginRight = 24 } };
+        phaseLabel = new Label(DayName) { style = { color = new Color(1f, 0.9f, 0.4f, 1f), fontSize = 18, marginRight = 24 } };
         attackScoreLabel = new Label("拆塔 0") { style = { color = new Color(1f, 0.5f, 0.4f, 1f), fontSize = 18, marginRight = 16 } };
         defenseScoreLabel = new Label("防守 0") { style = { color = new Color(0.4f, 0.8f, 1f, 1f), fontSize = 18 } };
         topBar.Add(timeLabel);
@@ -174,10 +175,7 @@ public class BattlePage : PageBase
         battleStartTime = Time.time;
         expSettled = false;
         if (settlePanel != null) settlePanel.style.display = DisplayStyle.None; // 新对局隐藏结算面板
-        if (NetworkManager.battleInfo != null)
-        {
-            phaseLabel.text = PhaseNames[Mathf.Clamp(NetworkManager.battleInfo.dayNightPhase, 0, PhaseNames.Length - 1)];
-        }
+        RefreshDayNightLabel();
     }
 
     public override void OnDisable()
@@ -208,6 +206,8 @@ public class BattlePage : PageBase
             float remain = Config.battle_duration - (Time.time - battleStartTime);
             timeLabel.text = FormatTime(Mathf.Max(0f, remain));
         }
+        // 昼夜显示（两态 + 归一化时间百分比）
+        RefreshDayNightLabel();
     }
 
     #region 事件处理
@@ -352,14 +352,21 @@ public class BattlePage : PageBase
         ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.6f, 0.2f, 1f));
     }
 
-    /// <summary>昼夜阶段变化（EnvironmentManager 权威同步/推演触发）。</summary>
-    private void OnDayNightChange(int phase)
+    /// <summary>昼夜状态变化（EnvironmentManager 权威同步/推演触发；1 = 白天，0 = 晚上）。</summary>
+    private void OnDayNightChange(int state)
     {
-        if (phaseLabel != null) phaseLabel.text = PhaseNames[Mathf.Clamp(phase, 0, PhaseNames.Length - 1)];
+        RefreshDayNightLabel();
     }
     #endregion
 
     #region//Local
+    /// <summary>刷新顶栏昼夜显示：「白天/晚上 + 归一化时间百分比」（t = 1 正午 / 0 午夜）。</summary>
+    private void RefreshDayNightLabel()
+    {
+        if (phaseLabel == null) return;
+        phaseLabel.text = $"{(EnvironmentManager.IsDay ? DayName : NightName)} {Mathf.RoundToInt(EnvironmentManager.Time01 * 100f)}%";
+    }
+
     private void ShowFloating(string text, Color color)
     {
         if (floatingPanel == null) return;
