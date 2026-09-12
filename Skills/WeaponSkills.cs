@@ -96,15 +96,10 @@ namespace Ros.Skill
                 weaponExp: entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0);
         }
 
-        /// <summary>远程发射点：有武器时从悬浮武器处发射（与客户端显示同一挂点），否则用通用发射点。</summary>
+        /// <summary>远程发射点：有武器时从悬浮武器处发射（与客户端显示同一偏移），否则用通用发射点。</summary>
         protected Vector3 GetShootPos(EntityData entity)
         {
-            if (Weapon.IsValid)
-            {
-                var mount = entity.GetComponentInChildren<EntityAnim>()?.GetHandMount(false);
-                if (mount != null) return mount.position;
-            }
-            return entity.BulletShootPos();
+            return Weapon.IsValid ? entity.GetWeaponFloatPos() : entity.BulletShootPos();
         }
 
         /// <summary>按角色持有的武器下标取特效（发数多于特效数时复用最后一个）。</summary>

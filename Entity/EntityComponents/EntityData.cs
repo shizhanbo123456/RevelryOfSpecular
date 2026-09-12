@@ -266,7 +266,10 @@ public abstract class EntityData : MonoBehaviour
         return info;
     }
 
-    /// <summary>子弹发射位置（碰撞体从底部往上 75% 处）。</summary>
+    /// <summary>悬浮武器位置（有武器的远程技能从此处发射；与客户端显示共用 Config.weapon_float_offset）。</summary>
+    public Vector3 GetWeaponFloatPos() => transform.TransformPoint(Config.weapon_float_offset);
+
+    /// <summary>通用子弹发射位置（碰撞体从底部往上 75% 处；无武器单位用）。</summary>
     public Vector3 BulletShootPos()
     {
         Bounds bounds = GetComponentInChildren<Collider>().bounds;

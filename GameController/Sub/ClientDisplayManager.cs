@@ -23,8 +23,10 @@ public class ClientDisplayManager : MonoBehaviour
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
-        /// <summary>当前已挂载的悬浮武器预制体（避免每次同步都销毁重建；由服务器下发的手持武器决定）。</summary>
-        public GameObject heldWeapon;
+        /// <summary>当前悬浮武器引用（服务器下发；用于变化检测）。</summary>
+        public WeaponRef heldWeapon;
+        /// <summary>当前悬浮武器实例（挂在实体根物体的身侧偏移处）。</summary>
+        public GameObject heldWeaponObj;
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -218,18 +220,21 @@ public class ClientDisplayManager : MonoBehaviour
         return view;
     }
 
-    /// <summary>按服务器下发的武器引用挂悬浮武器（无效武器 = 空手）</summary>
-    private static void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
+    /// <summary>按服务器下发的武器引用显示悬浮武器（无效武器 = 不显示）</summary>
+    private void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
     {
-        if (view == null || view.anim == null) return;
-        GameObject prefab = null;
-        if (Tool.AssetsManager != null)
-        {
-            Tool.AssetsManager.TryGetWeaponPrefab(new WeaponRef((WeaponCategory)weaponCategory, weaponIndex), out prefab);
-        }
-        if (view.heldWeapon == prefab) return;
-        view.heldWeapon = prefab;
-        view.anim.SetHeldObject(prefab);
+        var weapon = new WeaponRef((WeaponCategory)weaponCategory, weaponIndex);
+        if (view.heldWeapon == weapon) return;
+        view.heldWeapon = weapon;
+        if (view.heldWeaponObj != null) Destroy(view.heldWeaponObj);
+        view.heldWeaponObj = null;
+        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return;
+
+        // 悬浮武器挂在实体根物体的身侧偏移处：任何实体通用，不依赖 EntityAnim / 手部挂点
+        var obj = Instantiate(prefab, view.transform);
+        obj.transform.localPosition = Config.weapon_float_offset;
+        obj.transform.localRotation = Quaternion.identity;
+        view.heldWeaponObj = obj;
     }
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)

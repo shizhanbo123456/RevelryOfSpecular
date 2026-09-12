@@ -257,5 +257,8 @@ public static class Config
 
     /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
+
+    /// <summary>悬浮武器相对实体根物体的本地偏移（身侧）：客户端显示与服务器发射点共用，任何实体通用。</summary>
+    public static readonly Vector3 weapon_float_offset = new Vector3(0.45f, 1.1f, 0f);
     #endregion
 }
