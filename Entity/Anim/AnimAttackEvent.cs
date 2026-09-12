@@ -16,9 +16,9 @@ public class AnimAttackEvent : AnimEvent
         canTrigAttack = true;
         canTrigAttack2 = true;
     }
-    public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
+    public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        base.OnStateExit(animator, stateInfo, layerIndex);
+        base.OnStateUpdate(animator, stateInfo, layerIndex);
         if (canTrigAttack && stateInfo.normalizedTime > threshold)
         {
             canTrigAttack = false;
