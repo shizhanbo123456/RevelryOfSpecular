@@ -46,7 +46,7 @@ public class NoticeUnit
         label.text = msg;
         root.style.display = DisplayStyle.Flex;
         runner.StopAll();
-        runner.Start(Hide(duration));
+        runner.Run(Hide(duration));
     }
 
     private IEnumerator Hide(float duration)
@@ -71,7 +71,8 @@ public class NoticeUnit
             gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
 
-        public void Start(IEnumerator routine) => StartCoroutine(routine);
+        //不能叫 Start：带参的 Start 会触发 Unity 报错 Start() can not take parameters
+        public void Run(IEnumerator routine) => StartCoroutine(routine);
         public void StopAll() => StopAllCoroutines();
     }
 }
