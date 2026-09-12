@@ -27,8 +27,26 @@ namespace Ros.Skill
         public override float CD => cd;
         public override int Store => store;
         public override WeaponRef Weapon => weapon;
-        public override void DoDamageActs(EntityData entity, Vector3 dest) { } // TODO: 待实现
-        public override void PlayVFX(TrajectoryContext context) { } // TODO: 待实现
+        /// <summary>
+        /// 释放效果：先把实际施法挂到动画攻击帧回调，再播放施法动作；动画播到攻击帧时执行 Execute。
+        /// 无动画的单位（防御塔等非人形）与无施法动作的技能（CastAnim = None）直接执行。
+        /// </summary>
+        public override void DoDamageActs(EntityData entity, Vector3 dest)
+        {
+            var anim = entity.GetComponentInChildren<EntityAnim>();
+            if (anim == null || CastAnim == EntityAnim.AttackType.None)
+            {
+                Execute(entity, dest);
+                return;
+            }
+            anim.onAttack = _ => Execute(entity, dest);
+            anim.DoAttack(CastAnim);
+        }
+
+        /// <summary>技能的实际效果（动画攻击帧触发；非人形单位或无施法动作时立即执行）。</summary>
+        protected virtual void Execute(EntityData entity, Vector3 dest) { } // TODO: 各技能逐个实现
+
+        public override void PlayVFX(TrajectoryContext context) { } // TODO: 各技能逐个实现
     }
 
     /// <summary>武器技能池注册（49 件，id 见策划案第二十一章）。</summary>

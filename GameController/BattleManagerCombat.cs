@@ -67,8 +67,14 @@ public partial class BattleManager
                 if (weak != null) weak.GetComponentInChildren<EntityAnim>()?.EndSlide();
             });
         }
-        // 空手/近战攻击：静止 = 跃起砸地，移动 = 出拳（策划案 12 章）
-        if ((action.pressed & PlayerKey.J) != 0) DoMelee(entity, moving);
+        // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
+        if ((action.pressed & PlayerKey.J) != 0)
+        {
+            int meleeSkill = moving
+                ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
+                : Config.unarmed_attack_smash;
+            entity.skillController.TryUseSkill(meleeSkill, GetAimPoint(entity));
+        }
 
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
         for (int i = 0; i < Config.skill_slot_player_keys.Length; i++)
@@ -104,35 +110,6 @@ public partial class BattleManager
         return forward.sqrMagnitude > 0.001f
             ? entity.transform.position + forward.normalized * 10f
             : entity.transform.position;
-    }
-
-    /// <summary>空手/近战攻击：播放攻击动作，前摇结束后以手部骨骼为圆心结算（AttackData 共用链路）。</summary>
-    private void DoMelee(EntityData entity, bool moving)
-    {
-        entity.GetComponentInChildren<EntityAnim>()?.DoAttack(
-            moving ? EntityAnim.AttackType.Attack_Hand_R : EntityAnim.AttackType.Jump_Mega);
-
-        var attack = AttackData.Create(entity, rate: 1f, radius: Config.melee_hit_radius,
-            breakEndure: false, useMagic: false);
-        GenericTimer.AddTimer((entity, attack), Config.weapon_short_windup, p =>
-        {
-            MeleeHit(p.Item1, p.Item2);
-        });
-    }
-
-    /// <summary>近战结算：手部骨骼为圆心、半径 melee_hit_radius 内的全部敌方（打不到同阵营；中立单位如水晶可被打）。</summary>
-    private void MeleeHit(EntityData attacker, AttackData attack)
-    {
-        if (attacker == null || !attacker.Alive) return;
-        Vector3 hand = attacker.GetComponentInChildren<EntityAnim>().GetHandMount(false).position;
-        int count = Physics.OverlapSphereNonAlloc(hand, Config.melee_hit_radius, s_hitBuffer, EntityMask);
-        for (int i = 0; i < count; i++)
-        {
-            var target = s_hitBuffer[i].GetComponentInParent<EntityData>();
-            if (target == null || !target.Alive) continue; // 过滤非实体的碰撞体
-            if (target.id == attacker.id || target.camp == attacker.camp) continue;
-            target.ProcessHit(attack, attack.GetDamage());
-        }
     }
 
     /// <summary>
@@ -182,10 +159,7 @@ public partial class BattleManager
 
     #region 子弹容器（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)，不做增量移动）
     private readonly List<Bullet> activeBullets = new();
-    private static readonly Collider[] s_hitBuffer = new Collider[32];
-
-    /// <summary>实体层掩码（层号由 InfoManager 配置）。</summary>
-    private static int EntityMask => 1 << Tool.InfoManager.entity_layer;
+    private static readonly EntityData[] s_bulletBuffer = new EntityData[16];
 
     /// <summary>登记子弹（ShootBullet 调用）。</summary>
     private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime)
@@ -222,11 +196,11 @@ public partial class BattleManager
     private void TryHitBullet(Bullet b, Vector3 pos)
     {
         var attack = b.attack;
-        int count = Physics.OverlapCapsuleNonAlloc(b.LastPosition, pos, attack.radius, s_hitBuffer, EntityMask);
+        int count = EntityPhysics.OverlapCapsule(b.LastPosition, pos, attack.radius, s_bulletBuffer);
         for (int i = 0; i < count; i++)
         {
-            var e = s_hitBuffer[i].GetComponentInParent<EntityData>();
-            if (e == null || !e.Alive) continue; // 过滤非实体的碰撞体
+            var e = s_bulletBuffer[i];
+            if (!e.Alive) continue;
             if (e.id == attack.shooter || e.camp == attack.shooterCamp) continue;
             if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
 

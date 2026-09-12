@@ -188,8 +188,16 @@ public static class Config
     public const int entity_id_max = 30000;
     /// <summary>服务器权威移动速度（米/秒，暂定；客户端移动由动画状态机根运动表现，见策划案 10 章）。</summary>
     public const float base_move_speed = 5f;
-    /// <summary>空手/近战判定球半径（米；球心为攻击者手部骨骼）。</summary>
+    /// <summary>空手攻击判定球半径（米；球心为拳击手部骨骼 / 砸击用角色位置）。</summary>
     public const float melee_hit_radius = 0.7f;
+    /// <summary>空手攻击技能 CD（秒；取最小间隔，避免同帧连发与除零）。</summary>
+    public const float unarmed_skill_cd = 0.1f;
+    /// <summary>空手攻击技能 id：左手拳击（移动中随机触发）。</summary>
+    public const int unarmed_punch_left = 180;
+    /// <summary>空手攻击技能 id：右手拳击（移动中随机触发）。</summary>
+    public const int unarmed_punch_right = 181;
+    /// <summary>空手攻击技能 id：原地砸击（静止时触发）。</summary>
+    public const int unarmed_attack_smash = 182;
     /// <summary>跳跃持续时长（秒，暂定；到时落回 InAir=false）。</summary>
     public const float jump_duration = 0.6f;
     /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>

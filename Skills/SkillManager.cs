@@ -93,6 +93,7 @@ public static class SkillManager
         SkillPackageC.PackageManager.RegisterAll();
         SkillPoolWeapons.RegisterAll();   // 武器技能 0~48（占位，效果待实现）
         SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73（占位，效果待实现）
-        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位与空手攻击 100~199（占位，效果待实现）
+        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位 100~179（占位，效果待实现）
+        SkillPoolUnarmed.RegisterAll();   // 空手攻击 180~182（已实现：动画攻击帧手部/身位球判定）
     }
 }

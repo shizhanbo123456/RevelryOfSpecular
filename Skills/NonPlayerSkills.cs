@@ -1,7 +1,7 @@
 namespace Ros.Skill
 {
     /// <summary>
-    /// 非玩家单位与空手攻击技能池（id 100~199，分配见策划案 21.6）。
+    /// 非玩家单位技能池（id 100~179，分配见策划案 21.6）；空手攻击见 SkillPoolUnarmed（180~182）。
     ///
     /// 【统一技能模型】与玩家技能共用同一套 SkillBase 逻辑（store / CD / 轨迹 / 特效 / 伤害），
     /// 差异**仅在施法来源**：玩家 = 技能槽快捷键；非玩家实体 = AI 自动索敌触发。
@@ -15,9 +15,6 @@ namespace Ros.Skill
     {
         public static void RegisterAll()
         {
-            // ---- 空手攻击 100（徒手两连段 / 跃起砸地；AttackType 1/2 与 12）----
-            SkillManager.Register(new SkillUnarmedStrike());
-
             // ---- 普通僵尸 101~119（爪击右/左、嘶吼；AttackType 41/42/43）----
             SkillManager.Register(new SkillZombieClawR());
             SkillManager.Register(new SkillZombieClawL());
@@ -67,11 +64,6 @@ namespace Ros.Skill
         /// <summary>释放动作 = 该攻击对应的 AttackType。</summary>
         public override EntityAnim.AttackType CastAnim => castAnim;
     }
-
-    #region 空手攻击（id 100）
-    /// <summary>空手攻击（id 100）：与玩家 J 键空手攻击同源 —— 移动时 = 出拳两连段，静止时 = 跃起砸地（AttackType 12）。</summary>
-    public class SkillUnarmedStrike : NonPlayerMeleeStub { public SkillUnarmedStrike() : base(100, 0.8f, -1, EntityAnim.AttackType.Attack_Hand_R) { } }
-    #endregion
 
     #region 普通僵尸（id 101~119）
     /// <summary>僵尸爪击·右（id 101）。</summary>
