@@ -23,7 +23,7 @@ public class ClientDisplayManager : MonoBehaviour
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
-        /// <summary>当前已挂载的悬浮武器预制体（避免每次同步都销毁重建；由服务器下发的 castSkillId 决定）。</summary>
+        /// <summary>当前已挂载的悬浮武器预制体（避免每次同步都销毁重建；由服务器下发的手持武器决定）。</summary>
         public GameObject heldWeapon;
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
@@ -218,15 +218,14 @@ public class ClientDisplayManager : MonoBehaviour
         return view;
     }
 
-    /// <summary>按 castSkillId 挂悬浮武器（&lt;0 或技能无武器 = 空手）</summary>
-    private static void ApplyHeldWeapon(ClientEntityView view, int castSkillId)
+    /// <summary>按服务器下发的武器引用挂悬浮武器（无效武器 = 空手）</summary>
+    private static void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
     {
         if (view == null || view.anim == null) return;
         GameObject prefab = null;
-        if (castSkillId >= 0 && Tool.AssetsManager != null
-            && SkillManager.TryGet(castSkillId, out var skill))
+        if (Tool.AssetsManager != null)
         {
-            Tool.AssetsManager.TryGetWeaponPrefab(skill.Weapon, out prefab);
+            Tool.AssetsManager.TryGetWeaponPrefab(new WeaponRef((WeaponCategory)weaponCategory, weaponIndex), out prefab);
         }
         if (view.heldWeapon == prefab) return;
         view.heldWeapon = prefab;
@@ -238,7 +237,7 @@ public class ClientDisplayManager : MonoBehaviour
         view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
-        ApplyHeldWeapon(view, info.castSkillId); // 悬浮武器按 castSkillId 驱动
+        ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 悬浮武器完全按服务器下发
 
         // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续
         if (view.animator != null && info.animId > 0 && info.animId != view.animHash)

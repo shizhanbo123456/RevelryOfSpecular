@@ -42,6 +42,9 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>位移效果产出的当前速度（服务器权威移动逻辑中消费；无位移效果时为零）。</summary>
     [HideInInspector] public Vector3 motionVelocity;
 
+    /// <summary>当前手持武器（服务器权威）：释放技能时赋值，攻击动作结束清空；随实体摘要同步给客户端。</summary>
+    [HideInInspector] public WeaponRef heldWeapon = WeaponRef.None;
+
     /// <summary>最近一次伤害来源（水晶掉武器归属判定等；死亡时保留供结算读取）。</summary>
     [HideInInspector] public EntityData lastAttacker;
 
@@ -103,7 +106,6 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnUpdate()
     {
         effectController?.OnUpdate();
-        skillController?.OnUpdate();
         UpdateMotion();
     }
 
@@ -249,6 +251,8 @@ public abstract class EntityData : MonoBehaviour
             yaw = transform.eulerAngles.y,
             health = floatingAttribute != null ? (int)floatingAttribute.health : 0,
             maxHealth = floatingAttribute != null ? (int)floatingAttribute.maxHealth : 0,
+            weaponCategory = (int)heldWeapon.category,
+            weaponIndex = heldWeapon.index,
         };
         var anim = GetComponentInChildren<EntityAnim>();
         if (anim != null)

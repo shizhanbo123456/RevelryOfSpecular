@@ -30,6 +30,11 @@ public class AnimAttackEvent : AnimEvent
             OnAttack();
         }
     }
+    public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
+    {
+        base.OnStateExit(animator, stateInfo, layerIndex);
+        if (data != null) data.heldWeapon = WeaponRef.None; //攻击动作结束切回空手
+    }
     private void OnAttack()
     {
         anim.onAttack?.Invoke(type);

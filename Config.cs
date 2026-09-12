@@ -255,8 +255,6 @@ public static class Config
             : new List<int>();
     }
 
-    /// <summary>主动技能释放后手持武器（悬浮武器模型）的持续时长（秒）：到期切回空手；攻击动画结束也会立即清除。</summary>
-    public const float weapon_display_duration = 1.2f;
     /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
     #endregion

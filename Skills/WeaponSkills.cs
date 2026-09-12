@@ -39,6 +39,7 @@ namespace Ros.Skill
                 Execute(entity, dest);
                 return;
             }
+            SetHeldWeapon(entity, Weapon); // 释放技能时赋值手持武器（攻击动作结束由 AnimAttackEvent 清空）
             anim.onAttack = _ => Execute(entity, dest);
             anim.DoAttack(CastAnim);
         }
@@ -185,6 +186,7 @@ namespace Ros.Skill
 
         protected override void Execute(EntityData entity, Vector3 dest)
         {
+            if (vfxKind == SkillVfxKind.Weapon) ClearHeldWeapon(entity); // 武器作弹体：已离手
             var context = new TrajectoryContext();
             Vector3 origin = entity.BulletShootPos();
             Vector3[] dests = BuildDests(entity, origin, dest);
