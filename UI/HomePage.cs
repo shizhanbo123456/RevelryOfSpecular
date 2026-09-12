@@ -61,11 +61,21 @@ public class HomePage : PageBase
         // 底部：连接服务器（成功后进入组队大厅）
         var bottomRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 16, alignItems = Align.Center } };
         bottomRow.Add(new Label("服务器 IP（空=本机）") { style = { color = Color.white, marginRight = 10 } });
-        ipField = new TextField { value = "", style = { width = 260, marginRight = 16 } };
-        //输入框配色显式指定，避免主题色与深色背景撞色导致文字不可见
+        ipField = new TextField { value = "", style = { width = 260, height = 36, marginRight = 16 } };
+        //输入框的尺寸与配色全部显式指定，不依赖主题（否则文字可能不可见）
         ipField.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
+        ipField.style.paddingLeft = 8;
+        ipField.style.paddingRight = 8;
+        var ipBorder = new Color(0.45f, 0.45f, 0.5f, 1f);
+        ipField.style.borderLeftWidth = ipField.style.borderRightWidth = ipField.style.borderTopWidth = ipField.style.borderBottomWidth = 1f;
+        ipField.style.borderLeftColor = ipField.style.borderRightColor = ipField.style.borderTopColor = ipField.style.borderBottomColor = ipBorder;
         var ipInput = ipField.Q("unity-text-input") ?? ipField.Q<TextElement>();
-        if (ipInput != null) ipInput.style.color = Color.white;
+        if (ipInput != null)
+        {
+            ipInput.style.color = Color.white;
+            ipInput.style.fontSize = 16;
+            ipInput.style.flexGrow = 1;
+        }
         bottomRow.Add(ipField);
         connectButton = new Button(OnConnectClicked) { text = "连接服务器", style = { width = 160, height = 44, fontSize = 18 } };
         bottomRow.Add(connectButton);
