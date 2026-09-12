@@ -7,7 +7,7 @@ namespace Ros.Transport
     /// </summary>
     public class SCBattleEvent
     {
-        /// <summary>事件类型常量。</summary>
+        /// <summary>事件类型常量表（本类的嵌套类，与 System.Type 无关；引用形如 SCBattleEvent.Type.Kill）。</summary>
         public static class Type
         {
             public const byte Kill = 0;
