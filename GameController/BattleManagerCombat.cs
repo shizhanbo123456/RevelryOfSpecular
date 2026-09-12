@@ -197,10 +197,11 @@ public partial class BattleManager
             trajectory = trajectory,
             lifeTime = lifeTime,
             spawnTime = Time.time,
+            hitIds = new HashSet<ushort>(),
         });
     }
 
-    /// <summary>子弹推进：按时间戳算位置 → 命中检测 → 伤害结算；生命到期自然消失。</summary>
+    /// <summary>子弹推进：按时间戳算位置 → 命中检测 → 伤害结算；命中不消失，只在生命到期时移除。</summary>
     private void TickBullets()
     {
         float now = Time.time;
@@ -213,40 +214,29 @@ public partial class BattleManager
                 activeBullets.RemoveAt(i);
                 continue;
             }
-            Vector3 pos = b.trajectory.Lerp(t / b.lifeTime);
-            if (TryHitBullet(b, pos))
-            {
-                activeBullets.RemoveAt(i);
-            }
+            TryHitBullet(b, b.trajectory.Lerp(t / b.lifeTime));
         }
     }
 
-    /// <summary>命中检测：以「上一帧位置 → 当前位置」的胶囊覆盖整段路径（防高速穿模），命中最近的敌方后子弹消失。</summary>
-    private bool TryHitBullet(Bullet b, Vector3 pos)
+    /// <summary>命中检测：以「上一帧位置 → 当前位置」的胶囊覆盖整段路径（防高速穿模），路径上的敌方各结算一次后继续飞。</summary>
+    private void TryHitBullet(Bullet b, Vector3 pos)
     {
         var attack = b.attack;
         int count = Physics.OverlapCapsuleNonAlloc(b.LastPosition, pos, attack.radius, s_hitBuffer, EntityMask);
-        EntityData target = null;
-        float nearest = float.MaxValue;
         for (int i = 0; i < count; i++)
         {
             var e = s_hitBuffer[i].GetComponentInParent<EntityData>();
             if (e == null || !e.Alive) continue; // 过滤非实体的碰撞体
             if (e.id == attack.shooter || e.camp == attack.shooterCamp) continue;
-            float sqr = (e.transform.position - b.LastPosition).sqrMagnitude;
-            if (sqr >= nearest) continue;
-            nearest = sqr;
-            target = e;
-        }
-        if (target == null) return false;
+            if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
 
-        target.ProcessHit(attack, attack.GetDamage());
-        if (attack.addEffectEvent != null && target.effectController != null)
-        {
-            attack.addEffectEvent.Invoke((type, level, duration) =>
-                target.effectController.AddEffect(type, level, duration));
+            e.ProcessHit(attack, attack.GetDamage());
+            if (attack.addEffectEvent != null && e.effectController != null)
+            {
+                attack.addEffectEvent.Invoke((type, level, duration) =>
+                    e.effectController.AddEffect(type, level, duration));
+            }
         }
-        return true;
     }
     #endregion
 
