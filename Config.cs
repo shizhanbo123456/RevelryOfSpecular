@@ -188,10 +188,8 @@ public static class Config
     public const int entity_id_max = 30000;
     /// <summary>服务器权威移动速度（米/秒，暂定；客户端移动由动画状态机根运动表现，见策划案 10 章）。</summary>
     public const float base_move_speed = 5f;
-    /// <summary>空手/近战基础攻击距离（米，暂定）。</summary>
-    public const float melee_range = 2f;
-    /// <summary>空手/近战基础攻击半径（判定，暂定）。</summary>
-    public const float melee_hit_radius = 0.6f;
+    /// <summary>空手/近战判定球半径（米；球心为攻击者手部骨骼）。</summary>
+    public const float melee_hit_radius = 0.7f;
     /// <summary>跳跃持续时长（秒，暂定；到时落回 InAir=false）。</summary>
     public const float jump_duration = 0.6f;
     /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>

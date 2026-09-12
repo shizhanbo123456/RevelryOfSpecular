@@ -106,7 +106,7 @@ public partial class BattleManager
             : entity.transform.position;
     }
 
-    /// <summary>空手/近战攻击：播放攻击动作，前摇结束后对面前锥形内最近敌人结算（AttackData 共用链路）。</summary>
+    /// <summary>空手/近战攻击：播放攻击动作，前摇结束后以手部骨骼为圆心结算（AttackData 共用链路）。</summary>
     private void DoMelee(EntityData entity, bool moving)
     {
         entity.GetComponentInChildren<EntityAnim>()?.DoAttack(
@@ -114,25 +114,25 @@ public partial class BattleManager
 
         var attack = AttackData.Create(entity, rate: 1f, radius: Config.melee_hit_radius,
             breakEndure: false, useMagic: false);
-        Vector3 origin = entity.transform.position;
-        Vector3 forward = entity.transform.forward;
-        GenericTimer.AddTimer((entity, origin, forward), Config.weapon_short_windup, p =>
+        GenericTimer.AddTimer((entity, attack), Config.weapon_short_windup, p =>
         {
-            MeleeHit(p.Item1, p.Item2, p.Item3, attack);
+            MeleeHit(p.Item1, p.Item2);
         });
     }
 
-    /// <summary>近战结算：正面锥形内最近敌方（打不到同阵营；中立单位如水晶可被打）。</summary>
-    private void MeleeHit(EntityData attacker, Vector3 origin, Vector3 forward, AttackData attack)
+    /// <summary>近战结算：手部骨骼为圆心、半径 melee_hit_radius 内的全部敌方（打不到同阵营；中立单位如水晶可被打）。</summary>
+    private void MeleeHit(EntityData attacker, AttackData attack)
     {
         if (attacker == null || !attacker.Alive) return;
-        var target = EntityContainer.GetNearestEnemy(attacker, Config.melee_range + attacker.colliderInfo.radius);
-        if (target == null) return;
-        Vector3 to = target.transform.position - origin;
-        to.y = 0f;
-        if (to.magnitude > Config.melee_range + target.colliderInfo.radius) return;
-        if (Vector3.Dot(to.normalized, forward) < 0.2f) return; // 需在正面锥形内
-        target.ProcessHit(attack, attack.GetDamage());
+        Vector3 hand = attacker.GetComponentInChildren<EntityAnim>().GetHandMount(false).position;
+        int count = Physics.OverlapSphereNonAlloc(hand, Config.melee_hit_radius, s_hitBuffer, EntityMask);
+        for (int i = 0; i < count; i++)
+        {
+            var target = s_hitBuffer[i].GetComponentInParent<EntityData>();
+            if (target == null || !target.Alive) continue; // 过滤非实体的碰撞体
+            if (target.id == attacker.id || target.camp == attacker.camp) continue;
+            target.ProcessHit(attack, attack.GetDamage());
+        }
     }
 
     /// <summary>
@@ -182,7 +182,10 @@ public partial class BattleManager
 
     #region 子弹容器（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)，不做增量移动）
     private readonly List<Bullet> activeBullets = new();
-    private static readonly HashSet<int> s_bulletBuffer = new();
+    private static readonly Collider[] s_hitBuffer = new Collider[32];
+
+    /// <summary>实体层掩码（层号由 InfoManager 配置）。</summary>
+    private static int EntityMask => 1 << Tool.InfoManager.entity_layer;
 
     /// <summary>登记子弹（ShootBullet 调用）。</summary>
     private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime)
@@ -218,37 +221,32 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>命中检测：与攻击者不同阵营的实体（水晶/瘟疫树等中立单位也可被打）。</summary>
+    /// <summary>命中检测：以「上一帧位置 → 当前位置」的胶囊覆盖整段路径（防高速穿模），命中最近的敌方后子弹消失。</summary>
     private bool TryHitBullet(Bullet b, Vector3 pos)
     {
         var attack = b.attack;
-        EntityContainer.Entities.GetIdsInRange(pos, attack.radius + 2f, s_bulletBuffer);
-        bool hit = false;
-        foreach (var id in s_bulletBuffer)
+        int count = Physics.OverlapCapsuleNonAlloc(b.LastPosition, pos, attack.radius, s_hitBuffer, EntityMask);
+        EntityData target = null;
+        float nearest = float.MaxValue;
+        for (int i = 0; i < count; i++)
         {
-            if (!EntityContainer.Entities.TryGetObject(id, out var e) || e == null || !e.Alive) continue;
+            var e = s_hitBuffer[i].GetComponentInParent<EntityData>();
+            if (e == null || !e.Alive) continue; // 过滤非实体的碰撞体
             if (e.id == attack.shooter || e.camp == attack.shooterCamp) continue;
-
-            // 判定柱命中：水平距离 ≤ 弹半径 + 目标半径，且高度与判定柱相交
-            Vector3 to = e.transform.position - pos;
-            to.y = 0f;
-            float bottomY = e.transform.position.y + e.colliderInfo.bottom;
-            float topY = e.transform.position.y + e.colliderInfo.top;
-            if (pos.y < bottomY - 0.5f || pos.y > topY + 0.5f) continue;
-            if (to.magnitude > attack.radius + e.colliderInfo.radius) continue;
-
-            float damage = attack.GetDamage();
-            e.ProcessHit(attack, damage);
-            if (attack.addEffectEvent != null && e.effectController != null)
-            {
-                attack.addEffectEvent.Invoke((type, level, duration) =>
-                    e.effectController.AddEffect(type, level, duration));
-            }
-            hit = true;
-            break; // 单发子弹命中即消失
+            float sqr = (e.transform.position - b.LastPosition).sqrMagnitude;
+            if (sqr >= nearest) continue;
+            nearest = sqr;
+            target = e;
         }
-        s_bulletBuffer.Clear();
-        return hit;
+        if (target == null) return false;
+
+        target.ProcessHit(attack, attack.GetDamage());
+        if (attack.addEffectEvent != null && target.effectController != null)
+        {
+            attack.addEffectEvent.Invoke((type, level, duration) =>
+                target.effectController.AddEffect(type, level, duration));
+        }
+        return true;
     }
     #endregion
 

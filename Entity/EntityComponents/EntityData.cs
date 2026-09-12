@@ -10,14 +10,6 @@ using UnityEngine;
 /// </summary>
 public abstract class EntityData : MonoBehaviour
 {
-    [System.Serializable]
-    public struct EntityColliderInfo
-    {
-        public float bottom;
-        public float top;
-        public float radius;
-    }
-
     /// <summary>实体 id（服务器分配）。</summary>
     [HideInInspector] public ushort id;
 
@@ -41,9 +33,6 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>技能控制器。</summary>
     public EntitySkillController skillController;
-
-    /// <summary>碰撞体信息（判定柱：bottom~top，radius）。</summary>
-    public EntityColliderInfo colliderInfo;
 
     /// <summary>权威移动速度（米/秒，按 EntityAnimData.legHeight 换算；模型参数而非属性，不吃 Buff）。</summary>
     [HideInInspector] public float moveSpeed = Config.base_move_speed;
@@ -87,17 +76,11 @@ public abstract class EntityData : MonoBehaviour
         skillController = new EntitySkillController();
         skillController.Init(this);
 
-        // 预制体/模板上的共用参数（判定柱、动画类型、腿高移速）：服务端模板与客户端模型参数一致
+        // 预制体/模板上的共用参数（动画类型、腿高移速）：服务端模板与客户端模型参数一致
         var animData = GetComponent<EntityAnimData>();
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
         if (animData != null)
         {
-            colliderInfo = new EntityColliderInfo()
-            {
-                bottom = animData.Bottom,
-                top = animData.Top,
-                radius = animData.Radius,
-            };
             moveSpeed = animData.legHeight > 0f
                 ? EntityAnimData.LegHeightToStandartRunSpeed(animData.legHeight)
                 : Config.base_move_speed;
@@ -279,12 +262,11 @@ public abstract class EntityData : MonoBehaviour
         return info;
     }
 
-    /// <summary>子弹发射位置（基于碰撞体 top）。</summary>
+    /// <summary>子弹发射位置（碰撞体从底部往上 75% 处）。</summary>
     public Vector3 BulletShootPos()
     {
-        Vector3 pos = transform.position;
-        pos.y += colliderInfo.top;
-        return pos;
+        Bounds bounds = GetComponentInChildren<Collider>().bounds;
+        return new Vector3(bounds.center.x, Mathf.Lerp(bounds.min.y, bounds.max.y, 0.75f), bounds.center.z);
     }
 
     /// <summary>血条 Y 偏移（相对头顶）。</summary>
@@ -301,10 +283,4 @@ public abstract class EntityData : MonoBehaviour
         if (!KilledEntities.Contains(this)) KilledEntities.Add(this);
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position + Vector3.up * colliderInfo.bottom, colliderInfo.radius);
-        Gizmos.DrawWireSphere(transform.position + Vector3.up * colliderInfo.top, colliderInfo.radius);
-    }
 }

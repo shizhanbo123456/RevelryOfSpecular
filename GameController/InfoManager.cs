@@ -15,6 +15,9 @@ public class InfoManager : MonoBehaviour
         Tool.InfoManager = this;
     }
 
+    /// <summary>实体所在 Layer 的层号（服务器物理判定按此层筛选；须填专用层，填 0 会与地形等 Default 层混在一起）。</summary>
+    public int entity_layer;
+
     #region 角色属性配置（Info）
     /// <summary>进攻方角色（18 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> AttackCharacterInfoList = new();

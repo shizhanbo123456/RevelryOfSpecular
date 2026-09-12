@@ -182,7 +182,7 @@ public class EntityAnim : MonoBehaviour
     public void ClearHeldObject(bool leftHand = false) => SetHeldObject(null, leftHand);
 
     /// <summary>取手部挂点：优先 Inspector 配置的挂点，否则按 Humanoid 骨骼自动定位手部。</summary>
-    private Transform GetHandMount(bool leftHand)
+    public Transform GetHandMount(bool leftHand)
     {
         var configured = leftHand ? handMountL : handMountR;
         if (configured != null) return configured;

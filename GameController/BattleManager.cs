@@ -149,6 +149,13 @@ public partial class BattleManager : EnsBehaviour
     #region 实体生命周期
     private ushort nextEntityId = 1;
 
+    /// <summary>递归设置 Layer（物理判定按层筛选，子物体上的碰撞体也要改）。</summary>
+    private static void SetLayerRecursively(GameObject go, int layer)
+    {
+        go.layer = layer;
+        foreach (Transform child in go.transform) SetLayerRecursively(child.gameObject, layer);
+    }
+
     /// <summary>生成实体（服务器），返回实体 id。</summary>
     public ushort SpawnEntity(EntityType type, int level, Vector3 pos, EntityCamp camp)
     {
@@ -159,6 +166,7 @@ public partial class BattleManager : EnsBehaviour
         }
         ushort id = AllocEntityId();
         var go = Instantiate(template, pos, Quaternion.identity);
+        SetLayerRecursively(go, Tool.InfoManager.entity_layer);
         var data = go.GetComponent<EntityData>();
         if (data == null)
         {
@@ -624,6 +632,7 @@ public partial class BattleManager : EnsBehaviour
 
         // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与水晶重生
         TickMovement();
+        Physics.SyncTransforms(); //移动后同步物理世界，判定查询读到的才是本帧位置
         TickBullets();
         TickRevive();
         TickWorldRespawn();
