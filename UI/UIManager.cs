@@ -40,6 +40,15 @@ public class UIManager : MonoBehaviour
             Debug.LogError("UIManager 未配置 uiDocument，请在场景中挂载 UIDocument 并拖拽引用");
             return;
         }
+        if (uiDocument.panelSettings == null)
+        {
+            Debug.LogError("UIDocument 未配置 PanelSettings，UI 不会渲染（Create → UI Toolkit → Panel Settings）");
+            return;
+        }
+        if (uiDocument.panelSettings.themeStyleSheet == null)
+        {
+            Debug.LogWarning("PanelSettings 未配置 Theme Style Sheet，Button/TextField/Toggle 将没有外观");
+        }
         root = uiDocument.rootVisualElement;
         if (root == null)
         {
@@ -68,7 +77,10 @@ public class UIManager : MonoBehaviour
         EventManager.AddEvent<string>(ClientEvent.ShowNotice, ShowNotice);
         EventManager.AddEvent<bool>(ClientEvent.ShowLoading, ShowLoading);
 
-        ShowPage(PageType.Home);
+        //初始页面：currentPage 初值即 Home，ShowPage 会因“同页”提前返回，故直接进入
+        var home = GetPage(PageType.Home);
+        home?.OnEnable();
+        home?.Enter();
     }
 
     private void OnDestroy()
