@@ -240,9 +240,9 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     /// <summary>发送战斗事件（广播，含消息 id 飘字）。</summary>
-    public void SendBattleEvent(byte type, ushort targetId = 0, byte messageId = 0)
+    public void SendBattleEvent(byte type, byte messageId = 0)
     {
-        var e = new SCBattleEvent() { type = type, targetId = targetId, value = messageId };
+        var e = new SCBattleEvent() { type = type, value = messageId };
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
     }
 

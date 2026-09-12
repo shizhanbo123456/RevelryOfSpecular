@@ -275,16 +275,16 @@ public partial class BattleManager
                                              entity.lastAttacker.camp == EntityCamp.Attack;
             if (infectedAndBrokenByAttack)
             {
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalBroken, entity.id);
+                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalBroken);
             }
             else
             {
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected, entity.id);
+                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected);
                 TryDropCrystalWeapon(entity);
             }
             ScheduleCrystalRespawn(entity); // 蘑菇状态下的水晶被摧毁后就相当于水晶被摧毁（重生排程照常，见策划案第七章）
         }
-        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill, entity.id);
+        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill);
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
         {
@@ -328,27 +328,26 @@ public partial class BattleManager
         if (sc.GetSkillIds().Contains(weaponId))
         {
             sc.AddWeaponExp(weaponId);
-            NotifyPlayer(clientId, playerId, 15); // 武器升级
+            NotifyPlayer(clientId, 15); // 武器升级
         }
         else if (sc.GetSkillIds().Count < slotMax)
         {
             sc.AddSkill(weaponId);
-            NotifyPlayer(clientId, playerId, 14); // 获得新武器
+            NotifyPlayer(clientId, 14); // 获得新武器
         }
         else
         {
             sc.AddWeaponExpToRandom();
-            NotifyPlayer(clientId, playerId, 13); // 槽满转经验
+            NotifyPlayer(clientId, 13); // 槽满转经验
         }
     }
 
     /// <summary>给指定玩家发文字提示（飘字，走 NoticeMessageMap）。</summary>
-    private void NotifyPlayer(short clientId, ushort sourceEntityId, int messageId)
+    private void NotifyPlayer(short clientId, int messageId)
     {
         Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
         {
             type = SCBattleEvent.Type.ShowText,
-            sourceId = sourceEntityId,
             value = messageId,
         });
     }
@@ -434,7 +433,6 @@ public partial class BattleManager
             playerEntityId = entityId,
             camp = camp,
             characterType = characterType,
-            characterLevel = level,
         });
         SendReviveProgress(clientId, rs, entityId, ready: true);
     }
@@ -447,7 +445,6 @@ public partial class BattleManager
             entityId = entityId,
             progress = Mathf.Clamp01(rs.progress),
             ready = ready,
-            deadCount = rs.deathCount,
             yzStack = Config.yz_stack_by_life[Mathf.Min(rs.deathCount, Config.yz_stack_by_life.Length - 1)],
         });
     }

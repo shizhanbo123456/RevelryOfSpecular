@@ -14,8 +14,6 @@ namespace Ros.Transport
         public EntityCamp camp;
         /// <summary>所选角色类型（按阵营取 CSPlayerInfo 对应一侧）。</summary>
         public EntityType characterType;
-        /// <summary>角色等级。</summary>
-        public int characterLevel = 1;
     }
 
     /// <summary>SCBattleInfo 网络序列化器。</summary>
@@ -27,8 +25,7 @@ namespace Ros.Transport
             if (value == null) return true;
             if (!UshortSerializer.Serialize(value.playerEntityId, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
-            if (!EntityTypeSerializer.Serialize(value.characterType, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.characterLevel, result, ref indexStart);
+            return EntityTypeSerializer.Serialize(value.characterType, result, ref indexStart);
         }
 
         public static SCBattleInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -39,7 +36,6 @@ namespace Ros.Transport
                 playerEntityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 characterType = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                characterLevel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
             return info;
         }

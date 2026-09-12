@@ -31,8 +31,6 @@ namespace Ros.Transport
         public int health;
         /// <summary>最大生命。</summary>
         public int maxHealth;
-        /// <summary>当前动画状态（EntityAnim.AnimState：0Spawn 1Motion 2Attack 3Hit 4Die）。</summary>
-        public int animState;
         /// <summary>动画片段标识 = 状态的 fullPathHash（两端一致，客户端据此定位并播放）。</summary>
         public int animId;
         /// <summary>动画播放进度（归一化 0~1）。</summary>
@@ -58,8 +56,6 @@ namespace Ros.Transport
             public int type;
             /// <summary>等级/叠层。</summary>
             public int level = 1;
-            /// <summary>剩余时长（秒，&lt;0 = 永久）。</summary>
-            public float remainTime = -1f;
         }
 
         /// <summary>单个技能槽的同步数据。</summary>
@@ -95,7 +91,6 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.animState, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.animId, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.castSkillId, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
@@ -112,7 +107,6 @@ namespace Ros.Transport
                     if (buff == null) continue;
                     if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
                     if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
-                    if (!FloatSerializer.Serialize(buff.remainTime, result, ref indexStart)) return false;
                 }
             }
 
@@ -149,7 +143,6 @@ namespace Ros.Transport
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                animState = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 castSkillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -165,7 +158,6 @@ namespace Ros.Transport
                 {
                     type = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    remainTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
             int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);

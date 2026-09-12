@@ -203,7 +203,7 @@ public partial class BattleManager : EnsBehaviour
         // 守护点被摧毁事件（UI 飘字/表现用）
         if (BattleStarted && data.type.category == EntityCategory.Beacon)
         {
-            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.BeaconDestroyed, id);
+            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.BeaconDestroyed);
         }
 
         data.OnDestroyed();
@@ -348,7 +348,6 @@ public partial class BattleManager : EnsBehaviour
                 Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
                 {
                     type = SCBattleEvent.Type.ShowText,
-                    sourceId = (ushort)pair.Key,
                     value = 18, // 尚有玩家未选择队伍
                 });
                 return;
@@ -361,7 +360,6 @@ public partial class BattleManager : EnsBehaviour
             Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
             {
                 type = SCBattleEvent.Type.ShowText,
-                sourceId = 0,
                 value = 17, // 双方人数均需 > 0
             });
             return;
@@ -547,7 +545,6 @@ public partial class BattleManager : EnsBehaviour
                 playerEntityId = entityId,
                 camp = camp,
                 characterType = characterType,
-                characterLevel = level,
             });
             Debug.Log($"{(AIClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp}");
         }

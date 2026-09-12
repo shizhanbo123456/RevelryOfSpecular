@@ -63,7 +63,7 @@ public partial class BattleManager
     /// <summary>瘟疫树被攻占（树交互玩法实现后调用）：广播攻占事件（UI 飘字 / CD 加速表现）。</summary>
     public void NotifyPlagueTreeCaptured(ushort treeId)
     {
-        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.PlagueTreeCaptured, treeId);
+        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.PlagueTreeCaptured);
     }
 
     /// <summary>水晶被摧毁：按原类型与原位置排 30~60s 随机重生（策划案第七章）。</summary>

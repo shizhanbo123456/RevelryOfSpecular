@@ -12,8 +12,6 @@ namespace Ros.Transport
         public float progress;
         /// <summary>是否已可复活（攒满，等待黎明统一复活时为 false）。</summary>
         public bool ready;
-        /// <summary>累计死亡次数（愈战愈勇层数依据）。</summary>
-        public int deadCount;
         /// <summary>愈战愈勇当前叠层（0~max）。</summary>
         public int yzStack;
     }
@@ -28,7 +26,6 @@ namespace Ros.Transport
             if (!UshortSerializer.Serialize(value.entityId, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.progress, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.ready, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.deadCount, result, ref indexStart)) return false;
             return IntSerializer.Serialize(value.yzStack, result, ref indexStart);
         }
 
@@ -40,7 +37,6 @@ namespace Ros.Transport
                 entityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 progress = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                deadCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 yzStack = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }

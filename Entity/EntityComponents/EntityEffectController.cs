@@ -406,7 +406,6 @@ public class EntityEffectController
             {
                 type = (int)pair.Value.type,
                 level = pair.Value.level,
-                remainTime = Mathf.Max(0f, pair.Value.endTime - Time.time),
             });
         }
     }

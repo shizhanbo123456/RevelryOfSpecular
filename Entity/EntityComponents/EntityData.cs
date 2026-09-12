@@ -270,8 +270,7 @@ public abstract class EntityData : MonoBehaviour
         var anim = GetComponentInChildren<EntityAnim>();
         if (anim != null)
         {
-            anim.GetDisplayAnim(out var state, out var animId, out var frame);
-            info.animState = (int)state;
+            anim.GetDisplayAnim(out _, out var animId, out var frame);
             info.animId = animId;
             info.animFrame = frame;
         }
