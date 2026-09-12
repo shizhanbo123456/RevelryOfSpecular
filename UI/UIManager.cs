@@ -19,6 +19,9 @@ public class UIManager : MonoBehaviour
     /// <summary>场景中的 UIDocument（需在 Inspector 配置）。</summary>
     public UIDocument uiDocument;
 
+    /// <summary>界面字体，如 Assets/Files/UI/Font/黑体.ttf（默认字体无中文字形，不配会显示空白）。</summary>
+    public Font uiFont;
+
     private VisualElement root;
     private readonly PageBase[] pages = new PageBase[3];
     private PageType currentPage = PageType.Home;
@@ -55,6 +58,10 @@ public class UIManager : MonoBehaviour
             Debug.LogError("UIDocument 根元素为空，请检查 PanelSettings 配置");
             return;
         }
+
+        //字体设在根上，子元素继承
+        if (uiFont != null) root.style.unityFont = uiFont;
+        else Debug.LogWarning("UIManager 未配置 uiFont，中文可能显示为空白");
 
         // 构建页面
         pages[(int)PageType.Home] = new HomePage();
