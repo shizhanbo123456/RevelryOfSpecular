@@ -64,17 +64,19 @@ public class HomePage : PageBase
         ipField = new TextField { value = "", style = { width = 260, height = 36, marginRight = 16 } };
         //输入框的尺寸与配色全部显式指定，不依赖主题（否则文字可能不可见）
         ipField.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
-        ipField.style.paddingLeft = 8;
-        ipField.style.paddingRight = 8;
         var ipBorder = new Color(0.45f, 0.45f, 0.5f, 1f);
         ipField.style.borderLeftWidth = ipField.style.borderRightWidth = ipField.style.borderTopWidth = ipField.style.borderBottomWidth = 1f;
         ipField.style.borderLeftColor = ipField.style.borderRightColor = ipField.style.borderTopColor = ipField.style.borderBottomColor = ipBorder;
         var ipInput = ipField.Q("unity-text-input") ?? ipField.Q<TextElement>();
         if (ipInput != null)
         {
+            //内层元素自带主题背景（白色），必须在这里覆盖，否则会盖住外层的深色背景
+            ipInput.style.backgroundColor = new Color(0.16f, 0.16f, 0.2f, 1f);
             ipInput.style.color = Color.white;
             ipInput.style.fontSize = 16;
             ipInput.style.flexGrow = 1;
+            ipInput.style.paddingLeft = 8;
+            ipInput.style.paddingRight = 8;
         }
         bottomRow.Add(ipField);
         connectButton = new Button(OnConnectClicked) { text = "连接服务器", style = { width = 160, height = 44, fontSize = 18 } };
