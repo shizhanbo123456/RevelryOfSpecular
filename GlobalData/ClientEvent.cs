@@ -20,7 +20,7 @@ public static class ClientEvent
     #region 战斗流程（10210 段）
     /// <summary>战斗开始（param=int 本地玩家分配阵营 0进攻 1防守）。</summary>
     public const int OnBattleStart = 10210;
-    /// <summary>战斗结束（param=int 结果 0进攻胜 1防守胜 2平局 3提前结算）。</summary>
+    /// <summary>战斗结束（param=int 结果，同 SCScoreInfo.gameState：0进行中 1进攻方胜 2防守方胜 3平局）。</summary>
     public const int OnBattleEnd = 10211;
     /// <summary>昼夜阶段变化（param=int 阶段 0白天 1黄昏 2夜晚 3黎明）。</summary>
     public const int OnDayNightChange = 10212;

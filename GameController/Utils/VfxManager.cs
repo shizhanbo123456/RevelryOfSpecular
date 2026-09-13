@@ -44,10 +44,11 @@ public class VfxManager : MonoBehaviour
         return obj;
     }
 
-    /// <summary>沿轨迹播放：实例化后由 BulletPlayer 驱动沿轨迹移动，lifeTime 到期自动销毁。
+    /// <summary>沿轨迹播放：实例化后由 BulletPlayer 驱动沿轨迹移动，到期自动销毁。
+    /// 时长统一取轨迹自带的 Duration（不另传），保证特效与服务器判定同一个数。
     /// 跟随类特效（护盾/Buff）用 FollowTrajectory(实体id, 偏移) 作为轨迹——位置恒等于目标当前位置，
-    /// 服务器判定与客户端表现共用；持续期用 Buff 剩余时长作 lifeTime，或传极大值后手动销毁返回的实例。</summary>
-    public GameObject Play(GameObject vfxPrefab, BulletTrajectory trajectory, float lifeTime,
+    /// 服务器判定与客户端表现共用；持续期用 Buff 剩余时长，或传极大值后手动销毁返回的实例。</summary>
+    public GameObject Play(GameObject vfxPrefab, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
         if (vfxPrefab == null || trajectory == null) return null;
@@ -66,7 +67,7 @@ public class VfxManager : MonoBehaviour
 
     /// <summary>沿弹道轨迹播放子弹特效（客户端技能表现侧统一入口）：
     /// 轨迹由技能用与服务器相同的构建函数重建，实例化与到期销毁由本管理器负责。</summary>
-    public GameObject PlayBulletVFX(int index, BulletTrajectory trajectory, float lifeTime,
+    public GameObject PlayBulletVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
         return Play(GetBulletVfx(index), trajectory, lifeTime, rotation);
@@ -74,7 +75,7 @@ public class VfxManager : MonoBehaviour
 
     /// <summary>用武器模型作为弹体沿轨迹播放（模板按技能声明的 WeaponRef 取，如飞刀 / 投枪）。
     /// 与子弹特效同一条播放路径：实例化 → BulletPlayer 沿轨迹移动 → 到期销毁。</summary>
-    public GameObject PlayWeaponVFX(WeaponRef weapon, BulletTrajectory trajectory, float lifeTime,
+    public GameObject PlayWeaponVFX(WeaponRef weapon, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
         if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return null;
@@ -83,7 +84,7 @@ public class VfxManager : MonoBehaviour
 
     /// <summary>沿轨迹播放护盾特效（13 种）。跟随实体用 FollowTrajectory(实体id, 偏移)；
     /// 持续期建议 = 护盾来源 Buff 的剩余时长，或传极大值后手动销毁返回的实例。</summary>
-    public GameObject PlayShieldVFX(int index, BulletTrajectory trajectory, float lifeTime,
+    public GameObject PlayShieldVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
         return Play(GetShieldVfx(index), trajectory, lifeTime, rotation);
@@ -107,7 +108,7 @@ public class VfxManager : MonoBehaviour
 
     /// <summary>沿轨迹播放 Buff 特效（31 种）。跟随实体用 FollowTrajectory(实体id, 偏移)；
     /// 持续期建议 = Buff 剩余时长（服务器随 BuffRuntime 下发，永续传极大值），Buff 移除时手动销毁返回的实例。</summary>
-    public GameObject PlayBuffVFX(int index, BulletTrajectory trajectory, float lifeTime,
+    public GameObject PlayBuffVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
         return Play(GetBuffVfx(index), trajectory, lifeTime, rotation);

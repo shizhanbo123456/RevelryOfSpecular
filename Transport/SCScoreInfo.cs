@@ -1,7 +1,7 @@
 namespace Ros.Transport
 {
     /// <summary>
-    /// 服务器 → 客户端：对局分数信息（分数制胜负，见策划案 14 章）。
+    /// 服务器 → 客户端：对局分数信息（分数制胜负，见策划案 17.2）。
     /// 进攻方分数 = 守护点拆除量；防守方分数 = 守护点剩余血量 + 击杀小分。
     /// </summary>
     public class SCScoreInfo
@@ -16,7 +16,7 @@ namespace Ros.Transport
         public int killScore;
         /// <summary>剩余时间（秒）。</summary>
         public float remainTime;
-        /// <summary>本局获得经验（= 对水晶造成的伤害量，策划案 17.3；客户端结算写入存档）。</summary>
+        /// <summary>本局获得经验（= 采集量 = 对守护点造成的伤害量，策划案 17.3；客户端结算写入存档）。</summary>
         public int expGain;
     }
 

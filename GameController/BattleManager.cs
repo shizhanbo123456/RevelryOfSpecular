@@ -58,15 +58,37 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>防守方 AI 玩家数量。</summary>
     public int DefenseAICount { get; private set; }
 
-    /// <summary>对局中各客户端对水晶造成的累计伤害（结算经验用，策划案 17.3）。</summary>
-    public readonly Dictionary<short, float> CrystalExpByClient = new();
+    /// <summary>
+    /// 各客户端累计采集量 = 对守护点造成的伤害量（进攻方总分 AttackScore 的按人拆分，策划案 17.2/17.3）。
+    /// 用途：被动「白眼标记」取采集量最高者；对局结算经验。
+    /// </summary>
+    public readonly Dictionary<short, float> HarvestByClient = new();
 
-    /// <summary>累计水晶伤害经验（EntityData.OnDamaged 调用；经验 = 对水晶造成的伤害量）。</summary>
-    public void AddCrystalExp(short clientId, float damage)
+    /// <summary>累计采集量（对守护点造成伤害时由 EntityData.OnDamaged 调用）。</summary>
+    public void AddHarvest(short clientId, float damage)
     {
         if (damage <= 0f) return;
-        CrystalExpByClient.TryGetValue(clientId, out float exp);
-        CrystalExpByClient[clientId] = exp + damage;
+        HarvestByClient.TryGetValue(clientId, out float sum);
+        HarvestByClient[clientId] = sum + damage;
+    }
+
+    /// <summary>采集量最高的进攻方成员实体（无记录或该玩家当前不在场返回 null）。</summary>
+    public EntityData GetTopHarvester()
+    {
+        short bestClient = -1;
+        float bestValue = 0f;
+        foreach (var pair in HarvestByClient)
+        {
+            if (pair.Value <= bestValue) continue;
+            if (!PlayerEntityId.TryGetValue(pair.Key, out var entityId)) continue;
+            if (!EntityContainer.Entities.TryGetObject(entityId, out var e) || e == null) continue;
+            if (e.camp != EntityCamp.Attack) continue;
+            bestValue = pair.Value;
+            bestClient = pair.Key;
+        }
+        return bestClient >= 0 && PlayerEntityId.TryGetValue(bestClient, out var playerId)
+            ? GetEntity(playerId)
+            : null;
     }
     #endregion
 
@@ -409,27 +431,10 @@ public partial class BattleManager : EnsBehaviour
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.defensePositions);
     }
 
-    /// <summary>AI 玩家行为：有可用技能就攻击最近的敌方单位，否则站立（被攻击逃跑 TODO）。</summary>
+    /// <summary>AI 行为（留空待设计）。</summary>
     private void UpdateAI()
     {
-        foreach (var entity in EntityContainer.Entities)
-        {
-            if (entity == null || !entity.Alive) continue;
-            // 只驱动 AI 玩家：真人玩家的操作来自网络，AI 的"操作"在这里产生
-            if (!EntityOwnerClient.TryGetValue(entity.id, out var owner) || !AIClients.Contains(owner)) continue;
-            if (entity.skillController == null) continue;
-
-            var target = EntityContainer.GetNearestEnemy(entity);
-            if (target == null) continue; // 无目标：站立
-
-            foreach (var skillId in entity.skillController.GetSkillIds())
-            {
-                if (entity.skillController.GetCdRemain(skillId) > 0f) continue;
-                if (entity.skillController.GetStore(skillId) == 0) continue;
-                entity.skillController.TryUseSkill(skillId, target.transform.position);
-                break;
-            }
-        }
+        // TODO: AI 行为待设计，当前不驱动任何实体
     }
 
     /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
@@ -496,7 +501,7 @@ public partial class BattleManager : EnsBehaviour
     /// trajectory 为弹道轨迹（BulletTrajectory 基类，各实现见 Bullet 文件夹）。
     /// 实现见 BattleManagerCombat（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)）。
     /// </summary>
-    public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime)
+    public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime = 0f)
     {
         AddBullet(attack, trajectory, lifeTime);
     }
@@ -579,7 +584,7 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"对局结束：{gameState}");
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            CrystalExpByClient.TryGetValue(clientId, out float crystalExp);
+            HarvestByClient.TryGetValue(clientId, out float harvest);
             Tool.NetworkManager.SendScoreInfo(clientId, new SCScoreInfo()
             {
                 gameState = gameState,
@@ -587,7 +592,7 @@ public partial class BattleManager : EnsBehaviour
                 defenseScore = DefenseScore(),
                 killScore = DefenseKills,
                 remainTime = Mathf.Max(0f, BattleRemainTime),
-                expGain = Mathf.RoundToInt(crystalExp), // 经验 = 对水晶造成的伤害量（策划案 17.3）
+                expGain = Mathf.RoundToInt(harvest), // 经验 = 采集量 = 对守护点造成的伤害量（策划案 17.3）
             });
         }
         BroadcastRoomInfo(); // battleStarted = false：客户端结算页关闭后回组队大厅准备下一轮

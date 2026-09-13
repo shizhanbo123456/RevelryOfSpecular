@@ -43,31 +43,14 @@ public static class SkillManager
         return s_map.TryGetValue(id, out var skill) ? skill.Store : -1;
     }
 
-    /// <summary>技能对应的武器引用（无武器返回 <see cref="WeaponRef.None"/>）。</summary>
-    public static WeaponRef GetWeapon(int id)
+    /// <summary>技能对应的漂浮武器（客户端常驻漂浮显示用；无武器返回 <see cref="WeaponRef.None"/>）。</summary>
+    public static WeaponRef GetFlyWeapon(int id)
     {
-        return s_map.TryGetValue(id, out var skill) ? skill.Weapon : WeaponRef.None;
-    }
-
-    /// <summary>释放动作。</summary>
-    public static EntityAnim.AttackType GetCastAnim(int id)
-    {
-        return s_map.TryGetValue(id, out var skill) ? skill.CastAnim : 0;
-    }
-
-    /// <summary>伤害侧（服务器权威执行）。</summary>
-    public static void DoDamageActs(int id, EntityData entity, Vector3 dest)
-    {
-        if (!s_map.TryGetValue(id, out var skill))
-        {
-            Debug.LogWarning($"未知技能 id：{id}");
-            return;
-        }
-        skill.DoDamageActs(entity, dest);
+        return s_map.TryGetValue(id, out var skill) ? skill.FlyWeapon : WeaponRef.None;
     }
 
     /// <summary>表现侧（客户端执行，收到"使用技能"RPC 后调用）。</summary>
-    public static void PlayVFX(int id, TrajectoryContext context)
+    public static void PlayVFX(int id, SkillContext context)
     {
         if (!s_map.TryGetValue(id, out var skill))
         {
@@ -82,8 +65,8 @@ public static class SkillManager
     private static void RegisterAll()
     {
         s_map.Clear();
-        SkillPoolWeapons.RegisterAll();   // 武器技能 0~49
-        SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73
+        SkillPoolCrystal.RegisterAll();   // 水晶掉落（武器技能 0~49）
+        SkillPoolDefense.RegisterAll();   // 防守方角色专属 50~73（被动不占 id）
         SkillPoolNonPlayer.RegisterAll(); // 非玩家单位 100~179
         SkillPoolUnarmed.RegisterAll();   // 空手攻击 180~182
     }

@@ -38,14 +38,16 @@ public class BulletPlayer : MonoBehaviour
             transform.rotation = Camera.main.transform.rotation;
         }
     }
-    public static void Create(GameObject vfx, BulletTrajectory trajectory, float lifeTime, RotationMode rotation = RotationMode.Constant)
+    public static void Create(GameObject vfx, BulletTrajectory trajectory, float lifeTime = 0f, RotationMode rotation = RotationMode.Constant)
     {
+        if (vfx == null || trajectory == null) return;
+        float life = lifeTime > 0f ? lifeTime : trajectory.Duration; // 未传时长则用轨迹自带的
         BulletPlayer player;
         if (!vfx.TryGetComponent(out player))
         {
             player = vfx.AddComponent<BulletPlayer>();
         }
-        player.Init(trajectory, lifeTime, rotation);
-        Destroy(player.gameObject, lifeTime);
+        player.Init(trajectory, life, rotation);
+        Destroy(player.gameObject, life);
     }
 }

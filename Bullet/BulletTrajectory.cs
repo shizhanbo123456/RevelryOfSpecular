@@ -22,24 +22,40 @@ public abstract class BulletTrajectory
     public virtual Vector3 End => Lerp(1f);
 
     /// <summary>
-    /// 通过实体 id 读取位置（服务器走 BattleManager 实体容器，客户端走 ClientDisplayManager 表现物体）。
-    /// 动态轨迹实现（跟随目标等）专用，保证服务器/客户端两侧都能以同一方式取到位置。
+    /// 轨迹时长（秒）：服务器判定与客户端表现共用同一个数，调用方不再各传一份。
     /// </summary>
-    protected static bool TryGetEntityPosition(ushort entityId, out Vector3 pos)
+    public float Duration = 1f;
+
+    /// <summary>
+    /// 通过实体 id 读取位置（服务器走 BattleManager 实体容器，客户端走 ClientDisplayManager 表现物体）。
+    /// </summary>
+    public static bool TryGetEntityPosition(ushort entityId, out Vector3 pos)
+    {
+        return TryGetEntityTransform(entityId, out pos, out _);
+    }
+
+    /// <summary>
+    /// 通过实体 id 读取完整变换（位置 + 朝向）。两端都取得到：
+    /// 服务器走 BattleManager 实体容器，客户端走 ClientDisplayManager 表现物体。
+    /// 复原依赖朝向的挂点位置（如悬浮武器发射点）必须用它，只取位置会偏。
+    /// </summary>
+    public static bool TryGetEntityTransform(ushort entityId, out Vector3 pos, out Quaternion rot)
     {
         pos = Vector3.zero;
+        rot = Quaternion.identity;
         // 服务器：实体容器
         if (Tool.BattleManager != null &&
             BattleManager.EntityContainer.Entities.TryGetObject(entityId, out var entity) &&
             entity != null)
         {
             pos = entity.transform.position;
+            rot = entity.transform.rotation;
             return true;
         }
         // 客户端：表现物体
         if (Tool.ClientDisplayManager != null)
         {
-            return Tool.ClientDisplayManager.TryGetEntityPosition(entityId, out pos);
+            return Tool.ClientDisplayManager.TryGetEntityTransform(entityId, out pos, out rot);
         }
         return false;
     }

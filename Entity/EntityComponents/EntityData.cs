@@ -34,6 +34,9 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>技能控制器。</summary>
     public EntitySkillController skillController;
 
+    /// <summary>动画组件（OnCreate 一次性获取；非人形单位无动画时为 null）。</summary>
+    public EntityAnim anim;
+
     /// <summary>权威移动速度（米/秒，按 EntityAnimData.legHeight 换算；模型参数而非属性，不吃 Buff）。</summary>
     [HideInInspector] public float moveSpeed = Config.base_move_speed;
 
@@ -79,6 +82,8 @@ public abstract class EntityData : MonoBehaviour
         skillController = new EntitySkillController();
         skillController.Init(this);
 
+        anim = GetComponentInChildren<EntityAnim>();
+
         // 预制体/模板上的共用参数（动画类型、腿高移速）：服务端模板与客户端模型参数一致
         var animData = GetComponent<EntityAnimData>();
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
@@ -87,7 +92,7 @@ public abstract class EntityData : MonoBehaviour
             moveSpeed = animData.legHeight > 0f
                 ? EntityAnimData.LegHeightToStandartRunSpeed(animData.legHeight)
                 : Config.base_move_speed;
-            GetComponentInChildren<EntityAnim>()?.SetType(animData.type);
+            anim?.SetType(animData.type);
         }
         else
         {
@@ -96,7 +101,7 @@ public abstract class EntityData : MonoBehaviour
 
         // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
         // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
-        GetComponentInChildren<EntityAnim>()?.Init(this, OnAnimAttack);
+        anim?.Init(this, OnAnimAttack);
     }
 
     /// <summary>动画攻击帧回调（AnimAttackEvent 触发；攻击帧相关逻辑如武器判定后续在此实现）。</summary>
@@ -132,7 +137,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
     public void SetAnimPaused(bool paused)
     {
-        GetComponentInChildren<EntityAnim>()?.SetPaused(paused);
+        anim?.SetPaused(paused);
     }
 
     /// <summary>位移效果每帧推进：时间到调用 Exit 并清除；否则 Update 产出本帧速度。</summary>
@@ -157,22 +162,21 @@ public abstract class EntityData : MonoBehaviour
         if (effectController != null && effectController.IsActionBlocked()) return EndureType.None;
         if (motion != null) return EndureType.Common;
         if (effectController != null && effectController.HasSuperArmor()) return EndureType.Super;
-        var anim = GetComponentInChildren<EntityAnim>();
         return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 
     /// <summary>
-    /// 命中判定入口（BulletContainer/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击，
-    /// 随后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好）。
+    /// 命中判定入口（子弹容器/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击，
+    /// 随后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好，isCrit 为本次是否暴击）。
     /// </summary>
-    public void ProcessHit(AttackData attack, float damage)
+    public void ProcessHit(AttackData attack, float damage, bool isCrit)
     {
         EndureType endure = GetEndureLevel();
         bool enterHit = endure == EndureType.None || (attack.breakEndure && endure == EndureType.Common);
         if (enterHit)
         {
             RemoveMotion();  // 破霸体命中：打断位移
-            GetComponentInChildren<EntityAnim>()?.DoHit();
+            anim?.DoHit();
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
@@ -206,12 +210,12 @@ public abstract class EntityData : MonoBehaviour
         if (type.category == EntityCategory.Beacon)
         {
             Tool.BattleManager?.AddBeaconDamage(finalDamage); // 进攻方得分 = 对守护点造成的总伤害
-        }
-        else if (type.category == EntityCategory.Crystal && attacker != null && finalDamage > 0f &&
-                 Tool.BattleManager != null &&
-                 Tool.BattleManager.EntityOwnerClient.TryGetValue(attacker.id, out var expOwner))
-        {
-            Tool.BattleManager?.AddCrystalExp(expOwner, finalDamage); // 经验 = 对水晶造成的伤害量（策划案 17.3）
+            // 采集量 = 单个角色对守护点造成的伤害量（白眼标记与对局结算经验用）
+            if (attacker != null && finalDamage > 0f && Tool.BattleManager != null &&
+                Tool.BattleManager.EntityOwnerClient.TryGetValue(attacker.id, out var harvester))
+            {
+                Tool.BattleManager.AddHarvest(harvester, finalDamage);
+            }
         }
         if (attacker != null && canReflect && effectController != null)
         {
@@ -254,7 +258,6 @@ public abstract class EntityData : MonoBehaviour
             weaponCategory = (int)heldWeapon.category,
             weaponIndex = heldWeapon.index,
         };
-        var anim = GetComponentInChildren<EntityAnim>();
         if (anim != null)
         {
             anim.GetDisplayAnim(out _, out var animId, out var frame);

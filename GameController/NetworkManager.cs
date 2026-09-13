@@ -283,7 +283,7 @@ public partial class NetworkManager : EnsBehaviour
     /// 广播"使用技能"（技能 id + 轨迹上下文）。
     /// 客户端收到后按技能 id 调用 SkillManager.PlayVFX，用与服务器相同的构建函数从上下文重建轨迹播放表现。
     /// </summary>
-    public void SendSkillCast(int skillId, TrajectoryContext context)
+    public void SendSkillCast(int skillId, SkillContext context)
     {
         CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Reliable, skillId, context);
     }
@@ -403,7 +403,7 @@ public partial class NetworkManager : EnsBehaviour
 
     /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>
     [Rpc]
-    private void ClientUseSkillLocal(int skillId, TrajectoryContext context)
+    private void ClientUseSkillLocal(int skillId, SkillContext context)
     {
         if (context == null) return;
         SkillManager.PlayVFX(skillId, context);

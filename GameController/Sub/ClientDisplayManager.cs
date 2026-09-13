@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
@@ -36,6 +37,9 @@ public class ClientDisplayManager : MonoBehaviour
         public GameObject mushroomVisual;   // 蘑菇模型（首次感染时懒实例化）
         private bool mushroomized;
 
+        /// <summary>按 Buff 类型挂载的持续特效（key = EffectType 的 int 值），随视图一起销毁。</summary>
+        public readonly Dictionary<int, GameObject> buffVfx = new();
+
         /// <summary>按「蘑菇感染」Buff 显隐切换：隐藏水晶模型、显示蘑菇模型（随机外观仅选一次，避免刷新跳变）。</summary>
         public void SetMushroomized(bool on)
         {
@@ -54,6 +58,15 @@ public class ClientDisplayManager : MonoBehaviour
                 }
             }
             if (mushroomVisual != null) mushroomVisual.SetActive(on);
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var pair in buffVfx)
+            {
+                if (pair.Value != null) Destroy(pair.Value);
+            }
+            buffVfx.Clear();
         }
 
         private void Update()
@@ -149,9 +162,18 @@ public class ClientDisplayManager : MonoBehaviour
     /// <summary>按实体 id 获取世界坐标。</summary>
     public bool TryGetEntityPosition(ushort id, out Vector3 pos)
     {
+        return TryGetEntityTransform(id, out pos, out _);
+    }
+
+    /// <summary>按实体 id 获取完整变换（位置 + 朝向）：复原依赖朝向的挂点位置（如悬浮武器发射点）需要朝向。</summary>
+    public bool TryGetEntityTransform(ushort id, out Vector3 pos, out Quaternion rot)
+    {
         pos = Vector3.zero;
+        rot = Quaternion.identity;
         if (!views.TryGetValue(id, out var view) || view == null) return false;
-        pos = view.transform.position;
+        var t = view.transform;
+        pos = t.position;
+        rot = t.rotation;
         return true;
     }
 
@@ -252,7 +274,7 @@ public class ClientDisplayManager : MonoBehaviour
             var weapon = WeaponRef.None;
             if (i < info.skills.Count && info.skills[i] != null)
             {
-                weapon = SkillManager.GetWeapon(info.skills[i].skillId);
+                weapon = SkillManager.GetFlyWeapon(info.skills[i].skillId);
                 if (weapon == view.heldWeapon) weapon = WeaponRef.None; // 已拿到手上，不重复漂浮
             }
             if (view.weaponRefs[i] == weapon) continue;
@@ -266,6 +288,56 @@ public class ClientDisplayManager : MonoBehaviour
             obj.transform.localPosition = Config.GetWeaponFloatOffset(i);
             obj.transform.localRotation = Quaternion.identity;
             view.weaponVisuals[i] = obj;
+        }
+    }
+
+    private static readonly HashSet<int> s_activeBuffs = new();
+    private static readonly HashSet<int> s_expiredBuffs = new();
+
+    /// <summary>按同步 Buff 列表维持持续特效：新出现的挂载跟随特效、消失的销毁（分配表见 Config.buff_vfx）。</summary>
+    private static void ApplyBuffVfx(ClientEntityView view, List<SCEntityDisplayInfo.BuffRuntime> buffs)
+    {
+        s_activeBuffs.Clear();
+        for (int i = 0; i < buffs.Count; i++)
+        {
+            var b = buffs[i];
+            if (b == null || !s_activeBuffs.Add(b.type)) continue;
+            if (!Config.buff_vfx.TryGetValue((EffectType)b.type, out var vfx)) continue;
+            if (view.buffVfx.ContainsKey(b.type)) continue;
+
+            var trajectory = new FollowTrajectory(view.id);
+            trajectory.Duration = Config.buff_vfx_life_time;
+            var obj = PlayTrackedVfx(vfx.kind, vfx.index, trajectory);
+            if (obj != null) view.buffVfx[b.type] = obj;
+        }
+
+        s_expiredBuffs.Clear();
+        foreach (var pair in view.buffVfx)
+        {
+            if (!s_activeBuffs.Contains(pair.Key)) s_expiredBuffs.Add(pair.Key);
+        }
+        foreach (var type in s_expiredBuffs)
+        {
+            if (view.buffVfx[type] != null) Destroy(view.buffVfx[type]);
+            view.buffVfx.Remove(type);
+        }
+    }
+
+    /// <summary>按特效类别播放跟随轨迹特效（时长由轨迹自带）。</summary>
+    private static GameObject PlayTrackedVfx(SkillVfxKind kind, int index, BulletTrajectory trajectory)
+    {
+        var vfx = Tool.VfxManager;
+        if (vfx == null || kind == SkillVfxKind.None || index < 0) return null;
+        switch (kind)
+        {
+            case SkillVfxKind.Buff:
+                return vfx.PlayBuffVFX(index, trajectory);
+            case SkillVfxKind.Shield:
+                return vfx.PlayShieldVFX(index, trajectory);
+            case SkillVfxKind.MagicCircle:
+                return vfx.Play(vfx.GetMagicCircleVfx(index), trajectory);
+            default:
+                return null;
         }
     }
 
@@ -293,6 +365,8 @@ public class ClientDisplayManager : MonoBehaviour
             }
             view.anim.SetMoveSpeedScale(EntityEffectController.ComputeMoveAnimSpeedMultiplier(types));
         }
+        // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
+        if (info.includeRuntime) ApplyBuffVfx(view, info.buffs);
 
         // 蘑菇感染表现：完整同步时按 Buff 列表切换水晶/蘑菇模型（仅水晶缓存了 crystalRenderers）
         if (info.includeRuntime && view.crystalRenderers != null)

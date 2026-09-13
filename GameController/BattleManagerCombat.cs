@@ -73,7 +73,7 @@ public partial class BattleManager
             int meleeSkill = moving
                 ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
                 : Config.unarmed_attack_smash;
-            entity.skillController.TryUseSkill(meleeSkill, GetAimPoint(entity));
+            entity.skillController.TryUseSkill(meleeSkill);
         }
 
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
@@ -93,23 +93,7 @@ public partial class BattleManager
         if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return;
 
         entity.skillController.SelectIndex(slot); // 选中下标供 UI 高亮
-        entity.skillController.TryUseSkill(ids[slot], GetAimPoint(entity));
-    }
-
-    /// <summary>瞄准点：最近敌方单位，没有则角色前方 10m（服务器权威计算，客户端不再上报）。</summary>
-    private Vector3 GetAimPoint(EntityData entity)
-    {
-        float viewDistance = entity.floatingAttribute != null && entity.floatingAttribute.viewDistance > 0f
-            ? entity.floatingAttribute.viewDistance
-            : Config.default_skill_auto_target_radius;
-        var target = EntityContainer.GetNearestEnemy(entity, viewDistance);
-        if (target != null) return target.transform.position;
-
-        Vector3 forward = entity.transform.forward;
-        forward.y = 0f;
-        return forward.sqrMagnitude > 0.001f
-            ? entity.transform.position + forward.normalized * 10f
-            : entity.transform.position;
+        entity.skillController.TryUseSkill(ids[slot]);
     }
 
     /// <summary>
@@ -169,7 +153,7 @@ public partial class BattleManager
         {
             attack = attack,
             trajectory = trajectory,
-            lifeTime = lifeTime,
+            lifeTime = lifeTime > 0f ? lifeTime : trajectory.Duration, // 未传时长则用轨迹自带的
             spawnTime = Time.time,
             hitIds = new HashSet<ushort>(),
         });
@@ -204,12 +188,13 @@ public partial class BattleManager
             if (e.id == attack.shooter || e.camp == attack.shooterCamp) continue;
             if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
 
-            e.ProcessHit(attack, attack.GetDamage());
+            float damage = attack.GetDamage(out bool isCrit);
+            e.ProcessHit(attack, damage, isCrit);
             if (attack.addEffectEvent != null && e.effectController != null)
             {
-                attack.addEffectEvent.Invoke((type, level, duration) =>
-                    e.effectController.AddEffect(type, level, duration));
+                attack.addEffectEvent.Invoke(e.effectController);
             }
+            attack.onHit?.Invoke(e);
         }
     }
     #endregion
@@ -267,7 +252,24 @@ public partial class BattleManager
         DestroyEntity(entity.id);
 
         // 守护点阵亡后重算中心守护点的分层减伤（走 effectController 的 BeaconReduce 通道）
-        if (entity.type.category == EntityCategory.Beacon) UpdateCoreBeaconReduce();
+        if (entity.type.category == EntityCategory.Beacon)
+        {
+            UpdateCoreBeaconReduce();
+        }
+        else if (entity.type.category == EntityCategory.Character_Attack)
+        {
+            CheckAttackWiped(); // 进攻方全灭 → 立即按分数结算（策划案 17.2，不直接判负）
+        }
+    }
+
+    /// <summary>进攻方角色全部阵亡 → 立即按当前分数结算（拆除量过半则可能判胜）。</summary>
+    private void CheckAttackWiped()
+    {
+        foreach (var e in EntityContainer.Entities)
+        {
+            if (e != null && e.Alive && e.type.category == EntityCategory.Character_Attack) return;
+        }
+        EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
     }
 
     /// <summary>
@@ -418,7 +420,7 @@ public partial class BattleManager
         moveStates.Clear();
         reviveStates.Clear();
         crystalRespawns.Clear();
-        CrystalExpByClient.Clear();
+        HarvestByClient.Clear();
     }
     #endregion
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
@@ -180,54 +181,148 @@ public static class Config
     /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
     public const int zombie_variant_count = 21;
     /// <summary>
-    /// 角色初始技能表：实体类型 → 技能 id 列表（顺序 = 键盘槽位 1~5，即 U I O L H）。
-    /// 进攻方角色 = 1 个（天生攻击技能）；防守方角色 = 4 个（默认攻击技能 + 主动1 + 主动2 + 大招）。
+    /// 角色初始技能表：实体类型 → 技能 id 列表（顺序 = 键盘槽位 U I O L H Y）。
+    /// 进攻方 = 1 个天生攻击技能；防守方 = 主动1/主动2/大招（被动不是技能，见策划案 21.5）。
+    /// 非玩家单位登记 value=0 即可，其它 value 走同类别回退（见 GetInitialSkills）。
     /// <b>未登记的角色 = 空表（不持有任何技能）</b>，直接在下表补全即可，代码无需改动。
-    /// 技能 id 段（见策划案第二十一章）：武器 0~49（刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49）、
-    /// 防守方角色技能 50~73（每角色 主动1/主动2/大招/被动 各 1）、
-    /// 非玩家单位与空手攻击 100~199（空手 100 / 普通僵尸 101~119 / 精英僵尸 120~139 / 防御塔 140~159 / 瘟疫树 160~179）。
+    /// 技能 id 段（见策划案第二十一章）：武器 0~49 / 防守方 50~73（53/57/61/65/69/73 为被动空位）、
+    /// 非玩家与空手 100~199（空手 180~182 / 普通僵尸 101~119 / 精英僵尸 120~139 / 防御塔 140~159 / 瘟疫树 160~179）。
     /// </summary>
     public static readonly Dictionary<EntityType, int[]> initial_skills = new()
     {
         // ===== 进攻方角色（18 人，每角色 1 个天生攻击技能）=====
-        // { EntityType.Attack(0),  new[] { 0 } },
-        // { EntityType.Attack(1),  new[] { 0 } },
-        // { EntityType.Attack(2),  new[] { 0 } },
-        // { EntityType.Attack(3),  new[] { 0 } },
-        // { EntityType.Attack(4),  new[] { 0 } },
-        // { EntityType.Attack(5),  new[] { 0 } },
-        // { EntityType.Attack(6),  new[] { 0 } },
-        // { EntityType.Attack(7),  new[] { 0 } },
-        // { EntityType.Attack(8),  new[] { 0 } },
-        // { EntityType.Attack(9),  new[] { 0 } },
-        // { EntityType.Attack(10), new[] { 0 } },
-        // { EntityType.Attack(11), new[] { 0 } },
-        // { EntityType.Attack(12), new[] { 0 } },
-        // { EntityType.Attack(13), new[] { 0 } },
-        // { EntityType.Attack(14), new[] { 0 } },
-        // { EntityType.Attack(15), new[] { 0 } },
-        // { EntityType.Attack(16), new[] { 0 } },
-        // { EntityType.Attack(17), new[] { 0 } },
+        // 策划案 4.1「不做定位区分」；暂时按 4 类武器的基础技能循环分配，待角色池定稿后调整
+        { EntityType.Attack(0), new[] { 0 } },    // 疾风斩（刀）
+        { EntityType.Attack(1), new[] { 11 } },   // 投枪（长枪）
+        { EntityType.Attack(2), new[] { 19 } },   // 快速射击（枪械）
+        { EntityType.Attack(3), new[] { 34 } },   // 魔弹（魔法球）
+        { EntityType.Attack(4), new[] { 0 } },
+        { EntityType.Attack(5), new[] { 11 } },
+        { EntityType.Attack(6), new[] { 19 } },
+        { EntityType.Attack(7), new[] { 34 } },
+        { EntityType.Attack(8), new[] { 0 } },
+        { EntityType.Attack(9), new[] { 11 } },
+        { EntityType.Attack(10), new[] { 19 } },
+        { EntityType.Attack(11), new[] { 34 } },
+        { EntityType.Attack(12), new[] { 0 } },
+        { EntityType.Attack(13), new[] { 11 } },
+        { EntityType.Attack(14), new[] { 19 } },
+        { EntityType.Attack(15), new[] { 34 } },
+        { EntityType.Attack(16), new[] { 0 } },
+        { EntityType.Attack(17), new[] { 11 } },
 
-        // ===== 防守方角色（6 人，每角色 4 个：攻击技能 / 主动1 / 主动2 / 大招）=====
-        // { EntityType.Defense(0), new[] { 0, 0, 0, 0 } },  // PC104 鹿铠怪人
-        // { EntityType.Defense(1), new[] { 0, 0, 0, 0 } },  // NP114 白眼伯爵
-        // { EntityType.Defense(2), new[] { 0, 0, 0, 0 } },  // PC106 死灵漫步者
-        // { EntityType.Defense(3), new[] { 0, 0, 0, 0 } },  // NP134 蒙面教皇
-        // { EntityType.Defense(4), new[] { 0, 0, 0, 0 } },  // PC102 瘟疫使者
-        // { EntityType.Defense(5), new[] { 0, 0, 0, 0 } },  // PC103 苍白舞者
+        // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招，id 段见策划案 21.5）=====
+        { EntityType.Defense(0), new[] { 50, 51, 52 } },  // PC104 鹿铠怪人：岩石护盾 / 蘑菇感染 / 灵火
+        { EntityType.Defense(1), new[] { 54, 55, 56 } },  // NP114 白眼伯爵：白眼标记 / 无限视野 / 立即入夜
+        { EntityType.Defense(2), new[] { 58, 59, 60 } },  // PC106 死灵漫步者：召唤僵尸 / 死灵漫步 / 召唤精英
+        { EntityType.Defense(3), new[] { 62, 63, 64 } },  // NP134 蒙面教皇：沉默 / 泥沼 / 反伤
+        { EntityType.Defense(4), new[] { 66, 67, 68 } },  // PC102 瘟疫使者：瘟疫标记 / 吸收矿石 / 引爆瘟疫
+        { EntityType.Defense(5), new[] { 70, 71, 72 } },  // PC103 苍白舞者：苍白之光 / 苍白之暗 / 迷雾
+
+        // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退；store 均为 -1 无限制）=====
+        { EntityType.Zombie(0), new[] { 101, 102, 103 } },      // 普通僵尸：爪击左 / 爪击右 / 嘶吼
+        { EntityType.EliteZombie(0), new[] { 120, 121, 122 } }, // 精英僵尸
+        { EntityType.Tower(0), new[] { 140 } },                 // 防御塔：孢子喷射
+        { EntityType.PlagueTree(0), new[] { 160 } },            // 瘟疫树：孢子喷发
     };
 
-    /// <summary>取角色初始技能表（未配置返回空表；返回副本，调用方可直接交给 SetSkillList）。</summary>
+    /// <summary>取角色初始技能表（精确匹配失败时按同一 EntityCategory 回退；未配置返回空表；返回副本）。</summary>
     public static List<int> GetInitialSkills(EntityType character)
     {
-        return initial_skills.TryGetValue(character, out var ids) && ids != null
-            ? new List<int>(ids)
-            : new List<int>();
+        if (initial_skills.TryGetValue(character, out var ids) && ids != null) return new List<int>(ids);
+        foreach (var pair in initial_skills)
+        {
+            if (pair.Key.category == character.category && pair.Value != null) return new List<int>(pair.Value);
+        }
+        return new List<int>();
     }
 
     /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
+
+    /// <summary>索敌无目标时，瞄准点取正前方该距离（米）。</summary>
+    public const float default_forward_aim_distance = 10f;
+
+    /// <summary>持续型 Buff 特效的挂载时长（秒/局内远大于单局时长，实际由 Buff 移除时销毁）。</summary>
+    public const float buff_vfx_life_time = 3600f;
+
+    #region 通用 Buff 数值（占位初值，待策划定稿后在此统一调整）
+    /// <summary>控制类时长（秒）：麻痹 / 冰冻 / 定身 / 沉默。</summary>
+    public const float buff_duration_control = 3f;
+    /// <summary>减益类时长（秒）：减速 / 中毒 / 燃烧。</summary>
+    public const float buff_duration_debuff = 5f;
+    /// <summary>增益类时长（秒）：护盾 / 加速 / 增伤。</summary>
+    public const float buff_duration_buff = 8f;
+    /// <summary>DoT 每跳伤害（固定数值，1s 一跳）。</summary>
+    public const float buff_dot_damage = 8f;
+    /// <summary>护盾值。</summary>
+    public const float buff_shield_value = 120f;
+    /// <summary>属性增益量（激励法阵等）。</summary>
+    public const float buff_attr_value = 15f;
+    #endregion
+
+    #region 防守方技能参数（占位初值，待策划定稿）
+    /// <summary>蘑菇感染在目标水晶上的存续时长（秒）。</summary>
+    public const float mushroom_infect_duration = 60f;
+    /// <summary>无限视野的可见距离加成（等同全图）。</summary>
+    public const float infinite_view_distance = 99999f;
+    /// <summary>死灵漫步的光环半径（米）。</summary>
+    public const float death_stroll_radius = 4f;
+    /// <summary>召唤的一小波僵尸数量 / 等级。</summary>
+    public const int summon_zombie_count = 5;
+    public const int summon_zombie_level = 1;
+    /// <summary>召唤的精英僵尸数量 / 等级。</summary>
+    public const int summon_elite_count = 3;
+    public const int summon_elite_level = 3;
+    /// <summary>引爆瘟疫标记：每层造成的伤害。</summary>
+    public const float plague_detonate_damage = 20f;
+    /// <summary>索敌半径：岩石护盾 / 蘑菇感染（附近防御塔 / 水晶）。</summary>
+    public const float defense_ally_cast_radius = 15f;
+    /// <summary>沉默 / 瘟疫标记的作用半径（米）。</summary>
+    public const float defense_nearby_radius = 8f;
+    #endregion
+
+    #region 技能参数补充（占位初值，待策划定稿）
+    /// <summary>雷球链式跳：第二目标索敌半径（米）。</summary>
+    public const float chain_jump_radius = 6f;
+    /// <summary>雷球链式跳：整段飞行时长（秒）。</summary>
+    public const float chain_jump_duration = 0.6f;
+    /// <summary>空袭标记：落点轰炸半径（米）。</summary>
+    public const float airstrike_radius = 3f;
+    /// <summary>吸收水晶：作用半径（米）。</summary>
+    public const float absorb_crystal_radius = 6f;
+    /// <summary>吸收水晶：造成的伤害量（等同击败水晶，走概率产出流程）。</summary>
+    public const float absorb_crystal_damage = 999999f;
+    #endregion
+
+    /// <summary>
+    /// Buff 持续特效：客户端按 SCEntityDisplayInfo.buffs 增删（分配表见《特效清单与分配表》「三.2 Buff 与状态」）。
+    /// 表内下标 = 清单编号 − 1；未列出的 Buff 无持续特效（属性修改类、纯逻辑类）。
+    /// 迷雾（Fog）不在此表：其表现已由 EnvironmentManager 的体积雾承担，避免重复叠加。
+    /// </summary>
+    public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
+    {
+        { EffectType.BeaconReduce, (SkillVfxKind.Shield, 0) },      // S1 红（守护点减伤叠层）
+        { EffectType.TowerShield, (SkillVfxKind.Shield, 1) },       // S2 橙构筑（塔身）
+        { EffectType.PopeGuard, (SkillVfxKind.Shield, 2) },         // S3 白厚实（守护点）
+        { EffectType.Shield, (SkillVfxKind.Shield, 5) },            // S6 黄（光盾）
+        { EffectType.Stun, (SkillVfxKind.Buff, 20) },               // BF21 麻痹黄
+        { EffectType.TowerBlaze, (SkillVfxKind.Buff, 11) },         // BF12 火焰（塔身）
+        { EffectType.Burning, (SkillVfxKind.Buff, 11) },            // BF12 火焰（燃烧 DoT）
+        { EffectType.EyeMark, (SkillVfxKind.Buff, 15) },            // BF16 黄色周身泛光
+        { EffectType.PaleLight, (SkillVfxKind.Buff, 15) },          // BF16（光标记复用）
+        { EffectType.PaleDark, (SkillVfxKind.Buff, 0) },            // BF1 紫雾（暗标记）
+        { EffectType.DeathStroll, (SkillVfxKind.Buff, 3) },         // BF4 血色缠绕
+        { EffectType.Silence, (SkillVfxKind.Buff, 4) },             // BF5 黑色缠绕
+        { EffectType.Mire, (SkillVfxKind.Buff, 25) },               // BF26 水花
+        { EffectType.Reflect, (SkillVfxKind.MagicCircle, 8) },      // MC9 红色防御增益
+        { EffectType.Root, (SkillVfxKind.MagicCircle, 2) },         // MC3 深红禁锢圆环
+        { EffectType.PlagueMark, (SkillVfxKind.Buff, 18) },         // BF19 自然（瘟疫标记）
+        { EffectType.Poison, (SkillVfxKind.Buff, 18) },             // BF19 自然（中毒复用）
+        { EffectType.Freeze, (SkillVfxKind.Buff, 12) },             // BF13 冻结
+        { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 26) },       // BF27 雪（减速）
+        { EffectType.AnimSpeedUp, (SkillVfxKind.Buff, 27) },        // BF28 环绕风（加速）
+    };
 
     /// <summary>悬浮武器挂点表（本地坐标，相对实体根物体）：槽位 i 用第 i 个，左右交替分布。
     /// 客户端显示与服务器远程发射点共用本表，任何实体通用（不依赖 EntityAnim）。</summary>
