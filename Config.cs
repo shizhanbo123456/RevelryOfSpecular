@@ -345,4 +345,62 @@ public static class Config
         return weapon_float_offsets[Mathf.Clamp(slotIndex, 0, weapon_float_offsets.Length - 1)];
     }
     #endregion
+
+    #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）
+    /// <summary>可移动类别（双方角色 + 普通/精英僵尸）：只有这些类别挂 Rigidbody 并由移动系统驱动。</summary>
+    public static bool IsMovable(EntityCategory category) => category switch
+    {
+        EntityCategory.Character_Attack or EntityCategory.Character_Defense or
+        EntityCategory.Zombie or EntityCategory.EliteZombie => true,
+        _ => false,
+    };
+
+    /// <summary>
+    /// 刚体线性阻力：不为 0。停止不依赖阻力（输入归零即停），阻力只用于消除被击飞/斜坡等残余漂移；数值待调。
+    /// </summary>
+    public const float rb_drag = 1f;
+
+    /// <summary>刚体角阻力（旋转三轴已锁、朝向由角色控制直接赋 rotation，角速度不参与移动）。</summary>
+    public const float rb_angular_drag = 1f;
+    #endregion
+
+    #region 防守方角色下标（type.value，顺序同策划案第五章与 initial_skills）
+    public const int defense_index_deer_knight = 0;    // PC104 鹿铠怪人
+    public const int defense_index_count_eye = 1;      // NP114 白眼伯爵
+    public const int defense_index_death_stroller = 2; // PC106 死灵漫步者
+    public const int defense_index_masked_pope = 3;    // NP134 蒙面教皇
+    public const int defense_index_plague_bringer = 4; // PC102 瘟疫使者
+    public const int defense_index_pale_dancer = 5;    // PC103 苍白舞者
+    #endregion
+
+    #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）
+    /// <summary>PC104 被动「暴击麻痹」：暴击命中时施加的麻痹时长（秒）。</summary>
+    public const float crit_paralysis_duration = 1.5f;
+    /// <summary>NP114 被动「夜间时间延长」：夜晚时长倍率（白天按同量压缩，一个昼夜周期总长不变）。</summary>
+    public const float night_extend_factor = 1.5f;
+    /// <summary>NP134 被动「教皇守护」：入夜时给守护点的减伤比例。</summary>
+    public const float pope_guard_reduce_rate = 0.3f;
+    /// <summary>PC102 被动「进攻方复活速度减慢」：进攻方复活进度倍率（仅进攻方，防守方不受影响）。</summary>
+    public const float attack_revive_slow_factor = 0.6f;
+    /// <summary>PC103 被动「光暗转化」：单一标记叠到此层数即转化为苍白之冰 / 苍白之雷。</summary>
+    public const int pale_full_stacks = 10;
+    /// <summary>PC103 被动「光暗转化」：光暗均达此层数且都未满时，双标记转化为苍白之火。</summary>
+    public const int pale_mixed_stacks = 8;
+    #endregion
+
+    #region 僵尸刷新等级与变体数（策划案九/十章、二十章）
+    /// <summary>夜间刷新普通僵尸的默认等级。</summary>
+    public const int zombie_spawn_level = 1;
+    /// <summary>PC106 被动「提升僵尸刷新时的等级」生效后，夜刷普通僵尸的等级。</summary>
+    public const int zombie_spawn_level_boosted = 3;
+    /// <summary>精英僵尸素材/属性配置数量（14 种，type.value 0~13；技能召唤时按此范围随机种类）。</summary>
+    public const int elite_zombie_variant_count = 14;
+    #endregion
+
+    #region 灵火（TowerBlaze）：塔攻击附加爆炸
+    /// <summary>附加爆炸的判定半径（米）。</summary>
+    public const float tower_blaze_radius = 2.5f;
+    /// <summary>附加爆炸的伤害倍率（相对塔的魔法伤害）。</summary>
+    public const float tower_blaze_rate = 0.5f;
+    #endregion
 }

@@ -37,6 +37,9 @@ public partial class BattleManager
         st.dir = new Vector2(x, z).normalized;
         st.moving = x != 0f || z != 0f;
 
+        // 输入只落到实体这一个字段（角色本地系方向）；速度大小由动画声明的 animSpeed 决定
+        entity.SetMoveInput(new Vector3(st.dir.x, 0f, st.dir.y));
+
         // Run/Idle 随表现摘要同步给客户端
         entity.GetComponentInChildren<EntityAnim>()?.Move(st.moving);
     }
@@ -97,46 +100,61 @@ public partial class BattleManager
     }
 
     /// <summary>
-    /// 移动推进（双手键盘：角色相对移动 + 渐转）：
-    /// 朝向服务器权威——前后 + 左右同按时按 Config.move_turn_rate 渐转（纯前后/纯左右不转向）；
-    /// 移动方向 = 当前朝向 × 原始输入（渐转路径为曲线，故按帧增量积分而非时间戳外推）；
-    /// 强控/位移锁输入时冻结；MotionBase 位移速度独立积分。
+    /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
+    /// 水平速度 = 动画声明的速度（EntityData.animSpeed.x）× 速度参数（加速/减速/泥沼乘区）；
+    /// 动画**从未声明过**速度时退化为模型移速（保证动画未接完也能动），声明过就完全以它为准（声明 0 = 本状态不动）。
+    /// 再叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
+    /// 方向仍由输入给出（本地系转世界系，前 = 前方、左右 = 侧方）：输入是"要不要动"的开关，动画只决定"动多快"。
+    /// 只写水平分量、Y 不动，所以重力/被击飞/下落照常；停止不看阻力，输入归零即停。
+    /// 朝向按 MoveState 的 yaw 直接赋 rotation（刚体三轴旋转已锁）。
     /// </summary>
     private void TickMovement()
     {
         float dt = Time.deltaTime;
-        foreach (var pair in moveStates)
+        foreach (var e in EntityContainer.Entities)
         {
-            if (!EntityContainer.Entities.TryGetObject(pair.Key, out var e) || e == null || !e.Alive) continue;
-            var st = pair.Value;
-            st.blocked = e.effectController != null && !e.effectController.CanMove();
+            if (e == null || !e.Alive) continue;
+            if (!Config.IsMovable(e.type.category)) continue;
 
-            if (!st.blocked && st.moving && e.MotionCanMove)
+            // 强控（麻痹/冰冻/定身）期间输入不生效；"位移锁输入"由 MotionCanMove 表达
+            bool canInput = e.effectController == null || e.effectController.CanMove();
+
+            moveStates.TryGetValue(e.id, out var st);
+            if (st != null)
             {
-                // 渐转：前后 + 左右同按时朝向逐渐偏向横移侧（yaw 正 = 右转，负 = 左转）
-                float yawDelta = 0f;
-                if (Mathf.Abs(st.dir.x) > 0.01f && Mathf.Abs(st.dir.y) > 0.01f)
+                st.blocked = !canInput;
+
+                if (canInput && st.moving && e.MotionCanMove)
                 {
-                    yawDelta = Config.move_turn_rate * Mathf.Sign(st.dir.x) * dt;
-                    st.yaw += yawDelta;
+                    // 渐转：前后 + 左右同按时朝向逐渐偏向横移侧（yaw 正 = 右转，负 = 左转）
+                    float yawDelta = 0f;
+                    if (Mathf.Abs(st.dir.x) > 0.01f && Mathf.Abs(st.dir.y) > 0.01f)
+                    {
+                        yawDelta = Config.move_turn_rate * Mathf.Sign(st.dir.x) * dt;
+                        st.yaw += yawDelta;
+                    }
+                    st.yawSpeed = dt > 0f ? yawDelta / dt : 0f;
                 }
-                st.yawSpeed = dt > 0f ? yawDelta / dt : 0f;
+                else
+                {
+                    st.yawSpeed = 0f;
+                }
                 e.transform.rotation = Quaternion.Euler(0f, st.yaw, 0f);
-
-                // 角色相对移动：前 = 角色前方，左右 = 角色侧方，方向随朝向变化
-                Vector3 dir = Quaternion.Euler(0f, st.yaw, 0f) * new Vector3(st.dir.x, 0f, st.dir.y).normalized;
-                e.transform.position += dir * e.moveSpeed * dt;
-            }
-            else
-            {
-                st.yawSpeed = 0f;
             }
 
-            // 位移效果速度（MotionBase）独立积分
-            if (e.motionVelocity.sqrMagnitude > 0f)
+            // 速度参数（加速 1.3 / 减速 0.6 / 泥沼 0.5，并存时连乘）：
+            // 同一乘区也同步作用于动画播放速度，保证位移与动画不脱节（见 EntityEffectController.ApplyAnimSpeedScale）
+            float speedParam = e.effectController != null ? e.effectController.GetMoveAnimSpeedMultiplier() : 1f;
+            // 动画声明过速度就以它为准（含 0 = 不动）；从未声明才退化为模型移速
+            float baseSpeed = e.animSpeedDeclared ? Mathf.Abs(e.animSpeed.x) : e.moveSpeed;
+            float speed = baseSpeed * speedParam;
+
+            Vector3 velocity = e.motionVelocity;
+            if (canInput && e.MotionCanMove && e.moveInput.sqrMagnitude > 0.0001f)
             {
-                e.transform.position += e.motionVelocity * dt;
+                velocity += (e.transform.rotation * e.moveInput.normalized) * speed;
             }
+            e.SetMoveVelocity(velocity);
         }
     }
     #endregion
@@ -337,7 +355,7 @@ public partial class BattleManager
                     : Config.revive_night_progress_per_second;
                 var mults = Config.revive_progress_multiplier_by_death;
                 float mult = mults[Mathf.Min(Mathf.Max(rs.deathCount - 1, 0), mults.Length - 1)];
-                rs.progress += dt * rate * mult;
+                rs.progress += dt * rate * mult * AttackReviveFactor; // PC102 被动「进攻方复活速度减慢」
             }
             else
             {
@@ -380,7 +398,6 @@ public partial class BattleManager
         EntityOwnerClient[entityId] = clientId;
 
         var data = GetEntity(entityId);
-        data?.skillController?.SetSkillList(Config.GetInitialSkills(characterType)); // 初始技能表与角色绑定
 
         // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）
         var stacks = Config.yz_stack_by_life;

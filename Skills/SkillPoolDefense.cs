@@ -331,7 +331,8 @@ namespace Ros.Skill
             if (caster == null) return;
             for (int i = 0; i < Config.summon_elite_count; i++)
             {
-                var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
+                // 种类范围是精英僵尸自己的 14 种，不是普通僵尸的 21 种外观变体
+                var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
                 Tool.BattleManager?.SpawnEntity(type, Config.summon_elite_level,
                     caster.transform.position + SummonOffset(i, 3f), EntityCamp.Defense);
             }

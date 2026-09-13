@@ -22,7 +22,7 @@ public static class ClientEvent
     public const int OnBattleStart = 10210;
     /// <summary>战斗结束（param=int 结果，同 SCScoreInfo.gameState：0进行中 1进攻方胜 2防守方胜 3平局）。</summary>
     public const int OnBattleEnd = 10211;
-    /// <summary>昼夜阶段变化（param=int 阶段 0白天 1黄昏 2夜晚 3黎明）。</summary>
+    /// <summary>昼夜翻转（param=int 1 白天 / 0 晚上；归一化模型下不再有独立的黄昏 / 黎明阶段）。</summary>
     public const int OnDayNightChange = 10212;
     /// <summary>分数更新（param=SCScoreInfo）。</summary>
     public const int OnScoreUpdate = 10213;

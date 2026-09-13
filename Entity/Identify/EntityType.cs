@@ -84,9 +84,9 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType ZombieFirst => Zombie(0);
     public static EntityType ZombieLast => Zombie(20);
 
-    // 精英僵尸（0~13，14 种）
+    // 精英僵尸（14 种，type.value 0~13；种类数取 Config 常量，避免与召唤逻辑脱节）
     public static EntityType EliteZombieFirst => EliteZombie(0);
-    public static EntityType EliteZombieLast => EliteZombie(13);
+    public static EntityType EliteZombieLast => EliteZombie(Config.elite_zombie_variant_count - 1);
     #endregion
 
     #region common class func

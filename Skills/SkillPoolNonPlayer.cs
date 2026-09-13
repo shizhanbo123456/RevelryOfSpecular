@@ -200,16 +200,23 @@ namespace Ros.Skill
     #endregion
 
     #region 防御塔（瘟疫孢子，140~159）
-    /// <summary>防御塔·孢子喷射（id 140）：非人形无动画，释放即生效；从碰撞体上部通用发射点直线射出。</summary>
+    /// <summary>防御塔·孢子喷射（id 140）：非人形无动画，释放即生效；从碰撞体上部通用发射点直线射出。
+    /// 塔身上有「灵火」（PC104 大招）时，本发子弹命中处附加一次范围爆炸（策划案 21.5）。</summary>
     public class SkillTowerSporeShot : SkillBase
     {
         public override int Id => 140;
         public override float CD => 2f;
         public override int Store => -1;
 
+        /// <summary>上下文 ints[2] = 灵火标记（客户端据此额外播落点爆炸表现）。</summary>
+        private const int BlazeFlagIndex = 2;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
+            // 灵火在攻击生成时查询一次：之后塔身上的 Buff 变化不影响这一发
+            bool blaze = entity.effectController != null && entity.effectController.HasEffect(EffectType.TowerBlaze);
+            context.AddInts(blaze ? 1 : 0);
             OnCast(context);
             return context;
         }
@@ -219,10 +226,28 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = Caster(context);
-            ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true));
+            bool blaze = context.ints != null && context.ints.Count > BlazeFlagIndex && context.ints[BlazeFlagIndex] != 0;
+            ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
+                onHit: blaze ? BlazeHit(caster) : null));
         }
 
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 22 });
+        /// <summary>构造"命中补一次范围爆炸"的回调（爆炸自身不再带 onHit，避免递归）。</summary>
+        private Action<EntityData> BlazeHit(EntityData caster) => target =>
+        {
+            if (caster == null || target == null) return;
+            StrikeSphere(caster, target.transform.position, Config.tower_blaze_radius,
+                BuildAttack(caster, rate: Config.tower_blaze_rate, radius: Config.tower_blaze_radius, useMagic: true));
+        };
+
+        public override void PlayVFX(SkillContext context)
+        {
+            PlayAlong(context, SkillVfxKind.Bullet, new[] { 22 });
+            if (context.ints == null || context.ints.Count <= BlazeFlagIndex || context.ints[BlazeFlagIndex] == 0) return;
+            for (int i = 0; i < ShotCount(context); i++)
+            {
+                PlayAt(SkillVfxKind.RangeMagic, 7, Dest(context, i), 1f); // RM8 岩浆连环爆炸
+            }
+        }
     }
     #endregion
 

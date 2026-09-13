@@ -197,6 +197,9 @@ public partial class BattleManager : EnsBehaviour
             return 0;
         }
         data.OnCreate(id, type, level, camp);
+        // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/防御塔/瘟疫树）同一条路径，
+        // 未登记的类别得空表（见 Config.initial_skills）
+        data.skillController?.SetSkillList(Config.GetInitialSkills(type));
         AddToContainer(data);
         return id;
     }
@@ -526,7 +529,13 @@ public partial class BattleManager : EnsBehaviour
 
         BattleStarted = true;
         BattleRemainTime = Config.battle_duration;
-        if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ResetDayNight();
+        if (Tool.EnvironmentManager != null)
+        {
+            Tool.EnvironmentManager.ResetDayNight();
+            // 先退订再订阅：防御方被动（教皇守护）靠昼夜翻转驱动，重复订阅会导致同一次入夜施加多遍
+            EnvironmentManager.DayNightFlipped -= OnDayNightFlipped;
+            EnvironmentManager.DayNightFlipped += OnDayNightFlipped;
+        }
 
         // 开战重置：id 源置零、计分清零、子弹/移动/复活/重生状态清空
         ResetEntityIdSource();
@@ -550,7 +559,6 @@ public partial class BattleManager : EnsBehaviour
             if (entityId == 0) continue; // 服务器模板缺失（SpawnEntity 已告警）
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
-            GetEntity(entityId)?.skillController?.SetSkillList(Config.GetInitialSkills(characterType));
 
             // AI 无连接：SendBattleInfo 内部按 HasClient 丢弃负数 id
             Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
@@ -565,6 +573,9 @@ public partial class BattleManager : EnsBehaviour
         // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
         UpdateCoreBeaconReduce(); // 初始分层减伤 = 存活外围数 × 25%
+
+        // 防守方被动（僵尸刷新等级 / 夜晚延长 / 进攻方复活减速 / 教皇守护）：须在双方实体生成后扫阵营
+        ApplyGlobalPassives();
 
         // 昼夜快照（周期时间 + 白天时长 + 晚上时长）：客户端据此自行推演，中途改时长会再补发
         if (Tool.EnvironmentManager != null)
@@ -637,7 +648,7 @@ public partial class BattleManager : EnsBehaviour
 
         // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与水晶重生
         TickMovement();
-        Physics.SyncTransforms(); //移动后同步物理世界，判定查询读到的才是本帧位置
+        Physics.SyncTransforms(); //位移已由刚体积分，此处兜底按 transform 移动的对象（项目关闭了自动同步）
         TickBullets();
         TickRevive();
         TickWorldRespawn();
@@ -715,22 +726,13 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>填充表现推演数据：速度（权威移动 + 位移效果，世界系）与绕 Y 角速度（客户端包间推演用）。</summary>
+    /// <summary>填充表现推演数据：真实速度（刚体实际速度的水平分量）与绕 Y 角速度（客户端包间推演用）。</summary>
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
-        if (moveStates.TryGetValue(entity.id, out var ms))
-        {
-            bool movingVisibly = ms.moving && !ms.blocked && entity.MotionCanMove;
-            Vector3 worldDir = Quaternion.Euler(0f, ms.yaw, 0f) * new Vector3(ms.dir.x, 0f, ms.dir.y).normalized;
-            info.velocity = (movingVisibly ? worldDir * entity.moveSpeed : Vector3.zero)
-                            + entity.motionVelocity;
-            info.yawSpeed = ms.yawSpeed;
-        }
-        else
-        {
-            info.velocity = entity.motionVelocity;
-            info.yawSpeed = 0f;
-        }
+        // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移
+        Vector3 v = entity.body != null ? entity.body.velocity : entity.motionVelocity;
+        info.velocity = new Vector3(v.x, 0f, v.z); // 纵向不做客户端推演
+        info.yawSpeed = moveStates.TryGetValue(entity.id, out var ms) ? ms.yawSpeed : 0f;
     }
     #endregion
 }

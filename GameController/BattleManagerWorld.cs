@@ -51,13 +51,13 @@ public partial class BattleManager
         SpawnEntity(EntityType.PlagueTree0, 1, LandscapeSpawns.RandomOf(spawns.plagueTreeSpawnPositions), EntityCamp.Neutral);
     }
 
-    /// <summary>夜间刷新一只普通僵尸：出生点从地形组件随机取，外观变体随机（攻击/行动逻辑暂留空）。</summary>
+    /// <summary>夜间刷新一只普通僵尸：出生点从地形组件随机取，外观变体随机；等级取全局参数（PC106 被动可提升）。</summary>
     private void SpawnZombie()
     {
         var list = Tool.LandscapeSpawns.zombieSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置僵尸出生点则不刷新
         int variant = Random.Range(0, Config.zombie_variant_count);
-        SpawnEntity(EntityType.Zombie(variant), 1, LandscapeSpawns.RandomOf(list), EntityCamp.Defense);
+        SpawnEntity(EntityType.Zombie(variant), ZombieSpawnLevel, LandscapeSpawns.RandomOf(list), EntityCamp.Defense);
     }
 
     /// <summary>瘟疫树被攻占（树交互玩法实现后调用）：广播攻占事件（UI 飘字 / CD 加速表现）。</summary>

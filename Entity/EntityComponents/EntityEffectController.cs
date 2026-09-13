@@ -170,14 +170,22 @@ public class EntityEffectController
         // 按类别分发
         if (type.IsAttribute()) RecomputeAttributes();
         else if (type.IsControl()) ApplyControl();
+        else if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
+
+        // 苍白之光/暗叠层后判定转化（PC103 被动：满层转冰/雷、双高转火，见 BattleManagerPassive）
+        if (type == EffectType.PaleLight || type == EffectType.PaleDark)
+        {
+            Tool.BattleManager?.CheckPaleConversion(owner);
+        }
     }
 
-    /// <summary>移除 Buff（属性类触发重算；强控类在全部移除后恢复动画速度）。</summary>
+    /// <summary>移除 Buff（属性类触发重算；强控类在全部移除后恢复动画速度；移速类重算动画播放速度）。</summary>
     public void RemoveEffect(EffectType type)
     {
         if (!effects.Remove(type)) return;
         if (type.IsAttribute()) RecomputeAttributes();
         if (type.IsControl()) RefreshControlPause();
+        if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
     }
 
     /// <summary>移除全部负面 Buff（净化波动）。</summary>
@@ -264,8 +272,10 @@ public class EntityEffectController
     public bool HasSuperArmor() => HasEffect(EffectType.DeathStroll);
 
     /// <summary>
-    /// 动画移动状态播放速度倍率（加速/减速/泥沼的载体，多个并存时连乘）。
-    /// 服务器与客户端共用：结果经 EntityAnim.SetMoveSpeedScale 应用到 Animator 的 MoveSpeed 参数。
+    /// 速度参数（加速/减速/泥沼的乘区，多个并存时连乘）—— 本项目**改变移动速度的唯一参数**。
+    /// 两个地方消费它，必须用同一个值：① 移动系统用它缩放水平速度（BattleManagerCombat.TickMovement）；
+    /// ② 动画播放速度（EntityAnim.SetMoveSpeedScale），否则位移变快而动画没变快就会脚步打滑。
+    /// 位移效果（MotionBase）的速度不吃本参数：冲刺/击退不该被减速 Buff 缩水。
     /// </summary>
     public float GetMoveAnimSpeedMultiplier()
     {
@@ -349,6 +359,17 @@ public class EntityEffectController
     #endregion
 
     #region//Local
+    /// <summary>移速类 Buff（加速/减速/泥沼）：只有它们会改变速度参数。</summary>
+    private static bool IsMoveSpeedEffect(EffectType type) =>
+        type is EffectType.AnimSpeedUp or EffectType.AnimSpeedDown or EffectType.Mire;
+
+    /// <summary>把速度参数应用到动画播放速度（与位移用同一个乘区，避免脚步打滑或像在水里走）。</summary>
+    private void ApplyAnimSpeedScale()
+    {
+        if (owner == null || owner.anim == null) return;
+        owner.anim.SetMoveSpeedScale(GetMoveAnimSpeedMultiplier());
+    }
+
     /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff（当前生命夹到新上限，不自动回血）。</summary>
     private void RecomputeAttributes()
     {

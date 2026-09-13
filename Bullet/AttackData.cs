@@ -28,6 +28,8 @@ public class AttackData
     public Action<EntityData> onHit;
     /// <summary>伤害计算属性快照（攻击者命中时的运行时属性）。</summary>
     public EntityAttribute attribute;
+    /// <summary>出伤乘区快照（愈战愈勇等，施放瞬间取自攻击者）。</summary>
+    public float outDamageMultiplier = 1f;
     /// <summary>武器经验点数（伤害 = 基础 × (1 + 10% × 经验)，策划案 14 章）。</summary>
     public int weaponExp;
 
@@ -48,14 +50,17 @@ public class AttackData
             addEffectEvent = addEffectEvent,
             onHit = onHit,
             attribute = shooter != null ? shooter.floatingAttribute : null,
+            // 出伤乘区必须在施放瞬间快照：命中时才取的话，攻击者状态已被后续帧改变
+            outDamageMultiplier = shooter != null && shooter.effectController != null
+                ? shooter.effectController.GetOutDamageMultiplier()
+                : 1f,
             weaponExp = weaponExp,
         };
     }
 
     /// <summary>
-    /// 结算本次攻击的最终伤害：基础 = rate × (魔法或力量) × (1 + 10% × 武器经验)，
+    /// 结算本次攻击的最终伤害：基础 = rate × (魔法或力量) × (1 + 10% × 武器经验) × 出伤乘区，
     /// 按攻击者暴击率掷暴击（× 暴击伤害倍率），是否暴击由 isCrit 传出。
-    /// 出伤乘区（愈战愈勇等）在目标侧管线统一应用。
     /// </summary>
     public float GetDamage(out bool isCrit)
     {
@@ -63,6 +68,7 @@ public class AttackData
         if (attribute == null) return 0f;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
         final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤（策划案 14 章）
+        final *= outDamageMultiplier;                            // 出伤乘区（愈战愈勇增伤）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
             isCrit = true;

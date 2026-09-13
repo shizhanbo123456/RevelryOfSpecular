@@ -92,6 +92,12 @@ public class EnvironmentManager : MonoBehaviour
     /// <summary>白天进度因子 [0,1]：凌晨 / 傍晚为 0，正午为 1（太阳强度与雾气 Albedo 共用同一条三角波）。</summary>
     public static float DayFactor => Mathf.Clamp01((Time01 - DayNightBoundary) / DayNightBoundary);
 
+    /// <summary>
+    /// 昼夜翻转（true = 进入白天，false = 进入夜晚）。**仅服务器权威侧触发**，供战斗逻辑（守护点类被动）订阅；
+    /// 客户端侧的表现请走 EventManager 的 <see cref="ClientEvent.OnDayNightChange"/>。
+    /// </summary>
+    public static event System.Action<bool> DayNightFlipped;
+
     private float lastDayDuration;
     private float lastNightDuration;
     private bool syncRequested;
@@ -143,7 +149,7 @@ public class EnvironmentManager : MonoBehaviour
 
         bool flipped = wasDay != IsDay;
         ApplyVisual();
-        if (flipped) EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
+        NotifyFlipped(wasDay);
 
         // 外部改了任一昼夜时长 → 置位同步请求，由服务器补发完整快照
         if (dayDuration != lastDayDuration || nightDuration != lastNightDuration)
@@ -166,7 +172,7 @@ public class EnvironmentManager : MonoBehaviour
         lastNightDuration = this.nightDuration;
         CycleTime = Mathf.Repeat(cycleTime, CycleLength);
         ApplyVisual();
-        if (wasDay != IsDay) EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
+        NotifyFlipped(wasDay);
     }
 
     /// <summary>外部设置当前周期时间（[0,2)，非正值/超界自动回绕）。会请求服务器补发快照。</summary>
@@ -175,7 +181,7 @@ public class EnvironmentManager : MonoBehaviour
         bool wasDay = IsDay;
         CycleTime = Mathf.Repeat(cycleTime, CycleLength);
         ApplyVisual();
-        if (wasDay != IsDay) EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
+        NotifyFlipped(wasDay);
         syncRequested = true;
     }
 
@@ -191,7 +197,7 @@ public class EnvironmentManager : MonoBehaviour
         bool wasDay = IsDay;
         CycleTime = 1f;
         ApplyVisual();
-        if (wasDay != IsDay) EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
+        NotifyFlipped(wasDay);
     }
 
     /// <summary>构造当前完整快照（服务器下发给客户端用）。</summary>
@@ -220,6 +226,14 @@ public class EnvironmentManager : MonoBehaviour
         ApplySun();
         ApplyFogColor();
         ApplyFogVoid();
+    }
+
+    /// <summary>昼夜翻转的统一出口：通知客户端表现事件，并在服务器权威侧抛出 <see cref="DayNightFlipped"/>。</summary>
+    private void NotifyFlipped(bool wasDay)
+    {
+        if (wasDay == IsDay) return;
+        EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
+        if (BattleManager.AtServer) DayNightFlipped?.Invoke(IsDay);
     }
 
     /// <summary>天空盒曝光：午夜 0.28 ~ 正午 1.92，按光照值线性插值。</summary>
