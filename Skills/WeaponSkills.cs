@@ -34,7 +34,7 @@ namespace Ros.Skill
         public override void DoDamageActs(EntityData entity, Vector3 dest)
         {
             var anim = entity.GetComponentInChildren<EntityAnim>();
-            if (anim == null || CastAnim == EntityAnim.AttackType.None)
+            if (anim == null)// || CastAnim == EntityAnim.AttackType.None)
             {
                 Execute(entity, dest);
                 return;

@@ -9,7 +9,7 @@ namespace Ros.Skill
     ///
     /// store 统一为 -1（无限制）：非玩家单位没有水晶补充渠道，若按策划案 13.1「store 用尽即停止施放」
     /// 会让塔/僵尸打一会儿就哑掉，故非玩家单位不受 store 限制（待策划确认；要限制就改这里的第 3 个参数）。
-    /// 数值与效果为占位初值，待策划定稿；效果实现与其它技能包一样留空（继承 SkillStub）。
+    /// 数值与效果为占位初值，待策划定稿；效果实现与其它技能池一样留空（继承 SkillStub）。
     /// </summary>
     public static class SkillPoolNonPlayer
     {

@@ -6,13 +6,13 @@ using UnityEngine;
 /// <summary>
 /// 技能管理器（注册表 + 统一入口）。
 /// 外部只向 SkillManager 传入技能 id 和上下文即可（见架构说明）。
-/// 技能包（A/B/C）在 RegisterAll 中注册各自的技能。
+/// 各技能池在 RegisterAll 中注册自己的技能。
 /// </summary>
 public static class SkillManager
 {
     private static readonly Dictionary<int, SkillBase> s_map = new();
 
-    /// <summary>注册技能（技能包 PackageManager.RegisterAll 中调用）。</summary>
+    /// <summary>注册技能（各技能池的 RegisterAll 中调用）。</summary>
     public static void Register(SkillBase skill)
     {
         if (skill == null) return;
@@ -77,17 +77,14 @@ public static class SkillManager
         skill.PlayVFX(context);
     }
 
-    /// <summary>程序集加载时注册所有技能包（技能包实现后自动生效）。</summary>
+    /// <summary>程序集加载时注册全部技能池。</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void RegisterAll()
     {
         s_map.Clear();
-        SkillPackageA.PackageManager.RegisterAll();
-        SkillPackageB.PackageManager.RegisterAll();
-        SkillPackageC.PackageManager.RegisterAll();
-        SkillPoolWeapons.RegisterAll();   // 武器技能 0~48（占位，效果待实现）
-        SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73（占位，效果待实现）
-        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位 100~179（占位，效果待实现）
-        SkillPoolUnarmed.RegisterAll();   // 空手攻击 180~182（已实现：动画攻击帧手部/身位球判定）
+        SkillPoolWeapons.RegisterAll();   // 武器技能 0~49
+        SkillPoolDefense.RegisterAll();   // 防守方角色技能 50~73
+        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位 100~179
+        SkillPoolUnarmed.RegisterAll();   // 空手攻击 180~182
     }
 }

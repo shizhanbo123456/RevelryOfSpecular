@@ -119,18 +119,6 @@ namespace Ros.Skill
         {
             return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
         }
-
-        /// <summary>服务器延时执行（快照参数，避免闭包引用变化）。</summary>
-        protected static void DelayActs(float delay, (EntityData, Vector3, Vector3) param, System.Action<(EntityData, Vector3, Vector3)> action)
-        {
-            GenericTimer.AddTimer(param, delay, action);
-        }
-
-        /// <summary>客户端延时执行。</summary>
-        protected static void DelayActs(float delay, (Vector3, Vector3) param, System.Action<(Vector3, Vector3)> action)
-        {
-            GenericTimer.AddTimer(param, delay, action);
-        }
         #endregion
     }
 }

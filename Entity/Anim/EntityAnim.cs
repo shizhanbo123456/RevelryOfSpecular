@@ -40,7 +40,6 @@ public class EntityAnim : MonoBehaviour
     }
     public enum AttackType
     {
-        None=0,
         Attack_Hand_L=1,
         Attack_Hand_R=2,
         Jump_Hit=11,
@@ -148,9 +147,6 @@ public class EntityAnim : MonoBehaviour
     }
 
     #region 手持物体（客户端表现：武器/道具模型挂到手部）
-    [Header("手持物体挂点（不配置时按 Humanoid 骨骼自动定位手部）")]
-    [SerializeField] private Transform handMountR;
-    [SerializeField] private Transform handMountL;
 
     /// <summary>已挂载的手持物体实例（[0] = 右手，[1] = 左手）。</summary>
     private readonly GameObject[] heldObjects = new GameObject[2];
@@ -184,8 +180,6 @@ public class EntityAnim : MonoBehaviour
     /// <summary>取手部挂点：优先 Inspector 配置的挂点，否则按 Humanoid 骨骼自动定位手部。</summary>
     public Transform GetHandMount(bool leftHand)
     {
-        var configured = leftHand ? handMountL : handMountR;
-        if (configured != null) return configured;
         return animator != null
             ? animator.GetBoneTransform(leftHand ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand)
             : null;
