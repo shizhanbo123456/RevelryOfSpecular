@@ -164,11 +164,7 @@ public class EntityAnim : MonoBehaviour
         if (prefab == null) return;
 
         Transform mount = GetHandMount(leftHand);
-        if (mount == null)
-        {
-            Debug.LogWarning($"{gameObject.name} 未找到{(leftHand ? "左" : "右")}手挂点：模型非 Humanoid 时请在 Inspector 配置 handMount{(leftHand ? "L" : "R")}");
-            return;
-        }
+        if (mount == null) return;
         heldObjects[slot] = Instantiate(prefab, mount);
         heldObjects[slot].transform.localPosition = Vector3.zero;
         heldObjects[slot].transform.localRotation = Quaternion.identity;
@@ -177,7 +173,7 @@ public class EntityAnim : MonoBehaviour
     /// <summary>清除手持物体（leftHand = 清左手，默认清右手）。</summary>
     public void ClearHeldObject(bool leftHand = false) => SetHeldObject(null, leftHand);
 
-    /// <summary>取手部挂点：优先 Inspector 配置的挂点，否则按 Humanoid 骨骼自动定位手部。</summary>
+    /// <summary>取手部挂点（Humanoid 手部骨骼）。</summary>
     public Transform GetHandMount(bool leftHand)
     {
         return animator != null
