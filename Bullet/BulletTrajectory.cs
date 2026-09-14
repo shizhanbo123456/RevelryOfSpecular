@@ -27,7 +27,7 @@ public abstract class BulletTrajectory
     public float Duration = 1f;
 
     /// <summary>
-    /// 通过实体 id 读取位置（服务器走 BattleManager 实体容器，客户端走 ClientDisplayManager 表现物体）。
+    /// 通过实体 id 读取位置（服务器走 BattleManager 实体容器，客户端走客户端总控的实体表现）。
     /// </summary>
     public static bool TryGetEntityPosition(ushort entityId, out Vector3 pos)
     {
@@ -36,7 +36,7 @@ public abstract class BulletTrajectory
 
     /// <summary>
     /// 通过实体 id 读取完整变换（位置 + 朝向）。两端都取得到：
-    /// 服务器走 BattleManager 实体容器，客户端走 ClientDisplayManager 表现物体。
+    /// 服务器走 BattleManager 实体容器，客户端走客户端总控的实体表现。
     /// 复原依赖朝向的挂点位置（如悬浮武器发射点）必须用它，只取位置会偏。
     /// </summary>
     public static bool TryGetEntityTransform(ushort entityId, out Vector3 pos, out Quaternion rot)
@@ -53,9 +53,10 @@ public abstract class BulletTrajectory
             return true;
         }
         // 客户端：表现物体
-        if (Tool.ClientDisplayManager != null)
+        var players = Tool.ClientLogicManager?.EntityPlayers;
+        if (players != null)
         {
-            return Tool.ClientDisplayManager.TryGetEntityTransform(entityId, out pos, out rot);
+            return players.TryGetEntityTransform(entityId, out pos, out rot);
         }
         return false;
     }

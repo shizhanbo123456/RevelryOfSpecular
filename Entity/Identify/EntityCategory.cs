@@ -2,7 +2,7 @@
 /// 实体类别（V0.8 非对称攻防）。
 /// 进攻方角色 / 防守方角色 / 僵尸 / 精英僵尸 / 守护点 / 水晶 / 防御塔 / 瘟疫树。
 /// 注意：不存在蘑菇实体——「蘑菇感染」是水晶上的 Buff（服务器只存 Buff 剩余时间），
-/// 客户端按同步 Buff 显隐切换水晶/蘑菇模型（见 ClientDisplayManager）。
+/// 客户端按同步 Buff 显隐切换水晶/蘑菇模型（见 ClientLogicManager.EntityPlayers）。
 /// </summary>
 public enum EntityCategory
 {

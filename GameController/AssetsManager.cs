@@ -30,7 +30,7 @@ public class AssetsManager : MonoBehaviour
     /// <summary>防御塔（瘟疫孢子）图形：4 种外观，按塔实例编号 value 选用（4 座塔各配一种）。</summary>
     public List<GameObject> TowerGraphics = new();
     public GameObject PlagueTreeGraphic;
-    /// <summary>蘑菇图形（客户端「蘑菇感染」Buff 表现：水晶模型隐藏、蘑菇模型显示，见 ClientDisplayManager；多种外观，感染时随机选用一种并缓存）。</summary>
+    /// <summary>蘑菇图形（客户端「蘑菇感染」Buff 表现：水晶模型隐藏、蘑菇模型显示，见 ClientLogicManager.EntityPlayers；多种外观，感染时随机选用一种并缓存）。</summary>
     public List<GameObject> MushroomGraphics = new();
     #endregion
 

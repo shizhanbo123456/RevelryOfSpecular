@@ -34,7 +34,6 @@ public class Tool : MonoBehaviour
     public static EnvironmentManager EnvironmentManager;
     public static CameraController CameraController;
     public static ClientLogicManager ClientLogicManager;
-    public static ClientDisplayManager ClientDisplayManager;
     public static AssetsObjectPool AssetsObjectPool;
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;

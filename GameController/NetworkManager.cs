@@ -355,7 +355,8 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveEntityDisplayLocal(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        if (Tool.ClientDisplayManager != null) Tool.ClientDisplayManager.OnEntityDisplay(info);
+        var logic = Tool.ClientLogicManager;
+        if (logic != null) logic.EntityPlayers.OnEntityDisplay(info);
         else EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
     }
 
@@ -363,7 +364,8 @@ public partial class NetworkManager : EnsBehaviour
     [Rpc]
     private void ClientRemoveEntityLocal(int entityId)
     {
-        if (Tool.ClientDisplayManager != null) Tool.ClientDisplayManager.OnRemoveEntity(entityId);
+        var logic = Tool.ClientLogicManager;
+        if (logic != null) logic.EntityPlayers.OnRemoveEntity(entityId);
         else EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
     }
 
@@ -383,12 +385,14 @@ public partial class NetworkManager : EnsBehaviour
         EventManager.TrigEvent(ClientEvent.OnBattleEvent, e);
     }
 
-    /// <summary>客户端：接收分数。</summary>
+    /// <summary>客户端：接收分数（BattleTime 缓存快照后照旧广播，UI 数据来源不变）。</summary>
     [Rpc]
     private void ClientReceiveScoreInfoLocal(SCScoreInfo info)
     {
         if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnScoreUpdate, info);
+        var logic = Tool.ClientLogicManager;
+        if (logic != null) logic.BattleTime.OnScoreUpdate(info);
+        else EventManager.TrigEvent(ClientEvent.OnScoreUpdate, info);
     }
 
     /// <summary>客户端：接收复活进度。</summary>
@@ -413,7 +417,9 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveDayNightInfoLocal(SCDayNightInfo info)
     {
         if (info == null) return;
-        Tool.EnvironmentManager?.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
+        var logic = Tool.ClientLogicManager;
+        if (logic != null) logic.BattleTime.OnDayNightSync(info);
+        else Tool.EnvironmentManager?.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
     }
 
     /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>
@@ -421,7 +427,9 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientUseSkillLocal(int skillId, SkillContext context)
     {
         if (context == null) return;
-        SkillManager.PlayVFX(skillId, context);
+        var logic = Tool.ClientLogicManager;
+        if (logic != null) logic.SkillVfx.OnSkillCast(skillId, context);
+        else SkillManager.PlayVFX(skillId, context);
     }
     #endregion
 }

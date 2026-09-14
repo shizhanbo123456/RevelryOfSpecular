@@ -146,7 +146,7 @@ public class UIManager : MonoBehaviour
 
     private void OnRestartGame()
     {
-        Tool.ClientDisplayManager?.ClearAll(); // 清空上一局实体表现残留
+        Tool.ClientLogicManager?.EntityPlayers.ClearAll(); // 清空上一局实体表现残留
         ShowPage(PageType.Home);
     }
 

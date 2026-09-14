@@ -28,7 +28,6 @@ public class BattlePage : PageBase
     private VisualElement reviveFill;
     private Label reviveLabel;
     private float battleStartTime;
-    private bool expSettled; // 对局经验只结算一次（防 SCScoreInfo 重复到达）
     private VisualElement settlePanel;
     private Label settleTitle;
     private Label settleDetail;
@@ -156,7 +155,6 @@ public class BattlePage : PageBase
 
         // 开局信息立即应用（守护点/技能槽随实体表现摘要到达后刷新）
         battleStartTime = Time.time;
-        expSettled = false;
         if (settlePanel != null) settlePanel.style.display = DisplayStyle.None; // 新对局隐藏结算面板
         minimap?.Clear(); // 清掉上一局残留点位
         RefreshDayNightLabel();
@@ -260,7 +258,6 @@ public class BattlePage : PageBase
         if (info.gameState != 0)
         {
             ShowFloating(GetEndText(info.gameState), UITheme.Gold);
-            TrySettleExp(info);
             ShowSettlement(info);
         }
     }
@@ -283,25 +280,8 @@ public class BattlePage : PageBase
     private void OnSettleClose()
     {
         if (settlePanel != null) settlePanel.style.display = DisplayStyle.None;
-        Tool.ClientDisplayManager?.ClearAll();
+        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
         Owner.ShowPage(UIManager.PageType.Lobby);
-    }
-
-    /// <summary>结算局外经验（策划案 17.3：获得经验 = 对水晶造成的伤害量，服务器随 SCScoreInfo 下发）。</summary>
-    private void TrySettleExp(SCScoreInfo info)
-    {
-        if (expSettled || Tool.SaveManager == null || info.expGain <= 0) return;
-        expSettled = true;
-        Tool.SaveManager.AddPlayerExp(info.expGain);
-        var battle = NetworkManager.battleInfo;
-        if (battle != null)
-        {
-            // 全局角色索引：进攻 0~17 / 防守 18~23（SaveManager 双等级制）
-            int index = battle.camp == EntityCamp.Attack
-                ? battle.characterType.value
-                : Config.attack_character_count + battle.characterType.value;
-            Tool.SaveManager.AddCharacterExp(index, info.expGain);
-        }
     }
 
     private void OnBattleEvent(SCBattleEvent e)

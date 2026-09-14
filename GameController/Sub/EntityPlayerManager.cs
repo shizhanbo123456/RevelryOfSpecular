@@ -4,11 +4,10 @@ using Ros.Transport;
 using UnityEngine;
 
 /// <summary>
-/// 客户端表现管理器（Sub：统一处理服务器传回的实体表现并呈现）。
-/// 客户端不实例化 EntityData（架构说明：客户端实体只含具体贴图模型表现），
-/// 移动通过实体 id 获取目标 transform。
+/// 实体表现子管理器（客户端逻辑）：按服务器摘要创建 / 更新 / 移除实体表现视图。
+/// 客户端不实例化 EntityData（架构说明：客户端实体只含具体贴图模型表现），移动通过实体 id 获取 transform。
 /// </summary>
-public class ClientDisplayManager : MonoBehaviour
+public class EntityPlayerManager : ClientSubManager
 {
     /// <summary>客户端实体表现视图（纯表现，无战斗逻辑）。</summary>
     public class ClientEntityView : MonoBehaviour
@@ -19,7 +18,6 @@ public class ClientDisplayManager : MonoBehaviour
         public Animator animator;
         public EntityAnim anim;
         public int animHash = int.MinValue; // 当前动画片段 hash（判断是否需要切换）
-        public TextMesh nameLabel; // 玩家名字（仅玩家实体）
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
@@ -90,16 +88,33 @@ public class ClientDisplayManager : MonoBehaviour
     private const float ViewTimeoutSeconds = 3f;
 
     /// <summary>客户端表现根节点（父物体）。</summary>
-    public Transform displayRoot;
+    private Transform displayRoot;
 
-    private void Awake()
+    public override void Init(ClientLogicManager owner)
     {
-        Tool.ClientDisplayManager = this;
-        if (displayRoot == null)
+        base.Init(owner);
+        var go = new GameObject("ClientDisplays");
+        go.transform.SetParent(logic.transform);
+        displayRoot = go.transform;
+    }
+
+    /// <summary>超时兜底移除：超过 ViewTimeoutSeconds 未收到同步的表现自动移除（防服务器漏发移除消息）。</summary>
+    public override void Tick(float deltaTime)
+    {
+        float now = Time.time;
+        List<ushort> expired = null;
+        foreach (var pair in views)
         {
-            var go = new GameObject("ClientDisplays");
-            go.transform.SetParent(transform);
-            displayRoot = go.transform;
+            var view = pair.Value;
+            if (view == null || now - view.lastSeenTime > ViewTimeoutSeconds)
+            {
+                (expired ??= new List<ushort>()).Add(pair.Key);
+            }
+        }
+        if (expired == null) return;
+        foreach (var id in expired)
+        {
+            OnRemoveEntity(id);
         }
     }
 
@@ -112,6 +127,7 @@ public class ClientDisplayManager : MonoBehaviour
             view = CreateView(info);
             if (view == null) return;
             views[info.entityId] = view;
+            logic.Labels?.Attach(view, info);
         }
         view.lastSeenTime = Time.time;
         view.velocity = info.velocity;
@@ -134,28 +150,9 @@ public class ClientDisplayManager : MonoBehaviour
         if (views.TryGetValue((ushort)entityId, out var view))
         {
             views.Remove((ushort)entityId);
-            Destroy(view.gameObject);
+            logic.Labels?.Detach((ushort)entityId);
+            UnityEngine.Object.Destroy(view.gameObject);
             EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
-        }
-    }
-
-    /// <summary>超时兜底移除：超过 ViewTimeoutSeconds 未收到同步的表现自动移除（防服务器漏发移除消息）。</summary>
-    private void Update()
-    {
-        float now = Time.time;
-        List<ushort> expired = null;
-        foreach (var pair in views)
-        {
-            var view = pair.Value;
-            if (view == null || now - view.lastSeenTime > ViewTimeoutSeconds)
-            {
-                (expired ??= new List<ushort>()).Add(pair.Key);
-            }
-        }
-        if (expired == null) return;
-        foreach (var id in expired)
-        {
-            OnRemoveEntity(id);
         }
     }
 
@@ -180,9 +177,10 @@ public class ClientDisplayManager : MonoBehaviour
     /// <summary>清空全部表现（对局结束）。</summary>
     public void ClearAll()
     {
+        logic.Labels?.ClearAll();
         foreach (var view in views.Values)
         {
-            if (view != null) Destroy(view.gameObject);
+            if (view != null) UnityEngine.Object.Destroy(view.gameObject);
         }
         views.Clear();
     }
@@ -199,7 +197,7 @@ public class ClientDisplayManager : MonoBehaviour
         GameObject go;
         if (graphic != null)
         {
-            go = Instantiate(graphic, displayRoot);
+            go = UnityEngine.Object.Instantiate(graphic, displayRoot);
         }
         else
         {
@@ -222,24 +220,6 @@ public class ClientDisplayManager : MonoBehaviour
             view.anim = view.animator.GetComponent<EntityAnim>();
             // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传
             view.anim?.Init(null, null);
-        }
-
-        // 玩家名字（头顶文字，无血条；攻红守蓝）
-        if (info.type.category == EntityCategory.Character_Attack ||
-            info.type.category == EntityCategory.Character_Defense)
-        {
-            var labelGo = new GameObject("NameLabel");
-            labelGo.transform.SetParent(go.transform, false);
-            float yOffset = Tool.InfoManager != null ? Tool.InfoManager.GetEntityBarYOffset(info.type) : 2f;
-            labelGo.transform.localPosition = Vector3.up * yOffset;
-            var tm = labelGo.AddComponent<TextMesh>();
-            tm.text = $"玩家{info.ownerClientId}";
-            tm.fontSize = 64;
-            tm.characterSize = 0.08f;
-            tm.anchor = TextAnchor.LowerCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.color = info.camp == EntityCamp.Attack ? new Color(1f, 0.45f, 0.4f) : new Color(0.45f, 0.7f, 1f);
-            view.nameLabel = tm;
         }
         return view;
     }
@@ -279,12 +259,12 @@ public class ClientDisplayManager : MonoBehaviour
             }
             if (view.weaponRefs[i] == weapon) continue;
             view.weaponRefs[i] = weapon;
-            if (view.weaponVisuals[i] != null) Destroy(view.weaponVisuals[i]);
+            if (view.weaponVisuals[i] != null) UnityEngine.Object.Destroy(view.weaponVisuals[i]);
             view.weaponVisuals[i] = null;
             if (!weapon.IsValid || Tool.AssetsManager == null
                 || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) continue;
 
-            var obj = Instantiate(prefab, view.transform); // 挂在实体根物体上，任何实体通用
+            var obj = UnityEngine.Object.Instantiate(prefab, view.transform); // 挂在实体根物体上，任何实体通用
             obj.transform.localPosition = Config.GetWeaponFloatOffset(i);
             obj.transform.localRotation = Quaternion.identity;
             view.weaponVisuals[i] = obj;
@@ -318,7 +298,7 @@ public class ClientDisplayManager : MonoBehaviour
         }
         foreach (var type in s_expiredBuffs)
         {
-            if (view.buffVfx[type] != null) Destroy(view.buffVfx[type]);
+            if (view.buffVfx[type] != null) UnityEngine.Object.Destroy(view.buffVfx[type]);
             view.buffVfx.Remove(type);
         }
     }
