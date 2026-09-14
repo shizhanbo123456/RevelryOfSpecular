@@ -200,6 +200,7 @@ public partial class BattleManager : EnsBehaviour
         // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/防御塔/瘟疫树）同一条路径，
         // 未登记的类别得空表（见 Config.initial_skills）
         data.skillController?.SetSkillList(Config.GetInitialSkills(type));
+        ApplyMinimapLostOnSpawn(data); // 夜间出生/复活：补上「小地图失联」（昼夜事件只在翻转那一刻遍历）
         AddToContainer(data);
         return id;
     }
@@ -535,6 +536,7 @@ public partial class BattleManager : EnsBehaviour
             // 先退订再订阅：防御方被动（教皇守护）靠昼夜翻转驱动，重复订阅会导致同一次入夜施加多遍
             EnvironmentManager.DayNightFlipped -= OnDayNightFlipped;
             EnvironmentManager.DayNightFlipped += OnDayNightFlipped;
+            InitVision(); // 视野系统：小地图失联同样由昼夜翻转驱动
         }
 
         // 开战重置：id 源置零、计分清零、子弹/移动/复活/重生状态清空
@@ -697,7 +699,7 @@ public partial class BattleManager : EnsBehaviour
             }
         }
 
-        // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；可见距离过滤 TODO）
+        // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
         syncTimer -= UnityEngine.Time.deltaTime;
         detailsTimer -= UnityEngine.Time.deltaTime;
         if (syncTimer <= 0f)
@@ -707,22 +709,43 @@ public partial class BattleManager : EnsBehaviour
             if (details) detailsTimer = Config.entity_sync_interval_details;
             SyncEntitiesToClients(details);
         }
+
+        // 小地图同步（阵营共享视野，独立节流，见 Config.minimap_sync_interval）
+        minimapTimer -= UnityEngine.Time.deltaTime;
+        if (minimapTimer <= 0f)
+        {
+            minimapTimer = Config.minimap_sync_interval;
+            SyncMinimapToClients();
+        }
     }
 
+    /// <summary>
+    /// 按视野把实体表现同步给各客户端（策划案第十五章）：
+    /// 己方单位恒同步；敌方 / 中立单位仅当在观察者可见距离内才同步；差集（离开视野）主动下发移除。
+    /// </summary>
     private void SyncEntitiesToClients(bool includeRuntime)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
+            var viewer = GetEntityOfClient(clientId);
+            if (viewer == null)
+            {
+                visibleByClient.Remove(clientId); // 复活等待中无观察者：实体已由 DestroyEntity 通知移除
+                continue;
+            }
+            BeginClientVisibility(clientId);
             foreach (var entity in EntityContainer.Entities)
             {
                 if (entity == null) continue;
-                // TODO: 可见距离/阵营视野过滤（15 章视野系统）
+                if (!CanSeeModel(viewer, entity)) continue;
+                MarkClientVisible(entity.id);
                 var info = entity.GetDisplayInfo();
                 info.includeRuntime = includeRuntime;
                 info.ownerClientId = EntityOwnerClient.TryGetValue(entity.id, out var oc) ? oc : (short)-1;
                 FillDisplayVelocity(entity, info);
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
             }
+            EndClientVisibility(clientId);
         }
     }
 

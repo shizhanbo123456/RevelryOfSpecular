@@ -80,6 +80,20 @@ public static class Config
     public const float daynight_sync_interval = 10f;
     #endregion
 
+    #region 视野与小地图（策划案第十五章）
+    // 可见范围只有一套数值：角色属性 EntityAttribute.viewDistance
+    // （策划案 15 章：可见距离决定敌方模型可见性与小地图显示）。小地图不另设阈值。
+    /// <summary>小地图下发间隔（秒）。</summary>
+    public const float minimap_sync_interval = 0.2f;
+    /// <summary>「小地图失联」的时长（秒）：取极大值，跨昼夜由进入白天的事件移除，不依赖到时。</summary>
+    public const float minimap_lost_duration = 99999f;
+    /// <summary>
+    /// HUD 小地图的显示半径（米，客户端专用）：圆形小地图只画以自己为中心该半径内的单位。
+    /// 纯表现裁剪，不参与服务器可见性判定（实际能收到什么仍由 viewDistance 决定）。
+    /// </summary>
+    public const float minimap_view_radius = 40f;
+    #endregion
+
     #region 复活与愈战愈勇
     /// <summary>进攻方白天复活进度速率（每秒积累 1/8，8s 攒满；速率制防昼夜状态切换问题）。</summary>
     public const float revive_day_progress_per_second = 1f / 8f;

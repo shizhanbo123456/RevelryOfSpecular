@@ -19,6 +19,7 @@ public class BattlePage : PageBase
     private VisualElement skillBar;
     private VisualElement beaconPanel;
     private VisualElement floatingPanel;
+    private MinimapUnit minimap;
     private Label timeLabel;
     private Label phaseLabel;
     private Label attackScoreLabel;
@@ -72,6 +73,10 @@ public class BattlePage : PageBase
         beaconTitle.style.marginBottom = 6;
         beaconPanel.Add(beaconTitle);
         root.Add(beaconPanel);
+
+        // 左上角小地图（圆形，以自己为中心；点击展开完整地图。可见单位由服务器下发，见 BattleManagerVision）
+        minimap = new MinimapUnit();
+        minimap.Attach(root);
 
         // 飘字区（中央偏上）
         floatingPanel = new VisualElement
@@ -142,6 +147,7 @@ public class BattlePage : PageBase
     public override void OnEnable()
     {
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
+        EventManager.AddEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
@@ -152,12 +158,14 @@ public class BattlePage : PageBase
         battleStartTime = Time.time;
         expSettled = false;
         if (settlePanel != null) settlePanel.style.display = DisplayStyle.None; // 新对局隐藏结算面板
+        minimap?.Clear(); // 清掉上一局残留点位
         RefreshDayNightLabel();
     }
 
     public override void OnDisable()
     {
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
+        EventManager.RemoveEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
@@ -200,6 +208,12 @@ public class BattlePage : PageBase
         {
             OnLocalSkillBarUpdate(info);
         }
+    }
+
+    /// <summary>小地图可见单位（服务器按阵营共享视野算好后下发）。</summary>
+    private void OnMinimapUpdate(SCMinimapInfo info)
+    {
+        minimap?.Refresh(info);
     }
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
@@ -255,6 +269,7 @@ public class BattlePage : PageBase
     private void ShowSettlement(SCScoreInfo info)
     {
         if (settlePanel == null) return;
+        minimap?.Clear(); // 对局结束：小地图不再刷新，清掉残留点位
         settleTitle.text = GetEndText(info.gameState);
         settleTitle.style.color = info.gameState == 1 ? UITheme.Attack
             : info.gameState == 2 ? UITheme.Defense : UITheme.TextMain;

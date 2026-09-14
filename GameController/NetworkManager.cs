@@ -232,6 +232,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientRemoveEntityLocal, SendTo.To(clientId), Delivery.Reliable, entityId);
     }
 
+    /// <summary>发送小地图可见单位（定向；内容按阵营计算，见 BattleManagerVision）。</summary>
+    public void SendMinimapInfo(short clientId, SCMinimapInfo info)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveMinimapInfoLocal, SendTo.To(clientId), Delivery.Unreliable, info);
+    }
+
     /// <summary>发送战斗事件（定向或广播）。</summary>
     public void SendBattleEvent(short clientId, SCBattleEvent e)
     {
@@ -358,6 +365,14 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (Tool.ClientDisplayManager != null) Tool.ClientDisplayManager.OnRemoveEntity(entityId);
         else EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
+    }
+
+    /// <summary>客户端：接收小地图可见单位（阵营共享视野，服务器已按可见距离 / 小地图阈值过滤）。</summary>
+    [Rpc]
+    private void ClientReceiveMinimapInfoLocal(SCMinimapInfo info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnMinimapUpdate, info);
     }
 
     /// <summary>客户端：接收战斗事件。</summary>

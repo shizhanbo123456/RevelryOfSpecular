@@ -47,6 +47,8 @@ public static class ClientEvent
     public const int OnEntityDisplayRemove = 10231;
     /// <summary>实体创建（param=SCEntityDisplayInfo）。</summary>
     public const int OnEntityDisplayCreate = 10232;
+    /// <summary>小地图可见单位更新（param=SCMinimapInfo；内容为服务器算好的阵营共享视野）。</summary>
+    public const int OnMinimapUpdate = 10233;
     #endregion
 
     #region UI 通用（10300 段）
