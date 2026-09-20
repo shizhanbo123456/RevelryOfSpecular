@@ -14,12 +14,14 @@ public class AnimAttackEvent : AnimEvent
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateEnter(animator,stateInfo,layerIndex);
+        if (!main) return;
         canTrigAttack = true;
         canTrigAttack2 = true;
     }
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
+        if (!main) return;
         if (canTrigAttack && stateInfo.normalizedTime > threshold)
         {
             canTrigAttack = false;
@@ -34,6 +36,7 @@ public class AnimAttackEvent : AnimEvent
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateExit(animator, stateInfo, layerIndex);
+        if (!main) return;
         if (data != null) data.heldWeapon = WeaponRef.None; //攻击动作结束切回空手
     }
     private void OnAttack()

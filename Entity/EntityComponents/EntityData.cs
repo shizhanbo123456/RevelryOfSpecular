@@ -366,7 +366,7 @@ public abstract class EntityData : MonoBehaviour
         };
         if (anim != null)
         {
-            anim.GetDisplayAnim(out _, out var animId, out var frame);
+            anim.GetDisplayAnim(out var animId, out var frame);
             info.animId = animId;
             info.animFrame = frame;
         }
