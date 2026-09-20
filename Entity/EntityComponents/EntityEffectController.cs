@@ -361,7 +361,7 @@ public class EntityEffectController
     #region//Local
     /// <summary>移速类 Buff（加速/减速/泥沼）：只有它们会改变速度参数。</summary>
     private static bool IsMoveSpeedEffect(EffectType type) =>
-        type is EffectType.AnimSpeedUp or EffectType.AnimSpeedDown or EffectType.Mire;
+        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire;
 
     /// <summary>把速度参数应用到动画播放速度（与位移用同一个乘区，避免脚步打滑或像在水里走）。</summary>
     private void ApplyAnimSpeedScale()
