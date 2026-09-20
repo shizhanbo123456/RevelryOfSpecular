@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class AnimAttackEvent : AnimEvent
 {
+    protected override EntityAnim.AnimState State => EntityAnim.AnimState.Attack;
     [SerializeField] private EntityAnim.AttackType type;
     [Header("Hit1")]
     [SerializeField][Range(0,1)] private float threshold;
