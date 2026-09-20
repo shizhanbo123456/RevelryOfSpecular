@@ -10,95 +10,6 @@ using UnityEngine;
 public partial class BattleManager
 {
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
-    /// <summary>玩家移动状态。</summary>
-    private class MoveState
-    {
-        public PlayerKey held;    // 当前按住的移动键（按下/抬起边沿维护）
-        public bool moving;
-        public Vector2 dir;       // 原始按键输入（x = 左右横移，y = 前后）
-        public float yaw;         // 角色朝向（度，服务器权威渐转推进）
-        public float yawSpeed;    // 绕 Y 角速度（度/秒，客户端推演用）
-        public bool blocked;
-    }
-    private readonly Dictionary<ushort, MoveState> moveStates = new();
-
-    /// <summary>记录移动输入（按下/抬起边沿 → 按住掩码；朝向仍由服务器渐转权威推进）。</summary>
-    private void RecordMoveInput(EntityData entity, CSMoveInput move)
-    {
-        if (!moveStates.TryGetValue(entity.id, out var st))
-        {
-            st = new MoveState { yaw = entity.transform.eulerAngles.y }; // 初始朝向 = 生成时的朝向
-            moveStates[entity.id] = st;
-        }
-        st.held = (st.held | move.pressed) & ~move.released;
-
-        float x = ((st.held & PlayerKey.D) != 0 ? 1f : 0f) - ((st.held & PlayerKey.A) != 0 ? 1f : 0f);
-        float z = ((st.held & PlayerKey.W) != 0 ? 1f : 0f) - ((st.held & PlayerKey.S) != 0 ? 1f : 0f);
-        st.dir = new Vector2(x, z).normalized;
-        st.moving = x != 0f || z != 0f;
-
-        // 输入只落到实体这一个字段（角色本地系方向）；速度大小由动画声明的 animSpeed 决定
-        entity.SetMoveInput(new Vector3(st.dir.x, 0f, st.dir.y));
-
-        // Run/Idle 随表现摘要同步给客户端
-        entity.GetComponentInChildren<EntityAnim>()?.Move(st.moving);
-    }
-
-    /// <summary>记录动作输入（攻击/跳跃/滑铲/技能槽，均为按下边沿）。</summary>
-    private void RecordActionInput(EntityData entity, CSActionInput action)
-    {
-        var anim = entity.GetComponentInChildren<EntityAnim>();
-        bool moving = moveStates.TryGetValue(entity.id, out var st) && st.moving;
-
-        // 跳跃：InAir 一段时间后落回（时间戳延时）
-        if ((action.pressed & PlayerKey.K) != 0)
-        {
-            anim?.InAir(true);
-            var weak = entity;
-            GenericTimer.AddTimer(0, Config.jump_duration, _ =>
-            {
-                if (weak != null) weak.GetComponentInChildren<EntityAnim>()?.InAir(false);
-            });
-        }
-        // 滑铲：进入滑铲状态，持续时间后结束
-        if ((action.pressed & PlayerKey.LShift) != 0)
-        {
-            anim?.DoSlide();
-            var weak = entity;
-            GenericTimer.AddTimer(0, Config.slide_duration, _ =>
-            {
-                if (weak != null) weak.GetComponentInChildren<EntityAnim>()?.EndSlide();
-            });
-        }
-        // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
-        if ((action.pressed & PlayerKey.J) != 0)
-        {
-            int meleeSkill = moving
-                ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
-                : Config.unarmed_attack_smash;
-            entity.skillController.TryUseSkill(meleeSkill);
-        }
-
-        // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
-        for (int i = 0; i < Config.skill_slot_player_keys.Length; i++)
-        {
-            if ((action.pressed & Config.skill_slot_player_keys[i]) == 0) continue;
-            UseSkillSlot(entity, i);
-            break;
-        }
-    }
-
-    /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
-    private void UseSkillSlot(EntityData entity, int slot)
-    {
-        if (entity.skillController == null) return;
-        var ids = entity.skillController.GetSkillIds();
-        if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return;
-
-        entity.skillController.SelectIndex(slot); // 选中下标供 UI 高亮
-        entity.skillController.TryUseSkill(ids[slot]);
-    }
-
     /// <summary>
     /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
     /// 水平速度 = 动画声明的速度（EntityData.animSpeed.x）× 速度参数（加速/减速/泥沼乘区）；
@@ -106,7 +17,7 @@ public partial class BattleManager
     /// 再叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
     /// 方向仍由输入给出（本地系转世界系，前 = 前方、左右 = 侧方）：输入是"要不要动"的开关，动画只决定"动多快"。
     /// 只写水平分量、Y 不动，所以重力/被击飞/下落照常；停止不看阻力，输入归零即停。
-    /// 朝向按 MoveState 的 yaw 直接赋 rotation（刚体三轴旋转已锁）。
+    /// 朝向由实体自己推进（OnTickMove：玩家角色按输入渐转后直接赋 rotation，刚体三轴旋转已锁）。
     /// </summary>
     private void TickMovement()
     {
@@ -119,28 +30,7 @@ public partial class BattleManager
             // 强控（麻痹/冰冻/定身）期间输入不生效；"位移锁输入"由 MotionCanMove 表达
             bool canInput = e.effectController == null || e.effectController.CanMove();
 
-            moveStates.TryGetValue(e.id, out var st);
-            if (st != null)
-            {
-                st.blocked = !canInput;
-
-                if (canInput && st.moving && e.MotionCanMove)
-                {
-                    // 渐转：前后 + 左右同按时朝向逐渐偏向横移侧（yaw 正 = 右转，负 = 左转）
-                    float yawDelta = 0f;
-                    if (Mathf.Abs(st.dir.x) > 0.01f && Mathf.Abs(st.dir.y) > 0.01f)
-                    {
-                        yawDelta = Config.move_turn_rate * Mathf.Sign(st.dir.x) * dt;
-                        st.yaw += yawDelta;
-                    }
-                    st.yawSpeed = dt > 0f ? yawDelta / dt : 0f;
-                }
-                else
-                {
-                    st.yawSpeed = 0f;
-                }
-                e.transform.rotation = Quaternion.Euler(0f, st.yaw, 0f);
-            }
+            e.OnTickMove(dt, canInput); // 朝向与输入推进交给实体自己（玩家角色在 PlayerEntityData）
 
             // 速度参数（加速 1.3 / 减速 0.6 / 泥沼 0.5，并存时连乘）：
             // 同一乘区也同步作用于动画播放速度，保证位移与动画不脱节（见 EntityEffectController.ApplyAnimSpeedScale）
@@ -230,25 +120,7 @@ public partial class BattleManager
     /// <summary>死亡统一处理：摧毁单位；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；玩家进入复活流程并下发进度。</summary>
     private void HandleDeath(EntityData entity)
     {
-        if (entity.type.category == EntityCategory.Crystal)
-        {
-            // 蘑菇感染判定走 Buff 查询（服务器不存在蘑菇实体，见策划案 11.3 蘑菇感染）：
-            // 被感染水晶被进攻方摧毁 → 无产出（不掉武器，广播 CrystalBroken）；防守方摧毁或未感染 → 正常产出
-            bool infectedAndBrokenByAttack = entity.effectController != null &&
-                                             entity.effectController.HasEffect(EffectType.MushroomInfect) &&
-                                             entity.lastAttacker != null &&
-                                             entity.lastAttacker.camp == EntityCamp.Attack;
-            if (infectedAndBrokenByAttack)
-            {
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalBroken);
-            }
-            else
-            {
-                Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.CrystalCollected);
-                TryDropCrystalWeapon(entity);
-            }
-            ScheduleCrystalRespawn(entity); // 蘑菇状态下的水晶被摧毁后就相当于水晶被摧毁（重生排程照常，见策划案第七章）
-        }
+        // 水晶的产出与重生排程在其子类 OnKilled 里处理（该方法先于本方法调用）
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill);
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
@@ -269,12 +141,8 @@ public partial class BattleManager
 
         DestroyEntity(entity.id);
 
-        // 守护点阵亡后重算中心守护点的分层减伤（走 effectController 的 BeaconReduce 通道）
-        if (entity.type.category == EntityCategory.Beacon)
-        {
-            UpdateCoreBeaconReduce();
-        }
-        else if (entity.type.category == EntityCategory.Character_Attack)
+        // 守护点的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
+        if (entity.type.category == EntityCategory.Character_Attack)
         {
             CheckAttackWiped(); // 进攻方全灭 → 立即按分数结算（策划案 17.2，不直接判负）
         }
@@ -295,7 +163,7 @@ public partial class BattleManager
     /// 已持有 → 该武器经验 +1；未持有且槽未满 → 入槽；未持有但槽满 → 转经验随机分配（策划案 5.2）。
     /// 仅真人玩家（有归属客户端的攻击者）可拾取。
     /// </summary>
-    private void TryDropCrystalWeapon(EntityData crystal)
+    public void TryDropCrystalWeapon(EntityData crystal)
     {
         var killer = crystal.lastAttacker;
         if (killer == null) return;
@@ -434,7 +302,6 @@ public partial class BattleManager
     private void ClearBattleState()
     {
         activeBullets.Clear();
-        moveStates.Clear();
         reviveStates.Clear();
         crystalRespawns.Clear();
         HarvestByClient.Clear();

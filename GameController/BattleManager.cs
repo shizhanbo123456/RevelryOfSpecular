@@ -189,10 +189,12 @@ public partial class BattleManager : EnsBehaviour
         ushort id = AllocEntityId();
         var go = Instantiate(template, pos, Quaternion.identity);
         SetLayerRecursively(go, Tool.InfoManager.entity_layer);
+        // EntityData 不挂预制体（模板与客户端图形是同一批预制体），生成时按类别补上对应子类
         var data = go.GetComponent<EntityData>();
+        if (data == null) data = EntityData.AddTo(go, type.category);
         if (data == null)
         {
-            Debug.LogError($"模板 {template.name} 缺少 EntityData 组件");
+            Debug.LogError($"实体类别 {type.category} 没有对应的 EntityData 子类，无法生成");
             Destroy(go);
             return 0;
         }
@@ -451,7 +453,7 @@ public partial class BattleManager : EnsBehaviour
     /// 重算中心守护点的分层减伤（策划案 9.2：每个存活外围守护点提供 25% 减伤）。
     /// 统一走 effectController 的 BeaconReduce 通道（Add/Remove 内部重算），外部不做 Buff 遍历。
     /// </summary>
-    private void UpdateCoreBeaconReduce()
+    public void UpdateCoreBeaconReduce()
     {
         int aliveOuter = 0;
         foreach (var beacon in EntityContainer.Beacons)
@@ -486,7 +488,7 @@ public partial class BattleManager : EnsBehaviour
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        RecordMoveInput(entity, move);
+        entity.RecordMoveInput(move);
     }
 
     /// <summary>接收动作输入（服务器，由 NetworkManager RPC 回调）：攻击/跳跃/滑铲/技能槽。</summary>
@@ -494,7 +496,7 @@ public partial class BattleManager : EnsBehaviour
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        RecordActionInput(entity, action);
+        entity.RecordActionInput(action);
     }
     #endregion
 
@@ -755,7 +757,7 @@ public partial class BattleManager : EnsBehaviour
         // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移
         Vector3 v = entity.body != null ? entity.body.velocity : entity.motionVelocity;
         info.velocity = new Vector3(v.x, 0f, v.z); // 纵向不做客户端推演
-        info.yawSpeed = moveStates.TryGetValue(entity.id, out var ms) ? ms.yawSpeed : 0f;
+        info.yawSpeed = entity.YawSpeed;
     }
     #endregion
 }

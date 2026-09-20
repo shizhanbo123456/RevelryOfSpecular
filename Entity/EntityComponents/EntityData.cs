@@ -71,6 +71,9 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>动画是否已声明过水平速度：未声明时移动退化为模型移速，保证动画还没接完时也能动。</summary>
     [HideInInspector] public bool animSpeedDeclared;
 
+    /// <summary>绕 Y 角速度（度/秒）：随表现摘要下发客户端做包间推演，由输入渐转写入。</summary>
+    public virtual float YawSpeed => 0f;
+
     /// <summary>当前手持武器（服务器权威）：释放技能时赋值，攻击动作结束清空；随实体摘要同步给客户端。</summary>
     [HideInInspector] public WeaponRef heldWeapon = WeaponRef.None;
 
@@ -91,6 +94,37 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>是否存活。</summary>
     public bool Alive => floatingAttribute != null && floatingAttribute.Alive;
+
+    /// <summary>伤害已落到血量之后的分支钩子：子类覆写以处理自己的受击后果（如守护点计分与采集量）。</summary>
+    protected virtual void OnDamageApplied(float finalDamage, EntityData attacker) { }
+
+    /// <summary>
+    /// 按类别给物体补上对应的 EntityData 子类（服务器生成实体时调用）。
+    /// 不能挂在预制体上：模板与客户端图形是同一批预制体，挂上去客户端表现体也会带上 EntityData。
+    /// </summary>
+    public static EntityData AddTo(GameObject target, EntityCategory category)
+    {
+        if (target == null) return null;
+        switch (category)
+        {
+            case EntityCategory.Character_Attack:
+            case EntityCategory.Character_Defense:
+                return target.AddComponent<PlayerEntityData>();
+            case EntityCategory.Zombie:
+            case EntityCategory.EliteZombie:
+                return target.AddComponent<ZombieEntityData>();
+            case EntityCategory.Beacon:
+                return target.AddComponent<BeaconEntityData>();
+            case EntityCategory.Crystal:
+                return target.AddComponent<CrystalEntityData>();
+            case EntityCategory.Tower:
+                return target.AddComponent<TowerEntityData>();
+            case EntityCategory.PlagueTree:
+                return target.AddComponent<PlagueTreeEntityData>();
+            default:
+                return null; // Prop 无专属行为，暂无子类
+        }
+    }
 
     /// <summary>
     /// 初始化入口（实体创建时调用，注意调用顺序：先赋值基础数据，再初始化组件）。
@@ -141,6 +175,15 @@ public abstract class EntityData : MonoBehaviour
         effectController?.OnUpdate();
         UpdateMotion();
     }
+
+    /// <summary>朝向与移动输入的逐帧推进（由移动循环调用，canInput = 未被强控）。默认无操作。</summary>
+    public virtual void OnTickMove(float deltaTime, bool canInput) { }
+
+    /// <summary>接收移动输入（网络上行）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
+    public virtual void RecordMoveInput(Ros.Transport.CSMoveInput move) { }
+
+    /// <summary>接收动作输入（攻击/跳跃/滑铲/技能槽，网络上行）。默认无操作：只有玩家角色会实现。</summary>
+    public virtual void RecordActionInput(Ros.Transport.CSActionInput action) { }
 
     /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter）。</summary>
     public void SetMotion(MotionBase motion)
@@ -279,16 +322,7 @@ public abstract class EntityData : MonoBehaviour
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
-        if (type.category == EntityCategory.Beacon)
-        {
-            Tool.BattleManager?.AddBeaconDamage(finalDamage); // 进攻方得分 = 对守护点造成的总伤害
-            // 采集量 = 单个角色对守护点造成的伤害量（白眼标记与对局结算经验用）
-            if (attacker != null && finalDamage > 0f && Tool.BattleManager != null &&
-                Tool.BattleManager.EntityOwnerClient.TryGetValue(attacker.id, out var harvester))
-            {
-                Tool.BattleManager.AddHarvest(harvester, finalDamage);
-            }
-        }
+        OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage();

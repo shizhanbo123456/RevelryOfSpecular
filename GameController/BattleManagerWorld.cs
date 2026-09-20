@@ -67,7 +67,7 @@ public partial class BattleManager
     }
 
     /// <summary>水晶被摧毁：按原类型与原位置排 30~60s 随机重生（策划案第七章）。</summary>
-    private void ScheduleCrystalRespawn(EntityData crystal)
+    public void ScheduleCrystalRespawn(EntityData crystal)
     {
         crystalRespawns.Add(new CrystalRespawn()
         {
