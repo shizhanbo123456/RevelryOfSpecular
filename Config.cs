@@ -190,8 +190,8 @@ public static class Config
     /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir；
     /// 若动画状态通过 EntityAnim.OnSetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
     public const float jump_speed = 5f;
-    /// <summary>加速倍率（策划案 11.3）：**只作用于动画播放速度**（EntityAnim.SetMoveSpeedScale → animator.speed）。
-    /// 对位移速度的影响由动画模块在"声明速度"时自行接入；其它速度来源（输入退化移速、MotionBase 位移等）完全不吃这个乘区。</summary>
+    /// <summary>加速倍率（策划案 11.3）：作用于**动画**——动画播放速度与动画声明的速度（EntityAnim.PlaybackSpeed：既写 animator.speed，
+    /// 也在 SetVelocityForward/Horizontal 里缩放声明值）。其它速度来源（输入退化移速、MotionBase 位移、重力）完全不吃这个倍率。</summary>
     public const float anim_move_speed_up = 1.3f;
     /// <summary>减速倍率（作用范围同加速）。</summary>
     public const float anim_move_speed_down = 0.6f;

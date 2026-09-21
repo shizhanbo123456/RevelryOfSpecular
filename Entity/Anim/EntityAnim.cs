@@ -71,13 +71,19 @@ public class EntityAnim : MonoBehaviour
     public Action<float> OnSetVelocityVertical;//设置垂直速度时调用
 
     #region//设置速度（供动画状态调用；外部（EntityData）已注册接收函数，这里只负责转发）
-    /// <summary>设置前后速度：**角色本地前后**，正 = 朝前、负 = 朝后、0 = 本状态不动（后退的负号由输入前后轴给）。</summary>
-    public void SetVelocityForward(float speed) => OnSetVelocityForward?.Invoke(speed);
+    /// <summary>
+    /// 当前动画播放速度（播放倍率，被强控暂停时为 0）。
+    /// 声明水平/前后速度时按它缩放 —— 加速/减速/泥沼改的就是这个值，于是"走得快"与"动画播得快"天然同步。
+    /// </summary>
+    private float PlaybackSpeed => paused ? 0f : speed;
 
-    /// <summary>设置水平速度：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
-    public void SetVelocityHorizontal(Vector2 speed) => OnSetVelocityHorizontal?.Invoke(speed);
+    /// <summary>设置前后速度：**角色本地前后（局部空间）**，正 = 朝前、负 = 朝后、0 = 本状态不动。**乘动画播放速度**。</summary>
+    public void SetVelocityForward(float speed) => OnSetVelocityForward?.Invoke(speed * PlaybackSpeed);
 
-    /// <summary>设置垂直速度（**只在这次调用生效**：起跳/下落初速），之后交给重力。</summary>
+    /// <summary>设置水平速度：**世界空间**（x → 世界 X、y → 世界 Z），支持正负。**乘动画播放速度**。</summary>
+    public void SetVelocityHorizontal(Vector2 speed) => OnSetVelocityHorizontal?.Invoke(speed * PlaybackSpeed);
+
+    /// <summary>设置垂直速度（**只在这次调用生效**：起跳/下落初速），之后交给重力。垂直**不乘**动画播放速度。</summary>
     public void SetVelocityVertical(float speed) => OnSetVelocityVertical?.Invoke(speed);
     #endregion
 
@@ -161,12 +167,9 @@ public class EntityAnim : MonoBehaviour
     }
     private void UpdateSpeed()
     {
-        if (paused)
-            foreach (var animator in animators) 
-                animator.speed = 0;
-        else
-            foreach (var animator in animators) 
-                animator.speed = speed;
+        float target = PlaybackSpeed; // 与声明速度用的同一份"动画播放速度"，两处不会走散
+        foreach (var animator in animators)
+            animator.speed = target;
     }
     #endregion
 

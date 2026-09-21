@@ -249,8 +249,8 @@ public abstract class EntityData : MonoBehaviour
     /// ② 未声明但有推进输入、且在地面上 → 退化为模型移速 moveSpeed（动画还没声明速度时也能动；空中不再获得速度）；
     /// ③ 未推进（松开输入/被强控/位移锁输入）且在地面上 → 水平速度朝 0 按 Config.move_ground_friction 衰减；
     /// ④ 未推进且不在地面上 → 保持水平速度（空中无阻力，跳跃/被击飞不在空中掉速）。
-    /// **加速/减速/泥沼（速度参数）不在这里参与**：它们只影响动画播放速度（EntityEffectController.ApplyAnimSpeedScale
-    /// → EntityAnim.SetMoveSpeedScale），对位移速度的影响由动画模块自己在声明速度时接入。
+    /// **加速/减速/泥沼不在这里参与**：EntityAnim 声明速度时已按当前动画播放速度缩放（SetVelocityForward/Horizontal
+    /// 内部乘 PlaybackSpeed），所以这里拿到的就是缩放后的值；分支②的退化移速、MotionBase、重力则完全不吃这个倍率。
     /// </summary>
     public Vector3 ResolveMoveVelocity(float deltaTime, bool canInput)
     {
