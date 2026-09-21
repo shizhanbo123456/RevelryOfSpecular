@@ -70,6 +70,17 @@ public class EntityAnim : MonoBehaviour
     public Action<Vector2> OnSetVelocityHorizontal;//设置水平速度时调用
     public Action<float> OnSetVelocityVertical;//设置垂直速度时调用
 
+    #region//设置速度（供动画状态调用；外部（EntityData）已注册接收函数，这里只负责转发）
+    /// <summary>设置前后速度（角色本地系，正 = 前，0 = 本状态不动）：大小由动画决定，方向仍由输入给。</summary>
+    public void SetVelocityForward(float speed) => OnSetVelocityForward?.Invoke(speed);
+
+    /// <summary>设置水平速度（x = 左右横移，右正；y = 前后，前正）。</summary>
+    public void SetVelocityHorizontal(Vector2 speed) => OnSetVelocityHorizontal?.Invoke(speed);
+
+    /// <summary>设置垂直速度（**只在这次调用生效**：起跳/下落初速），之后交给重力。</summary>
+    public void SetVelocityVertical(float speed) => OnSetVelocityVertical?.Invoke(speed);
+    #endregion
+
     private int currentAnimId = -1;
 
     #region//事件

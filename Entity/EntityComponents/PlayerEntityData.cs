@@ -94,15 +94,12 @@ public class PlayerEntityData : EntityData
     }
 
     /// <summary>
-    /// 普通跳跃：只给刚体一次向上的初速度，之后交给重力。
-    /// **不在这里写 InAir** —— 空中/落地由 EntityData.UpdateGrounded 的物理检测写入（按计时判定落地是错的）。
+    /// 普通跳跃：把起跳的竖直初速度交给动画通道声明（EntityAnim.SetVelocityVertical → EntityData 接收后落到刚体），
+    /// 之后交给重力。**这里不直接写刚体、也不写 InAir** —— 落地/空中由 EntityData.UpdateGrounded 的物理检测决定。
     /// </summary>
     private void Jump()
     {
-        if (body == null) return;
-        Vector3 velocity = body.velocity;
-        velocity.y = Config.jump_speed;
-        body.velocity = velocity;
+        anim?.SetVelocityVertical(Config.jump_speed);
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
