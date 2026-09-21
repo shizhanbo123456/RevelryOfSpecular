@@ -20,6 +20,8 @@ public class AttackData
     public bool useMagic;
     /// <summary>破霸体：命中时可让霸体等级 1（Common）的目标进入受击状态（见策划案 12.1）。</summary>
     public bool breakEndure;
+    /// <summary>击飞力度（与目标被击飞抗性同量纲，命中时相减得击飞速度；0 = 不击飞）。</summary>
+    public float knockbackPower;
     /// <summary>目标伤害接口（可命中目标筛选与伤害窗口）。</summary>
     public Damageable.IDamageable damageable;
     /// <summary>命中附加效果：命中时把目标的效果控制器交给技能自行添加 Buff（可加多个、可带 EffectPayload）。</summary>
@@ -36,7 +38,8 @@ public class AttackData
     /// <summary>由施放者便捷构建（属性快照取施放者当前运行时属性；武器技能传该武器经验点数）。</summary>
     public static AttackData Create(EntityData shooter, float rate, float radius, bool breakEndure,
         bool useMagic = false, Damageable.IDamageable damageable = null,
-        Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null, int weaponExp = 0)
+        Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null, int weaponExp = 0,
+        float knockbackPower = 0f)
     {
         return new AttackData()
         {
@@ -55,6 +58,7 @@ public class AttackData
                 ? shooter.effectController.GetOutDamageMultiplier()
                 : 1f,
             weaponExp = weaponExp,
+            knockbackPower = knockbackPower,
         };
     }
 

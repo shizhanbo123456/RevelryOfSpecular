@@ -443,8 +443,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = Caster(context);
-            StrikeSphere(caster, HandPos(caster), 0.9f, BuildAttack(caster, 1.5f, 0.9f,
-                onHit: Knockback(caster != null ? caster.transform.position : Vector3.zero)));
+            StrikeSphere(caster, HandPos(caster), 0.9f, BuildAttack(caster, 1.5f, 0.9f, knockback: 3f));
         }
         public override void PlayVFX(SkillContext context) { } // 无特效
     }
@@ -762,8 +761,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = Caster(context);
-            ShootAll(caster, context, BuildAttack(caster, 0.4f, 1.2f,
-                onHit: Knockback(caster != null ? caster.transform.position : Vector3.zero, 18f, 0.3f)));
+            ShootAll(caster, context, BuildAttack(caster, 0.4f, 1.2f, knockback: 5f));
         }
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }

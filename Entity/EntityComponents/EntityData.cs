@@ -346,10 +346,11 @@ public abstract class EntityData : MonoBehaviour
     }
 
     /// <summary>
-    /// 命中判定入口（子弹容器/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击，
-    /// 随后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好，isCrit 为本次是否暴击）。
+    /// 命中判定入口（子弹容器/近战调用）：破霸体 vs 当前霸体等级 → 是否进入受击（打断位移 + 播受击动画），
+    /// 随后按攻击力度施加击飞，最后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好，isCrit 为本次是否暴击）。
+    /// hitOrigin = 命中位置（子弹位置 / 近战判定球心），用于确定击飞的水平方向。
     /// </summary>
-    public void ProcessHit(AttackData attack, float damage, bool isCrit)
+    public void ProcessHit(AttackData attack, float damage, bool isCrit, Vector3 hitOrigin)
     {
         EndureType endure = GetEndureLevel();
         bool enterHit = endure == EndureType.None || (attack.breakEndure && endure == EndureType.Common);
@@ -358,10 +359,28 @@ public abstract class EntityData : MonoBehaviour
             RemoveMotion();  // 破霸体命中：打断位移
             anim?.DoHit();
         }
+        ApplyKnockback(attack, hitOrigin); // 击飞不看霸体等级：受击打断与否已由 enterHit 决定
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
         OnDamaged(damage, attacker);
         Tool.BattleManager?.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
+    }
+
+    /// <summary>
+    /// 击飞：v = 攻击力度 − 被击飞抗性（同量纲，v ≤ 0 一并落在阈值内），不够阈值就不击飞。
+    /// 水平方向 = 命中位置指向本实体的水平方向，垂直方向向上，**两个方向的速度值都取 v**。
+    /// </summary>
+    private void ApplyKnockback(AttackData attack, Vector3 hitOrigin)
+    {
+        if (body == null || floatingAttribute == null) return;
+        float v = attack.knockbackPower - floatingAttribute.knockbackResistance;
+        if (v <= 0.01f) return;
+
+        Vector3 away = transform.position - hitOrigin;
+        away.y = 0f;
+        Vector3 dir = away.sqrMagnitude > 0.0001f ? away.normalized : transform.forward;
+        SetMoveVelocity(dir * v); // 水平（只写 X/Z）
+        SetVelocityVertical(v);   // 垂直（一次性初速，之后交回重力）
     }
 
     /// <summary>

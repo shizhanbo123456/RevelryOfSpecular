@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 运行时角色/实体属性（V0.8）。
-/// 属性清单见策划案 8.2：生命 / 力量（近战伤害）/ 魔法（远程伤害）/ 移速 / 暴击率 / 暴击伤害 / 击退抗性 / 可见距离 / 武器槽位数量。
+/// 属性清单见策划案 10.1：生命 / 力量（近战伤害）/ 魔法（远程伤害）/ 暴击率 / 暴击伤害 / 被击飞抗性 / 可见距离 / 武器槽位数量。
 /// 全局参数被动（复活速度、僵尸刷新等级等）开战一次性计算，不进本类。
 /// </summary>
 [System.Serializable]
@@ -20,7 +20,7 @@ public class EntityAttribute
     public int critRate = 5;
     /// <summary>暴击伤害倍率（1.5 = 150%）。</summary>
     public float critDamage = 1.5f;
-    /// <summary>击退抗性（0~1，1 完全免疫击退）。</summary>
+    /// <summary>被击飞抗性（与攻击力度同量纲；命中时 击飞速度 = 力度 − 本值）。</summary>
     public float knockbackResistance = 0f;
     /// <summary>可见距离（米）。</summary>
     public float viewDistance = 20f;

@@ -1,12 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// 位移效果基类（abstract）：施放者的一次受控位移（冲锋/击退/拉拽/强制位移等）。
+/// 位移效果基类（abstract）：施放者的一次受控位移（冲锋/拉拽/强制位移等）。
 /// 生命周期：EntityData.SetMotion 设置时调用 Enter → 生效期间每帧调用 Update（可不断改写角色速度，
 /// 例如恒定返回 data.transform.forward * 8 即让角色自动前进）→ 到达 endTime 由 EntityData 调用 Exit。
 /// canMove = false 时位移期间锁玩家输入移动，速度完全由本效果控制。
-/// 注意：速度的实际应用在服务器权威移动逻辑（TODO）中消费 EntityData.motionVelocity；
+/// 产出的 motionVelocity 由 BattleManagerCombat.TickMovement 叠加到刚体上（不吃速度系数）。
 /// 需要实体位置时通过 EntityData/BulletTrajectory.TryGetEntityPosition 按 id 读取（客户端无 EntityData）。
+/// 击退/击飞不走本类：命中瞬间由 EntityData.ProcessHit 直接写速度。
 /// </summary>
 public abstract class MotionBase
 {

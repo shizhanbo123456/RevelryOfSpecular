@@ -272,14 +272,14 @@ namespace Ros.Skill
             return true;
         }
 
-        /// <summary>本技能的伤害数据（武器经验按释放时的经验加成）。addEffect = 命中附加 Buff，onHit = 命中额外逻辑。</summary>
+        /// <summary>本技能的伤害数据（武器经验按释放时的经验加成）。addEffect = 命中附加 Buff，onHit = 命中额外逻辑，knockback = 击飞力度。</summary>
         protected AttackData BuildAttack(EntityData entity, float rate, float radius,
             bool breakEndure = false, bool useMagic = false, Action<EntityEffectController> addEffect = null,
-            Action<EntityData> onHit = null)
+            Action<EntityData> onHit = null, float knockback = 0f)
         {
             int exp = entity != null && entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0;
             return AttackData.Create(entity, rate, radius, breakEndure, useMagic,
-                addEffectEvent: addEffect, onHit: onHit, weaponExp: exp);
+                addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
         }
 
         /// <summary>服务器：按上下文里的 id 反查实体（客户端没有实体，只走 PlayVFX）。</summary>
@@ -321,12 +321,6 @@ namespace Ros.Skill
                 });
         }
 
-        /// <summary>构造"命中击退"回调：把目标沿远离 from 的方向推开（走 MotionBase 速度积分，不瞬移）。</summary>
-        protected static Action<EntityData> Knockback(Vector3 from, float speed = 14f, float duration = 0.25f)
-        {
-            return target => target?.SetMotion(new MotionPush(from, speed, duration));
-        }
-
         /// <summary>构造"命中拉拽"回调：把目标拉向 to（走 MotionToPoint 速度积分）。</summary>
         protected static Action<EntityData> PullTo(Vector3 to, float speed = 16f)
         {
@@ -366,7 +360,7 @@ namespace Ros.Skill
                 if (target == null || !target.Alive) continue;
                 if (target.id == entity.id || target.camp == entity.camp) continue;
                 float damage = attack.GetDamage(out bool isCrit);
-                target.ProcessHit(attack, damage, isCrit);
+                target.ProcessHit(attack, damage, isCrit, center); // 击飞方向取判定球心 → 目标
                 if (attack.addEffectEvent != null && target.effectController != null)
                 {
                     attack.addEffectEvent.Invoke(target.effectController);
