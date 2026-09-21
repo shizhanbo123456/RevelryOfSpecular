@@ -80,6 +80,12 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>最近一次伤害来源（水晶掉武器归属判定等；死亡时保留供结算读取）。</summary>
     [HideInInspector] public EntityData lastAttacker;
 
+    /// <summary>死亡动画是否已播完（由 AnimDieEvent 在片段 80% 处触发 OnDeathEventEnd 写入）。</summary>
+    [HideInInspector] public bool deathAnimDone;
+
+    /// <summary>死亡时刻（销毁的超时兜底：动画状态机没接好时也要能按时销毁）。</summary>
+    [HideInInspector] public float deathTime;
+
     /// <summary>血条锚点。</summary>
     public Transform BarPos;
 
@@ -162,6 +168,11 @@ public abstract class EntityData : MonoBehaviour
         // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
         // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
         anim?.Init(this, OnAnimAttack);
+        if (anim != null)
+        {
+            anim.OnDeathEventEnd += OnDeathAnimEnd; // 死亡动画播完 → 允许销毁（销毁时机见 BattleManagerCombat）
+            anim.DoSpawn();                         // 出生动画：Spawn 子状态机按 CharacterType 选 spawn / zombie_spawn
+        }
 
         SetupBody();
     }
@@ -328,10 +339,7 @@ public abstract class EntityData : MonoBehaviour
             float reflect = effectController.GetReflectDamage();
             if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
-        if (floatingAttribute.health <= 0f)
-        {
-            if (!KilledEntities.Contains(this)) KilledEntities.Add(this);
-        }
+        if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>
@@ -343,6 +351,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>销毁实体（由 BattleManager 调用）。</summary>
     public virtual void OnDestroyed()
     {
+        if (anim != null) anim.OnDeathEventEnd -= OnDeathAnimEnd;
         effectController?.Clear();
     }
 
@@ -396,7 +405,25 @@ public abstract class EntityData : MonoBehaviour
     {
         if (!Alive) return;
         floatingAttribute.health = 0f;
-        if (!KilledEntities.Contains(this)) KilledEntities.Add(this);
+        MarkAsKilled();
+    }
+
+    /// <summary>
+    /// 死亡标记：入本帧死亡列表（BattleManager 统一处理死后的产出/计分/复活）+ 立刻播放死亡动画。
+    /// 播放与销毁分离：动画先播，物理销毁延后到 AnimDieEvent（BattleManagerCombat.BeginDying / TickDying）。
+    /// </summary>
+    private void MarkAsKilled()
+    {
+        if (KilledEntities.Contains(this)) return;
+        KilledEntities.Add(this);
+        deathTime = Time.time;
+        anim?.DoDie();
+    }
+
+    /// <summary>死亡动画播完（AnimDieEvent 于片段 80% 处回调）：此时才允许销毁物体。</summary>
+    private void OnDeathAnimEnd()
+    {
+        deathAnimDone = true;
     }
 
     #region//Local

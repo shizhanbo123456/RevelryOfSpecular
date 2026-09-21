@@ -107,7 +107,7 @@ public static class Config
     public static readonly int[] yz_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
     #endregion
 
-    #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
+    #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃（移动中优先翻滚）/ 左 Shift 滑铲 / U I O L H 技能槽）
     /// <summary>移动渐转速率（度/秒）：前后 + 左右同按时角色按此速率逐渐转向（服务器权威推进）。</summary>
     public const float move_turn_rate = 120f;
     /// <summary>技能槽触发键（按槽位顺序：U I O L H Y）。</summary>
@@ -116,12 +116,14 @@ public static class Config
     public static readonly PlayerKey[] skill_slot_player_keys = { PlayerKey.U, PlayerKey.I, PlayerKey.O, PlayerKey.L, PlayerKey.H, PlayerKey.Y };
     /// <summary>空手攻击键（静止 = 跃起砸地，移动 = 出拳）。</summary>
     public const KeyCode melee_key = KeyCode.J;
-    /// <summary>跳跃键。</summary>
+    /// <summary>跳跃键。移动中按下且翻滚不在冷却 → 翻滚，否则（静止 / 冷却中）普通跳跃。</summary>
     public const KeyCode jump_key = KeyCode.K;
     /// <summary>滑铲键（左 Shift）。</summary>
     public const KeyCode slide_key = KeyCode.LeftShift;
     /// <summary>滑铲持续时间。</summary>
     public const float slide_duration = 0.6f;
+    /// <summary>翻滚冷却（秒）：移动中按跳跃键优先翻滚，冷却中或未移动则退化为普通跳跃。</summary>
+    public const float roll_cd = 5f;
     #endregion
 
     #region 武器与技能
@@ -186,6 +188,11 @@ public static class Config
     public const int unarmed_attack_smash = 182;
     /// <summary>跳跃持续时长（秒，暂定；到时落回 InAir=false）。</summary>
     public const float jump_duration = 0.6f;
+    /// <summary>
+    /// 死亡动画等待上限（秒）：死亡后等 AnimDieEvent 播完再销毁物体，超过此时长仍未收到事件则强制销毁。
+    /// 兜底用途 —— 动画状态机/AnimDieEvent 没接好时不能让尸体（尤其是复活的玩家）一直留在场上。
+    /// </summary>
+    public const float death_anim_max_wait = 3f;
     /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>
     public const float anim_move_speed_up = 1.3f;
     /// <summary>动画移动状态播放速度倍率——减速（载体：移动状态 Speed 参数）。</summary>

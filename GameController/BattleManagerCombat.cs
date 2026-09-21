@@ -117,7 +117,7 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
-    /// <summary>死亡统一处理：摧毁单位；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；玩家进入复活流程并下发进度。</summary>
+    /// <summary>死亡统一处理：进入复活流程并下发进度；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；销毁时机交给 BeginDying（等死亡动画播完）。</summary>
     private void HandleDeath(EntityData entity)
     {
         // 水晶的产出与重生排程在其子类 OnKilled 里处理（该方法先于本方法调用）
@@ -139,12 +139,49 @@ public partial class BattleManager
             SendReviveProgress(owner, rs, entity.id, ready: false);
         }
 
-        DestroyEntity(entity.id);
+        // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent 或超时；
+        // 无动画实体（水晶/守护点/防御塔等）立即销毁。见 TickDying
+        BeginDying(entity);
 
         // 守护点的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
         if (entity.type.category == EntityCategory.Character_Attack)
         {
             CheckAttackWiped(); // 进攻方全灭 → 立即按分数结算（策划案 17.2，不直接判负）
+        }
+    }
+
+    /// <summary>正在等死亡动画播完的实体（尚未物理销毁；见 BeginDying）。</summary>
+    private readonly List<EntityData> dyingEntities = new();
+
+    /// <summary>
+    /// 死亡销毁入口：有动画 → 等 AnimDieEvent 播完（或超时兜底）再销毁；无动画 → 立即销毁。
+    /// 延后销毁期间实体仍在容器里，但 Alive 已为 false，索敌/受击/移动都会跳过它（见各处 Alive 过滤）。
+    /// </summary>
+    private void BeginDying(EntityData entity)
+    {
+        if (entity == null) return;
+        if (entity.anim == null)
+        {
+            DestroyEntity(entity.id);
+            return;
+        }
+        if (!dyingEntities.Contains(entity)) dyingEntities.Add(entity);
+    }
+
+    /// <summary>死亡动画推进：播完（deathAnimDone）或超时后真正销毁实体。</summary>
+    private void TickDying()
+    {
+        for (int i = dyingEntities.Count - 1; i >= 0; i--)
+        {
+            var entity = dyingEntities[i];
+            if (entity == null) // 已被其它路径销毁（对局结束清理等）
+            {
+                dyingEntities.RemoveAt(i);
+                continue;
+            }
+            if (!entity.deathAnimDone && Time.time - entity.deathTime < Config.death_anim_max_wait) continue;
+            dyingEntities.RemoveAt(i);
+            DestroyEntity(entity.id);
         }
     }
 

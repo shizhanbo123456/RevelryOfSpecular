@@ -217,8 +217,9 @@ public class EntityPlayerManager : ClientSubManager
         view.animator = go.GetComponentInChildren<Animator>();
         if (view.animator != null)
         {
-            view.anim = view.animator.GetComponent<EntityAnim>();
-            // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传
+            // EntityAnim 挂在预制体根节点、Animator 在子物体（模型）上，故从根往下找，不能用 animator.GetComponent
+            view.anim = go.GetComponentInChildren<EntityAnim>();
+            // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传（伤害只由服务器算）
             view.anim?.Init(null, null);
         }
         return view;

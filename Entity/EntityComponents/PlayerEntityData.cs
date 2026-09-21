@@ -20,6 +20,9 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
+    /// <summary>翻滚冷却到期时刻（Time.time 基准 = 上次翻滚 + Config.roll_cd）。</summary>
+    private float rollReadyTime;
+
     /// <summary>绕 Y 角速度（度/秒，随表现摘要下发客户端做包间推演）。</summary>
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
@@ -49,15 +52,18 @@ public class PlayerEntityData : EntityData
     {
         bool moving = moveState != null && moveState.moving;
 
-        // 跳跃：InAir 一段时间后落回（时间戳延时）
+        // 跳跃键：移动中且翻滚不在冷却 → 优先翻滚；否则（未移动 / 冷却中）普通跳跃
         if ((action.pressed & PlayerKey.K) != 0)
         {
-            anim?.InAir(true);
-            var weak = this;
-            GenericTimer.AddTimer(0, Config.jump_duration, _ =>
+            if (moving && Time.time >= rollReadyTime)
             {
-                if (weak != null) weak.anim?.InAir(false);
-            });
+                rollReadyTime = Time.time + Config.roll_cd;
+                anim?.Roll();
+            }
+            else
+            {
+                Jump();
+            }
         }
         // 滑铲：进入滑铲状态，持续时间后结束
         if ((action.pressed & PlayerKey.LShift) != 0)
@@ -85,6 +91,17 @@ public class PlayerEntityData : EntityData
             UseSkillSlot(i);
             break;
         }
+    }
+
+    /// <summary>普通跳跃：InAir 置位，Config.jump_duration 后落回（时间戳延时；落回由状态机切到落地动作）。</summary>
+    private void Jump()
+    {
+        anim?.InAir(true);
+        var weak = this;
+        GenericTimer.AddTimer(0, Config.jump_duration, _ =>
+        {
+            if (weak != null) weak.anim?.InAir(false);
+        });
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>

@@ -657,7 +657,7 @@ public partial class BattleManager : EnsBehaviour
         TickRevive();
         TickWorldRespawn();
 
-        // 处理本帧死亡实体：摧毁单位（死亡即摧毁，复活时重建并回满，Buff 随之消失）
+        // 处理本帧死亡实体：入队等死亡动画播完再销毁（死亡动画由 EntityData.MarkAsKilled 立刻播放）
         if (EntityData.KilledList.Count > 0)
         {
             var killed = new List<EntityData>(EntityData.KilledList);
@@ -669,6 +669,8 @@ public partial class BattleManager : EnsBehaviour
             }
             EntityData.ClearKilled();
         }
+
+        TickDying(); // 死亡动画播完（或超时）后物理销毁（BeginDying 入队）
 
         // AI 玩家行为（有可用技能攻击最近单位，否则站立；被攻击逃跑 TODO）
         aiTimer -= UnityEngine.Time.deltaTime;
