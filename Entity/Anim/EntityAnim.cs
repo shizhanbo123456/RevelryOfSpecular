@@ -109,11 +109,26 @@ public class EntityAnim : MonoBehaviour
             var behaviours = animator.GetBehaviours<AnimEvent>();
             foreach (var behaviour in behaviours) behaviour.Init(this, data,i==0);
         }
+        ApplyType(); // 补发 Init 之前设置过的套系（见 SetType）
     }
+    /// <summary>已请求的角色动画套系（int.MinValue = 未设置）。</summary>
+    private int requestedType = int.MinValue;
+
+    /// <summary>设置角色动画套系（0 女 / 1 男 / 2 僵尸）：决定 spawn / idle / run 用哪套动作。Init 前调用会缓存、Init 时补发。</summary>
     public void SetType(CharcterAnimType type)
     {
+        requestedType = (int)type;
+        ApplyType();
+    }
+
+    /// <summary>把套系写到全部状态机（animators 为空时静默跳过）。</summary>
+    private void ApplyType()
+    {
+        if (requestedType == int.MinValue) return;
         foreach (var animator in animators)
-            animator.SetInteger(key_characterType, (int)type);
+        {
+            if (animator != null) animator.SetInteger(key_characterType, requestedType);
+        }
     }
 
     public void NotifyStateEnter(int animId, AnimState state)

@@ -153,23 +153,17 @@ public abstract class EntityData : MonoBehaviour
         // 预制体/模板上的共用参数（动画类型、腿高移速）：服务端模板与客户端模型参数一致
         var animData = GetComponent<EntityAnimData>();
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
-        if (animData != null)
-        {
-            moveSpeed = animData.legHeight > 0f
-                ? EntityAnimData.LegHeightToStandartRunSpeed(animData.legHeight)
-                : Config.base_move_speed;
-            anim?.SetType(animData.type);
-        }
-        else
-        {
-            moveSpeed = Config.base_move_speed;
-        }
+        moveSpeed = animData != null && animData.legHeight > 0f
+            ? EntityAnimData.LegHeightToStandartRunSpeed(animData.legHeight)
+            : Config.base_move_speed;
 
         // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
         // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
         anim?.Init(this, OnAnimAttack);
         if (anim != null)
         {
+            // SetType 必须排在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集，早调等于没设
+            if (animData != null) anim.SetType(animData.type);
             anim.OnDeathEventEnd += OnDeathAnimEnd; // 死亡动画播完 → 允许销毁（销毁时机见 BattleManagerCombat）
             anim.DoSpawn();                         // 出生动画：Spawn 子状态机按 CharacterType 选 spawn / zombie_spawn
         }
