@@ -40,7 +40,7 @@ public class PlayerEntityData : EntityData
         moveState.dir = new Vector2(x, z).normalized;
         moveState.moving = x != 0f || z != 0f;
 
-        // 输入只落到实体这一个字段（角色本地系方向）；速度大小由动画声明的 animSpeed 决定
+        // 输入只落到实体这一个字段（角色本地系方向与正负）；速度大小由动画模块声明的速度决定（见 ResolveMoveVelocity）
         SetMoveInput(new Vector3(moveState.dir.x, 0f, moveState.dir.y));
 
         // Run/Idle 随表现摘要同步给客户端

@@ -187,13 +187,15 @@ public static class Config
     /// <summary>空手攻击技能 id：原地砸击（静止时触发）。</summary>
     public const int unarmed_attack_smash = 182;
     /// <summary>跳跃初速度（米/秒，向上；占位初值待定）。起跳只给这一次竖直速度，之后由重力接管；
-    /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir。</summary>
+    /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir；
+    /// 若动画状态通过 EntityAnim.OnSetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
     public const float jump_speed = 5f;
-    /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>
+    /// <summary>速度参数——加速（载体有两个：① 移动速度乘区 <see cref="EntityData.ResolveMoveVelocity"/> 的 speedParam；
+    /// ② 动画播放倍速 animator.speed，见 EntityAnim.SetMoveSpeedScale；策划案 11.3）。</summary>
     public const float anim_move_speed_up = 1.3f;
-    /// <summary>动画移动状态播放速度倍率——减速（载体：移动状态 Speed 参数）。</summary>
+    /// <summary>速度参数——减速（载体同加速）。</summary>
     public const float anim_move_speed_down = 0.6f;
-    /// <summary>动画移动状态播放速度倍率——泥沼（教皇主动2 全场敌方减速）。</summary>
+    /// <summary>速度参数——泥沼（教皇主动2 全场敌方减速；载体同加速）。</summary>
     public const float anim_move_speed_mire = 0.5f;
     /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
     public const int zombie_variant_count = 21;

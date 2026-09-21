@@ -39,7 +39,7 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 模型移速（米/秒，按 EntityAnimData.legHeight 换算；模型参数而非属性）。
-    /// 仅作**退化速度**：动画还没通过 SetAnimSpeed 声明状态速度时用它，声明后以动画的速度为准。
+    /// 仅作**退化速度**：动画模块还没声明状态速度、而玩家又在推进时用它；动画声明后完全以声明值为准。
     /// </summary>
     [HideInInspector] public float moveSpeed = Config.base_move_speed;
 
@@ -56,20 +56,10 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 移动输入方向（**角色本地系**：X = 右、Z = 前、Y 恒为 0）。
-    /// 移动系统**只取它的方向**，速度大小来自动画声明的 <see cref="animSpeed"/> ——
+    /// 移动系统**只取它的方向与正负**，速度大小来自动画声明的 <see cref="ResolveMoveVelocity"/> ——
     /// 输入是"要不要动"的开关，动画决定"动多快"。网络输入与 AI 都只写它。
     /// </summary>
     [HideInInspector] public Vector3 moveInput;
-
-    /// <summary>
-    /// 动画声明的移动速度（由动画模块通过 <see cref="SetAnimSpeed"/> 写入）。
-    /// x = 水平速度，正数向前 / 负数向后：进入状态时设定、在该状态内持续生效，**每次传入都直接覆盖（传 0 即停）**；
-    /// y = 垂直速度，**仅进入状态那一次生效**（起跳），之后交给重力。
-    /// </summary>
-    [HideInInspector] public Vector2 animSpeed;
-
-    /// <summary>动画是否已声明过水平速度：未声明时移动退化为模型移速，保证动画还没接完时也能动。</summary>
-    [HideInInspector] public bool animSpeedDeclared;
 
     /// <summary>绕 Y 角速度（度/秒）：随表现摘要下发客户端做包间推演，由输入渐转写入。</summary>
     public virtual float YawSpeed => 0f;
@@ -326,27 +316,6 @@ public abstract class EntityData : MonoBehaviour
         Vector3 velocity = body.velocity;
         velocity.x = horizontalVelocity.x;
         velocity.z = horizontalVelocity.z;
-        body.velocity = velocity;
-    }
-
-    /// <summary>
-    /// 动画模块在切换动画状态时传入本状态的速度（见策划案 10.1：位移由动画驱动）。
-    /// x：水平速度，正数向前、负数向后。**直接覆盖**，一次设定后在整个状态内持续保持（每帧按它驱动，不被物理衰减），
-    ///    传 0 即"本状态不动"——所以动画可以表达停止。
-    /// y：垂直速度，**只在这次调用生效**（起跳瞬时给一次），之后由重力接管，所以不每帧写。
-    ///    垂直分量 |y| &lt; 0.01 视为"本次不设置"（阈值只对 y 生效），这样动画侧不关心纵向时
-    ///    不会把下落中/被击飞的速度清掉；水平不做此保护，否则无法表达停止。
-    /// </summary>
-    public void SetAnimSpeed(Vector2 speed)
-    {
-        animSpeedDeclared = true;
-        animSpeed.x = speed.x; // 水平：无条件覆盖（含 0）
-
-        if (Mathf.Abs(speed.y) < 0.01f) return;
-        animSpeed.y = speed.y; // 仅留档供调试/表现读取，不参与每帧驱动
-        if (body == null) return;
-        Vector3 velocity = body.velocity;
-        velocity.y = speed.y;
         body.velocity = velocity;
     }
 
