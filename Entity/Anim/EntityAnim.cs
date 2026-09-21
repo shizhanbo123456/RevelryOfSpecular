@@ -4,19 +4,17 @@ using UnityEngine;
 
 public class EntityAnim : MonoBehaviour
 {
-    // 状态机参数名/类型必须与 Assets/Files/Anim/CharacterAnim.controller 的参数表逐字一致。
-    // 参数名或类型写错时 Unity 只打警告、不报错，动画会静默不播 —— 改动这里务必对资产核对。
-    private const string key_characterType = "CharacterType"; // Int：0 女 / 1 男 / 2 僵尸
-    private const string key_spawn = "Spawn";                 // Trigger：AnyState → Spawn 子状态机
-    private const string key_moving = "Moving";               // Bool
-    private const string key_inAir = "InAir";                 // Bool
-    private const string key_slide = "Slide";                 // Bool
-    private const string key_slideEnd = "SlideEnd";           // Trigger
-    private const string key_roll = "Roll";                   // Trigger
-    private const string key_attack = "Attack";               // Trigger：AnyState → Attack 子状态机
-    private const string key_attackId = "AttackId";           // Int：Attack 子状态机内按它选具体招式
-    private const string key_hit = "Hit";                     // Trigger：AnyState → Dam_Stand_Stumble
-    private const string key_die = "Died";                    // Trigger：AnyState → Death 子状态机
+    private const string key_characterType = "CharacterType";
+    private const string key_spawn = "DoSpawn";
+    private const string key_moving = "Moving";
+    private const string key_inAir = "InAir";
+    private const string key_slide = "Slide";
+    private const string key_slideEnd = "SlideEnd";
+    private const string key_roll = "Roll";
+    private const string key_doAttack = "DoAttack";
+    private const string key_attack = "Attack";
+    private const string key_hit = "Hit";
+    private const string key_die = "Death";
     public enum CharcterAnimType
     {
         Female=0,
@@ -76,8 +74,7 @@ public class EntityAnim : MonoBehaviour
     public Action OnDeathEventEnd;
     #endregion
 
-    /// <summary>该实体身上的全部动画状态机（自身 + 一级子物体）。[0] 为主状态机，其余是同一套动画的附加模型。</summary>
-    private readonly List<Animator> animators = new();
+    private List<Animator> animators;
     private Animator mainAnimator;
 
 
@@ -85,7 +82,7 @@ public class EntityAnim : MonoBehaviour
     {
         this.onAttack = onAttack;
 
-        animators.Clear();
+        animators = new();
         if(TryGetComponent<Animator>(out var anim))
         {
             animators.Add(anim);
@@ -109,26 +106,11 @@ public class EntityAnim : MonoBehaviour
             var behaviours = animator.GetBehaviours<AnimEvent>();
             foreach (var behaviour in behaviours) behaviour.Init(this, data,i==0);
         }
-        ApplyType(); // 补发 Init 之前设置过的套系（见 SetType）
     }
-    /// <summary>已请求的角色动画套系（int.MinValue = 未设置）。</summary>
-    private int requestedType = int.MinValue;
-
-    /// <summary>设置角色动画套系（0 女 / 1 男 / 2 僵尸）：决定 spawn / idle / run 用哪套动作。Init 前调用会缓存、Init 时补发。</summary>
     public void SetType(CharcterAnimType type)
     {
-        requestedType = (int)type;
-        ApplyType();
-    }
-
-    /// <summary>把套系写到全部状态机（animators 为空时静默跳过）。</summary>
-    private void ApplyType()
-    {
-        if (requestedType == int.MinValue) return;
         foreach (var animator in animators)
-        {
-            if (animator != null) animator.SetInteger(key_characterType, requestedType);
-        }
+            animator.SetInteger(key_characterType, (int)type);
     }
 
     public void NotifyStateEnter(int animId, AnimState state)
@@ -153,7 +135,7 @@ public class EntityAnim : MonoBehaviour
     private bool paused=false;
     public void SetPaused(bool paused)
     {
-        this.paused = paused; // 形参与字段同名，漏掉 this 会写到参数上：字段永远为 false，暂停/恢复全部失效
+        paused = true;
         UpdateSpeed();
     }
 
@@ -164,11 +146,12 @@ public class EntityAnim : MonoBehaviour
     }
     private void UpdateSpeed()
     {
-        float target = paused ? 0f : speed;
-        foreach (var animator in animators)
-        {
-            if (animator != null) animator.speed = target;
-        }
+        if (paused)
+            foreach (var animator in animators) 
+                animator.speed = 0;
+        else
+            foreach (var animator in animators) 
+                animator.speed = speed;
     }
     #endregion
 
@@ -233,8 +216,8 @@ public class EntityAnim : MonoBehaviour
     {
         foreach (var animator in animators)
         {
-            animator.SetInteger(key_attackId, (int)attack); // 先选招式（Attack 子状态机按 AttackId 选状态）
-            animator.SetTrigger(key_attack);                // 再进 Attack 子状态机
+            animator.SetInteger(key_attack, (int)attack);
+            animator.SetTrigger(key_doAttack);
         }
     }
     public void DoHit()

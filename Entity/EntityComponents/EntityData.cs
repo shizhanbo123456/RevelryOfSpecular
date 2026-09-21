@@ -83,8 +83,8 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>死亡动画是否已播完（由 AnimDieEvent 在片段 80% 处触发 OnDeathEventEnd 写入）。</summary>
     [HideInInspector] public bool deathAnimDone;
 
-    /// <summary>死亡时刻（销毁的超时兜底：动画状态机没接好时也要能按时销毁）。</summary>
-    [HideInInspector] public float deathTime;
+    /// <summary>脚是否踩在地面上（每帧物理检测，见 UpdateGrounded；写入状态机的 InAir 参数）。</summary>
+    [HideInInspector] public bool grounded = true;
 
     /// <summary>血条锚点。</summary>
     public Transform BarPos;
@@ -179,6 +179,7 @@ public abstract class EntityData : MonoBehaviour
     {
         effectController?.OnUpdate();
         UpdateMotion();
+        UpdateGrounded();
     }
 
     /// <summary>朝向与移动输入的逐帧推进（由移动循环调用，canInput = 未被强控）。默认无操作。</summary>
@@ -404,13 +405,12 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 死亡标记：入本帧死亡列表（BattleManager 统一处理死后的产出/计分/复活）+ 立刻播放死亡动画。
-    /// 播放与销毁分离：动画先播，物理销毁延后到 AnimDieEvent（BattleManagerCombat.BeginDying / TickDying）。
+    /// 播放与销毁分离：动画先播，物理销毁等 AnimDieEvent 播完（BattleManagerCombat.BeginDying / TickDying）。
     /// </summary>
     private void MarkAsKilled()
     {
         if (KilledEntities.Contains(this)) return;
         KilledEntities.Add(this);
-        deathTime = Time.time;
         anim?.DoDie();
     }
 
@@ -421,6 +421,38 @@ public abstract class EntityData : MonoBehaviour
     }
 
     #region//Local
+    /// <summary>落地检测探针：脚底附近的一个小重叠球（中心抬高 + 半径）。</summary>
+    private const float ground_probe_up = 0.1f;
+    private const float ground_probe_radius = 0.15f;
+    private static readonly Collider[] s_groundBuffer = new Collider[4];
+
+    /// <summary>
+    /// 落地检测：脚底一个小重叠球，命中任何**非自身的非 trigger 碰撞体**即算踩在地面上，结果写入状态机 InAir。
+    /// 空中/落地**只由物理决定**，不用"跳跃时长到了就当落地"这类计时——任何状态下 InAir 都必须反映真实姿态。
+    /// 全层掩码 + 剔除自身与 trigger：既不必额外配地面层，也不受 entity_layer 配置正确与否的影响。
+    /// </summary>
+    private void UpdateGrounded()
+    {
+        if (anim == null || body == null) return; // 只有会动且带动画的实体需要
+        // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
+        if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
+
+        Vector3 center = transform.position + Vector3.up * ground_probe_up;
+        int count = Physics.OverlapSphereNonAlloc(center, ground_probe_radius, s_groundBuffer, ~0, QueryTriggerInteraction.Ignore);
+        bool onGround = false;
+        for (int i = 0; i < count; i++)
+        {
+            var col = s_groundBuffer[i];
+            if (col == null) continue;
+            if (col.GetComponentInParent<EntityData>() == this) continue; // 自己的碰撞体不算地面
+            onGround = true;
+            break;
+        }
+        if (onGround == grounded) return; // 值没变就不打扰状态机
+        grounded = onGround;
+        anim.InAir(!onGround);
+    }
+
     /// <summary>
     /// 刚体准备（可移动类别的权威速度载体）。
     /// 模板未配刚体时运行时补一个：服务器模板与客户端图形是两套预制体，手工同步参数必然漂移，代码里补最稳。

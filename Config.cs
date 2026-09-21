@@ -186,13 +186,9 @@ public static class Config
     public const int unarmed_punch_right = 181;
     /// <summary>空手攻击技能 id：原地砸击（静止时触发）。</summary>
     public const int unarmed_attack_smash = 182;
-    /// <summary>跳跃持续时长（秒，暂定；到时落回 InAir=false）。</summary>
-    public const float jump_duration = 0.6f;
-    /// <summary>
-    /// 死亡动画等待上限（秒）：死亡后等 AnimDieEvent 播完再销毁物体，超过此时长仍未收到事件则强制销毁。
-    /// 兜底用途 —— 动画状态机/AnimDieEvent 没接好时不能让尸体（尤其是复活的玩家）一直留在场上。
-    /// </summary>
-    public const float death_anim_max_wait = 3f;
+    /// <summary>跳跃初速度（米/秒，向上；占位初值待定）。起跳只给这一次竖直速度，之后由重力接管；
+    /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir。</summary>
+    public const float jump_speed = 5f;
     /// <summary>动画移动状态播放速度倍率——加速（载体：移动状态 Speed 参数，见策划案 11.3）。</summary>
     public const float anim_move_speed_up = 1.3f;
     /// <summary>动画移动状态播放速度倍率——减速（载体：移动状态 Speed 参数）。</summary>

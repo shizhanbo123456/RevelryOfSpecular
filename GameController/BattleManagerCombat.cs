@@ -154,7 +154,7 @@ public partial class BattleManager
     private readonly List<EntityData> dyingEntities = new();
 
     /// <summary>
-    /// 死亡销毁入口：有动画 → 等 AnimDieEvent 播完（或超时兜底）再销毁；无动画 → 立即销毁。
+    /// 死亡销毁入口：有动画 → 等死亡动画播完再销毁；无动画（水晶/守护点/防御塔等）→ 立即销毁。
     /// 延后销毁期间实体仍在容器里，但 Alive 已为 false，索敌/受击/移动都会跳过它（见各处 Alive 过滤）。
     /// </summary>
     private void BeginDying(EntityData entity)
@@ -168,7 +168,7 @@ public partial class BattleManager
         if (!dyingEntities.Contains(entity)) dyingEntities.Add(entity);
     }
 
-    /// <summary>死亡动画推进：播完（deathAnimDone）或超时后真正销毁实体。</summary>
+    /// <summary>死亡动画推进：AnimDieEvent 播完（deathAnimDone）后真正销毁实体。</summary>
     private void TickDying()
     {
         for (int i = dyingEntities.Count - 1; i >= 0; i--)
@@ -179,7 +179,7 @@ public partial class BattleManager
                 dyingEntities.RemoveAt(i);
                 continue;
             }
-            if (!entity.deathAnimDone && Time.time - entity.deathTime < Config.death_anim_max_wait) continue;
+            if (!entity.deathAnimDone) continue;
             dyingEntities.RemoveAt(i);
             DestroyEntity(entity.id);
         }

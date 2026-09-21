@@ -93,15 +93,16 @@ public class PlayerEntityData : EntityData
         }
     }
 
-    /// <summary>普通跳跃：InAir 置位，Config.jump_duration 后落回（时间戳延时；落回由状态机切到落地动作）。</summary>
+    /// <summary>
+    /// 普通跳跃：只给刚体一次向上的初速度，之后交给重力。
+    /// **不在这里写 InAir** —— 空中/落地由 EntityData.UpdateGrounded 的物理检测写入（按计时判定落地是错的）。
+    /// </summary>
     private void Jump()
     {
-        anim?.InAir(true);
-        var weak = this;
-        GenericTimer.AddTimer(0, Config.jump_duration, _ =>
-        {
-            if (weak != null) weak.anim?.InAir(false);
-        });
+        if (body == null) return;
+        Vector3 velocity = body.velocity;
+        velocity.y = Config.jump_speed;
+        body.velocity = velocity;
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
