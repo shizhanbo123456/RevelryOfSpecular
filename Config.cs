@@ -373,9 +373,16 @@ public static class Config
     };
 
     /// <summary>
-    /// 刚体线性阻力：不为 0。停止不依赖阻力（输入归零即停），阻力只用于消除被击飞/斜坡等残余漂移；数值待调。
+    /// 刚体线性阻力：**必须为 0**。速度完全由动画声明的速度与地面摩擦决定（见 EntityData.ResolveMoveVelocity）——
+    /// 阻力不为 0 会让"空中保持水平速度"失效，并在地面上叠加出第二条衰减曲线，与地面摩擦打架。
     /// </summary>
-    public const float rb_drag = 1f;
+    public const float rb_drag = 0f;
+
+    /// <summary>
+    /// 地面水平摩擦（米/秒²）：**动画模块没有声明速度**且玩家没有推进输入时，水平速度朝 0 按此值衰减；
+    /// 不在地面上则不衰减（保持水平速度 —— 跳跃/被击飞不会在空中掉速）。
+    /// </summary>
+    public const float move_ground_friction = 2f;
 
     /// <summary>刚体角阻力（旋转三轴已锁、朝向由角色控制直接赋 rotation，角速度不参与移动）。</summary>
     public const float rb_angular_drag = 1f;

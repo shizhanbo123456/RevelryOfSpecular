@@ -165,6 +165,10 @@ public abstract class EntityData : MonoBehaviour
             // SetType 必须排在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集，早调等于没设
             if (animData != null) anim.SetType(animData.type);
             anim.OnDeathEventEnd += OnDeathAnimEnd; // 死亡动画播完 → 允许销毁（销毁时机见 BattleManagerCombat）
+            // 接收动画模块声明的速度：外部只负责把速度落到刚体上，具体多少完全由动画状态决定
+            anim.OnSetVelocityForward += OnAnimSetVelocityForward;
+            anim.OnSetVelocityHorizontal += OnAnimSetVelocityHorizontal;
+            anim.OnSetVelocityVertical += OnAnimSetVelocityVertical;
             anim.DoSpawn();                         // 出生动画：Spawn 子状态机按 CharacterType 选 spawn / zombie_spawn
         }
 
@@ -210,6 +214,98 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
     public bool MotionCanMove => motion == null || motion.canMove;
+
+    #region//接收动画声明的速度（外部只负责把速度落到刚体上，具体数值完全由动画模块决定）
+    /// <summary>动画当前声明的"前后"速度（角色本地系，正 = 前；0 = 本状态不动）。</summary>
+    private bool declaredForward;
+    private float declaredForwardSpeed;
+    /// <summary>动画当前声明的"水平"速度（x = 左右横移，右正；y = 前后，前正）。</summary>
+    private bool declaredHorizontal;
+    private Vector2 declaredHorizontalSpeed;
+    /// <summary>声明时所处的动画状态 hash：换状态即失效（"动画没设置"就是由此产生的）。</summary>
+    private int declaredAnimId = -1;
+
+    /// <summary>动画声明前后速度（EntityAnim.OnSetVelocityForward）。</summary>
+    private void OnAnimSetVelocityForward(float speed)
+    {
+        declaredForward = true;
+        declaredForwardSpeed = speed;
+        declaredHorizontal = false; // 前后与水平通常不会同时声明；后声明的为准
+        if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
+    }
+
+    /// <summary>动画声明水平速度（EntityAnim.OnSetVelocityHorizontal）：x = 左右横移、y = 前后。</summary>
+    private void OnAnimSetVelocityHorizontal(Vector2 speed)
+    {
+        declaredHorizontal = true;
+        declaredHorizontalSpeed = speed;
+        declaredForward = false;
+        if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
+    }
+
+    /// <summary>动画声明垂直速度（EntityAnim.OnSetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
+    private void OnAnimSetVelocityVertical(float speed)
+    {
+        if (body == null) return;
+        Vector3 velocity = body.velocity;
+        velocity.y = speed;
+        body.velocity = velocity;
+    }
+
+    /// <summary>
+    /// 本帧水平速度（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 取用）。
+    /// 只决定水平分量，**绝不写 Y**（Y 归重力与 OnSetVelocityVertical，即"没声明时按抛体运动"）。四种情况：
+    /// ① 动画声明了水平/前后速度 → 用声明值定大小，方向仍由输入给出（输入是"要不要动"的开关，动画只定"动多快"）；
+    /// ② 未声明但有推进输入、且在地面上 → 退化为模型移速 moveSpeed（动画还没声明速度时也能动；空中不再获得速度）；
+    /// ③ 未推进（松开输入/被强控/位移锁输入）且在地面上 → 水平速度朝 0 按 Config.move_ground_friction 衰减；
+    /// ④ 未推进且不在地面上 → 保持水平速度（空中无阻力，跳跃/被击飞不在空中掉速）。
+    /// </summary>
+    public Vector3 ResolveMoveVelocity(float deltaTime, bool canInput, float speedParam)
+    {
+        Vector3 current = body != null ? body.velocity : Vector3.zero;
+        // 扣掉位移效果的速度：它由 MotionBase 单独产出、调用方另行叠加，不参与这里的衰减/保持（否则会被累加两次）
+        Vector3 horizontal = new Vector3(current.x - motionVelocity.x, 0f, current.z - motionVelocity.z);
+
+        // 离开声明它的动画状态 → 声明失效；下一个状态若没声明，就回落到下面的默认行为
+        if ((declaredForward || declaredHorizontal) && anim != null)
+        {
+            anim.GetDisplayAnim(out var animId, out _);
+            if (animId != declaredAnimId)
+            {
+                declaredForward = false;
+                declaredHorizontal = false;
+            }
+        }
+
+        bool driving = canInput && MotionCanMove && moveInput.sqrMagnitude > 0.0001f;
+
+        if (declaredHorizontal)
+        {
+            // 输入分量只给方向与正负，分量本身是动画声明的横移/前后速度
+            float sx = moveInput.x > 0.001f ? 1f : (moveInput.x < -0.001f ? -1f : 1f);
+            float sz = moveInput.z > 0.001f ? 1f : (moveInput.z < -0.001f ? -1f : 1f);
+            return (transform.right * (declaredHorizontalSpeed.x * sx)
+                  + transform.forward * (declaredHorizontalSpeed.y * sz)) * speedParam;
+        }
+        if (declaredForward)
+        {
+            // 有推进输入 → 沿输入方向；无输入 → 沿角色本地前后（滚/滑这类自带位移的状态不该依赖按键）
+            float sign = moveInput.z < -0.001f ? -1f : 1f;
+            Vector3 dir = driving ? (transform.rotation * moveInput).normalized : transform.forward * sign;
+            return dir * (declaredForwardSpeed * speedParam);
+        }
+
+        // ② 未声明但有推进输入、且在地面上 → 退化为模型移速（动画还没声明速度时也能动）
+        //    空中不做这件事：离地后"保持水平速度"，不因为按住方向就在空中重新获得速度（没有空中控制）
+        if (driving && grounded) return (transform.rotation * moveInput).normalized * (moveSpeed * speedParam);
+        if (!grounded) return horizontal;                                                          // ④ 空中保持
+
+        float speed = horizontal.magnitude;                                                        // ③ 地面摩擦
+        if (speed <= 0.0001f) return Vector3.zero;
+        float next = Mathf.Max(0f, speed - Config.move_ground_friction * deltaTime);
+        return horizontal * (next / speed);
+    }
+    #endregion
 
     /// <summary>
     /// 设置移动输入方向（角色本地系，Y 被忽略；只取方向，大小不限）。
@@ -346,7 +442,13 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>销毁实体（由 BattleManager 调用）。</summary>
     public virtual void OnDestroyed()
     {
-        if (anim != null) anim.OnDeathEventEnd -= OnDeathAnimEnd;
+        if (anim != null)
+        {
+            anim.OnDeathEventEnd -= OnDeathAnimEnd;
+            anim.OnSetVelocityForward -= OnAnimSetVelocityForward;
+            anim.OnSetVelocityHorizontal -= OnAnimSetVelocityHorizontal;
+            anim.OnSetVelocityVertical -= OnAnimSetVelocityVertical;
+        }
         effectController?.Clear();
     }
 

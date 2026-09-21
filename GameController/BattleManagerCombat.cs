@@ -12,11 +12,9 @@ public partial class BattleManager
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
     /// <summary>
     /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
-    /// 水平速度 = 动画声明的速度（EntityData.animSpeed.x）× 速度参数（加速/减速/泥沼乘区）；
-    /// 动画**从未声明过**速度时退化为模型移速（保证动画未接完也能动），声明过就完全以它为准（声明 0 = 本状态不动）。
-    /// 再叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
-    /// 方向仍由输入给出（本地系转世界系，前 = 前方、左右 = 侧方）：输入是"要不要动"的开关，动画只决定"动多快"。
-    /// 只写水平分量、Y 不动，所以重力/被击飞/下落照常；停止不看阻力，输入归零即停。
+    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— 动画模块通过 EntityAnim.OnSetVelocity*
+    /// 声明速度，未声明时在地面按 2 m/s² 衰减、空中保持水平速度；Y 完全不写（重力/被击飞/下落照常）。
+    /// 这里只负责叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
     /// 朝向由实体自己推进（OnTickMove：玩家角色按输入渐转后直接赋 rotation，刚体三轴旋转已锁）。
     /// </summary>
     private void TickMovement()
@@ -35,16 +33,8 @@ public partial class BattleManager
             // 速度参数（加速 1.3 / 减速 0.6 / 泥沼 0.5，并存时连乘）：
             // 同一乘区也同步作用于动画播放速度，保证位移与动画不脱节（见 EntityEffectController.ApplyAnimSpeedScale）
             float speedParam = e.effectController != null ? e.effectController.GetMoveAnimSpeedMultiplier() : 1f;
-            // 动画声明过速度就以它为准（含 0 = 不动）；从未声明才退化为模型移速
-            float baseSpeed = e.animSpeedDeclared ? Mathf.Abs(e.animSpeed.x) : e.moveSpeed;
-            float speed = baseSpeed * speedParam;
 
-            Vector3 velocity = e.motionVelocity;
-            if (canInput && e.MotionCanMove && e.moveInput.sqrMagnitude > 0.0001f)
-            {
-                velocity += (e.transform.rotation * e.moveInput.normalized) * speed;
-            }
-            e.SetMoveVelocity(velocity);
+            e.SetMoveVelocity(e.ResolveMoveVelocity(dt, canInput, speedParam) + e.motionVelocity);
         }
     }
     #endregion
