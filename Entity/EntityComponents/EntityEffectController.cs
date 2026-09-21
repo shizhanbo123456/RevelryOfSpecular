@@ -272,10 +272,9 @@ public class EntityEffectController
     public bool HasSuperArmor() => HasEffect(EffectType.DeathStroll);
 
     /// <summary>
-    /// 速度参数（加速/减速/泥沼的乘区，多个并存时连乘）—— 本项目**改变移动速度的唯一参数**。
-    /// 两个地方消费它，必须用同一个值：① 移动系统用它缩放水平速度（BattleManagerCombat.TickMovement）；
-    /// ② 动画播放速度（EntityAnim.SetMoveSpeedScale），否则位移变快而动画没变快就会脚步打滑。
-    /// 位移效果（MotionBase）的速度不吃本参数：冲刺/击退不该被减速 Buff 缩水。
+    /// 移速类 Buff 的倍率（加速/减速/泥沼，多个并存时连乘）。**只作用于动画播放速度**
+    /// （EntityAnim.SetMoveSpeedScale → animator.speed），不参与位移速度：对位移速度的影响由动画模块
+    /// 在声明速度时自行接入。其它速度来源（输入退化移速、MotionBase 位移、重力）完全不吃本参数。
     /// </summary>
     public float GetMoveAnimSpeedMultiplier()
     {
@@ -359,11 +358,11 @@ public class EntityEffectController
     #endregion
 
     #region//Local
-    /// <summary>移速类 Buff（加速/减速/泥沼）：只有它们会改变速度参数。</summary>
+    /// <summary>移速类 Buff（加速/减速/泥沼）：只有它们会改动画播放速度（策划案 11.3：这几个效果的载体就是动画移动状态的播放速度倍率）。</summary>
     private static bool IsMoveSpeedEffect(EffectType type) =>
         type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire;
 
-    /// <summary>把速度参数应用到动画播放速度（与位移用同一个乘区，避免脚步打滑或像在水里走）。</summary>
+    /// <summary>把移速倍率应用到动画播放速度（策划案 11.3 的载体；位移速度不受本倍率影响）。</summary>
     private void ApplyAnimSpeedScale()
     {
         if (owner == null || owner.anim == null) return;

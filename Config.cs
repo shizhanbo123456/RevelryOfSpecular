@@ -190,12 +190,12 @@ public static class Config
     /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir；
     /// 若动画状态通过 EntityAnim.OnSetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
     public const float jump_speed = 5f;
-    /// <summary>速度参数——加速（载体有两个：① 移动速度乘区 <see cref="EntityData.ResolveMoveVelocity"/> 的 speedParam；
-    /// ② 动画播放倍速 animator.speed，见 EntityAnim.SetMoveSpeedScale；策划案 11.3）。</summary>
+    /// <summary>加速倍率（策划案 11.3）：**只作用于动画播放速度**（EntityAnim.SetMoveSpeedScale → animator.speed）。
+    /// 对位移速度的影响由动画模块在"声明速度"时自行接入；其它速度来源（输入退化移速、MotionBase 位移等）完全不吃这个乘区。</summary>
     public const float anim_move_speed_up = 1.3f;
-    /// <summary>速度参数——减速（载体同加速）。</summary>
+    /// <summary>减速倍率（作用范围同加速）。</summary>
     public const float anim_move_speed_down = 0.6f;
-    /// <summary>速度参数——泥沼（教皇主动2 全场敌方减速；载体同加速）。</summary>
+    /// <summary>泥沼倍率（教皇主动2 全场敌方减速；作用范围同加速）。</summary>
     public const float anim_move_speed_mire = 0.5f;
     /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
     public const int zombie_variant_count = 21;

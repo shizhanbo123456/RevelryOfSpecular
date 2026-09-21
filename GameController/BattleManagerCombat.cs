@@ -30,11 +30,10 @@ public partial class BattleManager
 
             e.OnTickMove(dt, canInput); // 朝向与输入推进交给实体自己（玩家角色在 PlayerEntityData）
 
-            // 速度参数（加速 1.3 / 减速 0.6 / 泥沼 0.5，并存时连乘）：
-            // 同一乘区也同步作用于动画播放速度，保证位移与动画不脱节（见 EntityEffectController.ApplyAnimSpeedScale）
-            float speedParam = e.effectController != null ? e.effectController.GetMoveAnimSpeedMultiplier() : 1f;
-
-            e.SetMoveVelocity(e.ResolveMoveVelocity(dt, canInput, speedParam) + e.motionVelocity);
+            // 速度由实体自己决定（动画声明的速度 / 未声明时地面摩擦与空中保持，见 EntityData.ResolveMoveVelocity）。
+            // **加速/减速/泥沼不在这里乘**：它们只作用于动画播放速度（EntityEffectController.ApplyAnimSpeedScale →
+            // EntityAnim.SetMoveSpeedScale），对位移速度的影响由动画模块在声明速度时自行接入。
+            e.SetMoveVelocity(e.ResolveMoveVelocity(dt, canInput) + e.motionVelocity);
         }
     }
     #endregion

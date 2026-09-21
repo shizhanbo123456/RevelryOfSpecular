@@ -206,16 +206,16 @@ public abstract class EntityData : MonoBehaviour
     public bool MotionCanMove => motion == null || motion.canMove;
 
     #region//接收动画声明的速度（外部只负责把速度落到刚体上，具体数值完全由动画模块决定）
-    /// <summary>动画当前声明的"前后"速度（角色本地系，正 = 前；0 = 本状态不动）。</summary>
+    /// <summary>动画当前声明的"前后"速度（**角色本地前后**，正 = 朝前；0 = 本状态不动）。</summary>
     private bool declaredForward;
     private float declaredForwardSpeed;
-    /// <summary>动画当前声明的"水平"速度（x = 左右横移，右正；y = 前后，前正）。</summary>
+    /// <summary>动画当前声明的"水平"速度（**世界空间**：x → 世界 X、y → 世界 Z）。</summary>
     private bool declaredHorizontal;
     private Vector2 declaredHorizontalSpeed;
     /// <summary>声明时所处的动画状态 hash：换状态即失效（"动画没设置"就是由此产生的）。</summary>
     private int declaredAnimId = -1;
 
-    /// <summary>动画声明前后速度（EntityAnim.OnSetVelocityForward）。</summary>
+    /// <summary>动画声明前后速度（EntityAnim.OnSetVelocityForward）：角色本地前后，正 = 朝前、负 = 朝后。声明在"当前动画状态"内有效。</summary>
     private void OnAnimSetVelocityForward(float speed)
     {
         declaredForward = true;
@@ -224,7 +224,7 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
-    /// <summary>动画声明水平速度（EntityAnim.OnSetVelocityHorizontal）：x = 左右横移、y = 前后。</summary>
+    /// <summary>动画声明水平速度（EntityAnim.OnSetVelocityHorizontal）：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
     private void OnAnimSetVelocityHorizontal(Vector2 speed)
     {
         declaredHorizontal = true;
@@ -245,12 +245,14 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>
     /// 本帧水平速度（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 取用）。
     /// 只决定水平分量，**绝不写 Y**（Y 归重力与 OnSetVelocityVertical，即"没声明时按抛体运动"）。四种情况：
-    /// ① 动画声明了水平/前后速度 → 用声明值定大小，方向仍由输入给出（输入是"要不要动"的开关，动画只定"动多快"）；
+    /// ① 动画声明了速度 → **按声明值原样施加**，不做任何改写（见下）；
     /// ② 未声明但有推进输入、且在地面上 → 退化为模型移速 moveSpeed（动画还没声明速度时也能动；空中不再获得速度）；
     /// ③ 未推进（松开输入/被强控/位移锁输入）且在地面上 → 水平速度朝 0 按 Config.move_ground_friction 衰减；
     /// ④ 未推进且不在地面上 → 保持水平速度（空中无阻力，跳跃/被击飞不在空中掉速）。
+    /// **加速/减速/泥沼（速度参数）不在这里参与**：它们只影响动画播放速度（EntityEffectController.ApplyAnimSpeedScale
+    /// → EntityAnim.SetMoveSpeedScale），对位移速度的影响由动画模块自己在声明速度时接入。
     /// </summary>
-    public Vector3 ResolveMoveVelocity(float deltaTime, bool canInput, float speedParam)
+    public Vector3 ResolveMoveVelocity(float deltaTime, bool canInput)
     {
         Vector3 current = body != null ? body.velocity : Vector3.zero;
         // 扣掉位移效果的速度：它由 MotionBase 单独产出、调用方另行叠加，不参与这里的衰减/保持（否则会被累加两次）
@@ -271,23 +273,20 @@ public abstract class EntityData : MonoBehaviour
 
         if (declaredHorizontal)
         {
-            // 输入分量只给方向与正负，分量本身是动画声明的横移/前后速度
-            float sx = moveInput.x > 0.001f ? 1f : (moveInput.x < -0.001f ? -1f : 1f);
-            float sz = moveInput.z > 0.001f ? 1f : (moveInput.z < -0.001f ? -1f : 1f);
-            return (transform.right * (declaredHorizontalSpeed.x * sx)
-                  + transform.forward * (declaredHorizontalSpeed.y * sz)) * speedParam;
+            // 水平声明是**世界空间**的水平速度：直接施加，不做本地系换算、不乘任何系数
+            return new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
         }
         if (declaredForward)
         {
-            // 有推进输入 → 沿输入方向；无输入 → 沿角色本地前后（滚/滑这类自带位移的状态不该依赖按键）
+            // 前后声明是**角色本地前后**的带符号速度：方向即角色朝向；符号取输入的前后轴
+            // （动画只知道"在移动"，不知道玩家按的是前还是后，所以后退的负号由输入给）
             float sign = moveInput.z < -0.001f ? -1f : 1f;
-            Vector3 dir = driving ? (transform.rotation * moveInput).normalized : transform.forward * sign;
-            return dir * (declaredForwardSpeed * speedParam);
+            return transform.forward * (declaredForwardSpeed * sign);
         }
 
         // ② 未声明但有推进输入、且在地面上 → 退化为模型移速（动画还没声明速度时也能动）
         //    空中不做这件事：离地后"保持水平速度"，不因为按住方向就在空中重新获得速度（没有空中控制）
-        if (driving && grounded) return (transform.rotation * moveInput).normalized * (moveSpeed * speedParam);
+        if (driving && grounded) return (transform.rotation * moveInput).normalized * moveSpeed;
         if (!grounded) return horizontal;                                                          // ④ 空中保持
 
         float speed = horizontal.magnitude;                                                        // ③ 地面摩擦
