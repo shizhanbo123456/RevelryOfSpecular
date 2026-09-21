@@ -24,7 +24,6 @@ public class AnimEvent : StateMachineBehaviour
         base.OnStateEnter(animator, stateInfo, layerIndex);
         AnimId = stateInfo.fullPathHash;
         if (!main) return;
-        anim.RegisterAnimEvent(this);
         anim.NotifyStateEnter(AnimId, State);
     }
 }

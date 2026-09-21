@@ -65,6 +65,10 @@ public class EntityAnim : MonoBehaviour
             currentState = value;
         }
     }
+    //前后和水平速度通常不会同时设置
+    public Action<float> OnSetVelocityForward;//设置前后速度时调用
+    public Action<Vector2> OnSetVelocityHorizontal;//设置水平速度时调用
+    public Action<float> OnSetVelocityVertical;//设置垂直速度时调用
 
     private int currentAnimId = -1;
 
