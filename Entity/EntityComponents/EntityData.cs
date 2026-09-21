@@ -155,10 +155,6 @@ public abstract class EntityData : MonoBehaviour
             // SetType 必须排在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集，早调等于没设
             if (animData != null) anim.SetType(animData.type);
             anim.OnDeathEventEnd += OnDeathAnimEnd; // 死亡动画播完 → 允许销毁（销毁时机见 BattleManagerCombat）
-            // 接收动画模块声明的速度：外部只负责把速度落到刚体上，具体多少完全由动画状态决定
-            anim.OnSetVelocityForward += OnAnimSetVelocityForward;
-            anim.OnSetVelocityHorizontal += OnAnimSetVelocityHorizontal;
-            anim.OnSetVelocityVertical += OnAnimSetVelocityVertical;
             anim.DoSpawn();                         // 出生动画：Spawn 子状态机按 CharacterType 选 spawn / zombie_spawn
         }
 
@@ -205,7 +201,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
     public bool MotionCanMove => motion == null || motion.canMove;
 
-    #region//接收动画声明的速度（外部只负责把速度落到刚体上，具体数值完全由动画模块决定）
+    #region//速度（外部设置速度的唯一入口；摩擦等天然变化只在本区内处理）
     /// <summary>动画当前声明的"前后"速度（**角色本地前后**，正 = 朝前；0 = 本状态不动）。</summary>
     private bool declaredForward;
     private float declaredForwardSpeed;
@@ -215,8 +211,8 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>声明时所处的动画状态 hash：换状态即失效（"动画没设置"就是由此产生的）。</summary>
     private int declaredAnimId = -1;
 
-    /// <summary>动画声明前后速度（EntityAnim.OnSetVelocityForward）：角色本地前后，正 = 朝前、负 = 朝后。声明在"当前动画状态"内有效。</summary>
-    private void OnAnimSetVelocityForward(float speed)
+    /// <summary>声明前后速度（EntityAnim.SetVelocityForward）：角色本地前后，正 = 朝前、负 = 朝后。声明在"当前动画状态"内有效。</summary>
+    public void SetVelocityForward(float speed)
     {
         declaredForward = true;
         declaredForwardSpeed = speed;
@@ -224,8 +220,8 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
-    /// <summary>动画声明水平速度（EntityAnim.OnSetVelocityHorizontal）：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
-    private void OnAnimSetVelocityHorizontal(Vector2 speed)
+    /// <summary>声明水平速度（EntityAnim.SetVelocityHorizontal）：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
+    public void SetVelocityHorizontal(Vector2 speed)
     {
         declaredHorizontal = true;
         declaredHorizontalSpeed = speed;
@@ -233,8 +229,8 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
-    /// <summary>动画声明垂直速度（EntityAnim.OnSetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
-    private void OnAnimSetVelocityVertical(float speed)
+    /// <summary>声明垂直速度（EntityAnim.SetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
+    public void SetVelocityVertical(float speed)
     {
         if (body == null) return;
         Vector3 velocity = body.velocity;
@@ -244,7 +240,7 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 本帧水平速度（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 取用）。
-    /// 只决定水平分量，**绝不写 Y**（Y 归重力与 OnSetVelocityVertical，即"没声明时按抛体运动"）。四种情况：
+    /// 只决定水平分量，**绝不写 Y**（Y 归重力与 SetVelocityVertical，即"没声明时按抛体运动"）。四种情况：
     /// ① 动画声明了速度 → **按声明值原样施加**，不做任何改写（见下）；
     /// ② 未声明但有推进输入、且在地面上 → 退化为模型移速 moveSpeed（动画还没声明速度时也能动；空中不再获得速度）；
     /// ③ 未推进（松开输入/被强控/位移锁输入）且在地面上 → 水平速度朝 0 按 Config.move_ground_friction 衰减；
@@ -413,9 +409,6 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null)
         {
             anim.OnDeathEventEnd -= OnDeathAnimEnd;
-            anim.OnSetVelocityForward -= OnAnimSetVelocityForward;
-            anim.OnSetVelocityHorizontal -= OnAnimSetVelocityHorizontal;
-            anim.OnSetVelocityVertical -= OnAnimSetVelocityVertical;
         }
         effectController?.Clear();
     }

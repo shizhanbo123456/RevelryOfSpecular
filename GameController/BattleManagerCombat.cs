@@ -12,7 +12,7 @@ public partial class BattleManager
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
     /// <summary>
     /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
-    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— 动画模块通过 EntityAnim.OnSetVelocity*
+    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— 动画模块通过 EntityAnim.SetVelocity*
     /// 声明速度，未声明时在地面按 2 m/s² 衰减、空中保持水平速度；Y 完全不写（重力/被击飞/下落照常）。
     /// 这里只负责叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
     /// 朝向由实体自己推进（OnTickMove：玩家角色按输入渐转后直接赋 rotation，刚体三轴旋转已锁）。

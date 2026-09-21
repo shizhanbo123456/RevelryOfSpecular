@@ -65,26 +65,32 @@ public class EntityAnim : MonoBehaviour
             currentState = value;
         }
     }
-    //前后和水平速度通常不会同时设置
-    public Action<float> OnSetVelocityForward;//设置前后速度时调用
-    public Action<Vector2> OnSetVelocityHorizontal;//设置水平速度时调用
-    public Action<float> OnSetVelocityVertical;//设置垂直速度时调用
+    /// <summary>所属实体（速度声明直接落到它身上；客户端 Init(null) 时为空，声明接口一律忽略）。</summary>
+    private EntityData data;
 
-    #region//设置速度（供动画状态调用；外部（EntityData）已注册接收函数，这里只负责转发）
-    /// <summary>
-    /// 当前动画播放速度（播放倍率，被强控暂停时为 0）。
-    /// 声明水平/前后速度时按它缩放 —— 加速/减速/泥沼改的就是这个值，于是"走得快"与"动画播得快"天然同步。
-    /// </summary>
+    #region//设置速度（直接落到 EntityData，不经委托）
     private float PlaybackSpeed => paused ? 0f : speed;
 
     /// <summary>设置前后速度：**角色本地前后（局部空间）**，正 = 朝前、负 = 朝后、0 = 本状态不动。**乘动画播放速度**。</summary>
-    public void SetVelocityForward(float speed) => OnSetVelocityForward?.Invoke(speed * PlaybackSpeed);
+    public void SetVelocityForward(float speed)
+    {
+        if (data == null) return;
+        data.SetVelocityForward(speed * PlaybackSpeed);
+    }
 
     /// <summary>设置水平速度：**世界空间**（x → 世界 X、y → 世界 Z），支持正负。**乘动画播放速度**。</summary>
-    public void SetVelocityHorizontal(Vector2 speed) => OnSetVelocityHorizontal?.Invoke(speed * PlaybackSpeed);
+    public void SetVelocityHorizontal(Vector2 speed)
+    {
+        if (data == null) return;
+        data.SetVelocityHorizontal(speed * PlaybackSpeed);
+    }
 
     /// <summary>设置垂直速度（**只在这次调用生效**：起跳/下落初速），之后交给重力。垂直**不乘**动画播放速度。</summary>
-    public void SetVelocityVertical(float speed) => OnSetVelocityVertical?.Invoke(speed);
+    public void SetVelocityVertical(float speed)
+    {
+        if (data == null) return;
+        data.SetVelocityVertical(speed);
+    }
     #endregion
 
     private int currentAnimId = -1;
@@ -99,8 +105,9 @@ public class EntityAnim : MonoBehaviour
     private Animator mainAnimator;
 
 
-    public void Init(EntityData data,Action<AttackType>onAttack)
+    public void Init(EntityData data, Action<AttackType> onAttack)
     {
+        this.data = data;
         this.onAttack = onAttack;
 
         animators = new();
@@ -156,7 +163,7 @@ public class EntityAnim : MonoBehaviour
     private bool paused=false;
     public void SetPaused(bool paused)
     {
-        paused = true;
+        this.paused = paused;
         UpdateSpeed();
     }
 

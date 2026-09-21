@@ -188,7 +188,7 @@ public static class Config
     public const int unarmed_attack_smash = 182;
     /// <summary>跳跃初速度（米/秒，向上；占位初值待定）。起跳只给这一次竖直速度，之后由重力接管；
     /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir；
-    /// 若动画状态通过 EntityAnim.OnSetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
+    /// 若动画状态通过 EntityAnim.SetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
     public const float jump_speed = 5f;
     /// <summary>加速倍率（策划案 11.3）：作用于**动画**——动画播放速度与动画声明的速度（EntityAnim.PlaybackSpeed：既写 animator.speed，
     /// 也在 SetVelocityForward/Horizontal 里缩放声明值）。其它速度来源（输入退化移速、MotionBase 位移、重力）完全不吃这个倍率。</summary>
