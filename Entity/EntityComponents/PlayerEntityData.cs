@@ -99,7 +99,7 @@ public class PlayerEntityData : EntityData
     /// </summary>
     private void Jump()
     {
-        anim?.SetVelocityVertical(Config.jump_speed);
+        anim?.DoJump();
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>

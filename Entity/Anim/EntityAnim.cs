@@ -6,6 +6,7 @@ public class EntityAnim : MonoBehaviour
 {
     private const string key_characterType = "CharacterType";
     private const string key_spawn = "DoSpawn";
+    private const string key_jump = "DoJump";
     private const string key_moving = "Moving";
     private const string key_inAir = "InAir";
     private const string key_slide = "Slide";
@@ -65,33 +66,9 @@ public class EntityAnim : MonoBehaviour
             currentState = value;
         }
     }
-    /// <summary>所属实体（速度声明直接落到它身上；客户端 Init(null) 时为空，声明接口一律忽略）。</summary>
     private EntityData data;
+    private EntityAnimData animData;
 
-    #region//设置速度（直接落到 EntityData，不经委托）
-    private float PlaybackSpeed => paused ? 0f : speed;
-
-    /// <summary>设置前后速度：**角色本地前后（局部空间）**，正 = 朝前、负 = 朝后、0 = 本状态不动。**乘动画播放速度**。</summary>
-    public void SetVelocityForward(float speed)
-    {
-        if (data == null) return;
-        data.SetVelocityForward(speed * PlaybackSpeed);
-    }
-
-    /// <summary>设置水平速度：**世界空间**（x → 世界 X、y → 世界 Z），支持正负。**乘动画播放速度**。</summary>
-    public void SetVelocityHorizontal(Vector2 speed)
-    {
-        if (data == null) return;
-        data.SetVelocityHorizontal(speed * PlaybackSpeed);
-    }
-
-    /// <summary>设置垂直速度（**只在这次调用生效**：起跳/下落初速），之后交给重力。垂直**不乘**动画播放速度。</summary>
-    public void SetVelocityVertical(float speed)
-    {
-        if (data == null) return;
-        data.SetVelocityVertical(speed);
-    }
-    #endregion
 
     private int currentAnimId = -1;
 
@@ -158,6 +135,24 @@ public class EntityAnim : MonoBehaviour
         }
     }
 
+    #region//设置速度
+    private float PlaybackSpeed => paused ? 0f : speed;
+    public void SetVelocityForward(float speed)
+    {
+        if (data == null) return;
+        data.SetVelocityForward(speed * PlaybackSpeed);
+    }
+    public void SetVelocityHorizontal(Vector2 speed)
+    {
+        if (data == null) return;
+        data.SetVelocityHorizontal(speed * PlaybackSpeed);
+    }
+    public void SetVelocityVertical(float speed)
+    {
+        if (data == null) return;
+        data.SetVelocityVertical(speed);
+    }
+    #endregion
     #region//速度控制
     private float speed=1;
     private bool paused=false;
@@ -208,6 +203,11 @@ public class EntityAnim : MonoBehaviour
     {
         foreach(var animator in animators)
             animator.SetTrigger(key_spawn);
+    }
+    public void DoJump()
+    {
+        foreach (var animator in animators)
+            animator.SetTrigger(key_jump);
     }
     public void InAir(bool inAir)
     {

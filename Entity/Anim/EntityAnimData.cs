@@ -1,16 +1,10 @@
 using UnityEngine;
 
-/// <summary>
-/// 实体动画参数组件（挂载在实体预制体根物体：客户端模型与服务端模板参数一致）。
-/// 可移动实体（角色/僵尸）根物体挂 EntityAnim + EntityAnimData；
-/// 不可移动实体（水晶/防御塔/瘟疫树/守护点）不需要 EntityAnim（判定体统一由各实体的 Collider 提供）。
-/// EntityData.OnCreate 时读取本组件：移动速度按腿高换算 + 动作集类型。
-/// </summary>
 public class EntityAnimData : MonoBehaviour
 {
     [Header("模型参数（客户端模型与服务端模板一致）")]
     public float height;                    // 身高
-    public float legHeight;                 // 腿高（决定跑步速度，见 LegHeightToStandartRunSpeed）
+    public float legHeight;                 // 腿高
     public EntityAnim.CharcterAnimType type;// 动作集类型
 
     private void OnDrawGizmos()
@@ -21,7 +15,6 @@ public class EntityAnimData : MonoBehaviour
         Gizmos.DrawCube(transform.position + Vector3.up * legHeight * 0.5f, new Vector3(0.3f, legHeight, 0.3f));
     }
 
-    /// <summary>标准跑步速度 = 腿高 × 2.6（身高直接决定移动表现与服务器权威移动速度）。</summary>
     public static float LegHeightToStandartRunSpeed(float legHeight)
     {
         return legHeight * 2.6f;
