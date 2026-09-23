@@ -5,17 +5,17 @@ using UnityEngine;
 public class EntityAnim : MonoBehaviour
 {
     private const string key_characterType = "CharacterType";
-    private const string key_spawn = "DoSpawn";
-    private const string key_jump = "DoJump";
+    private const string key_spawn = "Spawn";
+    private const string key_jump = "Jump";
     private const string key_moving = "Moving";
     private const string key_inAir = "InAir";
     private const string key_slide = "Slide";
     private const string key_slideEnd = "SlideEnd";
     private const string key_roll = "Roll";
-    private const string key_doAttack = "DoAttack";
-    private const string key_attack = "Attack";
+    private const string key_doAttack = "Attack";
+    private const string key_attackId = "AttackId";
     private const string key_hit = "Hit";
-    private const string key_die = "Death";
+    private const string key_die = "Died";
     public enum CharcterAnimType
     {
         Female=0,
@@ -241,7 +241,7 @@ public class EntityAnim : MonoBehaviour
     {
         foreach (var animator in animators)
         {
-            animator.SetInteger(key_attack, (int)attack);
+            animator.SetInteger(key_attackId, (int)attack);
             animator.SetTrigger(key_doAttack);
         }
     }
