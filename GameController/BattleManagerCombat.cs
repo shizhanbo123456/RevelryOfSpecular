@@ -111,11 +111,28 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
+    /// <summary>
+    /// 各玩家击杀数（按客户端 id）。只统计击杀**敌对阵营的玩家角色**（含 AI 玩家）—— 僵尸/防御塔/水晶/守护点不计。
+    /// 每人死亡数见 <see cref="ReviveState.deathCount"/>（复活叠层用）。暂不下发客户端。
+    /// </summary>
+    public readonly Dictionary<short, int> KillCountByClient = new();
+
     /// <summary>死亡统一处理：进入复活流程并下发进度；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；销毁时机交给 BeginDying（等死亡动画播完）。</summary>
     private void HandleDeath(EntityData entity)
     {
         // 水晶的产出与重生排程在其子类 OnKilled 里处理（该方法先于本方法调用）
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill);
+
+        // 击杀归属：击杀者由 lastAttacker 反查（归属已随死亡移除时算不出，例如同归于尽 → 不计）
+        var killer = entity.lastAttacker;
+        bool victimIsPlayer = entity.type.category == EntityCategory.Character_Attack ||
+                              entity.type.category == EntityCategory.Character_Defense;
+        if (victimIsPlayer && killer != null && EntityCampUtil.IsHostile(killer.camp, entity.camp) &&
+            EntityOwnerClient.TryGetValue(killer.id, out var killerClient))
+        {
+            KillCountByClient.TryGetValue(killerClient, out int killCount);
+            KillCountByClient[killerClient] = killCount + 1;
+        }
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
         {
@@ -337,6 +354,7 @@ public partial class BattleManager
         crystalRespawns.Clear();
         plagueTreeRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
         HarvestByClient.Clear();
+        KillCountByClient.Clear();
     }
     #endregion
 }
