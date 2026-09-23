@@ -80,7 +80,9 @@ public class HomePage : PageBase
         }
         UITheme.SetButtonEnabled(connectButton, false);
         connectStatusLabel.text = "正在连接服务器...";
+        Owner.ShowLoading(true, "正在连接服务器..."); // 连接自旋最长 5+5 秒，期间遮盖
         var result = await Tool.NetworkManager.TryConnect(ipField.value);
+        Owner.ShowLoading(false); // 成功与失败都要收起
         if (result != NetworkManager.ConnectResult.Success)
         {
             UITheme.SetButtonEnabled(connectButton, true);

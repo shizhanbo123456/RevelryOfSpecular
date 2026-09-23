@@ -172,6 +172,13 @@ public class UIManager : MonoBehaviour
     /// <summary>显示/隐藏加载遮罩。</summary>
     public void ShowLoading(bool show)
     {
+        ShowLoading(show, null);
+    }
+
+    /// <summary>显示/隐藏加载遮罩（text 非空时更新文案）。</summary>
+    public void ShowLoading(bool show, string text)
+    {
+        if (!string.IsNullOrEmpty(text)) loading.SetText(text);
         loading.Show(show);
     }
     #endregion
