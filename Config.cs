@@ -60,6 +60,19 @@ public static class Config
     public const float crystal_respawn_max = 60f;
     /// <summary>摧毁水晶后获得技能的概率（15%，可调）。</summary>
     public const float crystal_skill_drop_chance = 0.15f;
+
+    #region 瘟疫树（中立争抢单位）
+    /// <summary>第 1 棵树的刷新延迟（秒）：开战后开始计时。</summary>
+    public const float plague_tree_first_spawn_delay = 30f;
+    /// <summary>树被打死后的重生倒计时（秒）：倒计时结束在候选点随机刷新一棵。</summary>
+    public const float plague_tree_respawn_delay = 60f;
+    /// <summary>攻占奖励「瘟疫祝福」：持续时长（秒）。</summary>
+    public const float plague_bless_duration = 30f;
+    /// <summary>攻占奖励「瘟疫祝福」：出伤乘区增幅（+75%）。</summary>
+    public const float plague_bless_damage_up = 0.75f;
+    /// <summary>攻占奖励「瘟疫祝福」：受伤乘区减免（−25%）。</summary>
+    public const float plague_bless_damage_reduce = 0.25f;
+    #endregion
     #endregion
 
     #region 僵尸
@@ -287,6 +300,8 @@ public static class Config
     public const float infinite_view_distance = 99999f;
     /// <summary>死灵漫步的光环半径（米）。</summary>
     public const float death_stroll_radius = 4f;
+    /// <summary>死灵漫步的移速提升倍率（占位初值，待策划定稿）：载体 = 动画播放速度倍率，与加速/减速/泥沼同一通道。</summary>
+    public const float death_stroll_speed_up = 1.3f;
     /// <summary>召唤的一小波僵尸数量 / 等级。</summary>
     public const int summon_zombie_count = 5;
     public const int summon_zombie_level = 1;
@@ -341,6 +356,7 @@ public static class Config
         { EffectType.Freeze, (SkillVfxKind.Buff, 12) },             // BF13 冻结
         { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 26) },       // BF27 雪（减速）
         { EffectType.AnimSpeedUp, (SkillVfxKind.Buff, 27) },        // BF28 环绕风（加速）
+        { EffectType.PlagueBless, (SkillVfxKind.Buff, 28) },        // BF29 绿色祝福（攻占瘟疫树）
     };
 
     /// <summary>悬浮武器挂点表（本地坐标，相对实体根物体）：槽位 i 用第 i 个，左右交替分布。

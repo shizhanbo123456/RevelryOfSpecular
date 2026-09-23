@@ -118,14 +118,14 @@ public partial class BattleManager : EnsBehaviour
 
         private static readonly HashSet<int> s_buffer = new();
 
-        /// <summary>范围内最近敌方实体（敌方=与 entity 不同阵营）。</summary>
+        /// <summary>范围内最近敌方实体（敌方 = 本阵营的敌对阵营掩码，见 EntityCampUtil.HostileOf）。</summary>
         public static EntityData GetNearestEnemy(EntityData entity, float radius = Config.default_skill_auto_target_radius)
         {
             if (entity == null) return null;
-            return GetNearestInCamp(entity.transform.position, radius, OppositeCamp(entity.camp), entity.id);
+            return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.camp), entity.id);
         }
 
-        /// <summary>范围内最近指定阵营实体（排除 excludeId）。</summary>
+        /// <summary>范围内最近指定阵营实体（camp 可传掩码，命中掩码内任一位即算；排除 excludeId）。</summary>
         public static EntityData GetNearestInCamp(Vector3 pos, float radius, EntityCamp camp, ushort excludeId = 0)
         {
             Entities.GetIdsInRange(pos, radius, s_buffer);
@@ -134,7 +134,7 @@ public partial class BattleManager : EnsBehaviour
             foreach (var id in s_buffer)
             {
                 if (!Entities.TryGetObject(id, out var e)) continue;
-                if (e.id == excludeId || e.camp != camp || !e.Alive) continue;
+                if (e.id == excludeId || (camp & e.camp) == 0 || !e.Alive) continue;
                 float d = (e.transform.position - pos).sqrMagnitude;
                 if (d < sqr)
                 {
@@ -146,7 +146,7 @@ public partial class BattleManager : EnsBehaviour
             return target;
         }
 
-        /// <summary>范围内所有指定阵营实体（写外部集合）。</summary>
+        /// <summary>范围内所有指定阵营实体（camp 可传掩码，写外部集合）。</summary>
         public static void GetAllInCamp(Vector3 pos, float radius, EntityCamp camp, List<EntityData> outList)
         {
             outList.Clear();
@@ -154,16 +154,9 @@ public partial class BattleManager : EnsBehaviour
             foreach (var id in s_buffer)
             {
                 if (!Entities.TryGetObject(id, out var e)) continue;
-                if (e.camp == camp && e.Alive) outList.Add(e);
+                if ((camp & e.camp) != 0 && e.Alive) outList.Add(e);
             }
             s_buffer.Clear();
-        }
-
-        private static EntityCamp OppositeCamp(EntityCamp camp)
-        {
-            if (camp == EntityCamp.Attack) return EntityCamp.Defense;
-            if (camp == EntityCamp.Defense) return EntityCamp.Attack;
-            return EntityCamp.Neutral;
         }
     }
     #endregion

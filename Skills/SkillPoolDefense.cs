@@ -388,7 +388,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllInCamp(Opposing(entity.camp)); // 全场敌方
+            AllInCamp(HostileOf(entity.camp)); // 全场敌方
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
@@ -528,7 +528,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             // 目标 = 全场带「瘟疫标记」的敌人
-            AllInCamp(Opposing(entity.camp));
+            AllInCamp(HostileOf(entity.camp));
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 var marked = TargetBuffer[i];
@@ -652,7 +652,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllInCamp(Opposing(entity.camp)); // 全体敌方
+            AllInCamp(HostileOf(entity.camp)); // 全体敌方
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {

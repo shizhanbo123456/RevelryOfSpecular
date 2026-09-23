@@ -103,13 +103,13 @@ namespace Ros.Skill
                 entity.transform.position, radius, entity.camp, entity.id);
         }
 
-        /// <summary>全场指定阵营的存活实体（不限距离，写 TargetBuffer）。</summary>
+        /// <summary>全场指定阵营的存活实体（camp 可传掩码，命中掩码内任一位即算；不限距离，写 TargetBuffer）。</summary>
         protected static void AllInCamp(EntityCamp camp)
         {
             TargetBuffer.Clear();
             foreach (var e in BattleManager.EntityContainer.Entities)
             {
-                if (e != null && e.Alive && e.camp == camp) TargetBuffer.Add(e);
+                if (e != null && e.Alive && (camp & e.camp) != 0) TargetBuffer.Add(e);
             }
         }
 
@@ -123,10 +123,8 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>与给定阵营敌对的阵营（中立视为无敌人）。</summary>
-        protected static EntityCamp Opposing(EntityCamp camp) =>
-            camp == EntityCamp.Attack ? EntityCamp.Defense :
-            camp == EntityCamp.Defense ? EntityCamp.Attack : EntityCamp.Neutral;
+        /// <summary>与给定阵营敌对的阵营掩码（统一走 EntityCampUtil，勿在此重写对立规则）。</summary>
+        protected static EntityCamp HostileOf(EntityCamp camp) => EntityCampUtil.HostileOf(camp);
 
         /// <summary>把实体分桶（Towers / Crystals / Beacons 等）里的存活实体全部写入 TargetBuffer。</summary>
         protected static void AllIn(IEnumerable<EntityData> bucket)
@@ -168,14 +166,15 @@ namespace Ros.Skill
             return best;
         }
 
-        /// <summary>范围内所有敌方实体写入 TargetBuffer（不含同阵营）。</summary>
+        /// <summary>范围内所有敌方实体写入 TargetBuffer（敌方 = ownCamp 的敌对阵营掩码）。</summary>
         protected static void EnemiesIn(Vector3 center, float radius, EntityCamp ownCamp)
         {
             TargetBuffer.Clear();
+            EntityCamp hostile = EntityCampUtil.HostileOf(ownCamp);
             float sqr = radius * radius;
             foreach (var e in BattleManager.EntityContainer.Entities)
             {
-                if (e == null || !e.Alive || e.camp == ownCamp) continue;
+                if (e == null || !e.Alive || (hostile & e.camp) == 0) continue;
                 if ((e.transform.position - center).sqrMagnitude <= sqr) TargetBuffer.Add(e);
             }
         }
@@ -350,7 +349,7 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>球判定结算：对球内敌方各结算一次（跳过自己与同阵营），命中附加效果与命中回调同样生效。</summary>
+        /// <summary>球判定结算：对球内敌方各结算一次（跳过自己与非敌对阵营），命中附加效果与命中回调同样生效。</summary>
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
             int count = EntityPhysics.OverlapSphere(center, radius, s_hitBuffer);
@@ -358,7 +357,7 @@ namespace Ros.Skill
             {
                 var target = s_hitBuffer[i];
                 if (target == null || !target.Alive) continue;
-                if (target.id == entity.id || target.camp == entity.camp) continue;
+                if (target.id == entity.id || !EntityCampUtil.IsHostile(entity.camp, target.camp)) continue;
                 float damage = attack.GetDamage(out bool isCrit);
                 target.ProcessHit(attack, damage, isCrit, center); // 击飞方向取判定球心 → 目标
                 if (attack.addEffectEvent != null && target.effectController != null)

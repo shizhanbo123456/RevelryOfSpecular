@@ -10,7 +10,7 @@ public class AttackData
 {
     /// <summary>攻击者实体 id。</summary>
     public ushort shooter;
-    /// <summary>攻击者阵营（生成时快照，命中筛选用：不打同阵营）。</summary>
+    /// <summary>攻击者阵营（生成时快照，命中筛选用：只结算敌对阵营）。</summary>
     public EntityCamp shooterCamp;
     /// <summary>伤害倍率。</summary>
     public float rate;
@@ -44,7 +44,7 @@ public class AttackData
         return new AttackData()
         {
             shooter = shooter != null ? shooter.id : (ushort)0,
-            shooterCamp = shooter != null ? shooter.camp : EntityCamp.Neutral,
+            shooterCamp = shooter != null ? shooter.camp : EntityCamp.None,
             rate = rate,
             radius = radius,
             useMagic = useMagic,

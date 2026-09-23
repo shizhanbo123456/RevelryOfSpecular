@@ -82,7 +82,7 @@ public partial class BattleManager
         {
             var e = s_bulletBuffer[i];
             if (!e.Alive) continue;
-            if (e.id == attack.shooter || e.camp == attack.shooterCamp) continue;
+            if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
             if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
 
             float damage = attack.GetDamage(out bool isCrit);
@@ -325,12 +325,13 @@ public partial class BattleManager
         });
     }
 
-    /// <summary>开战清空战斗运行状态（id 源、子弹、移动、复活、水晶重生、经验统计）。</summary>
+    /// <summary>开战清空战斗运行状态（id 源、子弹、移动、复活、世界重生、经验统计）。</summary>
     private void ClearBattleState()
     {
         activeBullets.Clear();
         reviveStates.Clear();
         crystalRespawns.Clear();
+        plagueTreeRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
         HarvestByClient.Clear();
     }
     #endregion

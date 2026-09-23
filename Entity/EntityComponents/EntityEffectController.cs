@@ -55,6 +55,7 @@ public enum EffectType
     TowerBlaze,         // 灵火（塔攻击附加爆炸：攻击生成时查询）
     DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT）
     MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
+    PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
 }
 
 /// <summary>EffectType 分类扩展。</summary>
@@ -238,16 +239,20 @@ public class EntityEffectController
         return Mathf.Clamp01(rate);
     }
 
-    /// <summary>出伤乘区（愈战愈勇：每层 +10% 增伤）。</summary>
+    /// <summary>出伤乘区（愈战愈勇：每层 +10% 增伤；瘟疫祝福：+75%）。</summary>
     public float GetOutDamageMultiplier()
     {
-        return 1f + GetLevel(EffectType.YzCy) * 0.1f;
+        float m = 1f + GetLevel(EffectType.YzCy) * 0.1f;
+        if (HasEffect(EffectType.PlagueBless)) m *= 1f + Config.plague_bless_damage_up;
+        return m;
     }
 
-    /// <summary>受伤乘区（愈战愈勇：每层 +10% 减伤，1/(1+0.1×层) 递减不归零）。</summary>
+    /// <summary>受伤乘区（愈战愈勇：每层 +10% 减伤，1/(1+0.1×层) 递减不归零；瘟疫祝福：−25%）。</summary>
     public float GetInDamageMultiplier()
     {
-        return 1f / (1f + GetLevel(EffectType.YzCy) * 0.1f);
+        float m = 1f / (1f + GetLevel(EffectType.YzCy) * 0.1f);
+        if (HasEffect(EffectType.PlagueBless)) m *= 1f - Config.plague_bless_damage_reduce;
+        return m;
     }
 
     /// <summary>反弹伤害（Reflect 的固定数值，0 = 无）。</summary>
@@ -282,6 +287,7 @@ public class EntityEffectController
         if (HasEffect(EffectType.AnimSpeedUp)) m *= Config.anim_move_speed_up;
         if (HasEffect(EffectType.AnimSlowDown)) m *= Config.anim_move_speed_down;
         if (HasEffect(EffectType.Mire)) m *= Config.anim_move_speed_mire;
+        if (HasEffect(EffectType.DeathStroll)) m *= Config.death_stroll_speed_up;
         return m;
     }
 
@@ -298,6 +304,7 @@ public class EntityEffectController
                 case EffectType.AnimSpeedUp: m *= Config.anim_move_speed_up; break;
                 case EffectType.AnimSlowDown: m *= Config.anim_move_speed_down; break;
                 case EffectType.Mire: m *= Config.anim_move_speed_mire; break;
+                case EffectType.DeathStroll: m *= Config.death_stroll_speed_up; break;
             }
         }
         return m;
@@ -340,7 +347,7 @@ public class EntityEffectController
                 break;
             case EffectType.DeathStroll:
                 if (owner == null) break;
-                EntityCamp enemyCamp = owner.camp == EntityCamp.Attack ? EntityCamp.Defense : EntityCamp.Attack;
+                EntityCamp enemyCamp = EntityCampUtil.HostileOf(owner.camp);
                 s_tickTargets.Clear();
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, rt.value, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
@@ -358,9 +365,9 @@ public class EntityEffectController
     #endregion
 
     #region//Local
-    /// <summary>移速类 Buff（加速/减速/泥沼）：只有它们会改动画播放速度（策划案 11.3：这几个效果的载体就是动画移动状态的播放速度倍率）。</summary>
+    /// <summary>移速类 Buff：只有它们会改动画播放速度（策划案 11.3：这些效果的载体就是动画移动状态的播放速度倍率）。</summary>
     private static bool IsMoveSpeedEffect(EffectType type) =>
-        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire;
+        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll;
 
     /// <summary>把移速倍率应用到动画播放速度（策划案 11.3 的载体；位移速度不受本倍率影响）。</summary>
     private void ApplyAnimSpeedScale()
