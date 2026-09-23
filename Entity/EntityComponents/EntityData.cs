@@ -52,7 +52,7 @@ public abstract class EntityData : MonoBehaviour
     /// 刚体（可移动类别的权威速度载体，见 SetupBody 与 BattleManagerCombat.TickMovement）。
     /// 位移效果与输入移动都只产出速度、由它积分位置；非可移动类别为 null。
     /// </summary>
-    [HideInInspector] public Rigidbody body;
+    [HideInInspector] public Rigidbody rb;
 
     /// <summary>
     /// 移动输入方向（**角色本地系**：X = 右、Z = 前、Y 恒为 0）。
@@ -232,10 +232,10 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>声明垂直速度（EntityAnim.SetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
     public void SetVelocityVertical(float speed)
     {
-        if (body == null) return;
-        Vector3 velocity = body.velocity;
+        if (rb == null) return;
+        Vector3 velocity = rb.velocity;
         velocity.y = speed;
-        body.velocity = velocity;
+        rb.velocity = velocity;
     }
 
     /// <summary>
@@ -250,7 +250,7 @@ public abstract class EntityData : MonoBehaviour
     /// </summary>
     public Vector3 ResolveMoveVelocity(float deltaTime, bool canInput)
     {
-        Vector3 current = body != null ? body.velocity : Vector3.zero;
+        Vector3 current = rb != null ? rb.velocity : Vector3.zero;
         // 扣掉位移效果的速度：它由 MotionBase 单独产出、调用方另行叠加，不参与这里的衰减/保持（否则会被累加两次）
         Vector3 horizontal = new Vector3(current.x - motionVelocity.x, 0f, current.z - motionVelocity.z);
 
@@ -307,11 +307,11 @@ public abstract class EntityData : MonoBehaviour
     /// </summary>
     public void SetMoveVelocity(Vector3 horizontalVelocity)
     {
-        if (body == null) return;
-        Vector3 velocity = body.velocity;
+        if (rb == null) return;
+        Vector3 velocity = rb.velocity;
         velocity.x = horizontalVelocity.x;
         velocity.z = horizontalVelocity.z;
-        body.velocity = velocity;
+        rb.velocity = velocity;
     }
 
     /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
@@ -358,12 +358,12 @@ public abstract class EntityData : MonoBehaviour
         {
             RemoveMotion();  // 破霸体命中：打断位移
             anim?.DoHit();
+            ApplyKnockback(attack, hitOrigin); // 被击飞（还会受到击飞抗性影响）
         }
-        ApplyKnockback(attack, hitOrigin); // 击飞不看霸体等级：受击打断与否已由 enterHit 决定
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
         OnDamaged(damage, attacker);
-        Tool.BattleManager?.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
+        Tool.BattleManager.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
     }
 
     /// <summary>
@@ -372,7 +372,7 @@ public abstract class EntityData : MonoBehaviour
     /// </summary>
     private void ApplyKnockback(AttackData attack, Vector3 hitOrigin)
     {
-        if (body == null || floatingAttribute == null) return;
+        if (rb == null || floatingAttribute == null) return;
         float v = attack.knockbackPower - floatingAttribute.knockbackResistance;
         if (v <= 0.01f) return;
 
@@ -515,7 +515,7 @@ public abstract class EntityData : MonoBehaviour
     /// </summary>
     private void UpdateGrounded()
     {
-        if (anim == null || body == null) return; // 只有会动且带动画的实体需要
+        if (anim == null || rb == null) return; // 只有会动且带动画的实体需要
         // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
         if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
 
@@ -544,13 +544,13 @@ public abstract class EntityData : MonoBehaviour
     {
         if (!Config.IsMovable(type.category)) return;
 
-        body = GetComponent<Rigidbody>();
-        if (body == null) body = gameObject.AddComponent<Rigidbody>();
-        body.useGravity = true; //下落与被击飞依赖重力（单位自身 Collider 必须配好，否则会一直坠落）
-        body.constraints = RigidbodyConstraints.FreezeRotation;
-        body.interpolation = RigidbodyInterpolation.None;
-        body.drag = Config.rb_drag;
-        body.angularDrag = Config.rb_angular_drag;
+        rb = GetComponent<Rigidbody>();
+        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+        rb.useGravity = true; //下落与被击飞依赖重力（单位自身 Collider 必须配好，否则会一直坠落）
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        rb.interpolation = RigidbodyInterpolation.None;
+        rb.drag = Config.rb_drag;
+        rb.angularDrag = Config.rb_angular_drag;
     }
     #endregion
 }

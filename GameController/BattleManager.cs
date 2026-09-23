@@ -750,7 +750,7 @@ public partial class BattleManager : EnsBehaviour
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
         // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移
-        Vector3 v = entity.body != null ? entity.body.velocity : entity.motionVelocity;
+        Vector3 v = entity.rb != null ? entity.rb.velocity : entity.motionVelocity;
         info.velocity = new Vector3(v.x, 0f, v.z); // 纵向不做客户端推演
         info.yawSpeed = entity.YawSpeed;
     }
