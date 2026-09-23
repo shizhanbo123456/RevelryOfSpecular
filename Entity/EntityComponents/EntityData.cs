@@ -419,7 +419,6 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>
     public virtual void OnKilled()
     {
-        // TODO: 掉落/击杀事件/愈战愈勇等
     }
 
     /// <summary>销毁实体（由 BattleManager 调用）。</summary>
