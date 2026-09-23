@@ -17,6 +17,8 @@ public class ChunkSearcher<T> : IEnumerable<T>
     private readonly Dictionary<int, T> _allObjects = new Dictionary<int, T>();
     // 区块物体字典：区块索引 -> 该区块内的物体id集合
     private readonly Dictionary<Vector2Int, HashSet<int>> _chunkObjects = new Dictionary<Vector2Int, HashSet<int>>();
+    // 物体当前所在区块：位置会变，定位旧区块不能靠再读一次位置，必须记下来
+    private readonly Dictionary<int, Vector2Int> _chunkOf = new Dictionary<int, Vector2Int>();
     // 获取物体位置的委托
     private readonly Func<T, Vector3> _getPosition;
 
@@ -50,6 +52,7 @@ public class ChunkSearcher<T> : IEnumerable<T>
         Vector3 pos = _getPosition(obj);
         Vector2Int chunkIndex = GetChunkIndex(pos);
         AddToChunk(chunkIndex, id);
+        _chunkOf[id] = chunkIndex;
     }
 
     /// <summary>
@@ -61,9 +64,12 @@ public class ChunkSearcher<T> : IEnumerable<T>
     {
         if (!_allObjects.TryGetValue(id, out T obj))
             return false;
-        Vector3 pos = _getPosition(obj);
-        Vector2Int chunkIndex = GetChunkIndex(pos);
+        // 用记录下来的区块：物体可能已经移动，按当前位置反推会从错误的区块里删（旧区块残留脏 id）
+        Vector2Int chunkIndex = _chunkOf.TryGetValue(id, out var tracked)
+            ? tracked
+            : GetChunkIndex(_getPosition(obj));
         RemoveFromChunk(chunkIndex, id);
+        _chunkOf.Remove(id);
         return _allObjects.Remove(id);
     }
 
@@ -95,6 +101,7 @@ public class ChunkSearcher<T> : IEnumerable<T>
     {
         _allObjects.Clear();
         _chunkObjects.Clear();
+        _chunkOf.Clear();
     }
     #endregion
 
@@ -274,24 +281,22 @@ public class ChunkSearcher<T> : IEnumerable<T>
 
     #region 物体移动更新
     /// <summary>
-    /// 更新物体区块位置
+    /// 更新物体所在区块（物体移动后调用，否则范围查询会一直按出生区块找它）
     /// </summary>
+    /// <returns>物体不存在时返回 false</returns>
     public bool UpdateObjectPosition(int id)
     {
         if (!_allObjects.TryGetValue(id, out T obj))
             return false;
 
-        Vector3 oldPos = _getPosition(obj);
-        Vector2Int oldChunk = GetChunkIndex(oldPos);
-
-        Vector3 newPos = _getPosition(obj);
-        Vector2Int newChunk = GetChunkIndex(newPos);
-
-        if (oldChunk == newChunk)
-            return true;
-
-        RemoveFromChunk(oldChunk, id);
-        AddToChunk(newChunk, id);
+        Vector2Int chunk = GetChunkIndex(_getPosition(obj));
+        if (_chunkOf.TryGetValue(id, out var tracked))
+        {
+            if (tracked == chunk) return true; // 还在同一区块
+            RemoveFromChunk(tracked, id);
+        }
+        AddToChunk(chunk, id);
+        _chunkOf[id] = chunk;
         return true;
     }
 
@@ -301,6 +306,7 @@ public class ChunkSearcher<T> : IEnumerable<T>
     public void RefreshAll()
     {
         _chunkObjects.Clear();
+        _chunkOf.Clear();
         foreach (var kv in _allObjects)
         {
             int id = kv.Key;
@@ -308,6 +314,7 @@ public class ChunkSearcher<T> : IEnumerable<T>
             Vector3 pos = _getPosition(obj);
             Vector2Int chunk = GetChunkIndex(pos);
             AddToChunk(chunk, id);
+            _chunkOf[id] = chunk;
         }
     }
     #endregion

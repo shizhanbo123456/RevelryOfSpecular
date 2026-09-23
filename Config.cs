@@ -402,7 +402,7 @@ public static class Config
     /// </summary>
     public const float move_ground_friction = 2f;
 
-    /// <summary>刚体角阻力（旋转三轴已锁、朝向由角色控制直接赋 rotation，角速度不参与移动）。</summary>
+    /// <summary>刚体角阻力（旋转只锁 X/Z、**Y 轴不锁**；朝向由角色控制直接赋 rotation）。</summary>
     public const float rb_angular_drag = 1f;
     #endregion
 
