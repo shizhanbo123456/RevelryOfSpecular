@@ -70,10 +70,10 @@ public class PlayerEntityData : EntityData
         {
             anim?.DoSlide();
             var weak = this;
-            GenericTimer.AddTimer(0, Config.slide_duration, _ =>
+            Timer.AddTimer(0, _ =>
             {
                 if (weak != null) weak.anim?.EndSlide();
-            });
+            }, Config.slide_duration, 1, false); // 延后 slide_duration 执行一次
         }
         // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
         if ((action.pressed & PlayerKey.J) != 0)
