@@ -26,14 +26,12 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>是否由 AI 驱动（服务器在生成玩家实体后置位）。真人玩家为 false，输入来自网络。</summary>
     public bool aiControlled;
 
-    /// <summary>基础属性（配置）。</summary>
+    /// <summary>基础属性（配置，实体生成时定下、之后不再变化）。其 health 是**生命值上限**。</summary>
     public EntityAttribute baseAttribute;
 
-    /// <summary>运行时属性（基础 + 效果/成长叠加）。注意其 health 表示**生命值上限**。</summary>
+    /// <summary>运行时属性（基础 + 效果/成长叠加）。其 health 是**当前生命值**（同名字段在 base 里是上限）。
+    /// **读上限一律读 baseAttribute.health，读当前生命一律读 floatingAttribute.health。**</summary>
     public EntityAttribute floatingAttribute;
-
-    /// <summary>当前生命值（运行时状态，不属于属性：受击扣减、生成/复活时按上限填满；全项目无自动回血）。</summary>
-    public float currentHealth;
 
     /// <summary>效果（Buff）控制器。</summary>
     public EntityEffectController effectController;
@@ -90,7 +88,7 @@ public abstract class EntityData : MonoBehaviour
     public static void ClearKilled() => KilledEntities.Clear();
 
     /// <summary>是否存活。</summary>
-    public bool Alive => floatingAttribute != null && currentHealth > 0f;
+    public bool Alive => floatingAttribute != null && floatingAttribute.health > 0f;
 
     /// <summary>伤害已落到血量之后的分支钩子：子类覆写以处理自己的受击后果（如守护点计分与采集量）。</summary>
     protected virtual void OnDamageApplied(float finalDamage, EntityData attacker) { }
@@ -133,8 +131,8 @@ public abstract class EntityData : MonoBehaviour
         this.level = level;
         this.camp = camp;
         baseAttribute = Tool.InfoManager != null ? Tool.InfoManager.GetAttribute(type, level) : new EntityAttribute();
+        // 克隆即满血：base 的 health 是"生命值上限"，同一个字段克隆到 floating 后就承载"当前生命值"（复活走重建实体，同样落在这里）
         floatingAttribute = baseAttribute.Clone();
-        currentHealth = floatingAttribute.health; // 出生满血（复活走重建实体，同样落在这里）
         effectController = new EntityEffectController();
         effectController.Init(this);
         skillController = new EntitySkillController();
@@ -499,14 +497,14 @@ public abstract class EntityData : MonoBehaviour
             if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
         finalDamage = Mathf.Max(0f, finalDamage);
-        currentHealth = Mathf.Max(0f, currentHealth - finalDamage);
+        floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage();
             if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
-        if (currentHealth <= 0f) MarkAsKilled();
+        if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>
@@ -537,8 +535,8 @@ public abstract class EntityData : MonoBehaviour
             camp = camp,
             position = transform.position,
             yaw = transform.eulerAngles.y,
-            health = (int)currentHealth,
-            maxHealth = floatingAttribute != null ? (int)floatingAttribute.health : 0,
+            health = floatingAttribute != null ? (int)floatingAttribute.health : 0,   // 当前生命值
+            maxHealth = baseAttribute != null ? (int)baseAttribute.health : 0,        // 生命值上限
             weaponCategory = (int)heldWeapon.category,
             weaponIndex = heldWeapon.index,
         };
@@ -573,7 +571,7 @@ public abstract class EntityData : MonoBehaviour
     public void Kill()
     {
         if (!Alive) return;
-        currentHealth = 0f;
+        floatingAttribute.health = 0f;
         MarkAsKilled();
     }
 

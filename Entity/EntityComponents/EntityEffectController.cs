@@ -376,20 +376,24 @@ public class EntityEffectController
         owner.anim.SetMoveSpeedScale(GetMoveAnimSpeedMultiplier());
     }
 
-    /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff。当前生命值不属于属性，只按新上限夹取（不自动回血）。</summary>
+    /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff。
+    /// **当前生命值也住在 floating 里**（`health` 这个字段：base 侧是生命值上限、floating 侧是当前生命值），
+    /// 所以先把它取出来，重算完再夹回上限 —— 夹取是"只夹不平移"，即不自动回血。</summary>
     private void RecomputeAttributes()
     {
         if (owner == null || owner.baseAttribute == null) return;
-        float keptHealth = owner.currentHealth;
-        var attr = owner.baseAttribute.Clone();
+        float currentHealth = owner.floatingAttribute != null
+            ? owner.floatingAttribute.health
+            : owner.baseAttribute.health;
+        var attr = owner.baseAttribute.Clone(); // 此刻 attr.health 是"生命值上限"
         foreach (var pair in effects)
         {
             if (!pair.Key.IsAttribute()) continue;
             attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), pair.Value.value));
         }
+        // 夹取上限读 base：生命值上限只由 base 承担（升级时定一次）。当前也无可达的生命类 Buff（不存在 AttrHealth）
+        attr.health = Mathf.Clamp(currentHealth, 0f, owner.baseAttribute.health);
         owner.floatingAttribute = attr;
-        // 上限可能被改（升级/将来的生命类 Buff）：当前生命按新上限夹取 —— 只夹不平移，所以是"不自动回血"
-        owner.currentHealth = Mathf.Clamp(keptHealth, 0f, attr.health);
     }
 
     /// <summary>强控施加：打断位移（Exit）+ 动画播放速度直接置 0（当前攻击随之被打断）。</summary>

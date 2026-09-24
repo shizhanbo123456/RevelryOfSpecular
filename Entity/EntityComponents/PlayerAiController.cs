@@ -208,13 +208,14 @@ public class PlayerAiController
         }
     }
 
-    /// <summary>血量比（0~1）；属性缺失时按满血处理，避免误判成残血。</summary>
+    /// <summary>血量比（0~1）= 当前生命值 / 生命值上限；属性缺失时按满血处理，避免误判成残血。</summary>
     private float HealthRatio
     {
         get
         {
             var attr = entity.floatingAttribute;
-            return attr == null || attr.health <= 0f ? 1f : entity.currentHealth / attr.health;
+            float cap = entity.baseAttribute != null ? entity.baseAttribute.health : 0f;
+            return attr == null || cap <= 0f ? 1f : attr.health / cap;
         }
     }
 

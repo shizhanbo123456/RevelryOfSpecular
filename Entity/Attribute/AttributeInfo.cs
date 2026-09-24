@@ -49,7 +49,7 @@ namespace Ros.Info
                 var type = GetUpgradeType(lv);
                 ApplyUpgrade(attr, type);
             }
-            // 出生满血不在这里做：返回的是"属性"，当前生命值由生成方（EntityData.OnCreate）按 health 初始化
+            // 返回的是"基础属性"：此处 health 是生命值上限。生成实体时克隆给 floating，同名字段即承载当前生命值（故初始即满血）
             return attr;
         }
 

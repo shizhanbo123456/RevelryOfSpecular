@@ -1,15 +1,17 @@
 /// <summary>
-/// 实体属性（V0.8）。
+/// 实体属性（V0.8）。双轨属性的载体：`EntityData.baseAttribute`（基础属性，实体生成后不再变化）
+/// 与 `EntityData.floatingAttribute`（运行时属性 = 基础 + Buff 叠加，会变化）。
 /// 属性清单见策划案 10.1：生命值 / 力量（近战伤害）/ 魔法（远程伤害）/ 暴击率 / 暴击伤害 / 被击飞抗性 / 可见距离 / 武器槽位数量。
-/// **本类只承载"属性"，不含运行时状态**：这里的 health 是**生命值上限**（配置项），
-/// **当前生命值由 EntityData.currentHealth 单独承担** —— 它是随受击随时变化的运行时状态，
-/// 不属于属性配置，因此配置 SO 里只会出现一个"生命值"项。
+/// **`health` 一个字段承载两种语义**：
+/// 在 `baseAttribute` 里 = **生命值上限**（配置项，所以配置 SO 里只会出现一个"生命值"项）；
+/// 在 `floatingAttribute` 里 = **当前生命值**（会变的运行时值）。
+/// → **读上限一律读 `baseAttribute.health`，读当前生命一律读 `floatingAttribute.health`，不要混用。**
 /// 全局参数被动（复活速度、僵尸刷新等级等）开战一次性计算，不进本类。
 /// </summary>
 [System.Serializable]
 public class EntityAttribute
 {
-    /// <summary>生命值上限（配置项）。当前生命值见 EntityData.currentHealth。</summary>
+    /// <summary>生命值：base 侧 = 生命值上限（配置项）；floating 侧 = 当前生命值。</summary>
     public float health = 1000f;
     /// <summary>力量：近战物理伤害。</summary>
     public int strength = 100;
@@ -26,6 +28,8 @@ public class EntityAttribute
     /// <summary>武器槽位数量（技能列表可容纳武器数，双方角色均为此属性）。</summary>
     public int weaponSlotCount = 3;
 
+    /// <summary>整表拷贝。注意 `health` 的语义随去向翻转：base 的上限拷进 floating 即成为当前生命值
+    /// （因此生成时克隆出来就是满血）。</summary>
     public EntityAttribute Clone()
     {
         return new EntityAttribute()
@@ -41,12 +45,12 @@ public class EntityAttribute
         };
     }
 
-    /// <summary>按字段应用增量（用于升级成长、愈战愈勇叠层等）。**只改属性本身，不碰当前生命值。**</summary>
+    /// <summary>按字段应用增量（用于升级成长、愈战愈勇叠层等）。由调用方施加在"基础属性的克隆"上，不直接改实体。</summary>
     public void ApplyDelta(EntityAttributeDelta delta)
     {
         switch (delta.field)
         {
-            case EntityAttributeDelta.Field.Health: health += delta.value; break; // 生命值上限
+            case EntityAttributeDelta.Field.Health: health += delta.value; break; // 此刻 health 还是"上限"语义
             case EntityAttributeDelta.Field.Strength: strength += (int)delta.value; break;
             case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
@@ -66,7 +70,8 @@ public class EntityAttributeDelta
 {
     public enum Field
     {
-        /// <summary>生命值上限（注意：不是当前生命值）。</summary>
+        /// <summary>生命值上限（不是当前生命值）。**当前不可达**：`EffectType` 里没有生命类，
+        /// 且它加到的克隆会被重算末尾的夹取覆盖 —— 真要做"生命上限 ±X"的 Buff，须先改重算逻辑。</summary>
         Health,
         Strength, Magic, CritRate, CritDamage,
         KnockbackResistance, ViewDistance, WeaponSlotCount,
