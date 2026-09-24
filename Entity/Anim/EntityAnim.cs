@@ -67,7 +67,7 @@ public class EntityAnim : MonoBehaviour
         }
     }
     private EntityData data;
-    private EntityAnimData animData;
+    public EntityAnimData animData;
 
 
     private int currentAnimId = -1;

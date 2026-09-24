@@ -9,6 +9,8 @@ public class AnimEvent : StateMachineBehaviour
     protected EntityAnim anim;
     protected EntityData data;
     protected bool main;
+    protected float MoveSpeed=>anim.animData.RunSpeed;
+    protected float JumpSpeed=>anim.animData.JumpSpeed;
     protected bool initialized = false;
 
     public void Init(EntityAnim anim, EntityData data,bool mainAnim)//仅仅主动画机的片段会触发事件
