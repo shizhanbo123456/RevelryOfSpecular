@@ -347,6 +347,7 @@ namespace Ros.Skill
     public class SkillSilenceCast : SkillBase
     {
         public override int Id => 62;
+        public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 6;
 
@@ -451,6 +452,7 @@ namespace Ros.Skill
     public class SkillPlagueMarkCast : SkillBase
     {
         public override int Id => 66;
+        public override float CastRange => 8f;
         public override float CD => 2f;
         public override int Store => 12;
 
@@ -485,6 +487,7 @@ namespace Ros.Skill
     public class SkillAbsorbOre : SkillBase
     {
         public override int Id => 67;
+        public override float CastRange => 6f;
         public override float CD => 30f;
         public override int Store => 2;
 
@@ -571,6 +574,7 @@ namespace Ros.Skill
     public class SkillPaleLightCast : SkillBase
     {
         public override int Id => 70;
+        public override float CastRange => 20f;
         public override float CD => 1f;
         public override int Store => 12;
 
@@ -608,6 +612,7 @@ namespace Ros.Skill
     public class SkillPaleDarkCast : SkillBase
     {
         public override int Id => 71;
+        public override float CastRange => 20f;
         public override float CD => 2f;
         public override int Store => 12;
 

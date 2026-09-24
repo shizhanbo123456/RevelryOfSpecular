@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Ros.Info;
 using Ros.Transport;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// 实体数据（初始化入口，所有实体组件的中心）。
@@ -21,6 +22,9 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>当前阵营（运行时由服务器分配）。</summary>
     public EntityCamp camp;
+
+    /// <summary>是否由 AI 驱动（服务器在生成玩家实体后置位）。真人玩家为 false，输入来自网络。</summary>
+    public bool aiControlled;
 
     /// <summary>基础属性（配置）。</summary>
     public EntityAttribute baseAttribute;
@@ -176,7 +180,90 @@ public abstract class EntityData : MonoBehaviour
     protected const int AIStaggerSlots = 16;
 
     /// <summary>本实体的 AI 错峰相位（0~1，由 id 决定）：首次决策/释放时刻 = 间隔 × 该值。</summary>
-    protected float AIStaggerPhase => (id % AIStaggerSlots) / (float)AIStaggerSlots;
+    public float AIStaggerPhase => (id % AIStaggerSlots) / (float)AIStaggerSlots;
+
+    #region 寻路与移动目标（寻路单位共用；只记目标与算方向，不产生速度）
+    /// <summary>寻路目的地（由 <see cref="MoveTo"/> 设置，Y 已吸附到 NavMesh 表面）。</summary>
+    protected Vector3 NavDestination { get; private set; }
+    /// <summary>是否有寻路目的地（false = 站立）。</summary>
+    protected bool HasNavDestination { get; private set; }
+
+    /// <summary>NavMesh 吸附半径（米）：目标点常取自地面物件或位置略有偏差的实体。</summary>
+    private const float nav_sample_radius = 1f;
+    /// <summary>拐点判定距离（米）：离拐点这么近就换下一个。</summary>
+    private const float nav_corner_radius = 0.3f;
+    /// <summary>重算路径的最小间隔（秒）：目标不动时不必每帧跑一次寻路。</summary>
+    private const float nav_repath_interval = 0.25f;
+
+    private NavMeshPath navPath; // 懒创建：水晶/守护点等不寻路的实体不必付这份开销
+    private Vector3[] navCorners;
+    private float navNextRepathTime;
+
+    /// <summary>
+    /// 前往某处。只记目标，"往哪走"留到 <see cref="ResolveNavDirection"/> 算 —— 寻路只借 NavMesh 算方向，
+    /// 移动仍走"移动输入 + 动画声明速度"这一条链路（见 <see cref="ResolveMoveVelocity"/>）。
+    /// 可反复调用改目标；目标没挪窝就不重算路径，所以逐帧拿最新坐标调它也不会每帧跑寻路。
+    /// </summary>
+    public void MoveTo(Vector3 dest)
+    {
+        if (NavMesh.SamplePosition(dest, out var hit, nav_sample_radius, NavMesh.AllAreas)) dest = hit.position;
+
+        Vector3 moved = dest - NavDestination;
+        moved.y = 0f;
+        if (!HasNavDestination || moved.sqrMagnitude > nav_corner_radius * nav_corner_radius) navNextRepathTime = 0f;
+
+        NavDestination = dest;
+        HasNavDestination = true;
+    }
+
+    /// <summary>清除寻路目的地（站立）。</summary>
+    public void StopMoving()
+    {
+        NavDestination = default;
+        HasNavDestination = false;
+        navCorners = null;
+    }
+
+    /// <summary>
+    /// 本帧朝目的地的水平单位方向：沿 NavMesh 拐点走；算不出路径（未烘焙/脱离网格）时直线朝目标兜底，等它自己走回网格。
+    /// 无目的地返回零向量。
+    /// </summary>
+    public Vector3 ResolveNavDirection()
+    {
+        if (!HasNavDestination) return Vector3.zero;
+
+        if (Time.time >= navNextRepathTime)
+        {
+            navNextRepathTime = Time.time + nav_repath_interval;
+            navPath ??= new NavMeshPath();
+            bool ok = NavMesh.CalculatePath(transform.position, NavDestination, NavMesh.AllAreas, navPath);
+            navCorners = ok && navPath.corners.Length > 1 ? navPath.corners : null;
+        }
+
+        Vector3 target = NavDestination;
+        if (navCorners != null)
+        {
+            int i = 0; // 起点与走过的拐点都靠这个距离跳过
+            while (i < navCorners.Length && FlatSqrDistance(navCorners[i]) <= nav_corner_radius * nav_corner_radius) i++;
+            if (i < navCorners.Length) target = navCorners[i];
+        }
+
+        Vector3 dir = target - transform.position;
+        dir.y = 0f;
+        return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+    }
+
+    /// <summary>到某点的水平距离（米，寻路只关心水平面）。</summary>
+    protected float FlatDistance(Vector3 point) => Mathf.Sqrt(FlatSqrDistance(point));
+
+    /// <summary>到某点的水平距离平方。</summary>
+    protected float FlatSqrDistance(Vector3 point)
+    {
+        Vector3 d = point - transform.position;
+        d.y = 0f;
+        return d.sqrMagnitude;
+    }
+    #endregion
 
     /// <summary>接收移动输入（网络上行）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
     public virtual void RecordMoveInput(Ros.Transport.CSMoveInput move) { }

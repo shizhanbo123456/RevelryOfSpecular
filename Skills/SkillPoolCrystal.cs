@@ -75,6 +75,7 @@ namespace Ros.Skill
     public class SkillGaleSlash : SkillBase
     {
         public override int Id => 0;
+        public override float CastRange => 2f;
         public override float CD => 1f;
         public override int Store => 15;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 0);
@@ -93,6 +94,7 @@ namespace Ros.Skill
     public class SkillFlyingKnife : SkillBase
     {
         public override int Id => 1;
+        public override float CastRange => 2f;
         public override float CD => 2f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 1);
@@ -115,6 +117,7 @@ namespace Ros.Skill
     public class SkillCrossSlash : SkillBase
     {
         public override int Id => 2;
+        public override float CastRange => 2f;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 2);
@@ -155,6 +158,7 @@ namespace Ros.Skill
     public class SkillWhirlSlash : SkillBase
     {
         public override int Id => 4;
+        public override float CastRange => 2f;
         public override float CD => 8f;
         public override int Store => 5;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 4);
@@ -174,6 +178,7 @@ namespace Ros.Skill
     public class SkillBreakEndureSlash : SkillBase
     {
         public override int Id => 5;
+        public override float CastRange => 2f;
         public override float CD => 10f;
         public override int Store => 3;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 5);
@@ -200,6 +205,7 @@ namespace Ros.Skill
     public class SkillFanSwordQi : SkillBase
     {
         public override int Id => 6;
+        public override float CastRange => 2f;
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 6);
@@ -219,6 +225,7 @@ namespace Ros.Skill
     public class SkillCaptureThrow : SkillBase
     {
         public override int Id => 7;
+        public override float CastRange => 2f;
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 7);
@@ -273,6 +280,7 @@ namespace Ros.Skill
     public class SkillMountainCrash : SkillBase
     {
         public override int Id => 9;
+        public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 9);
@@ -297,6 +305,7 @@ namespace Ros.Skill
     public class SkillBladeDance : SkillBase
     {
         public override int Id => 10;
+        public override float CastRange => 2f;
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 10);
@@ -322,6 +331,7 @@ namespace Ros.Skill
     public class SkillJavelinThrow : SkillBase
     {
         public override int Id => 11;
+        public override float CastRange => 8f;
         public override float CD => 1.5f;
         public override int Store => 15;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 0);
@@ -344,6 +354,7 @@ namespace Ros.Skill
     public class SkillPierceSpear : SkillBase
     {
         public override int Id => 12;
+        public override float CastRange => 8f;
         public override float CD => 4f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 1);
@@ -362,6 +373,7 @@ namespace Ros.Skill
     public class SkillThunderSpear : SkillBase
     {
         public override int Id => 13;
+        public override float CastRange => 8f;
         public override float CD => 10f;
         public override int Store => 3;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 2);
@@ -384,6 +396,7 @@ namespace Ros.Skill
     public class SkillBindNail : SkillBase
     {
         public override int Id => 14;
+        public override float CastRange => 8f;
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 3);
@@ -429,6 +442,7 @@ namespace Ros.Skill
     public class SkillSweepPole : SkillBase
     {
         public override int Id => 16;
+        public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 5);
@@ -481,6 +495,7 @@ namespace Ros.Skill
     public class SkillSpearRain : SkillBase
     {
         public override int Id => 18;
+        public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 3;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 7);
@@ -506,6 +521,7 @@ namespace Ros.Skill
     public class SkillQuickShot : SkillBase
     {
         public override int Id => 19;
+        public override float CastRange => 18f;
         public override float CD => 0.5f;
         public override int Store => 20;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 0);
@@ -524,6 +540,7 @@ namespace Ros.Skill
     public class SkillFanShotgun : SkillBase
     {
         public override int Id => 20;
+        public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 15;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 1);
@@ -543,6 +560,7 @@ namespace Ros.Skill
     public class SkillArmorPiercer : SkillBase
     {
         public override int Id => 21;
+        public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 2);
@@ -561,6 +579,7 @@ namespace Ros.Skill
     public class SkillGrenade : SkillBase
     {
         public override int Id => 22;
+        public override float CastRange => 18f;
         public override float CD => 3.5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 3);
@@ -583,6 +602,7 @@ namespace Ros.Skill
         private const float BurnDuration = 5f;
 
         public override int Id => 23;
+        public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 4);
@@ -611,6 +631,7 @@ namespace Ros.Skill
     public class SkillFreezeRound : SkillBase
     {
         public override int Id => 24;
+        public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 5);
@@ -635,6 +656,7 @@ namespace Ros.Skill
     public class SkillParalysisRound : SkillBase
     {
         public override int Id => 25;
+        public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 6);
@@ -659,6 +681,7 @@ namespace Ros.Skill
     public class SkillToxicRound : SkillBase
     {
         public override int Id => 26;
+        public override float CastRange => 18f;
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 7);
@@ -684,6 +707,7 @@ namespace Ros.Skill
     public class SkillHeavyBreaker : SkillBase
     {
         public override int Id => 27;
+        public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 8);
@@ -748,6 +772,7 @@ namespace Ros.Skill
     public class SkillImpactRound : SkillBase
     {
         public override int Id => 29;
+        public override float CastRange => 18f;
         public override float CD => 8f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 10);
@@ -792,6 +817,7 @@ namespace Ros.Skill
     public class SkillSnipe : SkillBase
     {
         public override int Id => 31;
+        public override float CastRange => 18f;
         public override float CD => 10f;
         public override int Store => 5;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 12);
@@ -810,6 +836,7 @@ namespace Ros.Skill
     public class SkillBulletSpray : SkillBase
     {
         public override int Id => 32;
+        public override float CastRange => 18f;
         public override float CD => 15f;
         public override int Store => 3;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 13);
@@ -829,6 +856,7 @@ namespace Ros.Skill
     public class SkillAirstrikeMark : SkillBase
     {
         public override int Id => 33;
+        public override float CastRange => 18f;
         public override float CD => 20f;
         public override int Store => 1;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 14);
@@ -860,6 +888,7 @@ namespace Ros.Skill
     public class SkillMagicBolt : SkillBase
     {
         public override int Id => 34;
+        public override float CastRange => 15f;
         public override float CD => 0.6f;
         public override int Store => 20;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
@@ -879,6 +908,7 @@ namespace Ros.Skill
     public class SkillFireball : SkillBase
     {
         public override int Id => 35;
+        public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
@@ -902,6 +932,7 @@ namespace Ros.Skill
     public class SkillIceShard : SkillBase
     {
         public override int Id => 36;
+        public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
@@ -926,6 +957,7 @@ namespace Ros.Skill
     public class SkillWindBlade : SkillBase
     {
         public override int Id => 37;
+        public override float CastRange => 15f;
         public override float CD => 2.5f;
         public override int Store => 12;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
@@ -945,6 +977,7 @@ namespace Ros.Skill
     public class SkillPoisonOrb : SkillBase
     {
         public override int Id => 38;
+        public override float CastRange => 15f;
         public override float CD => 4f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
@@ -970,6 +1003,7 @@ namespace Ros.Skill
     public class SkillRockfall : SkillBase
     {
         public override int Id => 39;
+        public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
@@ -993,6 +1027,7 @@ namespace Ros.Skill
     public class SkillThunderOrb : SkillBase
     {
         public override int Id => 40;
+        public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 6);
@@ -1112,6 +1147,7 @@ namespace Ros.Skill
     public class SkillFrostNova : SkillBase
     {
         public override int Id => 44;
+        public override float CastRange => 3f;
         public override float CD => 10f;
         public override int Store => 6;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
@@ -1137,6 +1173,7 @@ namespace Ros.Skill
     public class SkillThunderFall : SkillBase
     {
         public override int Id => 45;
+        public override float CastRange => 15f;
         public override float CD => 10f;
         public override int Store => 5;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
@@ -1161,6 +1198,7 @@ namespace Ros.Skill
     public class SkillBlackHoleBomb : SkillBase
     {
         public override int Id => 46;
+        public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 8;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
@@ -1180,6 +1218,7 @@ namespace Ros.Skill
     public class SkillStarfall : SkillBase
     {
         public override int Id => 47;
+        public override float CastRange => 15f;
         public override float CD => 20f;
         public override int Store => 3;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 13);
@@ -1204,6 +1243,7 @@ namespace Ros.Skill
     public class SkillVoidGrasp : SkillBase
     {
         public override int Id => 48;
+        public override float CastRange => 15f;
         public override float CD => 15f;
         public override int Store => 4;
         public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 14);

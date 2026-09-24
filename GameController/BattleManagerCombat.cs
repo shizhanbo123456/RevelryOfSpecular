@@ -314,6 +314,7 @@ public partial class BattleManager
         EntityOwnerClient[entityId] = clientId;
 
         var data = GetEntity(entityId);
+        if (data != null) data.aiControlled = AIClients.Contains(clientId);
 
         // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）
         var stacks = Config.yz_stack_by_life;

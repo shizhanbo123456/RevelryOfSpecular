@@ -29,10 +29,7 @@ public class PlayerEntityData : EntityData
     /// <summary>记录移动输入（按下/抬起边沿 → 按住掩码；朝向仍由服务器渐转权威推进）。</summary>
     public override void RecordMoveInput(CSMoveInput move)
     {
-        if (moveState == null)
-        {
-            moveState = new MoveState { yaw = transform.eulerAngles.y }; // 初始朝向 = 生成时的朝向
-        }
+        EnsureMoveState();
         moveState.held = (moveState.held | move.pressed) & ~move.released;
 
         float x = ((moveState.held & PlayerKey.D) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.A) != 0 ? 1f : 0f);
@@ -108,10 +105,21 @@ public class PlayerEntityData : EntityData
         skillController.TryUseSkill(ids[slot]);
     }
 
-    /// <summary>朝向推进：前后 + 左右同按时逐渐偏向横移侧（yaw 正 = 右转，负 = 左转）。</summary>
+    /// <summary>
+    /// 每帧朝向与移动推进。真人由输入驱动（前后 + 左右同按时逐渐偏向横移侧，yaw 正 = 右转）；
+    /// AI 玩家走 <see cref="TickAiMove"/>：朝向与前进都由 AI 指定。
+    /// </summary>
     public override void OnTickMove(float deltaTime, bool canInput)
     {
+        EnsureMoveState();
         if (moveState == null) return;
+
+        if (aiControlled)
+        {
+            TickAiMove(deltaTime, canInput);
+            transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
+            return;
+        }
 
         if (canInput && moveState.moving && MotionCanMove)
         {
@@ -129,4 +137,88 @@ public class PlayerEntityData : EntityData
         }
         transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
     }
+
+    #region AI 驱动入口（由 PlayerAiController 调用；真人玩家不走这里）
+    /// <summary>AI 决策器（仅 AI 玩家创建；aiControlled 由服务器在生成实体后置位）。</summary>
+    private PlayerAiController ai;
+
+    /// <summary>AI 决策（BattleManager.UpdateAI 每帧调用）。真人玩家由网络输入驱动，直接返回。</summary>
+    public override void TickAI()
+    {
+        if (!aiControlled) return;
+        ai ??= new PlayerAiController(this);
+        ai.Tick();
+    }
+
+    /// <summary>AI 期望朝向的世界坐标点（aiFaceSet = false 时无效）。</summary>
+    private Vector3 aiFacePoint;
+    private bool aiFaceSet;
+
+    /// <summary>AI 专用：设置期望朝向的世界坐标点（每帧由 PlayerAiController 更新）。</summary>
+    public void SetAiFacePoint(Vector3 worldPoint)
+    {
+        aiFacePoint = worldPoint;
+        aiFaceSet = true;
+    }
+
+    /// <summary>AI 专用：清除期望朝向（站定时不再转向）。</summary>
+    public void ClearAiFacePoint() => aiFaceSet = false;
+
+    /// <summary>
+    /// AI 每帧推进：有目的地就沿 NavMesh 前进，否则站定、只转向 AI 指定的朝向点。
+    /// 与僵尸走同一条链路 —— 只喂"前进方向 + 移动开关"，**不产生速度**（速度由动画声明，见 ResolveMoveVelocity）。
+    /// </summary>
+    private void TickAiMove(float deltaTime, bool canInput)
+    {
+        // 强控/位移锁输入期间不推进：清掉移动输入，但保留 AI 的朝向意图（解除后立刻恢复）
+        if (!canInput || !MotionCanMove)
+        {
+            SetMoveInput(Vector3.zero);
+            anim?.Move(false);
+            moveState.yawSpeed = 0f;
+            return;
+        }
+
+        Vector3 dir = ResolveNavDirection();
+        if (dir.sqrMagnitude > 0.0001f)
+        {
+            SteerTo(transform.position + dir, deltaTime); // 朝行进方向渐转
+            SetMoveInput(Vector3.forward);
+            anim?.Move(true);
+            return;
+        }
+
+        // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
+        SetMoveInput(Vector3.zero);
+        anim?.Move(false);
+        if (aiFaceSet) SteerTo(aiFacePoint, deltaTime);
+        else moveState.yawSpeed = 0f;
+    }
+
+    /// <summary>朝世界坐标点渐转（AI 与输入共用同一条转向推进，角速度见 Config.move_turn_rate）。</summary>
+    private void SteerTo(Vector3 worldPoint, float deltaTime)
+    {
+        Vector3 to = worldPoint - transform.position;
+        to.y = 0f;
+        if (to.sqrMagnitude < 0.0001f)
+        {
+            moveState.yawSpeed = 0f;
+            return;
+        }
+
+        float prevYaw = moveState.yaw;
+        moveState.yaw = Mathf.MoveTowardsAngle(moveState.yaw,
+            Quaternion.LookRotation(to).eulerAngles.y, Config.move_turn_rate * deltaTime);
+        moveState.yawSpeed = deltaTime > 0f ? Mathf.DeltaAngle(prevYaw, moveState.yaw) / deltaTime : 0f;
+    }
+    #endregion
+
+    #region//Local
+    /// <summary>确保移动输入状态已建立（真人首次输入、AI 首次推进各建一次），初始朝向 = 生成时的朝向。</summary>
+    private void EnsureMoveState()
+    {
+        if (moveState != null) return;
+        moveState = new MoveState { yaw = transform.eulerAngles.y };
+    }
+    #endregion
 }

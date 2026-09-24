@@ -562,6 +562,13 @@ public partial class BattleManager : EnsBehaviour
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
 
+            // AI 玩家：置位后 PlayerEntityData 才走 AI 决策（真人不受影响，输入仍来自网络）
+            if (AIClients.Contains(clientId))
+            {
+                var aiEntity = GetEntity(entityId);
+                if (aiEntity != null) aiEntity.aiControlled = true;
+            }
+
             // AI 无连接：SendBattleInfo 内部按 HasClient 丢弃负数 id
             Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
             {
