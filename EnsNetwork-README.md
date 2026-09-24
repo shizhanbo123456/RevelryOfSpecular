@@ -84,7 +84,7 @@ public struct TSerializer
 
 ### 代码生成
 
-运行前，需要点击菜单的Ens - Generate Code，会在Scripts/EnsNetcode/Gen中创建生成的代码。若未生成代码即运行会导致无法调用远程函数，导致报错
+运行前，需要点击菜单的Ens - Generate Code，生成的代码会写到 `Editor/CodeGenerator.cs` 里 `genDir` 指定的目录（该常量需与库实际所在目录一致）。若未生成代码即运行会导致无法调用远程函数，导致报错
 
 ### 远程服务器
 
@@ -200,7 +200,7 @@ Action<Dictionary<int, string>> OnGetInfo
 
 #### 生成路径
 
-默认固定生成路径：Assets/Scripts/EnsNetcode/Gen
+由 `Editor/CodeGenerator.cs` 的 `genDir` 常量决定（当前为 `Assets/EnsNetcode/Gen`，**注意与库实际所在目录 `Assets/ENS-Netcode` 不一致，点生成前需先对齐**）
 
 #### 核心作用
 
