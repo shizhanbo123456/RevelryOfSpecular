@@ -8,7 +8,7 @@ public class AnimRunEvent : AnimMotionEvent
         base.OnStateUpdate(animator, stateInfo, layerIndex);
         if (main)
         {
-            anim.SetVelocityForward(MoveSpeed);
+            anim.SetVelocityForward(MoveSpeed*speedFactor);
         }
     }
 }
