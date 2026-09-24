@@ -114,11 +114,6 @@ public static class Config
     public const float zombie_wander_pause = 2f;
     #endregion
 
-    #region 自动施法单位 AI（防御塔 / 瘟疫树）
-    /// <summary>自动释放技能的间隔（秒）：每隔这么久从自身技能表里随机取一个技能尝试释放。</summary>
-    public const float auto_cast_interval = 5f;
-    #endregion
-
     #region 昼夜
     // 昼夜时长已移至 EnvironmentManager 的 Inspector 字段（dayDuration / nightDuration），
     // 时间改为归一化周期值（[0,2)：0/2 = 午夜，1 = 正午）循环推演，此处不再保留"阶段时长"常量。

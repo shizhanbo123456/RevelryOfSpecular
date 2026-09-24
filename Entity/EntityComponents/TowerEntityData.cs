@@ -6,4 +6,6 @@
 /// </summary>
 public class TowerEntityData : AutoCastEntityData
 {
+    /// <summary>开火间隔（秒）。</summary>
+    public override float AutoCastInterval => 5f;
 }

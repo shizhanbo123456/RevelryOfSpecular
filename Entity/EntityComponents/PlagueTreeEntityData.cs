@@ -7,6 +7,9 @@
 /// </summary>
 public class PlagueTreeEntityData : AutoCastEntityData
 {
+    /// <summary>攻击间隔（秒）。</summary>
+    public override float AutoCastInterval => 5f;
+
     /// <summary>攻占归属：把血量清零那次攻击的来源；被 Buff 打死时为 null。</summary>
     private EntityData captor;
 
