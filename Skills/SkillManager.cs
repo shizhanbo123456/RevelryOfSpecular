@@ -43,6 +43,12 @@ public static class SkillManager
         return s_map.TryGetValue(id, out var skill) ? skill.Store : -1;
     }
 
+    /// <summary>已注册技能数量（启动自检核对 SkillInfo 配置数量用）。</summary>
+    public static int GetSkillCount()
+    {
+        return s_map.Count;
+    }
+
     /// <summary>技能对应的漂浮武器（客户端常驻漂浮显示用；无武器返回 <see cref="WeaponRef.None"/>）。</summary>
     public static WeaponRef GetFlyWeapon(int id)
     {
