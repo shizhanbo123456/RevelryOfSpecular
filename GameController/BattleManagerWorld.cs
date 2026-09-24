@@ -6,7 +6,7 @@ using UnityEngine;
 /// 战斗世界生成（partial BattleManager）：
 /// 守护点/水晶/防御塔开局生成、水晶被摧毁后的定时重生、瘟疫树延时刷新与攻占后重生、夜间僵尸刷新落地。
 /// 位置唯一来源：地形组件 LandscapeSpawns（策划案 6.1/7/8.1），不再回退其它组件。
-/// 僵尸的行为在 ZombieEntityData.TickAI；防御塔与瘟疫树的攻击行为待实现。
+/// 各实体的行为见其 EntityData 子类：僵尸 ZombieEntityData（游荡/追击/攻击）、防御塔与瘟疫树 AutoCastEntityData（周期施法）。
 /// </summary>
 public partial class BattleManager
 {

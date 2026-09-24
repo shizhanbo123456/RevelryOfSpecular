@@ -64,7 +64,7 @@ public class AssetsManager : MonoBehaviour
     public List<Sprite> WeaponIcons = new();
     #endregion
 
-    /// <summary>按实体类型取客户端图形（TODO：各分类图形配置后生效）。</summary>
+    /// <summary>按实体类型取客户端图形。</summary>
     public bool TryGetGraphic(EntityType type, out GameObject graphic)
     {
         graphic = null;

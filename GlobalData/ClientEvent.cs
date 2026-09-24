@@ -26,8 +26,8 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     /// <summary>分数更新（param=SCScoreInfo）。</summary>
     public const int OnScoreUpdate = 10213;
-    // 10214~10219 已废弃：守护点血量/技能列表/技能运行时/武器获得
-    // 均随实体表现摘要（param=SCEntityDisplayInfo，OnEntityDisplayUpdate）统一同步
+    // 10214 / 10217~10219 未占用：守护点血量、技能槽位与武器等信息统一随实体表现摘要下发
+    // （param=SCEntityDisplayInfo，见 OnEntityDisplayUpdate），不单独发事件
     /// <summary>复活进度更新（param=SCReviveInfo）。</summary>
     public const int OnReviveProgressUpdate = 10215;
     /// <summary>击杀/目标事件（param=SCBattleEvent）。</summary>

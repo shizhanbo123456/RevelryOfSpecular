@@ -60,7 +60,8 @@ public class EntityAttribute
             case EntityAttributeDelta.Field.ViewDistance: viewDistance += delta.value; break;
             case EntityAttributeDelta.Field.WeaponSlotCount: weaponSlotCount += (int)delta.value; break;
         }
-        // 升级加最大生命时同步补满当前生命（复活/出生时全满，战斗中升级留空 TODO）
+        // 加最大生命时同步抬高当前生命：这里只是重算中间值 —— 调用方（EntityEffectController.RecomputeAttributes）
+        // 随后会按"改动前的当前生命"夹到新上限，所以最终语义是**不自动回血**
         if (delta.field == EntityAttributeDelta.Field.Health && health > 0f)
         {
             health = maxHealth;

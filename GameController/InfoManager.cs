@@ -71,7 +71,7 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> TowerTemplates = new();
     public GameObject PlagueTreeTemplate;
 
-    /// <summary>按实体类型取服务器模板（TODO：各分类模板配置后生效）。</summary>
+    /// <summary>按实体类型取服务器模板。</summary>
     public bool TryGetTemplate(EntityType type, out GameObject template)
     {
         template = null;

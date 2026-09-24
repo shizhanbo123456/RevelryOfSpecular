@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// 战斗管理器（服务器权威，客户端仅接收信息摘要做表现）。
 /// 核心移动/战斗内容都在服务器完成计算（架构说明总体原则）。
-/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；僵尸 AI 已接入，防御塔与瘟疫树的行为、AI 虚拟玩家的决策待实现。
+/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；各实体的 AI 见其 EntityData 子类的 TickAI。
 /// </summary>
 public partial class BattleManager : EnsBehaviour
 {
@@ -511,7 +511,7 @@ public partial class BattleManager : EnsBehaviour
     }
     #endregion
 
-    #region 战斗规则（TODO：完整实现）
+    #region 战斗规则
     /// <summary>开局（服务器）：生成全部玩家/AI 实体，下发开局信息。</summary>
     public void StartBattle()
     {
@@ -675,7 +675,7 @@ public partial class BattleManager : EnsBehaviour
             EntityData.ClearKilled();
         }
 
-        TickDying(); // 死亡动画播完（或超时）后物理销毁（BeginDying 入队）
+        TickDying(); // 死亡动画播完后物理销毁（BeginDying 入队）
 
         // AI 行为（各实体在内部按 id 错峰，见 UpdateAI）
         UpdateAI();

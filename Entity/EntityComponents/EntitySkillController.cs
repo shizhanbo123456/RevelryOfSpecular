@@ -5,8 +5,8 @@ using UnityEngine;
 /// <summary>
 /// 实体技能控制器 API。
 /// 技能统一模型见策划案 11.1：武器与角色技能是同一实体（武器显示可选 / 释放动作可配置 / 释放效果必须）。
-/// 外部只向 SkillManager 传入技能 id 和上下文即可（技能包实现待完善，本类先提供列表/选择/CD 框架）。
-/// 触发方式：键盘技能槽（U I O L H）直接触发对应槽位技能，无滚轮/鼠标选择。
+/// 外部只向 SkillManager 传入技能 id 和上下文即可（技能实现见 Skills/SkillPool*，本类负责列表 / 库存 / CD 框架）。
+/// 触发方式：键盘技能槽（U I O L H Y）直接触发对应槽位技能，无滚轮/鼠标选择。
 /// </summary>
 public class EntitySkillController
 {

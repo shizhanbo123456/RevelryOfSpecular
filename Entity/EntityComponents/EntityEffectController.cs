@@ -16,7 +16,7 @@ public enum EffectType
     AttrCritDamage,     // 暴击伤害提升/降低
     AttrKnockback,      // 击退抗性提升/降低
     AttrViewDistance,   // 可见距离提升/降低（无限视野 = +99999）
-    AttrWeaponSlot,     // 已废弃：技能槽位数不可被 Buff 影响（保留枚举值以免后续条目数值平移）
+    AttrWeaponSlot,     // 保留枚举位：武器槽位数不可被 Buff 影响（不在 IsAttribute 白名单内），删掉会让后续条目的数值平移
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
     Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
@@ -419,7 +419,7 @@ public class EntityEffectController
             case EffectType.AttrKnockback: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistance: return EntityAttributeDelta.Field.ViewDistance;
             case EffectType.AttrWeaponSlot: return EntityAttributeDelta.Field.WeaponSlotCount;
-            default: return EntityAttributeDelta.Field.Strength;
+            default: return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
         }
     }
 

@@ -150,7 +150,7 @@ public partial class BattleManager
             SendReviveProgress(owner, rs, entity.id, ready: false);
         }
 
-        // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent 或超时；
+        // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent；
         // 无动画实体（水晶/守护点/防御塔等）立即销毁。见 TickDying
         BeginDying(entity);
 
