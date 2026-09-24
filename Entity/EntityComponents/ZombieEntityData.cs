@@ -21,8 +21,6 @@ public class ZombieEntityData : EntityData
     private const int SlotClawRight = 0;
     private const int SlotClawLeft = 1;
     private const int SlotRoar = 2;
-    /// <summary>首次决策的错峰基数：id 对 16 取余把同类实体的决策铺开到不同帧。</summary>
-    private const int StaggerSlots = 16;
 
     private readonly NavMeshPath path = new(); // 复用同一个对象，避免每次重算都新建
     private Vector3[] corners;
@@ -61,7 +59,7 @@ public class ZombieEntityData : EntityData
     {
         base.OnCreate(id, type, level, camp);
         homePos = transform.position;
-        nextDecideTime = Time.time + Config.zombie_decide_interval * (id % StaggerSlots) / StaggerSlots;
+        nextDecideTime = Time.time + Config.zombie_decide_interval * AIStaggerPhase;
     }
 
     /// <summary>

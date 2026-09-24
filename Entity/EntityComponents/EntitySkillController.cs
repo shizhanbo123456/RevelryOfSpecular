@@ -66,6 +66,9 @@ public class EntitySkillController
     /// <summary>技能列表拷贝。</summary>
     public List<int> GetSkillIds() => new(skillIds);
 
+    /// <summary>技能表槽位数量。</summary>
+    public int SkillCount => skillIds.Count;
+
     /// <summary>槽位对应的技能 id（越界返回 -1）。与 GetSkillIds 的区别是不产生拷贝，供逐帧取用。</summary>
     public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
 

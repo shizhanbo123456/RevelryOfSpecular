@@ -172,6 +172,12 @@ public abstract class EntityData : MonoBehaviour
     /// </summary>
     public virtual void TickAI() { }
 
+    /// <summary>AI 错峰槽位数：同类实体按 id 取余，把首次决策铺到不同时间相位上，避免同帧集中。</summary>
+    protected const int AIStaggerSlots = 16;
+
+    /// <summary>本实体的 AI 错峰相位（0~1，由 id 决定）：首次决策/释放时刻 = 间隔 × 该值。</summary>
+    protected float AIStaggerPhase => (id % AIStaggerSlots) / (float)AIStaggerSlots;
+
     /// <summary>接收移动输入（网络上行）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
     public virtual void RecordMoveInput(Ros.Transport.CSMoveInput move) { }
 

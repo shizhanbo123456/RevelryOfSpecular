@@ -1,8 +1,9 @@
 /// <summary>
 /// 防御塔（瘟疫孢子）：被摧毁后不复活。
 /// 生成（4 座塔各配一种外观）与「不复活」的表现为：摧毁时无人为它排重生，因此调度留在 BattleManagerWorld。
-/// 本类将承载其 **攻击行为**（索敌、开火时机、TowerBlaze 附加爆炸的触发）—— 目前尚无 AI，故暂无实现。
+/// 攻击行为 = 周期随机释放技能（见 AutoCastEntityData）；开火范围由 SkillTowerSporeShot 的 CastRange（20m）把守，
+/// 策划案 8.1「靠近即被攻击、无预警」由此成立。
 /// </summary>
-public class TowerEntityData : EntityData
+public class TowerEntityData : AutoCastEntityData
 {
 }
