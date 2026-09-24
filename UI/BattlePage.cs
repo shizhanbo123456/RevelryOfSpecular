@@ -298,8 +298,11 @@ public class BattlePage : PageBase
             case SCBattleEvent.Type.CrystalCollected:
                 ShowFloating("采集水晶，获得收益", UITheme.Green);
                 break;
+            case SCBattleEvent.Type.CrystalBroken:
+                ShowFloating("该水晶已被感染，无产出", UITheme.Warn);
+                break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
-                ShowFloating("攻占瘟疫树！CD 加速", UITheme.Defense);
+                ShowFloating("攻占瘟疫树！获得瘟疫祝福", UITheme.Defense);
                 break;
             case SCBattleEvent.Type.ShowText:
                 Owner.ShowNotice(NoticeMessageMap.Get(e.value));

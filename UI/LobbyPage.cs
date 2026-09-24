@@ -188,7 +188,13 @@ public class LobbyPage : PageBase
         SetStatus("已发送开始请求...");
     }
 
+    /// <summary>「断开并返回」是破坏性操作（会退出世界），先经确认面板再执行。</summary>
     private void OnBackClicked()
+    {
+        Owner.ShowConfirm("确定要断开与服务器的连接并返回初始界面吗？", OnBackConfirmed);
+    }
+
+    private void OnBackConfirmed()
     {
         Tool.NetworkManager?.ExitWorld();
         Owner.ShowPage(UIManager.PageType.Home);

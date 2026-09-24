@@ -92,7 +92,11 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 实体容器（按分类，ChunkSearcher 区块加速）
-    /// <summary>实体容器（按类别分桶）。</summary>
+    /// <summary>
+    /// 实体容器（按类别分桶）。
+    /// **只给会移动的实体同步区块位置**（`TickMovement`）：`Entities` 装全部实体、`Zombies` 单独再同步一次；
+    /// `Beacons` / `Crystals` / `Towers` 三桶装的是**静止实体（出生后永不移动）**，故只在增删时定位，不需要逐帧同步。
+    /// </summary>
     public static class EntityContainer
     {
         /// <summary>全部实体。</summary>
