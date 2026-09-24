@@ -9,7 +9,7 @@ namespace Ros.Info
     /// </summary>
     public enum LevelUpType
     {
-        /// <summary>最大生命 +25%。</summary>
+        /// <summary>生命值上限 +25%。</summary>
         Health25,
         /// <summary>力量 +25%。</summary>
         Strength25,
@@ -49,8 +49,7 @@ namespace Ros.Info
                 var type = GetUpgradeType(lv);
                 ApplyUpgrade(attr, type);
             }
-            // 出生满血
-            attr.health = attr.maxHealth;
+            // 出生满血不在这里做：返回的是"属性"，当前生命值由生成方（EntityData.OnCreate）按 health 初始化
             return attr;
         }
 
@@ -78,7 +77,7 @@ namespace Ros.Info
         {
             switch (type)
             {
-                case LevelUpType.Health25: attr.maxHealth += attr.maxHealth * 0.25f; break;
+                case LevelUpType.Health25: attr.health += attr.health * 0.25f; break;
                 case LevelUpType.Strength25: attr.strength += (int)(attr.strength * 0.25f); break;
                 case LevelUpType.Magic25: attr.magic += (int)(attr.magic * 0.25f); break;
                 case LevelUpType.CritRate10: attr.critRate += (int)(attr.critRate * 0.1f); break;
@@ -90,7 +89,7 @@ namespace Ros.Info
         {
             return type switch
             {
-                LevelUpType.Health25 => "最大生命 +25%",
+                LevelUpType.Health25 => "生命值上限 +25%",
                 LevelUpType.Strength25 => "力量 +25%",
                 LevelUpType.Magic25 => "魔法 +25%",
                 LevelUpType.CritRate10 => "暴击率 +10%",

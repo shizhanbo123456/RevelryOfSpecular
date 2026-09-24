@@ -29,8 +29,11 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>基础属性（配置）。</summary>
     public EntityAttribute baseAttribute;
 
-    /// <summary>运行时属性（基础 + 效果/成长叠加）。</summary>
+    /// <summary>运行时属性（基础 + 效果/成长叠加）。注意其 health 表示**生命值上限**。</summary>
     public EntityAttribute floatingAttribute;
+
+    /// <summary>当前生命值（运行时状态，不属于属性：受击扣减、生成/复活时按上限填满；全项目无自动回血）。</summary>
+    public float currentHealth;
 
     /// <summary>效果（Buff）控制器。</summary>
     public EntityEffectController effectController;
@@ -87,7 +90,7 @@ public abstract class EntityData : MonoBehaviour
     public static void ClearKilled() => KilledEntities.Clear();
 
     /// <summary>是否存活。</summary>
-    public bool Alive => floatingAttribute != null && floatingAttribute.Alive;
+    public bool Alive => floatingAttribute != null && currentHealth > 0f;
 
     /// <summary>伤害已落到血量之后的分支钩子：子类覆写以处理自己的受击后果（如守护点计分与采集量）。</summary>
     protected virtual void OnDamageApplied(float finalDamage, EntityData attacker) { }
@@ -131,6 +134,7 @@ public abstract class EntityData : MonoBehaviour
         this.camp = camp;
         baseAttribute = Tool.InfoManager != null ? Tool.InfoManager.GetAttribute(type, level) : new EntityAttribute();
         floatingAttribute = baseAttribute.Clone();
+        currentHealth = floatingAttribute.health; // 出生满血（复活走重建实体，同样落在这里）
         effectController = new EntityEffectController();
         effectController.Init(this);
         skillController = new EntitySkillController();
@@ -495,14 +499,14 @@ public abstract class EntityData : MonoBehaviour
             if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
         finalDamage = Mathf.Max(0f, finalDamage);
-        floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
+        currentHealth = Mathf.Max(0f, currentHealth - finalDamage);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage();
             if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
-        if (floatingAttribute.health <= 0f) MarkAsKilled();
+        if (currentHealth <= 0f) MarkAsKilled();
     }
 
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>
@@ -533,8 +537,8 @@ public abstract class EntityData : MonoBehaviour
             camp = camp,
             position = transform.position,
             yaw = transform.eulerAngles.y,
-            health = floatingAttribute != null ? (int)floatingAttribute.health : 0,
-            maxHealth = floatingAttribute != null ? (int)floatingAttribute.maxHealth : 0,
+            health = (int)currentHealth,
+            maxHealth = floatingAttribute != null ? (int)floatingAttribute.health : 0,
             weaponCategory = (int)heldWeapon.category,
             weaponIndex = heldWeapon.index,
         };
@@ -569,7 +573,7 @@ public abstract class EntityData : MonoBehaviour
     public void Kill()
     {
         if (!Alive) return;
-        floatingAttribute.health = 0f;
+        currentHealth = 0f;
         MarkAsKilled();
     }
 

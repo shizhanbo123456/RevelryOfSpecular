@@ -376,19 +376,20 @@ public class EntityEffectController
         owner.anim.SetMoveSpeedScale(GetMoveAnimSpeedMultiplier());
     }
 
-    /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff（当前生命夹到新上限，不自动回血）。</summary>
+    /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff。当前生命值不属于属性，只按新上限夹取（不自动回血）。</summary>
     private void RecomputeAttributes()
     {
         if (owner == null || owner.baseAttribute == null) return;
-        float currentHealth = owner.floatingAttribute != null ? owner.floatingAttribute.health : 0f;
+        float keptHealth = owner.currentHealth;
         var attr = owner.baseAttribute.Clone();
         foreach (var pair in effects)
         {
             if (!pair.Key.IsAttribute()) continue;
             attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), pair.Value.value));
         }
-        attr.health = Mathf.Clamp(currentHealth, 0f, attr.maxHealth);
         owner.floatingAttribute = attr;
+        // 上限可能被改（升级/将来的生命类 Buff）：当前生命按新上限夹取 —— 只夹不平移，所以是"不自动回血"
+        owner.currentHealth = Mathf.Clamp(keptHealth, 0f, attr.health);
     }
 
     /// <summary>强控施加：打断位移（Exit）+ 动画播放速度直接置 0（当前攻击随之被打断）。</summary>

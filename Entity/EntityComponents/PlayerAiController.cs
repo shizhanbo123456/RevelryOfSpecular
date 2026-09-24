@@ -214,7 +214,7 @@ public class PlayerAiController
         get
         {
             var attr = entity.floatingAttribute;
-            return attr == null || attr.maxHealth <= 0f ? 1f : attr.health / attr.maxHealth;
+            return attr == null || attr.health <= 0f ? 1f : entity.currentHealth / attr.health;
         }
     }
 

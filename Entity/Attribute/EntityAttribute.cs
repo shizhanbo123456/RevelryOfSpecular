@@ -1,17 +1,16 @@
-using System.Collections.Generic;
-
 /// <summary>
-/// 运行时角色/实体属性（V0.8）。
-/// 属性清单见策划案 10.1：生命 / 力量（近战伤害）/ 魔法（远程伤害）/ 暴击率 / 暴击伤害 / 被击飞抗性 / 可见距离 / 武器槽位数量。
+/// 实体属性（V0.8）。
+/// 属性清单见策划案 10.1：生命值 / 力量（近战伤害）/ 魔法（远程伤害）/ 暴击率 / 暴击伤害 / 被击飞抗性 / 可见距离 / 武器槽位数量。
+/// **本类只承载"属性"，不含运行时状态**：这里的 health 是**生命值上限**（配置项），
+/// **当前生命值由 EntityData.currentHealth 单独承担** —— 它是随受击随时变化的运行时状态，
+/// 不属于属性配置，因此配置 SO 里只会出现一个"生命值"项。
 /// 全局参数被动（复活速度、僵尸刷新等级等）开战一次性计算，不进本类。
 /// </summary>
 [System.Serializable]
 public class EntityAttribute
 {
-    /// <summary>当前生命值。</summary>
+    /// <summary>生命值上限（配置项）。当前生命值见 EntityData.currentHealth。</summary>
     public float health = 1000f;
-    /// <summary>最大生命值。</summary>
-    public float maxHealth = 1000f;
     /// <summary>力量：近战物理伤害。</summary>
     public int strength = 100;
     /// <summary>魔法：所有远程攻击与投射物伤害。</summary>
@@ -27,15 +26,11 @@ public class EntityAttribute
     /// <summary>武器槽位数量（技能列表可容纳武器数，双方角色均为此属性）。</summary>
     public int weaponSlotCount = 3;
 
-    /// <summary>是否存活。</summary>
-    public bool Alive => health > 0f;
-
     public EntityAttribute Clone()
     {
         return new EntityAttribute()
         {
             health = health,
-            maxHealth = maxHealth,
             strength = strength,
             magic = magic,
             critRate = critRate,
@@ -46,12 +41,12 @@ public class EntityAttribute
         };
     }
 
-    /// <summary>按字段应用增量（用于升级成长、愈战愈勇叠层等）。</summary>
+    /// <summary>按字段应用增量（用于升级成长、愈战愈勇叠层等）。**只改属性本身，不碰当前生命值。**</summary>
     public void ApplyDelta(EntityAttributeDelta delta)
     {
         switch (delta.field)
         {
-            case EntityAttributeDelta.Field.Health: maxHealth += delta.value; break;
+            case EntityAttributeDelta.Field.Health: health += delta.value; break; // 生命值上限
             case EntityAttributeDelta.Field.Strength: strength += (int)delta.value; break;
             case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
@@ -60,21 +55,6 @@ public class EntityAttribute
             case EntityAttributeDelta.Field.ViewDistance: viewDistance += delta.value; break;
             case EntityAttributeDelta.Field.WeaponSlotCount: weaponSlotCount += (int)delta.value; break;
         }
-        // 加最大生命时同步抬高当前生命：这里只是重算中间值 —— 调用方（EntityEffectController.RecomputeAttributes）
-        // 随后会按"改动前的当前生命"夹到新上限，所以最终语义是**不自动回血**
-        if (delta.field == EntityAttributeDelta.Field.Health && health > 0f)
-        {
-            health = maxHealth;
-        }
-    }
-
-    public List<float> GetValueList()
-    {
-        return new List<float>()
-        {
-            health, maxHealth, strength, magic,
-            critRate, critDamage, knockbackResistance, viewDistance, weaponSlotCount
-        };
     }
 }
 
@@ -86,7 +66,9 @@ public class EntityAttributeDelta
 {
     public enum Field
     {
-        Health, Strength, Magic, CritRate, CritDamage,
+        /// <summary>生命值上限（注意：不是当前生命值）。</summary>
+        Health,
+        Strength, Magic, CritRate, CritDamage,
         KnockbackResistance, ViewDistance, WeaponSlotCount,
     }
 
