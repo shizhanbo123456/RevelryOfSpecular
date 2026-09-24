@@ -535,13 +535,14 @@ public abstract class EntityData : MonoBehaviour
     }
 
     /// <summary>
-    /// 刚体准备（可移动类别的权威速度载体）。
+    /// 刚体准备（可移动单位的权威速度载体）。
+    /// 可移动 = 挂了 EntityAnim 的单位；水晶/守护点/防御塔/瘟疫树等无动画单位不移动。
     /// 模板未配刚体时运行时补一个：服务器模板与客户端图形是两套预制体，手工同步参数必然漂移，代码里补最稳。
     /// 旋转只锁 X/Z（防倒地翻滚），**Y 轴不锁**；插值关闭 —— 权威位置读取必须是物理真值。
     /// </summary>
     private void SetupBody()
     {
-        if (!Config.IsMovable(type.category)) return;
+        if (anim == null) return;
 
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();

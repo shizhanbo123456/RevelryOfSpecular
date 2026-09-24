@@ -84,6 +84,14 @@ public static class Config
     public const float zombie_refresh_rate_slow = 0.05f;
     /// <summary>夜间刷新 cd 进度上限（达到即刷新一只并清零；僵尸数量达上限时不刷新且进度清零）。</summary>
     public const float zombie_refresh_progress_max = 1f;
+    /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
+    public const int zombie_variant_count = 21;
+    /// <summary>精英僵尸素材/属性配置数量（14 种，type.value 0~13；技能召唤时按此范围随机种类）。</summary>
+    public const int elite_zombie_variant_count = 14;
+    /// <summary>夜间刷新普通僵尸的默认等级。</summary>
+    public const int zombie_spawn_level = 1;
+    /// <summary>PC106 被动「提升僵尸刷新时的等级」生效后，夜刷普通僵尸的等级。</summary>
+    public const int zombie_spawn_level_boosted = 3;
     #endregion
 
     #region 昼夜
@@ -133,8 +141,6 @@ public static class Config
     public const KeyCode jump_key = KeyCode.K;
     /// <summary>滑铲键（左 Shift）。</summary>
     public const KeyCode slide_key = KeyCode.LeftShift;
-    /// <summary>滑铲持续时间。</summary>
-    public const float slide_duration = 0.6f;
     /// <summary>翻滚冷却（秒）：移动中按跳跃键优先翻滚，冷却中或未移动则退化为普通跳跃。</summary>
     public const float roll_cd = 5f;
     #endregion
@@ -210,8 +216,6 @@ public static class Config
     public const float anim_move_speed_down = 0.6f;
     /// <summary>泥沼倍率（教皇主动2 全场敌方减速；作用范围同加速）。</summary>
     public const float anim_move_speed_mire = 0.5f;
-    /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
-    public const int zombie_variant_count = 21;
     /// <summary>
     /// 角色初始技能表：实体类型 → 技能 id 列表（顺序 = 键盘槽位 U I O L H Y）。
     /// 进攻方 = 1 个天生攻击技能；防守方 = 主动1/主动2/大招（被动不是技能，见策划案 21.5）。
@@ -382,14 +386,6 @@ public static class Config
     #endregion
 
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）
-    /// <summary>可移动类别（双方角色 + 普通/精英僵尸）：只有这些类别挂 Rigidbody 并由移动系统驱动。</summary>
-    public static bool IsMovable(EntityCategory category) => category switch
-    {
-        EntityCategory.Character_Attack or EntityCategory.Character_Defense or
-        EntityCategory.Zombie or EntityCategory.EliteZombie => true,
-        _ => false,
-    };
-
     /// <summary>
     /// 刚体线性阻力：**必须为 0**。速度完全由动画声明的速度与地面摩擦决定（见 EntityData.ResolveMoveVelocity）——
     /// 阻力不为 0 会让"空中保持水平速度"失效，并在地面上叠加出第二条衰减曲线，与地面摩擦打架。
@@ -428,15 +424,6 @@ public static class Config
     public const int pale_full_stacks = 10;
     /// <summary>PC103 被动「光暗转化」：光暗均达此层数且都未满时，双标记转化为苍白之火。</summary>
     public const int pale_mixed_stacks = 8;
-    #endregion
-
-    #region 僵尸刷新等级与变体数（策划案九/十章、二十章）
-    /// <summary>夜间刷新普通僵尸的默认等级。</summary>
-    public const int zombie_spawn_level = 1;
-    /// <summary>PC106 被动「提升僵尸刷新时的等级」生效后，夜刷普通僵尸的等级。</summary>
-    public const int zombie_spawn_level_boosted = 3;
-    /// <summary>精英僵尸素材/属性配置数量（14 种，type.value 0~13；技能召唤时按此范围随机种类）。</summary>
-    public const int elite_zombie_variant_count = 14;
     #endregion
 
     #region 灵火（TowerBlaze）：塔攻击附加爆炸

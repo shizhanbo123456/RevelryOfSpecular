@@ -23,7 +23,7 @@ public partial class BattleManager
         foreach (var e in EntityContainer.Entities)
         {
             if (e == null || !e.Alive) continue;
-            if (!Config.IsMovable(e.type.category)) continue;
+            if (e.anim == null) continue; // 无动画单位不移动（与 EntityData.SetupBody 同一判据）
 
             // 强控（麻痹/冰冻/定身）期间输入不生效；"位移锁输入"由 MotionCanMove 表达
             bool canInput = e.effectController == null || e.effectController.CanMove();
@@ -36,7 +36,7 @@ public partial class BattleManager
             e.SetMoveVelocity(e.ResolveMoveVelocity(dt, canInput) + e.motionVelocity);
 
             // 区块索引跟着走：范围的索敌查询（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人。
-            // 只有可移动类别会换区块，静态实体（守护点/水晶/防御塔）出生后不再移动，无需同步。
+            // 只有可移动单位会换区块，无动画单位出生后不再移动，无需同步。
             EntityContainer.Entities.UpdateObjectPosition(e.id);
         }
     }

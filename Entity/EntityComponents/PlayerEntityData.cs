@@ -65,15 +65,10 @@ public class PlayerEntityData : EntityData
                 Jump();
             }
         }
-        // 滑铲：进入滑铲状态，持续时间后结束
+        // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
         if ((action.pressed & PlayerKey.LShift) != 0)
         {
             anim?.DoSlide();
-            var weak = this;
-            Timer.AddTimer(0, _ =>
-            {
-                if (weak != null) weak.anim?.EndSlide();
-            }, Config.slide_duration, 1, false); // 延后 slide_duration 执行一次
         }
         // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
         if ((action.pressed & PlayerKey.J) != 0)

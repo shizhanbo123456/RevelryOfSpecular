@@ -82,7 +82,7 @@ public struct EntityType : IEquatable<EntityType>
 
     // 普通僵尸（0~20，暂用 21 种）
     public static EntityType ZombieFirst => Zombie(0);
-    public static EntityType ZombieLast => Zombie(20);
+    public static EntityType ZombieLast => Zombie(Config.zombie_variant_count - 1);
 
     // 精英僵尸（14 种，type.value 0~13；种类数取 Config 常量，避免与召唤逻辑脱节）
     public static EntityType EliteZombieFirst => EliteZombie(0);
