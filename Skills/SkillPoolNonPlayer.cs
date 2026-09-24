@@ -32,6 +32,7 @@ namespace Ros.Skill
         public override int Id => 101;
         public override float CD => 1.5f;
         public override int Store => -1;
+        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -60,6 +61,7 @@ namespace Ros.Skill
         public override int Id => 102;
         public override float CD => 1.5f;
         public override int Store => -1;
+        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -119,6 +121,7 @@ namespace Ros.Skill
         public override int Id => 120;
         public override float CD => 1.5f;
         public override int Store => -1;
+        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -147,6 +150,7 @@ namespace Ros.Skill
         public override int Id => 121;
         public override float CD => 1.5f;
         public override int Store => -1;
+        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -207,6 +211,7 @@ namespace Ros.Skill
         public override int Id => 140;
         public override float CD => 2f;
         public override int Store => -1;
+        public override float CastRange => Config.tower_attack_range;
 
         /// <summary>上下文 ints[2] = 灵火标记（客户端据此额外播落点爆炸表现）。</summary>
         private const int BlazeFlagIndex = 2;
@@ -263,6 +268,7 @@ namespace Ros.Skill
         public override int Id => 160;
         public override float CD => 2.5f;
         public override int Store => -1;
+        public override float CastRange => Config.plague_tree_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {

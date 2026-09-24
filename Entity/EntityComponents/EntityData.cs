@@ -166,6 +166,12 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>朝向与移动输入的逐帧推进（由移动循环调用，canInput = 未被强控）。默认无操作。</summary>
     public virtual void OnTickMove(float deltaTime, bool canInput) { }
 
+    /// <summary>
+    /// AI 决策（服务器每帧遍历调用，见 BattleManager.UpdateAI）。默认无操作：只有需要 AI 的实体覆写。
+    /// 决策频率由各实现自行错峰控制——转向与推进仍走 OnTickMove（每帧），本方法只负责"想做什么"。
+    /// </summary>
+    public virtual void TickAI() { }
+
     /// <summary>接收移动输入（网络上行）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
     public virtual void RecordMoveInput(Ros.Transport.CSMoveInput move) { }
 

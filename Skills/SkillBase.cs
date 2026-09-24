@@ -17,6 +17,21 @@ namespace Ros.Skill
         public abstract float CD { get; }
         public abstract int Store { get; }
 
+        /// <summary>
+        /// 施法距离（米）：索敌半径内没有敌人时不得释放；0 = 不限（默认）。
+        /// 有目标的攻击技能覆写本项（自身增益类如嘶吼不受此限，其使用时机由 AI 自行决定）。
+        /// 门闸在释放收口 EntitySkillController.TryUseSkill 统一执行。
+        /// </summary>
+        public virtual float CastRange => 0f;
+
+        /// <summary>施法距离内是否有目标（CastRange = 0 时恒为 true）。索敌阵营由 HostileOf(施法者阵营) 算出，不在此写死。</summary>
+        public bool HasTargetInRange(EntityData entity)
+        {
+            if (CastRange <= 0f) return true;
+            if (entity == null) return false;
+            return GetNearestEnemy(entity, CastRange) != null;
+        }
+
         public virtual WeaponRef HoldWeapon => WeaponRef.None;
         public virtual WeaponRef FlyWeapon => WeaponRef.None;
 

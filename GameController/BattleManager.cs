@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// 战斗管理器（服务器权威，客户端仅接收信息摘要做表现）。
 /// 核心移动/战斗内容都在服务器完成计算（架构说明总体原则）。
-/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；瘟疫树/防御塔/僵尸/AI 的攻击与行动暂留空。
+/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；僵尸 AI 已接入，防御塔与瘟疫树的行为、AI 虚拟玩家的决策待实现。
 /// </summary>
 public partial class BattleManager : EnsBehaviour
 {
@@ -32,7 +32,6 @@ public partial class BattleManager : EnsBehaviour
     private float syncTimer;
     private float detailsTimer;
     private float dayNightSyncTimer;
-    private float aiTimer;
     /// <summary>夜间僵尸刷新 cd 进度（满 1 刷新一只并清零，见 Config.zombie_refresh_*）。</summary>
     private float zombieRefreshProgress;
 
@@ -430,10 +429,16 @@ public partial class BattleManager : EnsBehaviour
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.defensePositions);
     }
 
-    /// <summary>AI 行为（留空待设计）。</summary>
+    /// <summary>
+    /// AI 行为入口：每帧遍历全部实体，交由各自的 TickAI 实现（是否需要 AI 由实体自己决定，不在此按类别分支）。
+    /// 决策频率不做全局节流——各实体在 TickAI 内部按自身 id 错峰，避免同类实体同帧集中决策。
+    /// </summary>
     private void UpdateAI()
     {
-        // TODO: AI 行为待设计，当前不驱动任何实体
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity != null) entity.TickAI();
+        }
     }
 
     /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
@@ -665,13 +670,8 @@ public partial class BattleManager : EnsBehaviour
 
         TickDying(); // 死亡动画播完（或超时）后物理销毁（BeginDying 入队）
 
-        // AI 玩家行为（有可用技能攻击最近单位，否则站立；被攻击逃跑 TODO）
-        aiTimer -= UnityEngine.Time.deltaTime;
-        if (aiTimer <= 0f)
-        {
-            aiTimer = 0.5f;
-            UpdateAI();
-        }
+        // AI 行为（各实体在内部按 id 错峰，见 UpdateAI）
+        UpdateAI();
 
         // 夜间僵尸刷新（策划案第九章）：cd 进度满 1 → 刷新一只并清零；
         // 僵尸数量达上限时不刷新且进度清零；白天（t ≥ 0.5）进度不增加
@@ -691,7 +691,7 @@ public partial class BattleManager : EnsBehaviour
                 if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
                 {
                     zombieRefreshProgress = 0f;
-                    SpawnZombie(); // 出生点分散在道路/墓地/守护点外围（LandscapeSpawns），攻击/行动暂留空
+                    SpawnZombie(); // 出生点分散在道路/墓地/守护点外围（LandscapeSpawns）
                 }
             }
         }

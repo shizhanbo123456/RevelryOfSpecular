@@ -55,6 +55,8 @@ public static class Config
     public const int crystal_graphics_count = crystal_type_count * crystal_variant_count;
     /// <summary>防御塔（瘟疫孢子）数量。</summary>
     public const int tower_count = 4;
+    /// <summary>防御塔施法距离（米）：靠近即被攻击、无预警（策划案 8.1）。</summary>
+    public const float tower_attack_range = 20f;
     /// <summary>水晶刷新冷却下限/上限（秒，30~60s 随机）。</summary>
     public const float crystal_respawn_min = 30f;
     public const float crystal_respawn_max = 60f;
@@ -64,6 +66,8 @@ public static class Config
     #region 瘟疫树（中立争抢单位）
     /// <summary>第 1 棵树的刷新延迟（秒）：开战后开始计时。</summary>
     public const float plague_tree_first_spawn_delay = 30f;
+    /// <summary>瘟疫树施法距离（米）：对进入此范围的任何单位自动索敌（策划案 6.2）。</summary>
+    public const float plague_tree_attack_range = 8f;
     /// <summary>树被打死后的重生倒计时（秒）：倒计时结束在候选点随机刷新一棵。</summary>
     public const float plague_tree_respawn_delay = 60f;
     /// <summary>攻占奖励「瘟疫祝福」：持续时长（秒）。</summary>
@@ -92,6 +96,22 @@ public static class Config
     public const int zombie_spawn_level = 1;
     /// <summary>PC106 被动「提升僵尸刷新时的等级」生效后，夜刷普通僵尸的等级。</summary>
     public const int zombie_spawn_level_boosted = 3;
+
+    // —— AI 行为（策划案第九章只写了「无目标时游荡 / 发现目标后主动追击 / 设最大追击距离」，数值均为占位初值）——
+    /// <summary>AI 决策间隔（秒）：各实体按自身 id 错峰，避免 30 只僵尸在同一帧集中决策。</summary>
+    public const float zombie_decide_interval = 0.15f;
+    /// <summary>索敌半径（米）：仅当实体未配 viewDistance 时的回退值。</summary>
+    public const float zombie_acquire_range = 12f;
+    /// <summary>近战攻击距离（米）：与爪击技能的 SkillBase.CastRange 一致——那边是施法门闸，这里是 AI 的追击/攻击分档。</summary>
+    public const float zombie_attack_range = 2f;
+    /// <summary>距离超过此值才尝试嘶吼（米）：距离较近时直接近战攻击更优。</summary>
+    public const float zombie_roar_range = 10f;
+    /// <summary>最大追击距离（米）：目标拉开到此距离即放弃，回出生点游荡。</summary>
+    public const float zombie_max_chase_distance = 16f;
+    /// <summary>无目标时的游荡半径（米，以出生点为圆心）。</summary>
+    public const float zombie_wander_radius = 8f;
+    /// <summary>游荡到点后的停顿时长（秒）。</summary>
+    public const float zombie_wander_pause = 2f;
     #endregion
 
     #region 昼夜

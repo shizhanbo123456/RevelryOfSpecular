@@ -66,6 +66,9 @@ public class EntitySkillController
     /// <summary>技能列表拷贝。</summary>
     public List<int> GetSkillIds() => new(skillIds);
 
+    /// <summary>槽位对应的技能 id（越界返回 -1）。与 GetSkillIds 的区别是不产生拷贝，供逐帧取用。</summary>
+    public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
+
     /// <summary>直接选中某槽位（键盘槽位触发时由服务器更新，供 UI 高亮）。</summary>
     public void SelectIndex(int index)
     {
@@ -152,6 +155,7 @@ public class EntitySkillController
         if (GetStore(skillId) == 0) return false;
         if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
+        if (!skill.HasTargetInRange(owner)) return false; // 施法距离门闸（CastRange = 0 不限）
 
         CastingSlotIndex = skillIds.IndexOf(skillId);
         SkillContext context = skill.SkillLogic(owner);

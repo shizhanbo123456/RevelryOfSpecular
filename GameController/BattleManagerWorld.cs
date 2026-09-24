@@ -6,7 +6,7 @@ using UnityEngine;
 /// 战斗世界生成（partial BattleManager）：
 /// 守护点/水晶/防御塔开局生成、水晶被摧毁后的定时重生、瘟疫树延时刷新与攻占后重生、夜间僵尸刷新落地。
 /// 位置唯一来源：地形组件 LandscapeSpawns（策划案 6.1/7/8.1），不再回退其它组件。
-/// 瘟疫树/防御塔/僵尸的攻击与行动逻辑按策划暂留空。
+/// 僵尸的行为在 ZombieEntityData.TickAI；防御塔与瘟疫树的攻击行为待实现。
 /// </summary>
 public partial class BattleManager
 {
@@ -60,7 +60,7 @@ public partial class BattleManager
         var list = Tool.LandscapeSpawns.zombieSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置僵尸出生点则不刷新
         int variant = Random.Range(0, Config.zombie_variant_count);
-        SpawnEntity(EntityType.Zombie(variant), ZombieSpawnLevel, LandscapeSpawns.RandomOf(list), EntityCamp.Defense);
+        SpawnEntity(EntityType.Zombie(variant), ZombieSpawnLevel, LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
     }
 
     /// <summary>刷新一棵瘟疫树：候选点随机取一。</summary>
