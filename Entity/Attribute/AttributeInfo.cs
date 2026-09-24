@@ -34,7 +34,7 @@ namespace Ros.Info
         [Header("基础属性")]
         public EntityAttribute baseAttribute = new();
 
-        [Header("升级路线（2~10 级按 A→B→C 轮询提升，百分比基于基础属性加法叠加）")]
+        [Header("升级路线")]
         public LevelUpType upgradeA = LevelUpType.Health25;
         public LevelUpType upgradeB = LevelUpType.Strength25;
         public LevelUpType upgradeC = LevelUpType.Magic25;
