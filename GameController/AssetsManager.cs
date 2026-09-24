@@ -25,7 +25,8 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> EliteZombieGraphics = new();
     /// <summary>守护点（瘟疫信标）：[0] = 外围矮信标，[1] = 中心高信标。</summary>
     public List<GameObject> BeaconGraphics = new();
-    /// <summary>水晶图形：下标 = 水晶类型（策划案第七章，4 种类型对应 4 类武器，见 Config.crystal_type_count）。</summary>
+    /// <summary>水晶图形：4 种颜色 × 3 种外形 = 12 项（Config.crystal_graphics_count，下标 = 外观下标 0~11）。
+    /// 颜色决定掉落的武器类型（同色掉同类武器，见策划案第七章）；类别 = 下标 % crystal_type_count。</summary>
     public List<GameObject> CrystalGraphics = new();
     /// <summary>防御塔（瘟疫孢子）图形：4 种外观，按塔实例编号 value 选用（4 座塔各配一种）。</summary>
     public List<GameObject> TowerGraphics = new();

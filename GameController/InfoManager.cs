@@ -61,7 +61,8 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> ZombieTemplates = new();
     public List<GameObject> EliteZombieTemplates = new();
     public List<GameObject> BeaconTemplates = new();
-    /// <summary>水晶模板：按类别配 4 项即可（对应 4 类武器，见 Config.crystal_type_count）；取用时按 下标 % Count 归到类别（与 AssetsManager.CrystalGraphics 一致）。</summary>
+    /// <summary>水晶模板：4 种颜色 × 3 种外形 = 12 项（Config.crystal_graphics_count）。
+    /// 颜色决定掉落的武器类型（同色掉同类武器）；下标 = 外观下标，类别 = 下标 % crystal_type_count（与 AssetsManager.CrystalGraphics 一致）。</summary>
     public List<GameObject> CrystalTemplates = new();
     /// <summary>防御塔模板（瘟疫孢子）：4 种外观，按塔实例编号取模选用（与 AssetsManager.TowerGraphics 一致）。</summary>
     public List<GameObject> TowerTemplates = new();
@@ -89,7 +90,7 @@ public class InfoManager : MonoBehaviour
                 if (BeaconTemplates.Count > 0) template = BeaconTemplates[type.value < Config.outer_beacon_count ? 0 : (BeaconTemplates.Count > 1 ? 1 : 0)];
                 break;
             case EntityCategory.Crystal:
-                // 下标 = 水晶外观下标；配 4 项时取模即按类别，配 12 项时即按外观（与 AssetsManager.TryGetGraphic 一致）
+                // 下标 = 水晶外观下标（0~11），取模容错；与 AssetsManager.TryGetGraphic 一致
                 if (CrystalTemplates.Count > 0) template = CrystalTemplates[Mathf.Max(0, type.value) % CrystalTemplates.Count];
                 break;
             case EntityCategory.Tower:
