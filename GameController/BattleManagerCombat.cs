@@ -12,8 +12,8 @@ public partial class BattleManager
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
     /// <summary>
     /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
-    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— 动画模块通过 EntityAnim.SetVelocity*
-    /// 声明速度，未声明时在地面按 2 m/s² 衰减、空中保持水平速度；Y 完全不写（重力/被击飞/下落照常）。
+    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— **玩家主动操控的速度只能来自动画模块**
+    /// 通过 EntityAnim.SetVelocity* 的声明；未声明时在地面按 2 m/s² 衰减、空中保持水平速度；Y 完全不写（重力/被击飞/下落照常）。
     /// 这里只负责叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
     /// 朝向由实体自己推进（OnTickMove：玩家角色按输入渐转后直接赋 rotation，刚体旋转只锁 X/Z）。
     /// </summary>
@@ -33,7 +33,7 @@ public partial class BattleManager
             // 速度由实体自己决定（动画声明的速度 / 未声明时地面摩擦与空中保持，见 EntityData.ResolveMoveVelocity）。
             // **加速/减速/泥沼不在这里乘**：它们只作用于动画播放速度（EntityEffectController.ApplyAnimSpeedScale →
             // EntityAnim.SetMoveSpeedScale），对位移速度的影响由动画模块在声明速度时自行接入。
-            e.SetMoveVelocity(e.ResolveMoveVelocity(dt, canInput) + e.motionVelocity);
+            e.SetMoveVelocity(e.ResolveMoveVelocity(dt) + e.motionVelocity);
 
             // 区块索引跟着走：范围的索敌查询（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人。
             // 只有可移动单位会换区块，无动画单位出生后不再移动，无需同步。

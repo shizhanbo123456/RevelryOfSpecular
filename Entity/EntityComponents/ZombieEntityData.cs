@@ -54,7 +54,7 @@ public class ZombieEntityData : EntityData
         }
     }
 
-    /// <summary>停止：清目标与移动输入，动画回 Idle。不直接写速度 —— 水平速度按地面摩擦自然衰减（见 ResolveMoveVelocity ③）。</summary>
+    /// <summary>停止：清目标与移动输入，动画回 Idle。不直接写速度 —— 水平速度按地面摩擦自然衰减（见 ResolveMoveVelocity ②）。</summary>
     public void Stop()
     {
         hasDestination = false;
@@ -64,7 +64,7 @@ public class ZombieEntityData : EntityData
         anim?.Move(false);
     }
 
-    /// <summary>逐帧推进：算方向 → 渐转朝向 → 写移动输入（速度由动画声明，未声明时退化为 moveSpeed）。</summary>
+    /// <summary>逐帧推进：算方向 → 渐转朝向 → 写移动输入（速度由动画声明，本类不产出速度）。</summary>
     public override void OnTickMove(float deltaTime, bool canInput)
     {
         if (!hasDestination) return;

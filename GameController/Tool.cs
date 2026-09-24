@@ -153,6 +153,11 @@ public class Tool : MonoBehaviour
             Debug.LogError("[启动自检] InfoManager.entity_layer 未配置（当前 0）：物理查询会与 Default 层混在一起");
             e++;
         }
+        if (m.ground_layer == 0)
+        {
+            Debug.LogError("[启动自检] InfoManager.ground_layer 未配置（当前 0）：落地检测会退化为 Default 层");
+            e++;
+        }
 
         e += CheckList("InfoManager.AttackCharacterInfoList", m.AttackCharacterInfoList, Config.attack_character_count);
         e += CheckList("InfoManager.DefenseCharacterInfoList", m.DefenseCharacterInfoList, Config.defense_character_count);

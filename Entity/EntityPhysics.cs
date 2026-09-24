@@ -11,6 +11,9 @@ public static class EntityPhysics
     /// <summary>实体层掩码（层号由 InfoManager 配置）。</summary>
     public static int EntityMask => 1 << Tool.InfoManager.entity_layer;
 
+    /// <summary>地面层掩码（层号由 InfoManager 配置）：落地检测专用，避免把踩着的角色也当成地面。</summary>
+    public static int GroundMask => 1 << Tool.InfoManager.ground_layer;
+
     /// <summary>查询球内的实体（返回数量，最多 results.Length 个）。</summary>
     public static int OverlapSphere(Vector3 center, float radius, EntityData[] results)
     {

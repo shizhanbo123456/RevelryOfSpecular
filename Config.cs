@@ -193,8 +193,6 @@ public static class Config
     #region 通用
     /// <summary>实体 id 上限（每次开始战斗时 id 源置零，超过上限从 1 重新分配，跳过已占用）。</summary>
     public const int entity_id_max = 30000;
-    /// <summary>服务器权威移动速度（米/秒，暂定；客户端移动由动画状态机根运动表现，见策划案 10 章）。</summary>
-    public const float base_move_speed = 5f;
     /// <summary>空手攻击判定球半径（米；球心为拳击手部骨骼 / 砸击用角色位置）。</summary>
     public const float melee_hit_radius = 0.7f;
     /// <summary>空手攻击技能 CD（秒；取最小间隔，避免同帧连发与除零）。</summary>
@@ -205,12 +203,8 @@ public static class Config
     public const int unarmed_punch_right = 181;
     /// <summary>空手攻击技能 id：原地砸击（静止时触发）。</summary>
     public const int unarmed_attack_smash = 182;
-    /// <summary>跳跃初速度（米/秒，向上；占位初值待定）。起跳只给这一次竖直速度，之后由重力接管；
-    /// 空中/落地不由计时决定，由 <see cref="EntityData"/> 的落地物理检测写入 InAir；
-    /// 若动画状态通过 EntityAnim.SetVelocityVertical 声明了竖直速度，则以声明值为准。</summary>
-    public const float jump_speed = 5f;
     /// <summary>加速倍率（策划案 11.3）：作用于**动画**——动画播放速度与动画声明的速度（EntityAnim.PlaybackSpeed：既写 animator.speed，
-    /// 也在 SetVelocityForward/Horizontal 里缩放声明值）。其它速度来源（输入退化移速、MotionBase 位移、重力）完全不吃这个倍率。</summary>
+    /// 也在 SetVelocityForward/Horizontal 里缩放声明值）。其它速度来源（MotionBase 位移、重力、击飞）完全不吃这个倍率。</summary>
     public const float anim_move_speed_up = 1.3f;
     /// <summary>减速倍率（作用范围同加速）。</summary>
     public const float anim_move_speed_down = 0.6f;

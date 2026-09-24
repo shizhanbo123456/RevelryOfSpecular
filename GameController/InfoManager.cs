@@ -18,6 +18,9 @@ public class InfoManager : MonoBehaviour
     /// <summary>实体所在 Layer 的层号（服务器物理判定按此层筛选；须填专用层，填 0 会与地形等 Default 层混在一起）。</summary>
     public int entity_layer;
 
+    /// <summary>地面所在 Layer 的层号（仅落地检测按此层筛选）。地形与可站立的平台/物件都要挂到这一层，否则会被判成悬空。</summary>
+    public int ground_layer;
+
     #region 角色属性配置（Info）
     /// <summary>进攻方角色（18 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
