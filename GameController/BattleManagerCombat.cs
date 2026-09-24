@@ -36,13 +36,9 @@ public partial class BattleManager
             e.SetMoveVelocity(e.ResolveMoveVelocity(dt) + e.motionVelocity);
 
             // 区块索引跟着走：范围的索敌查询（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人。
-            // 只同步**会移动的实体所在的桶**：Entities 装全部，僵尸另有一个专属桶；
-            // 守护点/水晶/防御塔三桶装的是静止实体（出生后不再移动），只在增删时定位，无需逐帧同步。
+            // 只有 Entities 桶装会移动的实体；守护点/水晶/防御塔三桶装的是静止实体（出生后不再移动），
+            // 只在增删时定位，无需逐帧同步。
             EntityContainer.Entities.UpdateObjectPosition(e.id);
-            if (e.type.category == EntityCategory.Zombie || e.type.category == EntityCategory.EliteZombie)
-            {
-                EntityContainer.Zombies.UpdateObjectPosition(e.id);
-            }
         }
     }
     #endregion

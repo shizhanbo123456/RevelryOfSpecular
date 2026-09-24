@@ -34,6 +34,9 @@ public partial class BattleManager : EnsBehaviour
     private float dayNightSyncTimer;
     /// <summary>夜间僵尸刷新 cd 进度（满 1 刷新一只并清零，见 Config.zombie_refresh_*）。</summary>
     private float zombieRefreshProgress;
+    /// <summary>场上僵尸数量（普通 + 精英，对应 Config.zombie_max 的"全场僵尸数量上限"）。
+    /// 与实体增删同一处维护，开战时归零；夜刷的上限判定与速率插值都读它。</summary>
+    private int zombieCount;
 
     #region 玩家进出与组队大厅
     /// <summary>客户端进场选角信息。</summary>
@@ -94,8 +97,9 @@ public partial class BattleManager : EnsBehaviour
     #region 实体容器（按分类，ChunkSearcher 区块加速）
     /// <summary>
     /// 实体容器（按类别分桶）。
-    /// **只给会移动的实体同步区块位置**（`TickMovement`）：`Entities` 装全部实体、`Zombies` 单独再同步一次；
+    /// **只给会移动的实体所在的桶同步区块位置**（`TickMovement`）：目前只有 `Entities` 装会移动的实体；
     /// `Beacons` / `Crystals` / `Towers` 三桶装的是**静止实体（出生后永不移动）**，故只在增删时定位，不需要逐帧同步。
+    /// 新增会移动的实体类别时，必须补上它所在桶的 `UpdateObjectPosition`。
     /// </summary>
     public static class EntityContainer
     {
@@ -107,8 +111,6 @@ public partial class BattleManager : EnsBehaviour
         public static readonly ChunkSearcher<EntityData> Crystals = new(d => d.transform.position);
         /// <summary>防御塔。</summary>
         public static readonly ChunkSearcher<EntityData> Towers = new(d => d.transform.position);
-        /// <summary>僵尸。</summary>
-        public static readonly ChunkSearcher<EntityData> Zombies = new(d => d.transform.position);
 
         public static void Clear()
         {
@@ -116,7 +118,6 @@ public partial class BattleManager : EnsBehaviour
             Beacons.Clear();
             Crystals.Clear();
             Towers.Clear();
-            Zombies.Clear();
         }
 
         private static readonly HashSet<int> s_buffer = new();
@@ -248,6 +249,10 @@ public partial class BattleManager : EnsBehaviour
         return true;
     }
 
+    /// <summary>该类别是否计入僵尸数量（普通 + 精英，见 Config.zombie_max）。</summary>
+    private static bool IsZombieCategory(EntityCategory category) =>
+        category == EntityCategory.Zombie || category == EntityCategory.EliteZombie;
+
     private void AddToContainer(EntityData data)
     {
         EntityContainer.Entities.Add(data.id, data);
@@ -262,11 +267,8 @@ public partial class BattleManager : EnsBehaviour
             case EntityCategory.Tower:
                 EntityContainer.Towers.Add(data.id, data);
                 break;
-            case EntityCategory.Zombie:
-            case EntityCategory.EliteZombie:
-                EntityContainer.Zombies.Add(data.id, data);
-                break;
         }
+        if (IsZombieCategory(data.type.category)) zombieCount++;
     }
 
     private void RemoveFromContainer(EntityData data)
@@ -275,7 +277,7 @@ public partial class BattleManager : EnsBehaviour
         EntityContainer.Beacons.Remove(data.id);
         EntityContainer.Crystals.Remove(data.id);
         EntityContainer.Towers.Remove(data.id);
-        EntityContainer.Zombies.Remove(data.id);
+        if (IsZombieCategory(data.type.category)) zombieCount--;
     }
     #endregion
 
@@ -547,6 +549,7 @@ public partial class BattleManager : EnsBehaviour
         ResetEntityIdSource();
         AttackScore = 0f;
         DefenseKills = 0;
+        zombieCount = 0; // 上局僵尸已在上面的清场里逐个减过，这里再显式归零（与计分同一口径）
         ClearBattleState();
 
         // 玩家实体：真人与 AI 完全同一条路径（AI 也在此处，clientId 为负数虚拟 id），
@@ -688,7 +691,6 @@ public partial class BattleManager : EnsBehaviour
         // 僵尸数量达上限时不刷新且进度清零；白天（t ≥ 0.5）进度不增加
         if (!EnvironmentManager.IsDay) // t < 0.5 = 晚上
         {
-            int zombieCount = EntityContainer.Zombies.Count;
             if (zombieCount >= Config.zombie_max)
             {
                 zombieRefreshProgress = 0f;
