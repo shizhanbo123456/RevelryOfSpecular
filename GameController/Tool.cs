@@ -179,10 +179,6 @@ public class Tool : MonoBehaviour
         e += CheckObject("InfoManager.PlagueTreeTemplate", m.PlagueTreeTemplate);
 
         e += CheckList("InfoManager.SkillInfoList", m.SkillInfoList, SkillManager.GetSkillCount());
-        if (m.EntityBarYOffsetMap == null || m.EntityBarYOffsetMap.Count == 0)
-        {
-            Debug.LogWarning("[启动自检] InfoManager.EntityBarYOffsetMap 为空：血条偏移全部走默认值");
-        }
         return e;
     }
 

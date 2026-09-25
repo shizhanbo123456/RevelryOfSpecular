@@ -12,8 +12,7 @@ public class LabelPlayerManager : ClientSubManager
     private const float BarWidth = 1f;
     private const float BarHeight = 0.12f;
     private const float BarDepth = 0.02f;
-    private const float BarOffsetY = 0.45f;          // 相对名字锚点的抬高量
-    private const float NameFallbackOffsetY = 0.9f;  // InfoManager 未配置锚点时用
+    private const float TopFallbackY = 0.9f;         // EntityModelInfo 未烘焙时名字锚点的兜底高度
     private const float NameCharacterSize = 0.08f;
     private const int NameFontSize = 64;
     private const string BarShaderName = "Unlit/Color";
@@ -48,7 +47,7 @@ public class LabelPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>为玩家视图挂上头顶标签（名字 + 血条）。非玩家实体不挂。</summary>
+    /// <summary>为玩家视图挂上头顶标签：名字在模型头顶、血条在角色脚部。高度由预制体烘焙的 EntityModelInfo 计算。非玩家实体不挂。</summary>
     public void Attach(EntityPlayerManager.ClientEntityView view, SCEntityDisplayInfo info)
     {
         if (view == null || info == null) return;
@@ -57,16 +56,21 @@ public class LabelPlayerManager : ClientSubManager
 
         Detach(view.id);
 
+        // 模型大小：视图根 = 图形预制体根，EntityModelInfo 的 yRange 即该本地空间的包围盒（未烘焙时退回默认头顶高度）
         var labelGo = new GameObject("OverheadLabel");
         labelGo.transform.SetParent(view.transform, false);
-        float yOffset = Tool.InfoManager != null
-            ? Tool.InfoManager.GetEntityBarYOffset(view.type)
-            : NameFallbackOffsetY;
-        labelGo.transform.localPosition = Vector3.up * yOffset;
+        float footY = 0f;
+        float topY = TopFallbackY;
+        var modelInfo = view.GetComponentInChildren<EntityModelInfo>();
+        if (modelInfo != null && modelInfo.yRange.y - modelInfo.yRange.x > 0.001f)
+        {
+            footY = modelInfo.yRange.x; // 模型最低点（脚部）
+            topY = modelInfo.yRange.y;  // 模型最高点（头顶）
+        }
 
-        CreateName(labelGo.transform, info);
+        CreateName(labelGo.transform, info, topY);
         var label = new OverheadLabel();
-        CreateBar(labelGo.transform, info, label);
+        CreateBar(labelGo.transform, info, label, footY);
         labels[view.id] = label;
     }
 
@@ -94,10 +98,11 @@ public class LabelPlayerManager : ClientSubManager
     }
 
     #region//Local
-    private static void CreateName(Transform parent, SCEntityDisplayInfo info)
+    private static void CreateName(Transform parent, SCEntityDisplayInfo info, float topY)
     {
         var go = new GameObject("Name");
         go.transform.SetParent(parent, false);
+        go.transform.localPosition = Vector3.up * topY; // 模型头顶（TextMesh 下缘对齐锚点）
         var text = go.AddComponent<TextMesh>();
         text.text = $"玩家{info.ownerClientId}";
         text.fontSize = NameFontSize;
@@ -108,7 +113,7 @@ public class LabelPlayerManager : ClientSubManager
         text.color = info.camp == EntityCamp.Attack ? UITheme.Attack : UITheme.Defense;
     }
 
-    private static void CreateBar(Transform parent, SCEntityDisplayInfo info, OverheadLabel label)
+    private static void CreateBar(Transform parent, SCEntityDisplayInfo info, OverheadLabel label, float footY)
     {
         var trackMaterial = GetBarMaterial(MatTrack, new Color(0.1f, 0.1f, 0.12f, 1f));
         var fillMaterial = GetBarMaterial(
@@ -119,7 +124,7 @@ public class LabelPlayerManager : ClientSubManager
 
         var barRoot = new GameObject("HealthBar");
         barRoot.transform.SetParent(parent, false);
-        barRoot.transform.localPosition = Vector3.up * BarOffsetY;
+        barRoot.transform.localPosition = Vector3.up * (footY + BarHeight * 0.5f); // 脚部：模型最低点上方半格，避免埋地
         label.barRoot = barRoot.transform;
 
         // 用薄立方体而非四边形：四边形有背面剔除，朝向判断错就会整条看不见

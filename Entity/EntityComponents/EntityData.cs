@@ -76,8 +76,8 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>脚是否踩在地面上（每帧物理检测，见 UpdateGrounded；写入状态机的 InAir 参数）。</summary>
     [HideInInspector] public bool grounded = true;
 
-    /// <summary>血条锚点。</summary>
-    public Transform BarPos;
+    /// <summary>实体模型的本地包围盒（预制体烘焙数据，见 Entity/Anim/EntityModelInfo）：模型大小/锚点计算的依据，服务器模板可能没有（null）。</summary>
+    public EntityModelInfo ModelInfo { get; private set; }
 
     /// <summary>本帧死亡实体（由 BattleManager 统一处理）。</summary>
     protected static readonly List<EntityData> KilledEntities = new();
@@ -140,6 +140,9 @@ public abstract class EntityData : MonoBehaviour
         skillController.Init(this);
 
         anim = GetComponentInChildren<EntityAnim>();
+
+        // 模型大小（预制体烘焙的本地包围盒）：血条/头顶等锚点计算依据；服务器模板无图形时为 null
+        ModelInfo = GetComponentInChildren<EntityModelInfo>();
 
         // 预制体/模板上的共用参数（动画类型）：服务端模板与客户端模型参数一致
         var animData = GetComponent<EntityAnimData>();
@@ -607,12 +610,6 @@ public abstract class EntityData : MonoBehaviour
     {
         Bounds bounds = GetComponentInChildren<Collider>().bounds;
         return new Vector3(bounds.center.x, Mathf.Lerp(bounds.min.y, bounds.max.y, 0.75f), bounds.center.z);
-    }
-
-    /// <summary>血条 Y 偏移（相对头顶）。</summary>
-    public float GetBarYOffset()
-    {
-        return Tool.InfoManager != null ? Tool.InfoManager.GetEntityBarYOffset(type) : 0.9f;
     }
 
     /// <summary>标记死亡（供外部触发，如 Bullet 击杀）。</summary>

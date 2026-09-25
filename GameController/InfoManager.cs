@@ -105,21 +105,6 @@ public class InfoManager : MonoBehaviour
     }
     #endregion
 
-    #region 血条与层级
-    /// <summary>实体类别 → 血条 Y 偏移。</summary>
-    public Dictionary<EntityCategory, float> EntityBarYOffsetMap = new();
-
-    /// <summary>实体血条 Y 偏移（默认头顶 0.9m）。</summary>
-    public float GetEntityBarYOffset(EntityType type)
-    {
-        if (EntityBarYOffsetMap != null && EntityBarYOffsetMap.TryGetValue(type.category, out var offset))
-        {
-            return offset;
-        }
-        return 0.9f;
-    }
-    #endregion
-
     #region 属性获取
     /// <summary>按实体类型与等级取属性配置（运行时属性见 EntityData.OnCreate）。</summary>
     public EntityAttribute GetAttribute(EntityType type, int level)
