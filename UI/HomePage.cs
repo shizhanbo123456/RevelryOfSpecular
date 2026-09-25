@@ -132,7 +132,7 @@ public class HomePage : PageBase
             var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
             if (unlocked)
             {
-                row.Add(UITheme.Text($"{name}   Lv{level}", TextMain, UITheme.FontBody));
+                row.Add(UITheme.Text($"{name}   Lv{level}", UITheme.TextMain, UITheme.FontBody));
             }
             else
             {
