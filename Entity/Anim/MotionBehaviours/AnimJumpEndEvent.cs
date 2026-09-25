@@ -6,13 +6,10 @@ public class AnimJumpEndEvent : AnimMotionEvent
     private const float thresholdMove = 0.8f;
     [SerializeField] private bool moveAfterLand;
 
-    public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
-    {
-        base.OnStateEnter(animator, stateInfo, layerIndex);
-    }
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
+        if (data == null) return;
         if (!main) return;
         if (moveAfterLand)
         {

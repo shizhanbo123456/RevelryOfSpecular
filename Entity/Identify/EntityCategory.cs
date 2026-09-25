@@ -22,6 +22,4 @@ public enum EntityCategory
     Tower,
     /// <summary>瘟疫树（中立争抢单位）。</summary>
     PlagueTree,
-    /// <summary>场景道具/其它。</summary>
-    Prop,
 }

@@ -24,7 +24,6 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType Crystal(int value) => new EntityType(EntityCategory.Crystal, value);
     public static EntityType Tower(int value) => new EntityType(EntityCategory.Tower, value);
     public static EntityType PlagueTree(int value) => new EntityType(EntityCategory.PlagueTree, value);
-    public static EntityType Prop(int value) => new EntityType(EntityCategory.Prop, value);
     #endregion
 
     #region 预设

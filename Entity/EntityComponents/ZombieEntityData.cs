@@ -88,7 +88,7 @@ public class ZombieEntityData : EntityData
         if (dist > Config.zombie_roar_range) TryRoar(); // 距离近时直接近战更优，只在远处嘶吼
     }
 
-    /// <summary>停止：清目的地与移动输入，动画回 Idle。不直接写速度 —— 水平速度按地面摩擦自然衰减（见 ResolveMoveVelocity ②）。</summary>
+    /// <summary>停止：清目的地与移动输入，动画回 Idle。不直接写速度 —— 水平速度按地面摩擦自然衰减（见 TickVelocity 摩擦分支）。</summary>
     public void Stop()
     {
         StopMoving();
@@ -139,7 +139,7 @@ public class ZombieEntityData : EntityData
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
         // 只喂"前进"：朝向已由上面的渐转负责。喂实际方向会在目标位于背后时触发"后退"语义
-        // （前后声明的负号是给玩家输入的，见 ResolveMoveVelocity），表现为僵尸倒着走
+        // （前后声明的负号是给玩家输入的，见 TickVelocity），表现为僵尸倒着走
         SetMoveInput(Vector3.forward);
         anim?.Move(true);
     }

@@ -24,6 +24,7 @@ public class AnimEvent : StateMachineBehaviour
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateEnter(animator, stateInfo, layerIndex);
+        if (data == null) return;
         AnimId = stateInfo.fullPathHash;
         if (!main) return;
         anim.NotifyStateEnter(AnimId, State);

@@ -26,31 +26,38 @@ public class PlayerEntityData : EntityData
     /// <summary>绕 Y 角速度（度/秒，随表现摘要下发客户端做包间推演）。</summary>
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
-    /// <summary>记录移动输入（按下/抬起边沿 → 按住掩码；朝向仍由服务器渐转权威推进）。</summary>
-    public override void RecordMoveInput(CSMoveInput move)
+    /// <summary>
+    /// 记录输入（同一入口处理全部按键位）：
+    /// WASD 按下/抬起边沿维护按住掩码（抬起位右移一位即对应按住位）；
+    /// 动作键为按下边沿（攻击/跳跃/滑铲/技能槽，服务器不消费抬起）。
+    /// </summary>
+    public override void RecordInput(CSPlayerInput input)
     {
         EnsureMoveState();
-        moveState.held = (moveState.held | move.pressed) & ~move.released;
 
-        float x = ((moveState.held & PlayerKey.D) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.A) != 0 ? 1f : 0f);
-        float z = ((moveState.held & PlayerKey.W) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.S) != 0 ? 1f : 0f);
-        moveState.dir = new Vector2(x, z).normalized;
-        moveState.moving = x != 0f || z != 0f;
+        // 移动：按下位并入按住掩码，抬起位清除对应按住位（右移一位，位布局刻意相邻），随即重算方向
+        var press = input.pressed & PlayerKey.MovePressMask;
+        var release = (PlayerKey)((uint)(input.pressed & PlayerKey.MoveReleaseMask) >> 1);
+        if (press != 0 || release != 0)
+        {
+            moveState.held = (moveState.held | press) & ~release;
 
-        // 输入只落到实体这一个字段（角色本地系方向与正负）；速度大小由动画模块声明的速度决定（见 ResolveMoveVelocity）
-        SetMoveInput(new Vector3(moveState.dir.x, 0f, moveState.dir.y));
+            float x = ((moveState.held & PlayerKey.DPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.APress) != 0 ? 1f : 0f);
+            float z = ((moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.SPress) != 0 ? 1f : 0f);
+            moveState.dir = new Vector2(x, z).normalized;
+            moveState.moving = x != 0f || z != 0f;
 
-        // Run/Idle 随表现摘要同步给客户端
-        anim?.Move(moveState.moving);
-    }
+            // 输入只落到实体这一个字段（角色本地系方向与正负）；速度大小由动画模块声明的速度决定（见 TickVelocity）
+            SetMoveInput(new Vector3(moveState.dir.x, 0f, moveState.dir.y));
 
-    /// <summary>记录动作输入（攻击/跳跃/滑铲/技能槽，均为按下边沿）。</summary>
-    public override void RecordActionInput(CSActionInput action)
-    {
-        bool moving = moveState != null && moveState.moving;
+            // Run/Idle 随表现摘要同步给客户端
+            anim?.Move(moveState.moving);
+        }
+
+        bool moving = moveState.moving;
 
         // 跳跃键：移动中且翻滚不在冷却 → 优先翻滚；否则（未移动 / 冷却中）普通跳跃
-        if ((action.pressed & PlayerKey.K) != 0)
+        if ((input.pressed & PlayerKey.K) != 0)
         {
             if (moving && Time.time >= rollReadyTime)
             {
@@ -63,12 +70,12 @@ public class PlayerEntityData : EntityData
             }
         }
         // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
-        if ((action.pressed & PlayerKey.LShift) != 0)
+        if ((input.pressed & PlayerKey.LShift) != 0)
         {
             anim?.DoSlide();
         }
         // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
-        if ((action.pressed & PlayerKey.J) != 0)
+        if ((input.pressed & PlayerKey.J) != 0)
         {
             int meleeSkill = moving
                 ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
@@ -79,7 +86,7 @@ public class PlayerEntityData : EntityData
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
         for (int i = 0; i < Config.skill_slot_player_keys.Length; i++)
         {
-            if ((action.pressed & Config.skill_slot_player_keys[i]) == 0) continue;
+            if ((input.pressed & Config.skill_slot_player_keys[i]) == 0) continue;
             UseSkillSlot(i);
             break;
         }
@@ -92,6 +99,19 @@ public class PlayerEntityData : EntityData
     private void Jump()
     {
         anim?.DoJump();
+    }
+
+    /// <summary>被打断但没击飞：转身面向命中来源。同步 moveState.yaw，否则下一帧 OnTickMove 会按旧 yaw 弹回原朝向。</summary>
+    protected override void OnHitInterrupted(Vector3 hitOrigin)
+    {
+        Vector3 to = hitOrigin - transform.position;
+        to.y = 0f;
+        if (to.sqrMagnitude > 0.0001f)
+        {
+            EnsureMoveState();
+            moveState.yaw = Quaternion.LookRotation(to.normalized).eulerAngles.y;
+        }
+        base.OnHitInterrupted(hitOrigin);
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
@@ -166,7 +186,7 @@ public class PlayerEntityData : EntityData
 
     /// <summary>
     /// AI 每帧推进：有目的地就沿 NavMesh 前进，否则站定、只转向 AI 指定的朝向点。
-    /// 与僵尸走同一条链路 —— 只喂"前进方向 + 移动开关"，**不产生速度**（速度由动画声明，见 ResolveMoveVelocity）。
+    /// 与僵尸走同一条链路 —— 只喂"前进方向 + 移动开关"，**不产生速度**（速度由动画声明，见 TickVelocity）。
     /// </summary>
     private void TickAiMove(float deltaTime, bool canInput)
     {

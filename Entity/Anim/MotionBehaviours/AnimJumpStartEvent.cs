@@ -8,12 +8,14 @@ public class AnimJumpStartEvent : AnimMotionEvent
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateEnter(animator, stateInfo, layerIndex);
+        if (data == null) return;
         if (!main) return;
         canTrigEvent = true;
     }
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
+        if (data == null) return;
         if (main && canTrigEvent && stateInfo.normalizedTime > threshold)
         {
             canTrigEvent = false;

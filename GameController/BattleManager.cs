@@ -487,20 +487,12 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 输入与技能接收（服务器）
-    /// <summary>接收移动输入（服务器，由 NetworkManager RPC 回调）：权威移动见 BattleManagerCombat。</summary>
-    public void ReceiveMoveInput(short clientId, CSMoveInput move)
+    /// <summary>接收输入（服务器，由 NetworkManager RPC 回调）：权威移动见 BattleManagerCombat。</summary>
+    public void ReceiveInput(short clientId, CSPlayerInput input)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        entity.RecordMoveInput(move);
-    }
-
-    /// <summary>接收动作输入（服务器，由 NetworkManager RPC 回调）：攻击/跳跃/滑铲/技能槽。</summary>
-    public void ReceiveActionInput(short clientId, CSActionInput action)
-    {
-        if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
-        if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
-        entity.RecordActionInput(action);
+        entity.RecordInput(input);
     }
     #endregion
 
@@ -554,7 +546,7 @@ public partial class BattleManager : EnsBehaviour
 
         // 玩家实体：真人与 AI 完全同一条路径（AI 也在此处，clientId 为负数虚拟 id），
         // 按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色；初始技能表与所选角色强制绑定。
-        // 唯一差异是输入来源：真人来自网络 CSMoveInput/CSActionInput，AI 来自 UpdateAI。
+        // 唯一差异是输入来源：真人来自网络 CSPlayerInput，AI 来自 UpdateAI。
         foreach (var pair in PlayerInfoList)
         {
             short clientId = pair.Key;
@@ -762,8 +754,8 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>填充表现推演数据：真实速度（刚体实际速度的水平分量）与绕 Y 角速度（客户端包间推演用）。</summary>
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
-        // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移
-        Vector3 v = entity.rb != null ? entity.rb.velocity : entity.motionVelocity;
+        // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移；无刚体（不可移动单位）即无速度
+        Vector3 v = entity.rb != null ? entity.rb.velocity : Vector3.zero;
         info.velocity = new Vector3(v.x, 0f, v.z); // 纵向不做客户端推演
         info.yawSpeed = entity.YawSpeed;
     }

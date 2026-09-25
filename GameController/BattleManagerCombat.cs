@@ -11,11 +11,9 @@ public partial class BattleManager
 {
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
     /// <summary>
-    /// 移动推进（Rigidbody 承载速度，服务器权威；全项目唯一的"设置速度"位置）：
-    /// 水平速度由实体自己算（EntityData.ResolveMoveVelocity）—— **玩家主动操控的速度只能来自动画模块**
-    /// 通过 EntityAnim.SetVelocity* 的声明；未声明时在地面按 2 m/s² 衰减、空中保持水平速度；Y 完全不写（重力/被击飞/下落照常）。
-    /// 这里只负责叠加 MotionBase 的 motionVelocity —— 位移效果**不吃速度参数**：冲刺/击退不该被减速 Buff 缩水。
-    /// 朝向由实体自己推进（OnTickMove：玩家角色按输入渐转后直接赋 rotation，刚体旋转只锁 X/Z）。
+    /// 移动推进（服务器权威）：只做空检查并逐实体调用 TickVelocity——
+    /// MotionBase 更新、朝向与输入推进、动画/位移/击飞的混合、区块索引同步全部在 EntityData.TickVelocity 内部完成。
+    /// **玩家主动操控的速度只能来自动画模块**通过 EntityAnim.SetVelocity* 的声明（来源 Animation）。
     /// </summary>
     private void TickMovement()
     {
@@ -24,21 +22,7 @@ public partial class BattleManager
         {
             if (e == null || !e.Alive) continue;
             if (e.anim == null) continue; // 无动画单位不移动（与 EntityData.SetupBody 同一判据）
-
-            // 强控（麻痹/冰冻/定身）期间输入不生效；"位移锁输入"由 MotionCanMove 表达
-            bool canInput = e.effectController == null || e.effectController.CanMove();
-
-            e.OnTickMove(dt, canInput); // 朝向与输入推进交给实体自己（玩家角色在 PlayerEntityData）
-
-            // 速度由实体自己决定（动画声明的速度 / 未声明时地面摩擦与空中保持，见 EntityData.ResolveMoveVelocity）。
-            // **加速/减速/泥沼不在这里乘**：它们只作用于动画播放速度（EntityEffectController.ApplyAnimSpeedScale →
-            // EntityAnim.SetMoveSpeedScale），对位移速度的影响由动画模块在声明速度时自行接入。
-            e.SetMoveVelocity(e.ResolveMoveVelocity(dt) + e.motionVelocity);
-
-            // 区块索引跟着走：范围的索敌查询（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人。
-            // 只有 Entities 桶装会移动的实体；守护点/水晶/防御塔三桶装的是静止实体（出生后不再移动），
-            // 只在增删时定位，无需逐帧同步。
-            EntityContainer.Entities.UpdateObjectPosition(e.id);
+            e.TickVelocity(dt);
         }
     }
     #endregion

@@ -401,7 +401,7 @@ public static class Config
 
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）
     /// <summary>
-    /// 刚体线性阻力：**必须为 0**。速度完全由动画声明的速度与地面摩擦决定（见 EntityData.ResolveMoveVelocity）——
+    /// 刚体线性阻力：**必须为 0**。速度完全由动画声明的速度与地面摩擦决定（见 EntityData.TickVelocity）——
     /// 阻力不为 0 会让"空中保持水平速度"失效，并在地面上叠加出第二条衰减曲线，与地面摩擦打架。
     /// </summary>
     public const float rb_drag = 0f;

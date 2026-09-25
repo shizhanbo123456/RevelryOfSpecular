@@ -140,17 +140,17 @@ public class EntityAnim : MonoBehaviour
     public void SetVelocityForward(float speed)
     {
         if (data == null) return;
-        data.SetVelocityForward(speed * PlaybackSpeed);
+        data.SetVelocityForward(speed * PlaybackSpeed, VelocitySource.Animation);
     }
     public void SetVelocityHorizontal(Vector2 speed)
     {
         if (data == null) return;
-        data.SetVelocityHorizontal(speed * PlaybackSpeed);
+        data.SetVelocityHorizontal(speed * PlaybackSpeed, VelocitySource.Animation);
     }
     public void SetVelocityVertical(float speed)
     {
         if (data == null) return;
-        data.SetVelocityVertical(speed);
+        data.SetVelocityVertical(speed, VelocitySource.Animation);
     }
     #endregion
     #region//速度控制

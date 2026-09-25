@@ -44,8 +44,9 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>当前位移效果（null = 无）；SetMotion 设置并调用 Enter，时间到由 OnUpdate 调用 Exit。</summary>
     [HideInInspector] public MotionBase motion;
-    /// <summary>位移效果产出的当前速度（服务器权威移动逻辑中消费；无位移效果时为零）。</summary>
-    [HideInInspector] public Vector3 motionVelocity;
+
+    /// <summary>最后一次速度写入的来源。动画声明是内部唯一记录的速度值；位移每帧向 MotionBase 取、击飞一次性写刚体，均不留存。</summary>
+    public VelocitySource LastVelocitySource { get; private set; } = VelocitySource.Animation;
 
     /// <summary>
     /// 刚体（可移动类别的权威速度载体，见 SetupBody 与 BattleManagerCombat.TickMovement）。
@@ -55,7 +56,7 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 移动输入方向（**角色本地系**：X = 右、Z = 前、Y 恒为 0）。
-    /// 移动系统**只取它的方向与正负**，速度大小由动画模块声明（见 <see cref="ResolveMoveVelocity"/>）——
+    /// 移动系统**只取它的方向与正负**，速度大小由动画模块声明（见 <see cref="TickVelocity"/>）——
     /// 输入只决定"往哪走、朝前还是朝后"，**不产出速度**。网络输入与 AI 都只写它。
     /// </summary>
     [HideInInspector] public Vector3 moveInput;
@@ -117,7 +118,7 @@ public abstract class EntityData : MonoBehaviour
             case EntityCategory.PlagueTree:
                 return target.AddComponent<PlagueTreeEntityData>();
             default:
-                return null; // Prop 无专属行为，暂无子类
+                return null; // 未支持的类别无子类
         }
     }
 
@@ -165,7 +166,6 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnUpdate()
     {
         effectController?.OnUpdate();
-        UpdateMotion();
         UpdateGrounded();
     }
 
@@ -203,7 +203,7 @@ public abstract class EntityData : MonoBehaviour
 
     /// <summary>
     /// 前往某处。只记目标，"往哪走"留到 <see cref="ResolveNavDirection"/> 算 —— 寻路只借 NavMesh 算方向，
-    /// 移动仍走"移动输入 + 动画声明速度"这一条链路（见 <see cref="ResolveMoveVelocity"/>）。
+    /// 移动仍走"移动输入 + 动画声明速度"这一条链路（见 <see cref="TickVelocity"/>）。
     /// 可反复调用改目标；目标没挪窝就不重算路径，所以逐帧拿最新坐标调它也不会每帧跑寻路。
     /// </summary>
     public void MoveTo(Vector3 dest)
@@ -267,33 +267,29 @@ public abstract class EntityData : MonoBehaviour
     }
     #endregion
 
-    /// <summary>接收移动输入（网络上行）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
-    public virtual void RecordMoveInput(Ros.Transport.CSMoveInput move) { }
+    /// <summary>接收输入（网络上行，移动边沿 + 动作按下）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
+    public virtual void RecordInput(Ros.Transport.CSPlayerInput input) { }
 
-    /// <summary>接收动作输入（攻击/跳跃/滑铲/技能槽，网络上行）。默认无操作：只有玩家角色会实现。</summary>
-    public virtual void RecordActionInput(Ros.Transport.CSActionInput action) { }
-
-    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter）。</summary>
+    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter；本帧速度由 TickVelocity 向 Update 取）。</summary>
     public void SetMotion(MotionBase motion)
     {
         RemoveMotion();
         this.motion = motion;
-        motionVelocity = motion != null ? motion.Enter(this, Vector3.zero) : Vector3.zero;
+        motion?.Enter(this, Vector3.zero);
     }
 
-    /// <summary>移除位移效果（Exit + 清速度；破霸体命中/强控打断时调用）。</summary>
+    /// <summary>移除位移效果（Exit；破霸体命中/强控打断时调用）。</summary>
     public void RemoveMotion()
     {
         if (motion == null) return;
         motion.Exit(this);
         motion = null;
-        motionVelocity = Vector3.zero;
     }
 
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
     public bool MotionCanMove => motion == null || motion.canMove;
 
-    #region//速度（外部设置速度的唯一入口；摩擦等天然变化只在本区内处理）
+    #region//速度（写入必须携带 VelocitySource 来源；内部只记录动画声明值，位移逐帧取、击飞一次性覆盖，混合在本区内完成）
     /// <summary>动画当前声明的"前后"速度（**角色本地前后**，正 = 朝前；0 = 本状态不动）。</summary>
     private bool declaredForward;
     private float declaredForwardSpeed;
@@ -304,26 +300,29 @@ public abstract class EntityData : MonoBehaviour
     private int declaredAnimId = -1;
 
     /// <summary>声明前后速度（EntityAnim.SetVelocityForward）：角色本地前后，正 = 朝前、负 = 朝后。声明在"当前动画状态"内有效。</summary>
-    public void SetVelocityForward(float speed)
+    public void SetVelocityForward(float speed, VelocitySource source)
     {
         declaredForward = true;
         declaredForwardSpeed = speed;
         declaredHorizontal = false; // 前后与水平通常不会同时声明；后声明的为准
+        LastVelocitySource = source;
         if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
     /// <summary>声明水平速度（EntityAnim.SetVelocityHorizontal）：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
-    public void SetVelocityHorizontal(Vector2 speed)
+    public void SetVelocityHorizontal(Vector2 speed, VelocitySource source)
     {
         declaredHorizontal = true;
         declaredHorizontalSpeed = speed;
         declaredForward = false;
+        LastVelocitySource = source;
         if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
     /// <summary>声明垂直速度（EntityAnim.SetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
-    public void SetVelocityVertical(float speed)
+    public void SetVelocityVertical(float speed, VelocitySource source)
     {
+        LastVelocitySource = source;
         if (rb == null) return;
         Vector3 velocity = rb.velocity;
         velocity.y = speed;
@@ -331,22 +330,44 @@ public abstract class EntityData : MonoBehaviour
     }
 
     /// <summary>
-    /// 本帧水平速度（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 取用）。
-    /// 只决定水平分量，**绝不写 Y**（Y 归重力与 SetVelocityVertical，即"没声明时按抛体运动"）。三种情况：
-    /// ① 动画声明了速度 → **按声明值原样施加**，不做任何改写（见下）；
-    /// ② 未推进（松开输入/被强控/位移锁输入）且不在地面上 → 保持水平速度（空中无阻力，跳跃/被击飞不在空中掉速）；
-    /// ③ 未推进且在地面上 → 水平速度朝 0 按 Config.move_ground_friction 衰减。
-    /// **玩家主动操控的速度只能来自动画声明**：动画没声明就没有速度（推进输入只提供方向与前后符号，不再产出速度）。
-    /// **加速/减速/泥沼不在这里参与**：EntityAnim 声明速度时已按当前动画播放速度缩放（SetVelocityForward/Horizontal
-    /// 内部乘 PlaybackSpeed），所以这里拿到的就是缩放后的值；MotionBase、重力、击飞则完全不吃这个倍率。
+    /// 统一设速入口：写入必须携带 VelocitySource。目前只有击飞（Knockback）走这里——
+    /// 一次性覆盖：直接写刚体水平分量并清除动画声明，之后由未声明分支自然保持/衰减。
+    /// 动画速度走声明接口，MotionBase 由 TickVelocity 每帧内部结算。
     /// </summary>
-    public Vector3 ResolveMoveVelocity(float deltaTime)
+    public void SetVelocity(VelocitySource source, Vector3 horizontalVelocity)
     {
-        Vector3 current = rb != null ? rb.velocity : Vector3.zero;
-        // 扣掉位移效果的速度：它由 MotionBase 单独产出、调用方另行叠加，不参与这里的衰减/保持（否则会被累加两次）
-        Vector3 horizontal = new Vector3(current.x - motionVelocity.x, 0f, current.z - motionVelocity.z);
+        LastVelocitySource = source;
+        if (rb == null || source != VelocitySource.Knockback) return;
+        declaredForward = false;
+        declaredHorizontal = false;
+        SetRbHorizontal(horizontalVelocity);
+    }
 
-        // 离开声明它的动画状态 → 声明失效；下一个状态若没声明，就回落到下面的默认行为
+    /// <summary>
+    /// 每帧速度结算（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 调用）：
+    /// ① 更新 MotionBase（时间到移除，否则取本帧位移速度）② 朝向与输入推进（OnTickMove）③ 混合写刚体 ④ 区块索引同步。
+    /// 混合规则：**有 MotionBase 时无视摩擦**——canMove 时最终速度 = 位移速度 + 动画声明（空中同样生效），
+    /// 否则位移完全接管（阻断动画来源）；无 MotionBase 时：动画声明有效按声明施加（空中同样生效），
+    /// 未声明且在地面按 Config.move_ground_friction 衰减、空中保持刚体速度。
+    /// **玩家主动操控的速度只能来自动画声明**；加速/减速/泥沼已在 EntityAnim 声明时按播放速度缩放，这里不再乘。
+    /// </summary>
+    public void TickVelocity(float deltaTime)
+    {
+        if (rb == null) return;
+
+        // ① MotionBase 每帧更新：时间到移除，否则取本帧位移速度
+        Vector3 motionVelocity = Vector3.zero;
+        if (motion != null)
+        {
+            if (Time.time >= motion.endTime) RemoveMotion();
+            else motionVelocity = motion.Update(this, Vector3.zero);
+        }
+
+        // ② 朝向与输入推进（强控/位移锁输入期间输入不生效）
+        bool canInput = effectController == null || effectController.CanMove();
+        OnTickMove(deltaTime, canInput);
+
+        // 换状态 → 动画声明失效
         if ((declaredForward || declaredHorizontal) && anim != null)
         {
             anim.GetDisplayAnim(out var animId, out _);
@@ -357,27 +378,54 @@ public abstract class EntityData : MonoBehaviour
             }
         }
 
-        if (declaredHorizontal)
+        // ③ 混合写刚体（只写 X/Z，Y 归重力与 SetVelocityVertical）
+        if (motion != null)
         {
-            // 水平声明是**世界空间**的水平速度：直接施加，不做本地系换算、不乘任何系数
-            return new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
+            Vector3 final = motionVelocity;
+            if (motion.canMove) final += DeclaredVelocity();
+            SetRbHorizontal(final);
         }
+        else if (declaredForward || declaredHorizontal)
+        {
+            SetRbHorizontal(DeclaredVelocity()); // 空中也照常应用动画速度
+        }
+        else
+        {
+            // 未声明：刚体现有水平速度（含击飞残留）原地保持；在地面按摩擦朝 0 衰减
+            Vector3 carried = rb.velocity;
+            carried.y = 0f;
+            float speed = carried.magnitude;
+            if (grounded)
+            {
+                float next = Mathf.Max(0f, speed - Config.move_ground_friction * deltaTime);
+                SetRbHorizontal(speed <= 0.0001f ? Vector3.zero : carried * (next / speed));
+            }
+        }
+
+        // ④ 区块索引跟着走：范围索敌（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人
+        BattleManager.EntityContainer.Entities.UpdateObjectPosition(id);
+    }
+
+    /// <summary>当前动画声明换算成的世界水平速度（未声明返回零）。</summary>
+    private Vector3 DeclaredVelocity()
+    {
+        if (declaredHorizontal) return new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
         if (declaredForward)
         {
-            // 前后声明是**角色本地前后**的带符号速度：方向即角色朝向；符号取输入的前后轴
-            // （动画只知道"在移动"，不知道玩家按的是前还是后，所以后退的负号由输入给）
+            // 前后声明是角色本地前后：符号取输入的前后轴（动画只知道"在移动"，不知道玩家按的是前还是后）
             float sign = moveInput.z < -0.001f ? -1f : 1f;
             return transform.forward * (declaredForwardSpeed * sign);
         }
+        return Vector3.zero;
+    }
 
-        // ② 未推进且离地 → 保持水平速度（没有空中控制：按住方向不会重新获得速度）
-        if (!grounded) return horizontal;
-
-        // ③ 未推进且在地面 → 水平速度朝 0 按地面摩擦衰减
-        float speed = horizontal.magnitude;
-        if (speed <= 0.0001f) return Vector3.zero;
-        float next = Mathf.Max(0f, speed - Config.move_ground_friction * deltaTime);
-        return horizontal * (next / speed);
+    /// <summary>把水平分量写入刚体（Y 不动）。</summary>
+    private void SetRbHorizontal(Vector3 horizontal)
+    {
+        Vector3 velocity = rb.velocity;
+        velocity.x = horizontal.x;
+        velocity.z = horizontal.z;
+        rb.velocity = velocity;
     }
     #endregion
 
@@ -390,35 +438,10 @@ public abstract class EntityData : MonoBehaviour
         moveInput = new Vector3(localDirection.x, 0f, localDirection.z);
     }
 
-    /// <summary>
-    /// 设置本帧速度的水平分量（服务器权威移动的唯一出口）。
-    /// 只写 X/Z：Y 由重力与外力（击飞/下落）决定，绝不被输入覆盖。
-    /// </summary>
-    public void SetMoveVelocity(Vector3 horizontalVelocity)
-    {
-        if (rb == null) return;
-        Vector3 velocity = rb.velocity;
-        velocity.x = horizontalVelocity.x;
-        velocity.z = horizontalVelocity.z;
-        rb.velocity = velocity;
-    }
-
     /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
     public void SetAnimPaused(bool paused)
     {
         anim?.SetPaused(paused);
-    }
-
-    /// <summary>位移效果每帧推进：时间到调用 Exit 并清除；否则 Update 产出本帧速度。</summary>
-    private void UpdateMotion()
-    {
-        if (motion == null) return;
-        if (Time.time >= motion.endTime)
-        {
-            RemoveMotion();
-            return;
-        }
-        motionVelocity = motion.Update(this, motionVelocity);
     }
 
     /// <summary>
@@ -447,7 +470,8 @@ public abstract class EntityData : MonoBehaviour
         {
             RemoveMotion();  // 破霸体命中：打断位移
             anim?.DoHit();
-            ApplyKnockback(attack, hitOrigin); // 被击飞（还会受到击飞抗性影响）
+            // 被击飞（还会受到击飞抗性影响）；被打断但没击飞时转身面向命中来源，让 Hit 动画朝向正确
+            if (!ApplyKnockback(attack, hitOrigin)) OnHitInterrupted(hitOrigin);
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
@@ -456,22 +480,35 @@ public abstract class EntityData : MonoBehaviour
     }
 
     /// <summary>
-    /// 击飞：v = 攻击力度 − 被击飞抗性（同量纲，v ≤ 0 一并落在阈值内），不够阈值就不击飞。
+    /// 击飞：v = 攻击力度 − 被击飞抗性（同量纲，v ≤ 0 一并落在阈值内），不够阈值就不击飞并返回 false。
     /// 水平方向 = 命中位置指向本实体的水平方向，垂直方向向上，**两个方向的速度值都取 v**。
     /// **这是一条独立的水平速度来源**（攻击命中的一次性速度覆盖，不走动画声明、也不走 MotionBase）；
-    /// 之后空中保持、落地才按地面摩擦衰减。
+    /// 写入 Knockback 来源时清除动画声明与保留值，之后空中保持、落地才按地面摩擦衰减。
     /// </summary>
-    private void ApplyKnockback(AttackData attack, Vector3 hitOrigin)
+    private bool ApplyKnockback(AttackData attack, Vector3 hitOrigin)
     {
-        if (rb == null || floatingAttribute == null) return;
+        if (rb == null || floatingAttribute == null) return false;
         float v = attack.knockbackPower - floatingAttribute.knockbackResistance;
-        if (v <= 0.01f) return;
+        if (v <= 0.01f) return false;
 
         Vector3 away = transform.position - hitOrigin;
         away.y = 0f;
         Vector3 dir = away.sqrMagnitude > 0.0001f ? away.normalized : transform.forward;
-        SetMoveVelocity(dir * v); // 水平（只写 X/Z）
-        SetVelocityVertical(v);   // 垂直（一次性初速，之后交回重力）
+        SetVelocity(VelocitySource.Knockback, dir * v); // 水平（只写 X/Z）
+        SetVelocityVertical(v, VelocitySource.Knockback); // 垂直（一次性初速，之后交回重力）
+        return true;
+    }
+
+    /// <summary>
+    /// 被打断但没击飞：转身面向命中来源（被击飞方向的反向）。
+    /// 保持视角水平——命中来源坐标压平到水平面后 LookRotation，结果只含绕 Y 的旋转。
+    /// </summary>
+    protected virtual void OnHitInterrupted(Vector3 hitOrigin)
+    {
+        Vector3 to = hitOrigin - transform.position;
+        to.y = 0f;
+        if (to.sqrMagnitude < 0.0001f) return; // 命中来源几乎在正上/正下方，保持原朝向
+        transform.rotation = Quaternion.LookRotation(to.normalized);
     }
 
     /// <summary>
@@ -596,10 +633,13 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>落地检测探针：脚底附近的一个小重叠球（中心抬高 + 半径）。</summary>
     private const float ground_probe_up = 0.1f;
     private const float ground_probe_radius = 0.15f;
+    /// <summary>判落地允许的最大上升速度：超过它（起跳/击飞上升段）即使脚底碰到地面层也不算落地。</summary>
+    private const float GroundMaxRiseSpeed = 0.1f;
     private static readonly Collider[] s_groundBuffer = new Collider[4];
 
     /// <summary>
-    /// 落地检测：脚底一个小重叠球，命中**地面层**（InfoManager.ground_layer）上任意非 trigger 碰撞体即算踩在地面上，结果写入状态机 InAir。
+    /// 落地检测：先判垂直速度（上升段必然离地，省一次物理查询），再脚底一个小重叠球，
+    /// 命中**地面层**（InfoManager.ground_layer）上任意非 trigger 碰撞体即算踩在地面上，结果写入状态机 InAir。
     /// 只查地面层：全层查询会把踩着的角色也算成地面；仍剔除自身兜底（层号配错时防自踩）。
     /// 空中/落地**只由物理决定**，不用"跳跃时长到了就当落地"这类计时——任何状态下 InAir 都必须反映真实姿态。
     /// </summary>
@@ -608,6 +648,17 @@ public abstract class EntityData : MonoBehaviour
         if (anim == null || rb == null) return; // 只有会动且带动画的实体需要
         // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
         if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
+
+        // 先判垂直速度：仍有明显上升速度（起跳/击飞上升段，初帧脚底球可能仍与地面重叠）必然离地
+        if (rb.velocity.y >= GroundMaxRiseSpeed)
+        {
+            if (grounded)
+            {
+                grounded = false;
+                anim.InAir(true);
+            }
+            return;
+        }
 
         Vector3 center = transform.position + Vector3.up * ground_probe_up;
         int count = Physics.OverlapSphereNonAlloc(center, ground_probe_radius, s_groundBuffer, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);

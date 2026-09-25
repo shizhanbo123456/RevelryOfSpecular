@@ -10,7 +10,7 @@ using UnityEngine;
 ///
 /// 状态机三态：`Approach`（走向目标）⇄ `Engage`（攻击距离内站定交战），横切 `Retreat`（残血脱离）。
 /// 本类只决定"去哪、打谁、放什么"；逐帧的移动与转向在 PlayerEntityData.TickAiMove / OnTickMove 里，
-/// 且**不产生速度**（速度仍由动画声明，见 EntityData.ResolveMoveVelocity）。
+/// 且**不产生速度**（速度仍由动画声明，见 EntityData.TickVelocity）。
 /// </summary>
 public class PlayerAiController
 {

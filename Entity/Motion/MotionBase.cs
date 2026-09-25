@@ -5,7 +5,7 @@ using UnityEngine;
 /// 生命周期：EntityData.SetMotion 设置时调用 Enter → 生效期间每帧调用 Update（可不断改写角色速度，
 /// 例如恒定返回 data.transform.forward * 8 即让角色自动前进）→ 到达 endTime 由 EntityData 调用 Exit。
 /// canMove = false 时位移期间锁玩家输入移动，速度完全由本效果控制。
-/// 产出的 motionVelocity 由 BattleManagerCombat.TickMovement 叠加到刚体上（不吃速度系数）。
+/// 产出的速度由 EntityData.TickVelocity 每帧取用：**有位移效果时无视摩擦**，canMove 时与动画声明混合，否则位移完全接管（阻断动画来源）。
 /// 需要实体位置时通过 EntityData/BulletTrajectory.TryGetEntityPosition 按 id 读取（客户端无 EntityData）。
 /// 击退/击飞不走本类：命中瞬间由 EntityData.ProcessHit 直接写速度。
 /// </summary>
