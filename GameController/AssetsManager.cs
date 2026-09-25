@@ -60,8 +60,10 @@ public class AssetsManager : MonoBehaviour
     #endregion
 
     #region UI 图标
-    public List<Sprite> CharacterIcons = new();
-    public List<Sprite> WeaponIcons = new();
+    /// <summary>进攻方角色图标（下标 = 进攻角色序号）。</summary>
+    public List<Sprite> AttackCharacterIcons = new();
+    /// <summary>防守方角色图标（下标 = 防守角色序号）。</summary>
+    public List<Sprite> DefenseCharacterIcons = new();
     #endregion
 
     /// <summary>按实体类型取客户端图形。</summary>

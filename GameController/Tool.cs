@@ -263,15 +263,15 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.GunWeaponPrefabs", m.GunWeaponPrefabs, Config.weapon_id_gun_max - Config.weapon_id_gun_min + 1);
         e += CheckList("AssetsManager.MagicOrbPrefabs", m.MagicOrbPrefabs, Config.weapon_id_magic_max - Config.weapon_id_magic_min + 1);
 
-        e += CheckList("AssetsManager.CharacterIcons", m.CharacterIcons, 0); // 数量未定稿，只查空项
-        e += CheckList("AssetsManager.WeaponIcons", m.WeaponIcons, 0);
-        if (m.CharacterIcons == null || m.CharacterIcons.Count == 0)
+        e += CheckList("AssetsManager.AttackCharacterIcons", m.AttackCharacterIcons, 0); // 数量未定稿，只查空项
+        e += CheckList("AssetsManager.DefenseCharacterIcons", m.DefenseCharacterIcons, 0);
+        if (m.AttackCharacterIcons == null || m.AttackCharacterIcons.Count == 0)
         {
-            Debug.LogWarning("[启动自检] AssetsManager.CharacterIcons 为空：角色图标未导入");
+            Debug.LogWarning("[启动自检] AssetsManager.AttackCharacterIcons 为空：进攻方角色图标未导入");
         }
-        if (m.WeaponIcons == null || m.WeaponIcons.Count == 0)
+        if (m.DefenseCharacterIcons == null || m.DefenseCharacterIcons.Count == 0)
         {
-            Debug.LogWarning("[启动自检] AssetsManager.WeaponIcons 为空：武器图标未导入");
+            Debug.LogWarning("[启动自检] AssetsManager.DefenseCharacterIcons 为空：防守方角色图标未导入");
         }
         return e;
     }
