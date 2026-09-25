@@ -21,6 +21,9 @@ public class ClientLogicManager : MonoBehaviour
     /// <summary>战斗时间（Sub/ClientBattleTimeManager）：昼夜快照与推演、分数快照。</summary>
     public ClientBattleTimeManager BattleTime { get; private set; }
 
+    /// <summary>初始界面预览（Sub/HomePreviewManager）：选中角色复制到预览锚点 + 相机机位。</summary>
+    public HomePreviewManager HomePreview { get; private set; }
+
     private ClientSubManager[] subManagers;
 
     private void Awake()
@@ -32,9 +35,10 @@ public class ClientLogicManager : MonoBehaviour
         Settlement = new SettlementManager();
         SkillVfx = new ClientSkillManager();
         BattleTime = new ClientBattleTimeManager();
+        HomePreview = new HomePreviewManager();
 
         // 先全部建好再统一 Init：Init 内可能有跨子管理器的引用
-        subManagers = new ClientSubManager[] { EntityPlayers, Labels, Settlement, SkillVfx, BattleTime };
+        subManagers = new ClientSubManager[] { EntityPlayers, Labels, Settlement, SkillVfx, BattleTime, HomePreview };
         foreach (var sub in subManagers) sub.Init(this);
     }
 

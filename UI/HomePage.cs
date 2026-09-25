@@ -23,10 +23,17 @@ public class HomePage : PageBase
     {
         var page = UITheme.Page();
 
-        page.Add(UITheme.Title("墓园狂欢 · 非对称攻防"));
-        var subtitle = UITheme.Subtitle("分别选择进攻方与防守方角色，连接服务器后进入组队大厅");
-        subtitle.style.marginBottom = 18;
-        page.Add(subtitle);
+        //底部条：不铺满全屏，让出上方场景展示预览角色与地形
+        page.style.position = Position.Absolute;
+        page.style.left = 0;
+        page.style.right = 0;
+        page.style.bottom = 0;
+        page.style.height = 340;
+        page.style.paddingLeft = 24;
+        page.style.paddingRight = 24;
+        page.style.paddingTop = 14;
+        page.style.paddingBottom = 14;
+        page.style.backgroundColor = new Color(UITheme.PageBg.r, UITheme.PageBg.g, UITheme.PageBg.b, 0.88f);
 
         // 角色列表（左，两页签切换阵营）与选中信息（右）
         var contentRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexGrow = 1 } };
@@ -107,6 +114,12 @@ public class HomePage : PageBase
         RefreshList();
     }
 
+    public override void OnDisable()
+    {
+        //离开首页即清理预览模型（进组队大厅/战斗）
+        Tool.ClientLogicManager?.HomePreview?.Hide();
+    }
+
     /// <summary>刷新页签、角色列表与信息面板（页签决定列表显示哪个阵营，两阵营各自独立选择）。</summary>
     public void RefreshList()
     {
@@ -119,6 +132,8 @@ public class HomePage : PageBase
         else
             AddCharacterButtons(false, infoManager != null ? infoManager.AttackCharacterInfoList : null);
         RefreshInfo();
+        //同步场景预览：当前选中的两角色复制到预览锚点
+        Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
     }
 
     /// <summary>构建进攻/防守两个页签（当前页签用主按钮色高亮）。</summary>

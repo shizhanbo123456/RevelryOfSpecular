@@ -49,6 +49,11 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("防守方出生/复活位置列表（同一个列表，出生与复活均随机取一个）")]
     public List<Transform> defensePositions = new();
 
+    [Header("初始界面预览（仅客户端使用）：角色站位与展示相机机位，锚点必须属于地形预制体")]
+    public Transform attackerPreviewPos;
+    public Transform defenserPreviewPos;
+    public Transform cameraPreviewPos;
+
     [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
     [Tooltip("由菜单生成的坐标点位（水晶刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
     [Min(0.1f)] public float crystalGizmoRadius = 1f;
@@ -310,6 +315,11 @@ public class LandscapeSpawns : MonoBehaviour
         DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 瘟疫树：紫
         DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);          // 进攻方出生/复活：蓝
         DrawPoints(defensePositions, new Color(0.10f, 0.90f, 0.90f), otherGizmoRadius);         // 防守方出生/复活：青绿
+
+        // 初始界面预览锚点（单点）
+        if (attackerPreviewPos != null) { Gizmos.color = new Color(1.00f, 0.45f, 0.40f); DrawPoint(attackerPreviewPos.position, otherGizmoRadius); } // 进攻预览：红
+        if (defenserPreviewPos != null) { Gizmos.color = new Color(0.40f, 0.72f, 1.00f); DrawPoint(defenserPreviewPos.position, otherGizmoRadius); } // 防守预览：蓝
+        if (cameraPreviewPos != null) { Gizmos.color = new Color(1.00f, 0.82f, 0.40f); DrawPoint(cameraPreviewPos.position, otherGizmoRadius); }     // 预览相机：黄
     }
 
     /// <summary>绘制锚点列表（跳过空位）。</summary>
