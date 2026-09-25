@@ -22,8 +22,8 @@ public abstract class MotionBase
     /// <summary>生效期间每帧调用：传入当前角色速度（刚体速度，含位移外的全部来源），返回本帧位移速度（内部可用 Time.deltaTime）。</summary>
     public abstract Vector3 Update(EntityData data, Vector3 speed);
 
-    /// <summary>结束时调用（时间到 / 被替换 / 打断）。</summary>
-    public abstract void Exit(EntityData data);
+    /// <summary>结束时调用（时间到 / 被替换 / 打断）：传入当前角色速度（刚体速度），返回位移结束后的速度（原样返回 = 保留惯性，返回零 = 立即停止；由 EntityData 写回刚体水平分量）。</summary>
+    public abstract Vector3 Exit(EntityData data, Vector3 speed);
 }
 
 /// <summary>
@@ -51,8 +51,5 @@ public class MotionDash : MotionBase
         return data.transform.forward * this.speed;
     }
 
-    public override void Exit(EntityData data)
-    {
-        // 结束处理（如恢复速度/播放收尾表现）按需实现
-    }
+    public override Vector3 Exit(EntityData data, Vector3 speed) => speed; // 冲锋结束保留当前惯性，交回摩擦/动画接管
 }

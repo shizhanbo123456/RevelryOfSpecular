@@ -33,7 +33,5 @@ public class MotionToPoint : MotionBase
 
     public override Vector3 Update(EntityData data, Vector3 speed) => dir * moveSpeed;
 
-    public override void Exit(EntityData data)
-    {
-    }
+    public override Vector3 Exit(EntityData data, Vector3 speed) => speed; // 到点结束保留当前惯性，交回摩擦/动画接管
 }

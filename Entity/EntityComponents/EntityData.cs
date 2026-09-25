@@ -278,12 +278,18 @@ public abstract class EntityData : MonoBehaviour
         if (motion != null && rb != null) motion.Enter(this, rb.velocity);
     }
 
-    /// <summary>移除位移效果（Exit；破霸体命中/强控打断时调用）。</summary>
+    /// <summary>移除位移效果（Exit 传入当前速度、返回位移结束后的速度并写回刚体水平分量；破霸体命中/强控打断时调用）。</summary>
     public void RemoveMotion()
     {
         if (motion == null) return;
-        motion.Exit(this);
+        MotionBase finished = motion;
         motion = null;
+        if (rb == null)
+        {
+            finished.Exit(this, Vector3.zero);
+            return;
+        }
+        SetRbHorizontal(finished.Exit(this, rb.velocity));
     }
 
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
