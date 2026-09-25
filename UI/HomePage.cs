@@ -10,6 +10,8 @@ using UnityEngine.UIElements;
 public class HomePage : PageBase
 {
     private VisualElement characterList;
+    private VisualElement tabBar;
+    private bool defenseTab;
     private Label infoLabel;
     private Label playerLevelLabel;
     private Label levelUpLabel;
@@ -26,14 +28,15 @@ public class HomePage : PageBase
         subtitle.style.marginBottom = 18;
         page.Add(subtitle);
 
-        // 角色列表（左）与选中信息（右）
+        // 角色列表（左，两页签切换阵营）与选中信息（右）
         var contentRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexGrow = 1 } };
         page.Add(contentRow);
 
         var listCard = UITheme.Card();
         listCard.style.flexGrow = 1;
         listCard.style.marginRight = 16;
-        listCard.Add(UITheme.Section("角色列表"));
+        tabBar = new VisualElement { style = { flexDirection = FlexDirection.Row, marginBottom = 10 } };
+        listCard.Add(tabBar);
         characterList = new ScrollView { style = { flexGrow = 1 } };
         listCard.Add(characterList);
         contentRow.Add(listCard);
@@ -104,21 +107,44 @@ public class HomePage : PageBase
         RefreshList();
     }
 
-    /// <summary>刷新角色列表与信息面板（两个阵营分组常驻展示，各自独立选择）。</summary>
+    /// <summary>刷新页签、角色列表与信息面板（页签决定列表显示哪个阵营，两阵营各自独立选择）。</summary>
     public void RefreshList()
     {
         if (characterList == null) return;
         characterList.Clear();
-
-        AddCharacterButtons("进攻方角色", isDefense: false, Tool.InfoManager != null ? Tool.InfoManager.AttackCharacterInfoList : null);
-        AddCharacterButtons("防守方角色", isDefense: true, Tool.InfoManager != null ? Tool.InfoManager.DefenseCharacterInfoList : null);
+        BuildTabs();
+        var infoManager = Tool.InfoManager;
+        if (defenseTab)
+            AddCharacterButtons(true, infoManager != null ? infoManager.DefenseCharacterInfoList : null);
+        else
+            AddCharacterButtons(false, infoManager != null ? infoManager.AttackCharacterInfoList : null);
         RefreshInfo();
     }
 
-    private void AddCharacterButtons(string groupTitle, bool isDefense, System.Collections.Generic.List<PlayerCharacterInfo> infoList)
+    /// <summary>构建进攻/防守两个页签（当前页签用主按钮色高亮）。</summary>
+    private void BuildTabs()
     {
-        characterList.Add(UITheme.Section(groupTitle));
+        tabBar.Clear();
+        tabBar.Add(MakeTab("选择进攻方", false));
+        var defense = MakeTab("选择防守方", true);
+        defense.style.marginLeft = 8;
+        tabBar.Add(defense);
+    }
 
+    private Button MakeTab(string title, bool isDefense)
+    {
+        var btn = UITheme.StyleButton(new Button(() =>
+        {
+            if (defenseTab == isDefense) return;
+            defenseTab = isDefense;
+            RefreshList();
+        }) { text = title }, defenseTab == isDefense, 0f, 34f);
+        btn.style.flexGrow = 1;
+        return btn;
+    }
+
+    private void AddCharacterButtons(bool isDefense, System.Collections.Generic.List<PlayerCharacterInfo> infoList)
+    {
         for (int i = 0; i < infoList?.Count; i++)
         {
             var info = infoList[i];
