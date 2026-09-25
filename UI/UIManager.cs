@@ -87,8 +87,12 @@ public class UIManager : MonoBehaviour
         EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
         EventManager.AddEvent<string>(ClientEvent.ShowNotice, ShowNotice);
         EventManager.AddEvent<bool>(ClientEvent.ShowLoading, ShowLoading);
+    }
 
-        //初始页面：currentPage 初值即 Home，ShowPage 会因“同页”提前返回，故直接进入
+    private void Start()
+    {
+        //初始显示必须延到 Start：InfoManager/SaveManager 等在各自 Awake 注册 Tool，
+        //Awake 之间顺序不定，首页 OnEnable 立即刷新列表会读到 null（角色列表为空的根因）
         var home = GetPage(PageType.Home);
         home?.OnEnable();
         home?.Enter();

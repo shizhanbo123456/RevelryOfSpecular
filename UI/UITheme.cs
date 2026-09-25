@@ -145,6 +145,32 @@ public static class UITheme
     /// <summary>分组小标题。</summary>
     public static Label Section(string text) => Text(text, Gold, FontBody, true);
 
+    /// <summary>
+    /// 锁图标（纯元素绘制）：黑体没有锁字形（U+1F512 缺失），写文字在打包后会显示为空白，
+    /// 故用「圆弧锁环 + 方形锁体」两个元素拼出来，双端表现一致。
+    /// </summary>
+    public static VisualElement LockIcon(float size = 14f)
+    {
+        var icon = new VisualElement { style = { width = size, height = size } };
+        var shackle = new VisualElement
+        {
+            style = { width = size * 0.55f, height = size * 0.55f, alignSelf = Align.Center }
+        };
+        shackle.style.borderTopWidth = 2f;
+        shackle.style.borderLeftWidth = 2f;
+        shackle.style.borderRightWidth = 2f;
+        shackle.style.borderTopColor = shackle.style.borderLeftColor = shackle.style.borderRightColor = TextFaint;
+        shackle.style.borderTopLeftRadius = size * 0.28f;
+        shackle.style.borderTopRightRadius = size * 0.28f;
+        var body = new VisualElement { style = { width = size, height = size * 0.62f } };
+        body.style.backgroundColor = TextFaint;
+        body.style.marginTop = -size * 0.12f;
+        SetRadius(body, 2f);
+        icon.Add(shackle);
+        icon.Add(body);
+        return icon;
+    }
+
     /// <summary>进度条外槽（圆角 + 裁剪）。</summary>
     public static VisualElement BarTrack(float height = 10f)
     {

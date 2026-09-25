@@ -11,6 +11,7 @@ public class HomePage : PageBase
 {
     private VisualElement characterList;
     private Label infoLabel;
+    private Label playerLevelLabel;
     private Label levelUpLabel;
     private TextField ipField;
     private Label connectStatusLabel;
@@ -39,9 +40,12 @@ public class HomePage : PageBase
 
         var infoCard = UITheme.Card(400f);
         infoCard.Add(UITheme.Section("角色信息"));
+        playerLevelLabel = UITheme.Text("", UITheme.Gold, UITheme.FontBody);
+        playerLevelLabel.style.marginBottom = 8;
         infoLabel = UITheme.Text("未选择角色", UITheme.TextMain, UITheme.FontBody);
         infoLabel.style.marginBottom = 8;
         levelUpLabel = UITheme.Text("", UITheme.Green, UITheme.FontSmall);
+        infoCard.Add(playerLevelLabel);
         infoCard.Add(infoLabel);
         infoCard.Add(levelUpLabel);
         contentRow.Add(infoCard);
@@ -121,12 +125,25 @@ public class HomePage : PageBase
             string name = !string.IsNullOrEmpty(info.Name) ? info.Name : (isDefense ? $"防守角色 {i}" : $"进攻角色 {i}");
             int saveIndex = isDefense ? Config.attack_character_count + i : i;
             int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
-            bool unlocked = Tool.SaveManager != null && Tool.SaveManager.IsCharacterUnlocked(saveIndex);
+            bool unlocked = Tool.SaveManager == null || Tool.SaveManager.IsCharacterUnlocked(saveIndex);
             int selectedIndex = isDefense ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
 
-            var btn = UITheme.StyleListItem(
-                new Button { text = $"{name}   Lv{level}{(unlocked ? "" : "   [未解锁]")}" },
-                i == selectedIndex);
+            var btn = UITheme.StyleListItem(new Button(), i == selectedIndex);
+            var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            if (unlocked)
+            {
+                row.Add(UITheme.Text($"{name}   Lv{level}", TextMain, UITheme.FontBody));
+            }
+            else
+            {
+                //锁图标必须用元素绘制（黑体无锁字形），锁定角色不可点击
+                row.Add(UITheme.LockIcon());
+                var lockText = UITheme.Text($"{name}   Lv{level}   未解锁", UITheme.TextFaint, UITheme.FontBody);
+                lockText.style.marginLeft = 6;
+                row.Add(lockText);
+                btn.SetEnabled(false);
+            }
+            btn.Add(row);
             int captured = i;
             btn.clicked += () =>
             {
@@ -141,6 +158,8 @@ public class HomePage : PageBase
     private void RefreshInfo()
     {
         if (infoLabel == null) return;
+        if (playerLevelLabel != null)
+            playerLevelLabel.text = $"玩家等级 Lv{(Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1)}";
         var sb = new System.Text.StringBuilder();
         AppendCharacter(sb, "进攻方", ClientSelection.selectedAttackIndex, isDefense: false);
         sb.AppendLine();
