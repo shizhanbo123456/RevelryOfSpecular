@@ -118,7 +118,7 @@ public abstract class EntityData : MonoBehaviour
             case EntityCategory.PlagueTree:
                 return target.AddComponent<PlagueTreeEntityData>();
             default:
-                return null; // 未支持的类别无子类
+                throw new System.Exception(); // 未支持的类别无子类
         }
     }
 
