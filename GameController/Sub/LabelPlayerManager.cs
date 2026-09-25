@@ -12,7 +12,6 @@ public class LabelPlayerManager : ClientSubManager
     private const float BarWidth = 1f;
     private const float BarHeight = 0.12f;
     private const float BarDepth = 0.02f;
-    private const float TopFallbackY = 0.9f;         // EntityModelInfo 未烘焙时名字锚点的兜底高度
     private const float NameCharacterSize = 0.08f;
     private const int NameFontSize = 64;
     private const string BarShaderName = "Unlit/Color";
@@ -56,17 +55,12 @@ public class LabelPlayerManager : ClientSubManager
 
         Detach(view.id);
 
-        // 模型大小：视图根 = 图形预制体根，EntityModelInfo 的 yRange 即该本地空间的包围盒（未烘焙时退回默认头顶高度）
+        // 模型大小：视图根 = 图形预制体根，EntityModelInfo 的 yRange 即该本地空间的包围盒（玩家图形必须烘焙，缺失直接暴露）
         var labelGo = new GameObject("OverheadLabel");
         labelGo.transform.SetParent(view.transform, false);
-        float footY = 0f;
-        float topY = TopFallbackY;
         var modelInfo = view.GetComponentInChildren<EntityModelInfo>();
-        if (modelInfo != null && modelInfo.yRange.y - modelInfo.yRange.x > 0.001f)
-        {
-            footY = modelInfo.yRange.x; // 模型最低点（脚部）
-            topY = modelInfo.yRange.y;  // 模型最高点（头顶）
-        }
+        float footY = modelInfo.yRange.x; // 模型最低点（脚部）
+        float topY = modelInfo.yRange.y;  // 模型最高点（头顶）
 
         CreateName(labelGo.transform, info, topY);
         var label = new OverheadLabel();
