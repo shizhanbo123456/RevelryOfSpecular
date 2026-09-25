@@ -178,7 +178,59 @@ public class Tool : MonoBehaviour
         e += CheckList("InfoManager.TowerTemplates", m.TowerTemplates, Config.tower_count);
         e += CheckObject("InfoManager.PlagueTreeTemplate", m.PlagueTreeTemplate);
 
-        e += CheckList("InfoManager.SkillInfoList", m.SkillInfoList, SkillManager.GetSkillCount());
+        e += CheckSkillInfos();
+        return e;
+    }
+
+    /// <summary>技能配置：逐 id 核对 SkillInfoList 与 SkillManager 注册表，报告缺失 / 多余 / 重复 / 空条目。</summary>
+    private static int CheckSkillInfos()
+    {
+        var list = InfoManager.SkillInfoList;
+        if (list == null)
+        {
+            Debug.LogError("[启动自检] InfoManager.SkillInfoList 为 null（未初始化）");
+            return 1;
+        }
+
+        int e = 0;
+        var configured = new HashSet<int>();
+        var duplicated = new HashSet<int>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            var info = list[i];
+            if (info == null)
+            {
+                Debug.LogError($"[启动自检] InfoManager.SkillInfoList[{i}] 为空（资产可能已被删除）");
+                e++;
+                continue;
+            }
+            if (!configured.Add(info.id)) duplicated.Add(info.id);
+        }
+        if (duplicated.Count > 0)
+        {
+            var ids = new List<int>(duplicated);
+            ids.Sort();
+            Debug.LogError($"[启动自检] InfoManager.SkillInfoList 重复 id：{string.Join(", ", ids)}");
+            e++;
+        }
+
+        List<int> registered = SkillManager.GetRegisteredIds();
+        var missing = new List<int>();
+        var extra = new List<int>();
+        foreach (int id in registered) if (!configured.Contains(id)) missing.Add(id);
+        foreach (int id in configured) if (!registered.Contains(id)) extra.Add(id);
+        missing.Sort();
+        extra.Sort();
+        if (missing.Count > 0)
+        {
+            Debug.LogError($"[启动自检] InfoManager.SkillInfoList 缺失技能 id：{string.Join(", ", missing)}");
+            e++;
+        }
+        if (extra.Count > 0)
+        {
+            Debug.LogWarning($"[启动自检] InfoManager.SkillInfoList 配置了未注册的技能 id：{string.Join(", ", extra)}");
+            e++;
+        }
         return e;
     }
 

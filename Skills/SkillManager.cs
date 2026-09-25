@@ -49,6 +49,14 @@ public static class SkillManager
         return s_map.Count;
     }
 
+    /// <summary>全部已注册技能 id（升序副本；启动自检逐 id 核对 SkillInfo 用）。</summary>
+    public static List<int> GetRegisteredIds()
+    {
+        var ids = new List<int>(s_map.Keys);
+        ids.Sort();
+        return ids;
+    }
+
     /// <summary>技能对应的漂浮武器（客户端常驻漂浮显示用；无武器返回 <see cref="WeaponRef.None"/>）。</summary>
     public static WeaponRef GetFlyWeapon(int id)
     {
