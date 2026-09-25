@@ -66,6 +66,17 @@ public static class UITheme
     public const float FieldHeight = 34f;
     #endregion
 
+    #region 字体
+    /// <summary>
+    /// 全 UI 字体（UIManager 注入）。默认主题的 UnitySans 只有 ASCII 字形且压过继承值，
+    /// 必须以 unityFontDefinition 内联到每个文字元素上，否则打包后中文空白（编辑器有系统字体回退掩盖了问题）。
+    /// </summary>
+    public static FontDefinition? UIFont { get; private set; }
+
+    /// <summary>注入字体（传 null 清除）。必须在创建页面之前调用。</summary>
+    public static void SetFont(Font font) => UIFont = font != null ? FontDefinition.FromFont(font) : (FontDefinition?)null;
+    #endregion
+
     #region 元素
     /// <summary>页面容器：铺满 + 底色 + 统一内边距。</summary>
     public static VisualElement Page()
@@ -124,6 +135,7 @@ public static class UITheme
         element.style.fontSize = fontSize;
         element.style.whiteSpace = WhiteSpace.Normal;
         if (bold) element.style.unityFontStyleAndWeight = FontStyle.Bold;
+        if (UIFont.HasValue) element.style.unityFontDefinition = UIFont.Value;
     }
 
     /// <summary>页面主标题。</summary>
@@ -250,11 +262,12 @@ public static class UITheme
         SetBorder(field, 1f, Border);
         SetRadius(field, RadiusSmall);
 
-        var input = field.Q("unity-text-input") ?? field.Q<TextElement>();
+        var input = field.Q<TextElement>("unity-text-input") ?? field.Q<TextElement>();
         if (input == null) return;
         input.style.backgroundColor = FieldBg;
         input.style.color = TextMain;
         input.style.fontSize = FontBody;
+        if (UIFont.HasValue) input.style.unityFontDefinition = UIFont.Value;
         input.style.height = StyleKeyword.Auto;
         input.style.flexGrow = 1f;
         input.style.paddingLeft = 8f;

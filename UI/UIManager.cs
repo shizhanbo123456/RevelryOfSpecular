@@ -59,8 +59,12 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        //字体设在根上，子元素继承
-        if (uiFont != null) root.style.unityFont = uiFont;
+        //主题字体（UnitySans）无中文字形且压过继承值，必须注入 UITheme 逐元素内联 definition
+        if (uiFont != null)
+        {
+            UITheme.SetFont(uiFont);
+            root.style.unityFontDefinition = FontDefinition.FromFont(uiFont);
+        }
         else Debug.LogWarning("UIManager 未配置 uiFont，中文可能显示为空白");
 
         // 构建页面
