@@ -270,12 +270,12 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>接收输入（网络上行，移动边沿 + 动作按下）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
     public virtual void RecordInput(Ros.Transport.CSPlayerInput input) { }
 
-    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter；本帧速度由 TickVelocity 向 Update 取）。</summary>
+    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter（传当前角色速度）；本帧速度由 TickVelocity 向 Update 取）。</summary>
     public void SetMotion(MotionBase motion)
     {
         RemoveMotion();
         this.motion = motion;
-        motion?.Enter(this, Vector3.zero);
+        if (motion != null && rb != null) motion.Enter(this, rb.velocity);
     }
 
     /// <summary>移除位移效果（Exit；破霸体命中/强控打断时调用）。</summary>
