@@ -19,7 +19,7 @@ public abstract class MotionBase
     /// <summary>生效时调用（SetMotion 设置时）：返回生效后的初始速度。</summary>
     public abstract Vector3 Enter(EntityData data, Vector3 speed);
 
-    /// <summary>生效期间每帧调用：返回本帧速度（内部可用 Time.deltaTime）。</summary>
+    /// <summary>生效期间每帧调用：传入当前角色速度（刚体速度，含位移外的全部来源），返回本帧位移速度（内部可用 Time.deltaTime）。</summary>
     public abstract Vector3 Update(EntityData data, Vector3 speed);
 
     /// <summary>结束时调用（时间到 / 被替换 / 打断）。</summary>

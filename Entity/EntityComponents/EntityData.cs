@@ -355,12 +355,12 @@ public abstract class EntityData : MonoBehaviour
     {
         if (rb == null) return;
 
-        // ① MotionBase 每帧更新：时间到移除，否则取本帧位移速度
+        // ① MotionBase 每帧更新：时间到移除，否则取本帧位移速度（传入当前角色速度，供位移实现基于现有速度计算）
         Vector3 motionVelocity = Vector3.zero;
         if (motion != null)
         {
             if (Time.time >= motion.endTime) RemoveMotion();
-            else motionVelocity = motion.Update(this, Vector3.zero);
+            else motionVelocity = motion.Update(this, rb.velocity);
         }
 
         // ② 朝向与输入推进（强控/位移锁输入期间输入不生效）
