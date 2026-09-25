@@ -44,7 +44,7 @@ public class EnvironmentManager : MonoBehaviour
     /// <summary>有雾效时 Fog Void 的 FallOff。</summary>
     public const float FogVoidFallOffOn = 0f;
     /// <summary>无雾效时 Fog Void 的 FallOff。</summary>
-    public const float FogVoidFallOffOff = 1.55f;
+    public const float FogVoidFallOffOff = 7f;
 
     [Header("昼夜时长（秒）")]
     [Tooltip("白天时长：光照值 ≥ 0.5 区间的总耗时。修改后只改变推进速率，当前时间不变。\n（客户端上的值仅作首帧前的初始值，运行时会被服务器下发的值覆盖）")]
@@ -61,7 +61,7 @@ public class EnvironmentManager : MonoBehaviour
     public VolumetricFog fog;
 
     [Header("雾气")]
-    [Tooltip("是否启用雾效：开启 = Fog Void FallOff 0，关闭 = 1.55；切换时按 fogTransitionDuration 秒线性过渡。（客户端由「迷雾」Buff 自动驱动，此处只是初始值）")]
+    [Tooltip("是否启用雾效：开启 = Fog Void FallOff 0，关闭 = 7；切换时按 fogTransitionDuration 秒线性过渡。（客户端由「迷雾」Buff 自动驱动，此处只是初始值）")]
     public bool fogEnabled = false;
 
     [Tooltip("雾效开关的过渡时间（秒）")]
@@ -102,7 +102,7 @@ public class EnvironmentManager : MonoBehaviour
     private float lastNightDuration;
     private bool syncRequested;
 
-    /// <summary>Fog Void 的 FallOff 当前值（在 0 / 1.55 之间按过渡时间线性推进）。</summary>
+    /// <summary>Fog Void 的 FallOff 当前值（在 0 / 7 之间按过渡时间线性推进）。</summary>
     private float fogVoidFallOffCurrent;
     private int skyExposureId;
     private bool exposureWarningLogged;
@@ -185,7 +185,7 @@ public class EnvironmentManager : MonoBehaviour
         syncRequested = true;
     }
 
-    /// <summary>设置是否启用雾效（Fog Void 的 FallOff 在 0 / 1.55 之间按过渡时间线性变化）。</summary>
+    /// <summary>设置是否启用雾效（Fog Void 的 FallOff 在 0 / 7 之间按过渡时间线性变化）。</summary>
     public void SetFogEnabled(bool enabled)
     {
         fogEnabled = enabled;
@@ -283,7 +283,7 @@ public class EnvironmentManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 雾效：Fog Void 的 FallOff 在「有雾效 = 0」「无雾效 = 1.55」之间按 fogTransitionDuration 秒线性过渡。
+    /// 雾效：Fog Void 的 FallOff 在「有雾效 = 0」「无雾效 = 7」之间按 fogTransitionDuration 秒线性过渡。
     /// </summary>
     private void ApplyFogVoid()
     {
