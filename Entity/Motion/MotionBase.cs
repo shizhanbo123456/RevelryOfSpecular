@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// 位移效果基类（abstract）：施放者的一次受控位移（冲锋/拉拽/强制位移等）。
 /// 生命周期：EntityData.SetMotion 设置时调用 Enter → 生效期间每帧调用 Update（可不断改写角色速度，
-/// 例如恒定返回 data.transform.forward * 8 即让角色自动前进）→ 到达 endTime 由 EntityData 调用 Exit。
+/// 例如恒定返回 data.transform.forward * 8 即让角色自动前进）→ 时间自然到期由 EntityData 调用 Exit。
+/// **Exit 仅在时间自然结束时调用**：被破霸体命中、强控、替换等中途移除一律不调用 Exit（位移速度直接消失，残留交回摩擦/动画接管）。
 /// canMove = false 时位移期间锁玩家输入移动，速度完全由本效果控制。
 /// 产出的速度由 EntityData.TickVelocity 每帧取用：**有位移效果时无视摩擦**，canMove 时与动画声明混合，否则位移完全接管（阻断动画来源）。
 /// 需要实体位置时通过 EntityData/BulletTrajectory.TryGetEntityPosition 按 id 读取（客户端无 EntityData）。
@@ -22,7 +23,7 @@ public abstract class MotionBase
     /// <summary>生效期间每帧调用：传入当前角色速度（刚体速度，含位移外的全部来源），返回本帧位移速度（内部可用 Time.deltaTime）。</summary>
     public abstract Vector3 Update(EntityData data, Vector3 speed);
 
-    /// <summary>结束时调用（时间到 / 被替换 / 打断）：传入当前角色速度（刚体速度），返回位移结束后的速度（原样返回 = 保留惯性，返回零 = 立即停止；由 EntityData 写回刚体水平分量）。</summary>
+    /// <summary>仅在时间自然到期时调用（中途被打断/替换不调用）：传入当前角色速度（刚体速度），返回位移结束后的速度（原样返回 = 保留惯性，返回零 = 立即停止；由 EntityData 写回刚体水平分量）。</summary>
     public abstract Vector3 Exit(EntityData data, Vector3 speed);
 }
 

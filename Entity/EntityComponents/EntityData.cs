@@ -270,20 +270,25 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>接收输入（网络上行，移动边沿 + 动作按下）。默认无操作：只有玩家角色会实现（见 PlayerEntityData）。</summary>
     public virtual void RecordInput(Ros.Transport.CSPlayerInput input) { }
 
-    /// <summary>设置位移效果（替换已有效果时先调用其 Exit；设置时对新效果调用 Enter（传当前角色速度）；本帧速度由 TickVelocity 向 Update 取）。</summary>
+    /// <summary>设置位移效果（直接替换，旧效果不调用 Exit；对新效果调用 Enter（传当前角色速度）；本帧速度由 TickVelocity 向 Update 取）。</summary>
     public void SetMotion(MotionBase motion)
     {
-        RemoveMotion();
         this.motion = motion;
         if (motion != null && rb != null) motion.Enter(this, rb.velocity);
     }
 
-    /// <summary>移除位移效果（Exit 传入当前速度、返回位移结束后的速度并写回刚体水平分量；破霸体命中/强控打断时调用）。</summary>
+    /// <summary>中途移除位移效果（破霸体命中/强控打断/替换）：**不调用 Exit**，位移速度直接消失，残留速度交回摩擦/动画接管。</summary>
     public void RemoveMotion()
     {
-        if (motion == null) return;
+        motion = null;
+    }
+
+    /// <summary>位移时间自然到期（仅此路径调用 Exit）：传入当前速度，返回位移结束后的速度并写回刚体水平分量。</summary>
+    private void FinishMotion()
+    {
         MotionBase finished = motion;
         motion = null;
+        if (finished == null) return;
         if (rb == null)
         {
             finished.Exit(this, Vector3.zero);
@@ -361,11 +366,11 @@ public abstract class EntityData : MonoBehaviour
     {
         if (rb == null) return;
 
-        // ① MotionBase 每帧更新：时间到移除，否则取本帧位移速度（传入当前角色速度，供位移实现基于现有速度计算）
+        // ① MotionBase 每帧更新：时间自然到期 → FinishMotion（唯一调用 Exit 的路径）；否则取本帧位移速度
         Vector3 motionVelocity = Vector3.zero;
         if (motion != null)
         {
-            if (Time.time >= motion.endTime) RemoveMotion();
+            if (Time.time >= motion.endTime) FinishMotion();
             else motionVelocity = motion.Update(this, rb.velocity);
         }
 
