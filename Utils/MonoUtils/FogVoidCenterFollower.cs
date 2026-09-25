@@ -1,3 +1,4 @@
+using VolumetricFogAndMist;
 using UnityEngine;
 
 /// <summary>
