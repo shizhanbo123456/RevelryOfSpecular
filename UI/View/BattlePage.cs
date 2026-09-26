@@ -14,8 +14,8 @@ public partial class BattlePage : RosPage
     [SerializeField] private BeaconBarItem beaconTemplate; // 条目模板（首个条目复用模板本体）
 
     [Header("底部技能栏（槽位数随武器槽变化）")]
-    [SerializeField] private RectTransform skillBar;       // 技能槽容器
-    [SerializeField] private BattleSkillItem skillTemplate;// 技能槽模板（首个槽位复用模板本体）
+    [SerializeField] private RosList skillList;            // 技能槽列表（条目 = BattleSkillItem prefab）
+    private RosListWrapper<BattleSkillItem> skillListWrapper;
 
     [Header("飘字区（中央偏上，事件提示文字，2.5s 自动消失）")]
     [SerializeField] private RectTransform floatingPanel;  // 飘字容器
@@ -31,4 +31,9 @@ public partial class BattlePage : RosPage
     [SerializeField] private Text settleTitle;             // 胜负标题（进攻方胜利/防守方胜利/平局）
     [SerializeField] private Text settleDetail;            // 双方比分 + 击杀数 + 本局经验
     [SerializeField] private RosButton settleCloseButton;  // "回到组队大厅"按钮
+
+    public override void Construct()
+    {
+        skillListWrapper = new(skillList);
+    }
 }

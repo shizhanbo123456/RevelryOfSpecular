@@ -4,6 +4,9 @@ using UnityEngine.UI;
 
 public partial class HomePage : RosPage
 {
+    /// <summary>属性数据块的 key 与下标约定（prefab 顺序无关，代码按下标填）。</summary>
+    private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "击退抗", "视野", "技能槽" };
+
     public override void Init()
     {
         connectButton.SetCallback(OnConnectClicked);
@@ -105,42 +108,37 @@ public partial class HomePage : RosPage
         if (nameText != null)
             nameText.text = $"{(info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : "未选择角色")}   Lv{level}";
 
-        var chips = isDefense ? defenseStatChips : attackStatChips;
-        if (chips != null && chips.Count > 0)
-        {
-            if (info == null)
-            {
-                foreach (var chip in chips) chip.ValueText.text = "-";
-            }
-            else
-            {
-                var attr = info.GetAttribute(level);
-                FillChips(chips, $"{attr.health}", $"{attr.strength}", $"{attr.magic}",
-                    $"{attr.critRate}%", $"{attr.critDamage:F1}x", $"{attr.knockbackResistance}",
-                    $"{attr.viewDistance}m", $"{attr.weaponSlotCount}");
-            }
-        }
-
         var hint = isDefense ? defenseLevelUpHintText : attackLevelUpHintText;
+        bool hasHint = info != null && level < Config.max_entity_level;
         if (hint != null)
-        {
-            hint.text = info != null && level < Config.max_entity_level
-                ? $"下一级：{info.GetNextLevelGainDescription(level)}"
+            hint.text = hasHint ? $"下一级：{info.GetNextLevelGainDescription(level)}"
                 : (level >= Config.max_entity_level ? "已达等级上限" : "");
+
+        var statWrapper = isDefense ? defenseStatListWrapper : attackStatListWrapper;
+        if (statWrapper == null) return;
+        //属性值先算好再交给渲染回调（数量固定 8，与 StatKeys 一一对应）
+        string[] values = null;
+        if (info != null)
+        {
+            var attr = info.GetAttribute(level);
+            values = new[]
+            {
+                $"{attr.health}", $"{attr.strength}", $"{attr.magic}",
+                $"{attr.critRate}%", $"{attr.critDamage:F1}x", $"{attr.knockbackResistance}",
+                $"{attr.viewDistance}m", $"{attr.weaponSlotCount}",
+            };
         }
+        statWrapper.itemRenderer = (chip, i) => FillStatChip(chip, i, values);
+        statWrapper.SetItemCount(StatKeys.Length);
     }
 
     #region//Local
-    /// <summary>按固定顺序填属性块：生命/力量/魔法/暴击/暴伤/击退抗/视野/技能槽（与 View 注释的下标约定一致）。</summary>
-    private static void FillChips(System.Collections.Generic.List<StatChipItem> chips,
-        string health, string strength, string magic, string crit, string critDamage,
-        string knockResist, string view, string slots)
+    /// <summary>按 StatKeys 下标填单个属性块（info 未配置时数值显示"-"）。</summary>
+    private static void FillStatChip(StatChipItem chip, int index, string[] values)
     {
-        string[] values = { health, strength, magic, crit, critDamage, knockResist, view, slots };
-        for (int i = 0; i < chips.Count && i < values.Length; i++)
-        {
-            if (chips[i] != null && chips[i].ValueText != null) chips[i].ValueText.text = values[i];
-        }
+        if (chip == null) return;
+        if (chip.KeyText != null) chip.KeyText.text = index < StatKeys.Length ? StatKeys[index] : "";
+        if (chip.ValueText != null) chip.ValueText.text = values != null && index < values.Length ? values[index] : "-";
     }
     #endregion
 }

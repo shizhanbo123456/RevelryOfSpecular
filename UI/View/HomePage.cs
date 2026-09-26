@@ -18,17 +18,21 @@ public partial class HomePage : RosPage
 
     [Header("选中信息卡 · 进攻方（显示进攻方当前选中的角色）")]
     [SerializeField] private Text attackSelectedNameText;    // 选中角色名 + 等级（"名字 Lv N"）
-    [SerializeField] private List<StatChipItem> attackStatChips; // 属性数据块，下标固定顺序：0生命 1力量 2魔法 3暴击 4暴伤 5击退抗 6视野 7技能槽
+    [SerializeField] private RosList attackStatList;         // 属性数据块列表（固定 8 项，key/value 由代码填，顺序见 Logic.StatKeys）
     [SerializeField] private Text attackLevelUpHintText;     // 升级增益：选中角色下一级的属性提升描述
+    private RosListWrapper<StatChipItem> attackStatListWrapper;
 
     [Header("选中信息卡 · 防守方（显示防守方当前选中的角色）")]
     [SerializeField] private Text defenseSelectedNameText;   // 选中角色名 + 等级（同上）
-    [SerializeField] private List<StatChipItem> defenseStatChips; // 属性数据块，下标顺序同上
+    [SerializeField] private RosList defenseStatList;        // 属性数据块列表（同上）
     [SerializeField] private Text defenseLevelUpHintText;    // 升级增益：防守方选中角色下一级的属性提升描述
+    private RosListWrapper<StatChipItem> defenseStatListWrapper;
 
     public override void Construct()
     {
         attackerInfoListWrapper = new(attackerInfoList);
         defenserInfoListWrapper = new(defenserInfoList);
+        attackStatListWrapper = new(attackStatList);
+        defenseStatListWrapper = new(defenseStatList);
     }
 }

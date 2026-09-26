@@ -10,7 +10,6 @@ public partial class BattlePage : RosPage
     private const string NightName = "晚上";
     private const float FloatingLife = 2.5f;
 
-    private readonly List<BattleSkillItem> skillSlots = new();
     private readonly Dictionary<ushort, BeaconBarItem> beaconBars = new();
     private readonly List<(Text label, float time)> floatingLabels = new();
     private float battleStartTime;
@@ -78,24 +77,12 @@ public partial class BattlePage : RosPage
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
     {
-        if (skillBar == null || skillTemplate == null) return;
-        //重建槽位（数量变化时）；模板本体即 0 号槽（与 RosList 同一约定，ActiveFor 克隆 list[0] 补足）
-        if (skillSlots.Count == 0)
-        {
-            skillTemplate.gameObject.SetActive(false);
-            skillSlots.Add(skillTemplate);
-        }
-        while (skillSlots.Count < info.skills.Count)
-        {
-            var item = Instantiate(skillTemplate, skillBar);
-            item.gameObject.SetActive(false);
-            skillSlots.Add(item);
-        }
-        Tool.ActiveFor(skillSlots, info.skills.Count);
-        for (int i = 0; i < info.skills.Count; i++)
-        {
-            skillSlots[i].Refresh(info.skills[i], i == info.selectedIndex, i);
-        }
+        if (skillListWrapper == null) return;
+        //每次摘要到达整表重渲染：CD/库存/经验/选中态都随最新槽位数据走
+        var skills = info.skills;
+        skillListWrapper.itemRenderer = (item, i) =>
+            item.Refresh(skills[i], i == info.selectedIndex, i);
+        skillListWrapper.SetItemCount(skills.Count);
     }
 
     private void OnBeaconDisplay(SCEntityDisplayInfo info)
