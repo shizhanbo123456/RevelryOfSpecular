@@ -6,14 +6,18 @@ using UnityEngine.UI;
 public partial class LobbyPage : RosPage
 {
     private int myCamp = -1;             // 本地当前选择（-1 未选 / 0 进攻 / 1 防守）
+    private int attackAICount;           // 本地显示值，服务器回显为准
+    private int defenseAICount;
     private bool syncingFromServer;      // 服务器回显期间屏蔽本地回调，避免回环上报
 
     public override void Init()
     {
         attackToggle.SetCallback(OnAttackToggle);
         defenseToggle.SetCallback(OnDefenseToggle);
-        attackAIField.onValueChanged.AddListener(_ => OnAICountChanged());
-        defenseAIField.onValueChanged.AddListener(_ => OnAICountChanged());
+        attackMinusButton.SetCallback(() => ChangeAICount(false, -1));
+        attackPlusButton.SetCallback(() => ChangeAICount(false, +1));
+        defenseMinusButton.SetCallback(() => ChangeAICount(true, -1));
+        defensePlusButton.SetCallback(() => ChangeAICount(true, +1));
         startButton.SetCallback(OnStartClicked);
         backButton.SetCallback(OnBackClicked);
     }
@@ -59,11 +63,20 @@ public partial class LobbyPage : RosPage
         SendRoomState();
     }
 
-    /// <summary>AI 数量输入变化 → 上报房间状态。</summary>
-    private void OnAICountChanged()
+    /// <summary>AI 数量 +/-：本地立即显示，随后整体上报（服务器回显为准，最小 0）。</summary>
+    private void ChangeAICount(bool defense, int delta)
     {
         if (syncingFromServer) return;
+        if (defense) defenseAICount = Mathf.Max(0, defenseAICount + delta);
+        else attackAICount = Mathf.Max(0, attackAICount + delta);
+        RefreshAICountLabels();
         SendRoomState();
+    }
+
+    private void RefreshAICountLabels()
+    {
+        if (attackAICountLabel != null) attackAICountLabel.text = $"x{attackAICount}";
+        if (defenseAICountLabel != null) defenseAICountLabel.text = $"x{defenseAICount}";
     }
 
     /// <summary>上报本客户端的大厅选择（选队 + AI 数量，服务器取最新值）。</summary>
@@ -73,23 +86,19 @@ public partial class LobbyPage : RosPage
         Tool.NetworkManager.SendRoomUpdate(new CSRoomUpdate()
         {
             camp = myCamp,
-            attackAICount = ParseCount(attackAIField),
-            defenseAICount = ParseCount(defenseAIField),
+            attackAICount = attackAICount,
+            defenseAICount = defenseAICount,
         });
     }
 
-    private static int ParseCount(InputField field)
-    {
-        return field == null ? 0 : Mathf.Max(0, int.TryParse(field.text, out int v) ? v : 0);
-    }
-
-    /// <summary>服务器广播的房间状态 → 刷新 UI。</summary>
+    /// <summary>服务器广播的房间状态 → 刷新成员列表/AI 数量/自己的选队回显。</summary>
     private void OnRoomInfoUpdate(SCRoomInfo info)
     {
         if (info == null) return;
         syncingFromServer = true;
-        attackAIField.SetTextWithoutNotify(info.attackAICount.ToString());
-        defenseAIField.SetTextWithoutNotify(info.defenseAICount.ToString());
+        attackAICount = info.attackAICount;
+        defenseAICount = info.defenseAICount;
+        RefreshAICountLabels();
 
         // 回显自己的队伍选择
         var me = info.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
@@ -98,15 +107,38 @@ public partial class LobbyPage : RosPage
         defenseToggle.SetSelectedWithoutNotify(myServerCamp == 1);
         myCamp = myServerCamp;
 
-        int attackHumans = info.members.Count(m => m != null && m.camp == 0);
-        int defenseHumans = info.members.Count(m => m != null && m.camp == 1);
-        bool canStart = attackHumans + info.attackAICount > 0 && defenseHumans + info.defenseAICount > 0;
-        if (roomLabel != null)
-            roomLabel.text = $"进攻方：人类 {attackHumans} + AI {info.attackAICount}\n" +
-                             $"防守方：人类 {defenseHumans} + AI {info.defenseAICount}\n" +
-                             (canStart ? "满足开局条件（双方人数均 > 0）" : "双方人数均需 > 0 才能开始");
+        RenderMemberList(attackMemberListWrapper, info.members, 0);
+        RenderMemberList(defenseMemberListWrapper, info.members, 1);
+
+        bool canStart = attackHumans(info) + info.attackAICount > 0 && defenseHumans(info) + info.defenseAICount > 0;
         startButton.SetInteractable(canStart && !info.battleStarted);
         syncingFromServer = false;
+    }
+
+    private static int attackHumans(SCRoomInfo info) => info.members.Count(m => m != null && m.camp == 0);
+    private static int defenseHumans(SCRoomInfo info) => info.members.Count(m => m != null && m.camp == 1);
+
+    /// <summary>渲染指定阵营的成员列表（玩家名 + 所选角色头像；AI 只计数量不进列表）。</summary>
+    private void RenderMemberList(RosListWrapper<LobbyMemberItem> wrapper, List<SCRoomInfo.RoomMemberInfo> members, int camp)
+    {
+        if (wrapper == null) return;
+        var list = members.Where(m => m != null && m.camp == camp).ToList();
+        var icons = Tool.AssetsManager == null ? null
+            : camp == 0 ? Tool.AssetsManager.AttackCharacterIcons : Tool.AssetsManager.DefenseCharacterIcons;
+        wrapper.itemRenderer = (item, i) =>
+        {
+            var member = list[i];
+            if (item.NameText != null) item.NameText.text = $"玩家{member.clientId}";
+            //头像 = 成员当前所选角色；未选/未导入时隐藏图标位
+            bool hasIcon = member.characterIndex >= 0 && icons != null
+                && member.characterIndex < icons.Count && icons[member.characterIndex] != null;
+            if (item.Icon != null)
+            {
+                item.Icon.sprite = hasIcon ? icons[member.characterIndex] : null;
+                item.Icon.gameObject.SetActive(hasIcon);
+            }
+        };
+        wrapper.SetItemCount(list.Count);
     }
 
     private void OnStartClicked()

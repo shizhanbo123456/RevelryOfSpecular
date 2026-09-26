@@ -414,10 +414,18 @@ public partial class BattleManager : EnsBehaviour
         foreach (var pair in PlayerInfoList)
         {
             if (AIClients.Contains(pair.Key)) continue; // AI 只以 attackAICount/defenseAICount 展示
+            int campValue = PlayerCamp.TryGetValue(pair.Key, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1;
+            //所选角色：按成员最终阵营取 CSPlayerInfo 里对应一侧（首页选择随加入上报）
+            int characterIndex = -1;
+            if (campValue == 0 && pair.Value.attackCharacter.category == EntityCategory.Character_Attack)
+                characterIndex = pair.Value.attackCharacter.value;
+            else if (campValue == 1 && pair.Value.defenseCharacter.category == EntityCategory.Character_Defense)
+                characterIndex = pair.Value.defenseCharacter.value;
             info.members.Add(new SCRoomInfo.RoomMemberInfo()
             {
                 clientId = pair.Key,
-                camp = PlayerCamp.TryGetValue(pair.Key, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1,
+                camp = campValue,
+                characterIndex = characterIndex,
             });
         }
         Tool.NetworkManager.SendRoomInfo(info);
