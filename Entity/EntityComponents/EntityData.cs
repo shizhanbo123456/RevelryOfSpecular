@@ -489,7 +489,7 @@ public abstract class EntityData : MonoBehaviour
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
-        OnDamaged(damage, attacker);
+        OnDamaged(damage, attacker, isCrit: isCrit);
         Tool.BattleManager.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
     }
 
@@ -530,7 +530,7 @@ public abstract class EntityData : MonoBehaviour
     /// 管线：护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤。
     /// fixedDamage = true 表示固定数值伤害（DoT/反伤：吃护盾/减伤，不吃增减伤乘区）。
     /// </summary>
-    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true)
+    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false)
     {
         if (floatingAttribute == null || !Alive) return;
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
@@ -549,6 +549,7 @@ public abstract class EntityData : MonoBehaviour
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
+        SendDamageEvent(finalDamage, isCrit);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
@@ -556,6 +557,19 @@ public abstract class EntityData : MonoBehaviour
             if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();
+    }
+
+    /// <summary>伤害飘字广播：value 0=无效，>0=普通伤害，<0=暴击（绝对值为伤害量），targetId=受击实体。</summary>
+    private void SendDamageEvent(float finalDamage, bool isCrit)
+    {
+        int display = Mathf.RoundToInt(finalDamage);
+        if (isCrit) display = -display;
+        Tool.NetworkManager?.SendBattleEvent(new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.Damage,
+            value = display,
+            targetId = id,
+        });
     }
 
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>

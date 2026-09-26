@@ -18,12 +18,16 @@ namespace Ros.Transport
             public const byte CrystalBroken = 3;
             public const byte PlagueTreeCaptured = 6;
             public const byte ShowText = 9; // 飘字（value = NoticeMessageMap 消息 id）
+            /// <summary>单次伤害飘字（value：0=无效，>0=普通伤害，<0=暴击伤害取绝对值；targetId=受击实体）。</summary>
+            public const byte Damage = 10;
         }
 
         /// <summary>事件类型（Type 常量）。</summary>
         public byte type;
         /// <summary>附加值（伤害/得分/ShowText 时 = NoticeMessageMap 消息 id）。</summary>
         public int value;
+        /// <summary>关联实体 id（Damage 时 = 受击实体，客户端据此定位飘字）。</summary>
+        public int targetId;
     }
 
     /// <summary>SCBattleEvent 网络序列化器。</summary>
@@ -34,7 +38,8 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
             if (!ByteSerializer.Serialize(value.type, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.value, result, ref indexStart);
+            if (!IntSerializer.Serialize(value.value, result, ref indexStart)) return false;
+            return IntSerializer.Serialize(value.targetId, result, ref indexStart);
         }
 
         public static SCBattleEvent Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -44,6 +49,7 @@ namespace Ros.Transport
             {
                 type = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 value = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                targetId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }

@@ -16,6 +16,14 @@ public partial class BattlePage : RosPage
     [SerializeField] private RosList skillList;            // 技能槽列表（条目 = BattleSkillItem prefab）
     private RosListWrapper<BattleSkillItem> skillListWrapper;
 
+    [Header("实体名牌（屏幕空间跟随实体头顶，仅玩家角色；条目 = EntityNameBarItem prefab）")]
+    [SerializeField] private RectTransform nameBarPanel;      // 名牌容器（全屏）
+    [SerializeField] private EntityNameBarItem nameBarTemplate; // 名牌条目模板
+
+    [Header("伤害飘字（屏幕空间，在受击实体头顶生成，上浮渐隐）")]
+    [SerializeField] private RectTransform damagePanel;       // 飘字容器（全屏）
+    [SerializeField] private Text damageTextTemplate;         // 飘字文字模板
+
     [Header("复活进度（仅本地玩家死亡时显示）")]
     [SerializeField] private GameObject revivePanel;       // 复活遮罩整体
     [SerializeField] private Image reviveFill;             // 进度条填充（Image Type=Filled，绿）

@@ -13,10 +13,10 @@ public class PlagueTreeEntityData : AutoCastEntityData
     /// <summary>攻占归属：把血量清零那次攻击的来源；被 Buff 打死时为 null。</summary>
     private EntityData captor;
 
-    public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true)
+    public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false)
     {
         bool wasAlive = Alive;
-        base.OnDamaged(damage, attacker, fixedDamage, canReflect);
+        base.OnDamaged(damage, attacker, fixedDamage, canReflect, isCrit);
         // 只认直接攻击：固定数值伤害来自 Buff/DoT，不给归属（也不能沿用更早那次的归属）
         if (wasAlive) captor = fixedDamage ? null : attacker;
     }

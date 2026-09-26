@@ -9,9 +9,6 @@ public class ClientLogicManager : MonoBehaviour
     /// <summary>实体表现（Sub/EntityPlayerManager）：视图创建与移除、位姿动画同步、武器与持续特效。</summary>
     public EntityPlayerManager EntityPlayers { get; private set; }
 
-    /// <summary>头顶信息（Sub/LabelPlayerManager）：玩家名字与血条。</summary>
-    public LabelPlayerManager Labels { get; private set; }
-
     /// <summary>对局结算（Sub/SettlementManager）：终局判定与局外经验入账。</summary>
     public SettlementManager Settlement { get; private set; }
 
@@ -31,14 +28,13 @@ public class ClientLogicManager : MonoBehaviour
         Tool.ClientLogicManager = this;
 
         EntityPlayers = new EntityPlayerManager();
-        Labels = new LabelPlayerManager();
         Settlement = new SettlementManager();
         SkillVfx = new ClientSkillManager();
         BattleTime = new ClientBattleTimeManager();
         HomePreview = new HomePreviewManager();
 
         // 先全部建好再统一 Init：Init 内可能有跨子管理器的引用
-        subManagers = new ClientSubManager[] { EntityPlayers, Labels, Settlement, SkillVfx, BattleTime, HomePreview };
+        subManagers = new ClientSubManager[] { EntityPlayers, Settlement, SkillVfx, BattleTime, HomePreview };
         foreach (var sub in subManagers) sub.Init(this);
     }
 

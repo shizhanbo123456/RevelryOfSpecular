@@ -15,6 +15,7 @@ public class EntityPlayerManager : ClientSubManager
         public ushort id;
         public EntityType type;
         public EntityCamp camp;
+        public float modelTop = float.NaN; // 模型最高点（EntityModelInfo 烘焙值，懒解析缓存；头顶 UI 锚定用）
         public Animator animator;
         public EntityAnim anim;
         public int animHash = int.MinValue; // 当前动画片段 hash（判断是否需要切换）
@@ -127,7 +128,6 @@ public class EntityPlayerManager : ClientSubManager
             view = CreateView(info);
             if (view == null) return;
             views[info.entityId] = view;
-            logic.Labels?.Attach(view, info);
         }
         view.lastSeenTime = Time.time;
         view.velocity = info.velocity;
@@ -150,7 +150,6 @@ public class EntityPlayerManager : ClientSubManager
         if (views.TryGetValue((ushort)entityId, out var view))
         {
             views.Remove((ushort)entityId);
-            logic.Labels?.Detach((ushort)entityId);
             UnityEngine.Object.Destroy(view.gameObject);
             EventManager.TrigEvent(ClientEvent.OnEntityDisplayRemove, entityId);
         }
@@ -177,12 +176,27 @@ public class EntityPlayerManager : ClientSubManager
     /// <summary>清空全部表现（对局结束）。</summary>
     public void ClearAll()
     {
-        logic.Labels?.ClearAll();
         foreach (var view in views.Values)
         {
             if (view != null) UnityEngine.Object.Destroy(view.gameObject);
         }
         views.Clear();
+    }
+
+    /// <summary>按实体 id 获取头顶锚点世界坐标（模型最高点，懒解析缓存；无烘焙信息回退 2m）。</summary>
+    public bool TryGetEntityHeadPos(ushort id, out Vector3 pos)
+    {
+        if (!TryGetEntityTransform(id, out pos, out _)) return false;
+        if (views.TryGetValue(id, out var view) && view != null)
+        {
+            if (float.IsNaN(view.modelTop))
+            {
+                var modelInfo = view.GetComponentInChildren<EntityModelInfo>();
+                view.modelTop = modelInfo != null ? modelInfo.yRange.y : 2f;
+            }
+            pos += Vector3.up * view.modelTop;
+        }
+        return true;
     }
 
     #region//Local
