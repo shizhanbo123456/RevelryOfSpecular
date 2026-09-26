@@ -246,6 +246,12 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
     }
 
+    /// <summary>发送完整战斗事件（广播）：伤害飘字等需要携带附加数据的场景。</summary>
+    public void SendBattleEvent(SCBattleEvent e)
+    {
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
+    }
+
     /// <summary>发送分数（定向）。</summary>
     public void SendScoreInfo(short clientId, SCScoreInfo info)
     {

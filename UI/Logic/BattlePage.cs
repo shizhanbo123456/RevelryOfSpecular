@@ -168,7 +168,9 @@ public partial class BattlePage : RosPage
         {
             var item = pair.Value;
             if (item == null) continue;
-            bool visible = Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(pair.Key, out var headPos) == true;
+            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+            var headPos = Vector3.zero;
+            bool visible = players != null && players.TryGetEntityHeadPos(pair.Key, out headPos);
             var screen = visible ? cam.WorldToScreenPoint(headPos) : Vector3.zero;
             visible = visible && screen.z > 0f; // 相机背面不可见
             item.gameObject.SetActive(visible);
@@ -299,7 +301,7 @@ public partial class BattlePage : RosPage
                 damageLabels.RemoveAt(i);
                 continue;
             }
-            item.label.transform.position += Vector3.up * (60f * deltaTime);
+            item.label.transform.position += Vector3.up * (60f * Time.deltaTime);
             if (age > DamageLife * 0.5f) item.label.CrossFadeAlpha(0f, DamageLife * 0.5f, false);
         }
     }
