@@ -103,8 +103,8 @@ public class LabelPlayerManager : ClientSubManager
         text.characterSize = NameCharacterSize;
         text.anchor = TextAnchor.LowerCenter;
         text.alignment = TextAlignment.Center;
-        // 攻红守蓝，与 HUD 阵营配色一致（UITheme 为外观唯一真值）
-        text.color = info.camp == EntityCamp.Attack ? UITheme.Attack : UITheme.Defense;
+        // 攻红守蓝，与 HUD 阵营配色一致（旧 UITheme 常量内联：攻 1,0.45,0.4 / 守 0.4,0.72,1）
+        text.color = info.camp == EntityCamp.Attack ? new Color(1f, 0.45f, 0.4f) : new Color(0.4f, 0.72f, 1f);
     }
 
     private static void CreateBar(Transform parent, SCEntityDisplayInfo info, OverheadLabel label, float footY)
@@ -112,7 +112,7 @@ public class LabelPlayerManager : ClientSubManager
         var trackMaterial = GetBarMaterial(MatTrack, new Color(0.1f, 0.1f, 0.12f, 1f));
         var fillMaterial = GetBarMaterial(
             info.camp == EntityCamp.Attack ? MatAttack : MatDefense,
-            info.camp == EntityCamp.Attack ? UITheme.Attack : UITheme.Defense);
+            info.camp == EntityCamp.Attack ? new Color(1f, 0.45f, 0.4f) : new Color(0.4f, 0.72f, 1f));
         // 着色器缺失时整条血条放弃，避免只留下底色
         if (trackMaterial == null || fillMaterial == null) return;
 

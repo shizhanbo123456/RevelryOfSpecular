@@ -27,4 +27,10 @@ public class RosToggle : MonoBehaviour
     {
         m_toggle.isOn = selected;
     }
+
+    /// <summary>服务器回显用：改选中态但不触发回调，避免回环上报。</summary>
+    public void SetSelectedWithoutNotify(bool selected)
+    {
+        m_toggle.SetIsOnWithoutNotify(selected);
+    }
 }
