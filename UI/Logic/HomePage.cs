@@ -4,9 +4,6 @@ using UnityEngine.UI;
 
 public partial class HomePage : RosPage
 {
-    /// <summary>属性数据块的 key 与下标约定（prefab 顺序无关，代码按下标填）。</summary>
-    private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "击退抗", "视野", "技能槽" };
-
     public override void Init()
     {
         connectButton.SetCallback(OnConnectClicked);
@@ -116,16 +113,23 @@ public partial class HomePage : RosPage
 
         var statWrapper = isDefense ? defenseStatListWrapper : attackStatListWrapper;
         if (statWrapper == null) return;
-        //属性值先算好再交给渲染回调（数量固定 8，与 StatKeys 一一对应）
+        //每个属性块 = 当前值 + 相对 1 级基础值的增益（绿）+ 下一级增益（橙），richtext 着色
         string[] values = null;
         if (info != null)
         {
             var attr = info.GetAttribute(level);
+            var baseAttr = info.GetAttribute(1);
+            var nextAttr = level < Config.max_entity_level ? info.GetAttribute(level + 1) : null;
             values = new[]
             {
-                $"{attr.health}", $"{attr.strength}", $"{attr.magic}",
-                $"{attr.critRate}%", $"{attr.critDamage:F1}x", $"{attr.knockbackResistance}",
-                $"{attr.viewDistance}m", $"{attr.weaponSlotCount}",
+                StatPart(attr.health, baseAttr.health, nextAttr?.health),
+                StatPart(attr.strength, baseAttr.strength, nextAttr?.strength),
+                StatPart(attr.magic, baseAttr.magic, nextAttr?.magic),
+                StatPart(attr.critRate, baseAttr.critRate, nextAttr?.critRate, "%"),
+                StatPart(attr.critDamage, baseAttr.critDamage, nextAttr?.critDamage, "x"),
+                StatPart(attr.knockbackResistance, baseAttr.knockbackResistance, nextAttr?.knockbackResistance),
+                StatPart(attr.viewDistance, baseAttr.viewDistance, nextAttr?.viewDistance, "m"),
+                StatPart(attr.weaponSlotCount, baseAttr.weaponSlotCount, nextAttr?.weaponSlotCount),
             };
         }
         statWrapper.itemRenderer = (chip, i) => FillStatChip(chip, i, values);
@@ -133,6 +137,31 @@ public partial class HomePage : RosPage
     }
 
     #region//Local
+    /// <summary>属性块 key 与下标约定（prefab 顺序无关，代码按下标填）。</summary>
+    private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "击退抗", "视野", "技能槽" };
+
+    // 增益着色（uGUI richtext）：绿 = 相对 1 级基础的累计增益，橙 = 下一级将获得的增益
+    private const string GainColor = "#6BD98C";
+    private const string NextGainColor = "#FF9E47";
+
+    /// <summary>组装单个属性的显示串：当前值 + 相对基础增益（绿）+ 下一级增益（橙，仅该属性将提升时出现）。</summary>
+    private static string StatPart(float current, float baseVal, float? nextVal, string suffix = "")
+    {
+        string s = Num(current) + suffix;
+        float gain = current - baseVal;
+        if (!Mathf.Approximately(gain, 0f))
+            s += $" <color={GainColor}>+{Num(gain)}{suffix}</color>";
+        if (nextVal.HasValue)
+        {
+            float next = nextVal.Value - current;
+            if (!Mathf.Approximately(next, 0f))
+                s += $" <color={NextGainColor}>[+{Num(next)}{suffix}]</color>";
+        }
+        return s;
+    }
+
+    private static string Num(float v) => v.ToString("0.#");
+
     /// <summary>按 StatKeys 下标填单个属性块（info 未配置时数值显示"-"）。</summary>
     private static void FillStatChip(StatChipItem chip, int index, string[] values)
     {
