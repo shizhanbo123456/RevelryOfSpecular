@@ -1,17 +1,13 @@
 using System.Collections.Generic;
-using Ros.Info;
 using Ros.Transport;
 using UnityEngine;
-using UnityEngine.UI;
 
 public partial class BattlePage : RosPage
 {
     private const string DayName = "白天";
     private const string NightName = "晚上";
-    private const float FloatingLife = 2.5f;
 
     private readonly Dictionary<ushort, BeaconBarItem> beaconBars = new();
-    private readonly List<(Text label, float time)> floatingLabels = new();
     private float battleStartTime;
 
     public override void Init()
@@ -47,16 +43,6 @@ public partial class BattlePage : RosPage
 
     public override void Tick(float deltaTime)
     {
-        //飘字自动消失
-        for (int i = floatingLabels.Count - 1; i >= 0; i--)
-        {
-            var item = floatingLabels[i];
-            if (Time.time - item.time > FloatingLife)
-            {
-                if (item.label != null) Destroy(item.label.gameObject);
-                floatingLabels.RemoveAt(i);
-            }
-        }
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
         if (NetworkManager.battleInfo != null && timeLabel != null)
         {
@@ -120,7 +106,7 @@ public partial class BattlePage : RosPage
         if (timeLabel != null) timeLabel.text = FormatTime(Mathf.Max(0f, info.remainTime));
         if (info.gameState != 0)
         {
-            ShowFloating(GetEndText(info.gameState), GetEndColor(info.gameState));
+            Tool.UIManager?.ShowFloating(GetEndText(info.gameState), GetEndColor(info.gameState));
             settlementPanel.Show(info);
         }
     }
@@ -138,23 +124,23 @@ public partial class BattlePage : RosPage
         switch (e.type)
         {
             case SCBattleEvent.Type.Kill:
-                ShowFloating("击杀！", new Color(1f, 0.45f, 0.4f));
+                Tool.UIManager?.ShowFloating("击杀！", new Color(1f, 0.45f, 0.4f));
                 break;
             case SCBattleEvent.Type.BeaconDestroyed:
-                ShowFloating("守护点被摧毁！", new Color(1f, 0.32f, 0.3f));
+                Tool.UIManager?.ShowFloating("守护点被摧毁！", new Color(1f, 0.32f, 0.3f));
                 break;
             case SCBattleEvent.Type.CrystalCollected:
-                ShowFloating("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
+                Tool.UIManager?.ShowFloating("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
                 break;
             case SCBattleEvent.Type.CrystalBroken:
-                ShowFloating("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
+                Tool.UIManager?.ShowFloating("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
                 break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
-                ShowFloating("攻占瘟疫树！获得瘟疫祝福", new Color(0.4f, 0.72f, 1f));
+                Tool.UIManager?.ShowFloating("攻占瘟疫树！获得瘟疫祝福", new Color(0.4f, 0.72f, 1f));
                 break;
             case SCBattleEvent.Type.ShowText:
                 //消息提示控件尚未在 uGUI 重建，暂以飘字代替
-                ShowFloating(NoticeMessageMap.Get(e.value), Color.white);
+                Tool.UIManager?.ShowFloating(NoticeMessageMap.Get(e.value), Color.white);
                 break;
         }
     }
@@ -173,7 +159,7 @@ public partial class BattlePage : RosPage
 
     private void OnRightClickBlocked(string msg)
     {
-        ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.62f, 0.28f));
+        Tool.UIManager?.ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.62f, 0.28f));
     }
 
     private void OnDayNightChange(int state)
@@ -183,15 +169,6 @@ public partial class BattlePage : RosPage
     #endregion
 
     #region//Local
-    private void ShowFloating(string text, Color color)
-    {
-        if (floatingPanel == null || floatingTextTemplate == null) return;
-        var label = Instantiate(floatingTextTemplate, floatingPanel);
-        label.text = text;
-        label.color = color;
-        floatingLabels.Add((label, Time.time));
-    }
-
     private void RefreshDayNightLabel()
     {
         if (phaseLabel == null) return;

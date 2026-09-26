@@ -17,9 +17,7 @@ public partial class BattlePage : RosPage
     [SerializeField] private RosList skillList;            // 技能槽列表（条目 = BattleSkillItem prefab）
     private RosListWrapper<BattleSkillItem> skillListWrapper;
 
-    [Header("飘字区（中央偏上，事件提示文字，2.5s 自动消失）")]
-    [SerializeField] private RectTransform floatingPanel;  // 飘字容器
-    [SerializeField] private Text floatingTextTemplate;    // 飘字文字模板
+    [Header("飘字（已上收至 UIManager，跨页面通用；此处不再持有）")]
 
     [Header("复活进度（仅本地玩家死亡时显示）")]
     [SerializeField] private GameObject revivePanel;       // 复活遮罩整体

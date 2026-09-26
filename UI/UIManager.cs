@@ -1,13 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
     [SerializeField] private HomePage home;
     [SerializeField] private LobbyPage lobby;
     [SerializeField] private BattlePage battle;
+
+    [Header("飘字（挂在页面之外，任何界面都能显示）")]
+    [SerializeField] private RectTransform floatingPanel;  // 飘字容器（中央偏上）
+    [SerializeField] private Text floatingTextTemplate;    // 飘字文字模板
+
     private List<RosPage> pages;
     private RosPage currentPage;
+    private readonly List<(Text label, float time)> floatingLabels = new();
+    private const float FloatingLife = 2.5f;
 
     private void Start()
     {
@@ -46,6 +54,17 @@ public class UIManager : MonoBehaviour
     private void Update()
     {
         currentPage?.Tick(Time.deltaTime);
+        TickFloating();
+    }
+
+    /// <summary>飘字提示（事件提示/规则提醒等，2.5s 自动消失，任何界面都能调）。</summary>
+    public void ShowFloating(string text, Color color)
+    {
+        if (floatingPanel == null || floatingTextTemplate == null) return;
+        var label = Instantiate(floatingTextTemplate, floatingPanel);
+        label.text = text;
+        label.color = color;
+        floatingLabels.Add((label, Time.time));
     }
 
     public void TurnPage(PageType type,ShowParam param = null)
@@ -55,6 +74,19 @@ public class UIManager : MonoBehaviour
         currentPage = pages[(int)type];
         currentPage.gameObject.SetActive(true);
         currentPage.Enter(param);
+    }
+
+    private void TickFloating()
+    {
+        for (int i = floatingLabels.Count - 1; i >= 0; i--)
+        {
+            var item = floatingLabels[i];
+            if (Time.time - item.time > FloatingLife)
+            {
+                if (item.label != null) Destroy(item.label.gameObject);
+                floatingLabels.RemoveAt(i);
+            }
+        }
     }
 
     private void OnConnect()
