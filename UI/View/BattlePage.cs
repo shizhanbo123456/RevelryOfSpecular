@@ -3,11 +3,9 @@ using UnityEngine.UI;
 
 public partial class BattlePage : RosPage
 {
-    [Header("顶部信息条")]
-    [SerializeField] private Text timeLabel;         // 对局剩余时间（本地推演 + SCScoreInfo 校准，"MM:SS"）
+    [Header("顶部信息条（比分不在顶栏显示，仅结算面板展示）")]
+    [SerializeField] private Text timeLabel;         // 对局剩余时间（本地推演，"MM:SS"）
     [SerializeField] private Transform timeIconPivot; // 时间图标轴：绕 Z 旋转表示昼夜，0°=正午、180°=午夜，随 Time01 线性插值
-    [SerializeField] private Text attackScoreLabel;  // 进攻方分数（"拆塔 X"）
-    [SerializeField] private Text defenseScoreLabel; // 防守方分数（"防守 X"）
 
     [Header("守护点血量面板（右侧：中心守护点固定单槽，外围守护点固定 3 项，下标 = 外围序号）")]
     [SerializeField] private BeaconBarItem centerBeaconInfo; // 中心守护点的信息

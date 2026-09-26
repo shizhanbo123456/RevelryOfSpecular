@@ -91,11 +91,10 @@ public partial class BattlePage : RosPage
         else item.Refresh(info);
     }
 
+    /// <summary>终局分数包（仅结算时下发一次）：比分/经验只在结算面板展示，顶栏不实时显示。</summary>
     private void OnScoreUpdate(SCScoreInfo info)
     {
         if (info == null) return;
-        if (attackScoreLabel != null) attackScoreLabel.text = $"拆塔 {(int)info.attackScore}";
-        if (defenseScoreLabel != null) defenseScoreLabel.text = $"防守 {(int)info.defenseScore}";
         if (timeLabel != null) timeLabel.text = FormatTime(Mathf.Max(0f, info.remainTime));
         if (info.gameState != 0)
         {
