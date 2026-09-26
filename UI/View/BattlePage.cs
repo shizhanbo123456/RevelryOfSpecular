@@ -9,15 +9,14 @@ public partial class BattlePage : RosPage
     [SerializeField] private Text attackScoreLabel;  // 进攻方分数（"拆塔 X"）
     [SerializeField] private Text defenseScoreLabel; // 防守方分数（"防守 X"）
 
-    [Header("守护点血量面板（右侧，按 entityId 动态增减条目）")]
-    [SerializeField] private RectTransform beaconPanel;    // 条目容器
-    [SerializeField] private BeaconBarItem beaconTemplate; // 条目模板（首个条目复用模板本体）
+    [Header("守护点血量面板（右侧：中心守护点固定单槽，外围守护点固定 3 项，下标 = 外围序号）")]
+    [SerializeField] private BeaconBarItem centerBeaconInfo; // 中心守护点的信息
+    [SerializeField] private RosList beaconInfoList;         // 周围守护点的信息（条目 = BeaconBarItem prefab）
+    private RosListWrapper<BeaconBarItem> beaconInfoListWrapper;
 
     [Header("底部技能栏（槽位数随武器槽变化）")]
     [SerializeField] private RosList skillList;            // 技能槽列表（条目 = BattleSkillItem prefab）
     private RosListWrapper<BattleSkillItem> skillListWrapper;
-
-    [Header("飘字（已上收至 UIManager，跨页面通用；此处不再持有）")]
 
     [Header("复活进度（仅本地玩家死亡时显示）")]
     [SerializeField] private GameObject revivePanel;       // 复活遮罩整体
@@ -29,6 +28,7 @@ public partial class BattlePage : RosPage
 
     public override void Construct()
     {
+        beaconInfoListWrapper = new(beaconInfoList);
         skillListWrapper = new(skillList);
     }
 }

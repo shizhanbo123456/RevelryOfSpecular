@@ -7,7 +7,6 @@ public partial class BattlePage : RosPage
     private const string DayName = "白天";
     private const string NightName = "晚上";
 
-    private readonly Dictionary<ushort, BeaconBarItem> beaconBars = new();
     private float battleStartTime;
 
     public override void Init()
@@ -24,9 +23,10 @@ public partial class BattlePage : RosPage
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
         EventManager.AddEvent<int>(ClientEvent.OnDayNightChange, OnDayNightChange);
 
-        //开局信息立即应用：清上一局残留（守护点 entityId 每局不同，旧条目直接作废）
+        //开局信息立即应用：外围守护点条目就位（数量固定 3），中心守护点为固定单槽；
+        //血量/摧毁态等具体数值随实体表现摘要到达后刷新
         battleStartTime = Time.time;
-        ClearBeacons();
+        beaconInfoListWrapper?.SetItemCount(Config.outer_beacon_count);
         settlementPanel.Hide();
         RefreshDayNightLabel();
     }
@@ -76,26 +76,24 @@ public partial class BattlePage : RosPage
         skillListWrapper.SetItemCount(skills.Count);
     }
 
+    /// <summary>守护点摘要 → 中心守护点走固定单槽，外围守护点按 type.value 对号入座 RosList。</summary>
     private void OnBeaconDisplay(SCEntityDisplayInfo info)
     {
-        if (beaconPanel == null || beaconTemplate == null) return;
-        if (!beaconBars.TryGetValue(info.entityId, out var unit))
+        bool destroyed = info.health <= 0;
+        if (info.type == EntityType.CoreBeacon)
         {
-            unit = Instantiate(beaconTemplate, beaconPanel);
-            beaconBars[info.entityId] = unit;
+            if (centerBeaconInfo == null) return;
+            if (destroyed) centerBeaconInfo.SetDestroyed();
+            else centerBeaconInfo.Refresh(info);
+            return;
         }
-        unit.gameObject.SetActive(true);
-        if (info.health <= 0) unit.SetDestroyed();
-        else unit.Refresh(info);
-    }
 
-    private void ClearBeacons()
-    {
-        foreach (var bar in beaconBars.Values)
-        {
-            if (bar != null) Destroy(bar.gameObject);
-        }
-        beaconBars.Clear();
+        if (beaconInfoListWrapper == null) return;
+        int index = info.type.value; // 外围守护点：Beacon(0~outer_beacon_count-1)，value 即列表下标
+        if (index < 0 || index >= beaconInfoListWrapper.Count) return;
+        var item = beaconInfoListWrapper.GetItem(index);
+        if (destroyed) item.SetDestroyed();
+        else item.Refresh(info);
     }
 
     private void OnScoreUpdate(SCScoreInfo info)
