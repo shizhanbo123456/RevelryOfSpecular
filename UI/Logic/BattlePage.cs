@@ -1,12 +1,8 @@
-using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
 public partial class BattlePage : RosPage
 {
-    private const string DayName = "白天";
-    private const string NightName = "晚上";
-
     private float battleStartTime;
 
     public override void Init()
@@ -21,14 +17,12 @@ public partial class BattlePage : RosPage
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
-        EventManager.AddEvent<int>(ClientEvent.OnDayNightChange, OnDayNightChange);
 
-        //开局信息立即应用：外围守护点条目就位（数量固定 3），中心守护点为固定单槽；
-        //血量/摧毁态等具体数值随实体表现摘要到达后刷新
+        //开局信息立即应用
         battleStartTime = Time.time;
         beaconInfoListWrapper?.SetItemCount(Config.outer_beacon_count);
         settlementPanel.Hide();
-        RefreshDayNightLabel();
+        RefreshTimeIcon();
     }
 
     public override void Exit()
@@ -38,7 +32,6 @@ public partial class BattlePage : RosPage
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
-        EventManager.RemoveEvent<int>(ClientEvent.OnDayNightChange, OnDayNightChange);
     }
 
     public override void Tick(float deltaTime)
@@ -49,6 +42,8 @@ public partial class BattlePage : RosPage
             float remain = Config.battle_duration - (Time.time - battleStartTime);
             timeLabel.text = FormatTime(Mathf.Max(0f, remain));
         }
+        //昼夜图标（Time01 由 EnvironmentManager 客户端推演连续变化，逐帧跟随）
+        RefreshTimeIcon();
     }
 
     #region 事件处理
@@ -159,18 +154,14 @@ public partial class BattlePage : RosPage
     {
         Tool.UIManager?.ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.62f, 0.28f));
     }
-
-    private void OnDayNightChange(int state)
-    {
-        RefreshDayNightLabel();
-    }
     #endregion
 
     #region//Local
-    private void RefreshDayNightLabel()
+    /// <summary>昼夜图标：Time01（1=正午，0=午夜）线性映射到绕 Z 的 0°~180°。</summary>
+    private void RefreshTimeIcon()
     {
-        if (phaseLabel == null) return;
-        phaseLabel.text = $"{(EnvironmentManager.IsDay ? DayName : NightName)} {Mathf.RoundToInt(EnvironmentManager.Time01 * 100f)}%";
+        if (timeIconPivot == null) return;
+        timeIconPivot.localEulerAngles = new Vector3(0f, 0f, 180f - EnvironmentManager.Time01 * 180f);
     }
 
     private static Color GetEndColor(int gameState)

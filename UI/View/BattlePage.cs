@@ -5,7 +5,7 @@ public partial class BattlePage : RosPage
 {
     [Header("顶部信息条")]
     [SerializeField] private Text timeLabel;         // 对局剩余时间（本地推演 + SCScoreInfo 校准，"MM:SS"）
-    [SerializeField] private Text phaseLabel;        // 昼夜状态（"白天 45%" / "晚上 20%"）
+    [SerializeField] private Transform timeIconPivot; // 时间图标轴：绕 Z 旋转表示昼夜，0°=正午、180°=午夜，随 Time01 线性插值
     [SerializeField] private Text attackScoreLabel;  // 进攻方分数（"拆塔 X"）
     [SerializeField] private Text defenseScoreLabel; // 防守方分数（"防守 X"）
 
