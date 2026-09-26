@@ -14,6 +14,11 @@ public partial class BattlePage : RosPage
     private readonly List<(Text label, float time)> floatingLabels = new();
     private float battleStartTime;
 
+    public override void Init()
+    {
+        settlementPanel.SetCloseCallback(OnSettleClose);
+    }
+
     public override void Enter(ShowParam param)
     {
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
@@ -26,7 +31,7 @@ public partial class BattlePage : RosPage
         //开局信息立即应用：清上一局残留（守护点 entityId 每局不同，旧条目直接作废）
         battleStartTime = Time.time;
         ClearBeacons();
-        HideSettlement();
+        settlementPanel.Hide();
         RefreshDayNightLabel();
     }
 
@@ -116,34 +121,13 @@ public partial class BattlePage : RosPage
         if (info.gameState != 0)
         {
             ShowFloating(GetEndText(info.gameState), GetEndColor(info.gameState));
-            ShowSettlement(info);
+            settlementPanel.Show(info);
         }
-    }
-
-    /// <summary>显示结算面板（胜负/比分/经验；玩家关闭后回组队大厅准备下一轮）。</summary>
-    private void ShowSettlement(SCScoreInfo info)
-    {
-        if (settlePanel == null) return;
-        if (settleTitle != null)
-        {
-            settleTitle.text = GetEndText(info.gameState);
-            settleTitle.color = GetEndColor(info.gameState);
-        }
-        if (settleDetail != null)
-            settleDetail.text = $"进攻方（拆塔）：{(int)info.attackScore}\n" +
-                                $"防守方：{(int)info.defenseScore}（击杀 ×{info.killScore}）\n" +
-                                $"本局获得经验：{info.expGain}";
-        settlePanel.SetActive(true);
-    }
-
-    private void HideSettlement()
-    {
-        if (settlePanel != null) settlePanel.SetActive(false); // 新对局隐藏结算面板
     }
 
     private void OnSettleClose()
     {
-        HideSettlement();
+        settlementPanel.Hide();
         Tool.ClientLogicManager?.EntityPlayers.ClearAll();
         Tool.UIManager?.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
     }

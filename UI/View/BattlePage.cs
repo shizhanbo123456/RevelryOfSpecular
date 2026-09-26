@@ -27,10 +27,7 @@ public partial class BattlePage : RosPage
     [SerializeField] private Text reviveLabel;             // "复活中 X%（愈战愈勇 ×N）" / "可复活！"
 
     [Header("结算面板（对局结束显示，关闭后回组队大厅）")]
-    [SerializeField] private GameObject settlePanel;       // 结算遮罩整体
-    [SerializeField] private Text settleTitle;             // 胜负标题（进攻方胜利/防守方胜利/平局）
-    [SerializeField] private Text settleDetail;            // 双方比分 + 击杀数 + 本局经验
-    [SerializeField] private RosButton settleCloseButton;  // "回到组队大厅"按钮
+    [SerializeField] private SettlementPanel settlementPanel; // 结算遮罩整体：胜负标题/比分经验/关闭按钮都在该组件内
 
     public override void Construct()
     {
