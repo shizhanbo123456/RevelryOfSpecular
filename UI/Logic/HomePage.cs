@@ -43,7 +43,6 @@ public class HomePage : PageBase
     public override void Enter(ShowParam param)
     {
         base.Enter();
-    {
         RefreshLists();
         RefreshPlayerInfo();
         RefreshAttrList();
