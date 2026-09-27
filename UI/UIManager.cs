@@ -1,39 +1,36 @@
 using System.Collections.Generic;
+using FairyGUI;
 using UnityEngine;
-using UnityEngine.UI;
 
+/// <summary>
+/// UI 总控（FGUI 版）：加载 Main 包并注册 binder，持有三个页面（Logic 层，不直接操作生成组件），
+/// 统一切页（OnConnect/OnBattleStart/OnRestartGame 事件驱动）、驱动当前页 Tick、分辨率适配与全局飘字。
+/// </summary>
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] private HomePage home;
-    [SerializeField] private LobbyPage lobby;
-    [SerializeField] private BattlePage battle;
+    private HomePage home;
+    private LobbyPage lobby;
+    private BattlePage battle;
+    private PageBase currentPage;
+    private int lastScreenWidth, lastScreenHeight;
 
-    [Header("飘字（挂在页面之外，任何界面都能显示）")]
-    [SerializeField] private RectTransform floatingPanel;  // 飘字容器（中央偏上）
-    [SerializeField] private Text floatingTextTemplate;    // 飘字文字模板
-
-    private List<RosPage> pages;
-    private RosPage currentPage;
-    private readonly List<(Text label, float time)> floatingLabels = new();
+    // 全局飘字（任意界面可用，屏幕上方居中，2.5s 消失）
+    private readonly List<(GTextField label, float time)> floatingLabels = new();
     private const float FloatingLife = 2.5f;
 
     private void Start()
     {
         Tool.UIManager = this;
-        pages = new()
-        {
-            home,lobby,battle
-        };
-        foreach (var p in pages)
-        {
-            p.Construct();
-        }
-        foreach (var p in pages)
-        {
-            p.Init();
-            p.gameObject.SetActive(false);
-        }
-        home.gameObject.SetActive(true);
+
+        UIPackage.AddPackage("GUI/Main");
+        MainBinder.BindAll();
+
+        home = new HomePage(UI_HomePanel.CreateInstance());
+        lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
+        battle = new BattlePage(UI_BattlePanel.CreateInstance());
+
+        ApplyResize();
+
         currentPage = home;
         home.Enter(null);
 
@@ -53,27 +50,51 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
+        if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight) ApplyResize();
         currentPage?.Tick(Time.deltaTime);
         TickFloating();
+    }
+
+    /// <summary>分辨率适配：按当前宽高比算出 1080 高对应的宽度，通知所有页面。</summary>
+    private void ApplyResize()
+    {
+        lastScreenWidth = Screen.width;
+        lastScreenHeight = Screen.height;
+        float width = 1080f * ((float)Screen.width / Screen.height);
+        home?.OnResize(width, 1080f);
+        lobby?.OnResize(width, 1080f);
+        battle?.OnResize(width, 1080f);
     }
 
     /// <summary>飘字提示（事件提示/规则提醒等，2.5s 自动消失，任何界面都能调）。</summary>
     public void ShowFloating(string text, Color color)
     {
-        if (floatingPanel == null || floatingTextTemplate == null) return;
-        var label = Instantiate(floatingTextTemplate, floatingPanel);
+        var label = new GTextField();
         label.text = text;
         label.color = color;
+        label.fontSize = 22;
+        label.width = 800f;
+        label.align = AlignType.Center;
+        GRoot.Instance.AddChild(label);
+        label.SetXY((GRoot.Instance.width - label.width) * 0.5f, 140f);
         floatingLabels.Add((label, Time.time));
     }
 
-    public void TurnPage(PageType type,ShowParam param = null)
+    public void TurnPage(PageType type, ShowParam param = null)
     {
-        currentPage.Exit();
-        currentPage.gameObject.SetActive(false);
-        currentPage = pages[(int)type];
-        currentPage.gameObject.SetActive(true);
-        currentPage.Enter(param);
+        currentPage?.Exit();
+        currentPage = GetPage(type);
+        currentPage?.Enter(param);
+    }
+
+    private PageBase GetPage(PageType type)
+    {
+        return type switch
+        {
+            PageType.Lobby => lobby,
+            PageType.Battle => battle,
+            _ => home,
+        };
     }
 
     private void TickFloating()
@@ -83,7 +104,7 @@ public class UIManager : MonoBehaviour
             var item = floatingLabels[i];
             if (Time.time - item.time > FloatingLife)
             {
-                if (item.label != null) Destroy(item.label.gameObject);
+                if (item.label != null) item.label.Dispose();
                 floatingLabels.RemoveAt(i);
             }
         }
@@ -105,6 +126,7 @@ public class UIManager : MonoBehaviour
         TurnPage(PageType.Home);
     }
 }
+
 public enum PageType
 {
     Home,

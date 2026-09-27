@@ -16,6 +16,8 @@ namespace Ros.Transport
         public EntityType defenseCharacter;
         /// <summary>防守方所选角色等级（局外养成）。</summary>
         public int defenseLevel = 1;
+        /// <summary>玩家名（玩家信息页可编辑，组队大厅/头顶名字显示用）。</summary>
+        public string name = "";
     }
 
     /// <summary>CSPlayerInfo 网络序列化器。</summary>
@@ -28,7 +30,8 @@ namespace Ros.Transport
             if (!EntityTypeSerializer.Serialize(value.attackCharacter, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.attackLevel, result, ref indexStart)) return false;
             if (!EntityTypeSerializer.Serialize(value.defenseCharacter, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.defenseLevel, result, ref indexStart);
+            if (!IntSerializer.Serialize(value.defenseLevel, result, ref indexStart)) return false;
+            return StringSerializer.Serialize(value.name, result, ref indexStart);
         }
 
         public static CSPlayerInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -40,6 +43,7 @@ namespace Ros.Transport
                 attackLevel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 defenseCharacter = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 defenseLevel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                name = StringSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
             return info;
         }

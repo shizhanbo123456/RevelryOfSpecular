@@ -2,40 +2,63 @@ using System.Collections.Generic;
 using Ros.Info;
 using Ros.Transport;
 using UnityEngine;
-using UnityEngine.UI;
 
-public partial class BattlePage : RosPage
+/// <summary>
+/// 战斗 HUD 逻辑（FGUI）：顶栏时间/昼夜图标、本地玩家大血条（左上角固定）、技能栏（CD=图标填充比例、库存、键位、经验星星）、
+/// 守护点血量面板 ×4（中心 + 外围 3）、小地图（10 档位点位）、事件列表、伤害飘字、
+/// 名牌（UI_PlayerName + UI_EntityBar 屏幕跟随）、复活进度、结算面板（显示 SettleAutoClose 秒后自动关闭回大厅）。
+/// </summary>
+public class BattlePage : PageBase
 {
+    private readonly UI_BattlePanel panel;
+    private UI_BattleResult resultPanel;
     private float battleStartTime;
+    private float settleCloseAt = -1f;
 
-    // 名牌与伤害飘字（屏幕空间 uGUI）
-    private readonly Dictionary<ushort, EntityNameBarItem> nameBars = new();
-    private readonly List<(Text label, float time)> damageLabels = new();
+    private readonly List<UI_SkillListItem> skillSlots = new();
+    private readonly Dictionary<ushort, UI_PlayerName> nameLabels = new();
+    private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
+    private readonly Dictionary<ushort, int> barOwners = new();
+    private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
+    private readonly List<(UI_DamageLabel label, float time)> damageLabels = new();
+    private readonly List<(UI_EventItem item, float time)> eventItems = new();
+    private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
+
     private const float DamageLife = 0.8f;
+    private const float EventLife = 3.5f;
+    private const float SettleAutoClose = 5f;
+    private static readonly string[] SlotKeys = { "U", "I", "O", "L", "H" };
 
-    // 阵营配色（攻红/守蓝，语义状态色）
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
 
-    public override void Init()
+    public BattlePage(UI_BattlePanel panel) : base(panel)
     {
-        settlementPanel.SetCloseCallback(OnSettleClose);
+        this.panel = panel;
+    }
+
+    public override void Construct()
+    {
+        panel.m_btn_exit.onClick.Add(() => Tool.NetworkManager?.ExitWorld()); // 切页由 OnRestartGame 事件统一处理
+        panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
     }
 
     public override void Enter(ShowParam param)
     {
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
+        EventManager.AddEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
 
-        //开局信息立即应用
         battleStartTime = Time.time;
-        beaconInfoListWrapper?.SetItemCount(Config.outer_beacon_count);
-        ClearNameBars();
-        settlementPanel.Hide();
+        localPlayerCamp = -1;
+        ResetBeacons();
+        ClearEntityBars();
+        ClearMinimap();
+        HideSettlement();
         RefreshTimeIcon();
     }
 
@@ -43,6 +66,7 @@ public partial class BattlePage : RosPage
     {
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
+        EventManager.RemoveEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
@@ -52,19 +76,21 @@ public partial class BattlePage : RosPage
     public override void Tick(float deltaTime)
     {
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
-        if (NetworkManager.battleInfo != null && timeLabel != null)
+        if (NetworkManager.battleInfo != null && panel.m_label_time_left != null)
         {
             float remain = Config.battle_duration - (Time.time - battleStartTime);
-            timeLabel.text = FormatTime(Mathf.Max(0f, remain));
+            panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
         }
-        //昼夜图标（Time01 由 EnvironmentManager 客户端推演连续变化，逐帧跟随）
         RefreshTimeIcon();
-        UpdateNameBarPositions();
-        TickDamageLabels();
+        UpdateEntityBarPositions();
+        TickDamageLabels(deltaTime);
+        TickEventItems();
+        //结算面板自动关闭
+        if (settleCloseAt > 0f && Time.time >= settleCloseAt) CloseSettlement();
     }
 
     #region 事件处理
-    /// <summary>实体表现摘要：守护点 → 右侧面板；玩家角色 → 名牌；本地玩家 → 底部技能栏。</summary>
+    /// <summary>实体表现摘要：守护点 → 血量面板；玩家角色 → EntityBar 名牌血条；本地玩家 → 大血条 + 技能栏。</summary>
     private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
         if (info == null) return;
@@ -75,125 +101,212 @@ public partial class BattlePage : RosPage
         else if (info.type.category == EntityCategory.Character_Attack ||
                  info.type.category == EntityCategory.Character_Defense)
         {
-            UpdateNameBar(info);
+            UpdateEntityBar(info);
         }
 
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
+            localPlayerCamp = (int)info.camp;
+            UpdateLocalPlayerBar(info);
             OnLocalSkillBarUpdate(info);
         }
     }
 
-    private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
-    {
-        if (skillListWrapper == null) return;
-        //每次摘要到达整表重渲染：CD/库存/经验/选中态都随最新槽位数据走
-        var skills = info.skills;
-        skillListWrapper.itemRenderer = (item, i) =>
-            item.Refresh(skills[i], i == info.selectedIndex, i);
-        skillListWrapper.SetItemCount(skills.Count);
-    }
-
-    /// <summary>守护点摘要 → 中心守护点走固定单槽，外围守护点按 type.value 对号入座 RosList。</summary>
-    private void OnBeaconDisplay(SCEntityDisplayInfo info)
-    {
-        bool destroyed = info.health <= 0;
-        if (info.type == EntityType.CoreBeacon)
-        {
-            if (centerBeaconInfo == null) return;
-            if (destroyed) centerBeaconInfo.SetDestroyed();
-            else centerBeaconInfo.Refresh(info);
-            return;
-        }
-
-        if (beaconInfoListWrapper == null) return;
-        int index = info.type.value; // 外围守护点：Beacon(0~outer_beacon_count-1)，value 即列表下标
-        if (index < 0 || index >= beaconInfoListWrapper.Count) return;
-        var item = beaconInfoListWrapper.GetItem(index);
-        if (destroyed) item.SetDestroyed();
-        else item.Refresh(info);
-    }
-
-    /// <summary>实体移除 → 清理对应名牌。</summary>
+    /// <summary>实体移除 → 清理名牌/血条/小地图点位。</summary>
     private void OnEntityDisplayRemove(int entityId)
     {
-        if (nameBars.TryGetValue((ushort)entityId, out var item))
+        RemoveEntityBar((ushort)entityId);
+        RemoveMinimapItem((ushort)entityId);
+    }
+
+    private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
+    {
+        var skillList = panel.m_skillList;
+        if (skillList == null) return;
+        //槽位数量变化时增减（模板实例化进容器）；每次摘要到达整表重渲染
+        while (skillSlots.Count < info.skills.Count)
         {
-            if (item != null) Destroy(item.gameObject);
-            nameBars.Remove((ushort)entityId);
+            var item = UI_SkillListItem.CreateInstance();
+            skillList.AddChild(item);
+            item.m_loader_icon.fillMethod = FillMethod.Horizontal;
+            skillSlots.Add(item);
+        }
+        for (int i = skillSlots.Count - 1; i >= info.skills.Count; i--)
+        {
+            skillSlots[i].Dispose();
+            skillSlots.RemoveAt(i);
+        }
+        for (int i = 0; i < skillSlots.Count; i++)
+        {
+            RefreshSkillSlot(skillSlots[i], info.skills[i], i);
         }
     }
 
-    private void ClearNameBars()
+    /// <summary>守护点摘要 → 中心守护点走 m_progressMain，外围守护点按 value 对号 m_progressSub1~3。</summary>
+    private void OnBeaconDisplay(SCEntityDisplayInfo info)
     {
-        foreach (var item in nameBars.Values)
+        UI_DefensivePointBar bar;
+        if (info.type == EntityType.CoreBeacon)
         {
-            if (item != null) Destroy(item.gameObject);
+            bar = panel.m_progressMain;
         }
-        nameBars.Clear();
+        else
+        {
+            int index = info.type.value; // 外围守护点：Beacon(0~2) → Sub1~3
+            if (index < 0 || index > 2) return;
+            bar = index == 0 ? panel.m_progressSub1 : index == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
+        }
+        if (bar == null) return;
+        bool destroyed = info.health <= 0;
+        bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
+        bar.m_fill.fillAmount = destroyed ? 0f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f);
     }
 
-    /// <summary>创建/刷新玩家名牌（名字+阵营色+血量比）。</summary>
-    private void UpdateNameBar(SCEntityDisplayInfo info)
+    private void ResetBeacons()
     {
-        if (nameBarPanel == null || nameBarTemplate == null) return;
-        if (!nameBars.TryGetValue(info.entityId, out var item))
-        {
-            item = Instantiate(nameBarTemplate, nameBarPanel);
-            nameBars[info.entityId] = item;
-        }
-        item.gameObject.SetActive(true);
-
-        bool isAttack = info.camp == EntityCamp.Attack;
-        Color campColor = isAttack ? CampAttackColor : CampDefenseColor;
-        if (item.NameText != null)
-        {
-            item.NameText.text = $"玩家{info.ownerClientId}";
-            item.NameText.color = campColor;
-        }
-        if (item.HealthFill != null)
-        {
-            item.HealthFill.color = campColor;
-            item.HealthFill.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
-        }
+        ResetBeacon(panel.m_progressMain);
+        ResetBeacon(panel.m_progressSub1);
+        ResetBeacon(panel.m_progressSub2);
+        ResetBeacon(panel.m_progressSub3);
     }
 
-    /// <summary>逐帧：名牌跟随实体头顶（世界坐标 → 屏幕坐标；相机背面隐藏）。</summary>
-    private void UpdateNameBarPositions()
+    private static void ResetBeacon(UI_DefensivePointBar bar)
     {
-        if (nameBars.Count == 0) return;
-        var cam = Camera.main;
-        if (cam == null) return;
-        foreach (var pair in nameBars)
+        if (bar == null) return;
+        bar.m_destroyed.selectedIndex = 0;
+        bar.m_fill.fillAmount = 0f;
+    }
+
+    /// <summary>本地玩家大血条（左上角固定）：等级 + 血量数字 + 血条宽度（按初始满血宽度比例缩放）。</summary>
+    private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
+    {
+        var bar = panel.m_PlayerBar;
+        if (bar == null) return;
+        if (bar.m_bar_fill.data == null) bar.m_bar_fill.data = bar.m_bar_fill.width; // 首次记录满血宽度
+        float fullWidth = bar.m_bar_fill.data is float w ? w : bar.m_bar_fill.width;
+        bar.m_bar_fill.width = fullWidth * (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f);
+        if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
+        if (bar.m_label_level != null)
         {
-            var item = pair.Value;
-            if (item == null) continue;
-            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
-            var headPos = Vector3.zero;
-            bool visible = players != null && players.TryGetEntityHeadPos(pair.Key, out headPos);
-            var screen = visible ? cam.WorldToScreenPoint(headPos) : Vector3.zero;
-            visible = visible && screen.z > 0f; // 相机背面不可见
-            item.gameObject.SetActive(visible);
-            if (visible) item.transform.position = screen;
+            // 本地玩家等级：按自己阵营取所选角色的局外等级
+            int level = Tool.SaveManager == null ? 1
+                : info.camp == EntityCamp.Attack ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedAttackIndex)
+                : Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex);
+            bar.m_label_level.text = $"Lv{level}";
         }
     }
 
     private void OnScoreUpdate(SCScoreInfo info)
     {
         if (info == null) return;
-        if (timeLabel != null) timeLabel.text = FormatTime(Mathf.Max(0f, info.remainTime));
-        if (info.gameState != 0)
+        if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
+        if (info.gameState != 0) ShowSettlement(info);
+    }
+
+    /// <summary>结算面板：显示 + 转场动画，SettleAutoClose 秒后自动关闭回组队大厅。</summary>
+    private void ShowSettlement(SCScoreInfo info)
+    {
+        if (resultPanel == null)
         {
-            Tool.UIManager?.ShowFloating(GetEndText(info.gameState), GetEndColor(info.gameState));
-            settlementPanel.Show(info);
+            resultPanel = UI_BattleResult.CreateInstance();
+            Root.AddChild(resultPanel);
+            resultPanel.visible = false;
+        }
+        resultPanel.m_title.text = GetEndText(info.gameState);
+        resultPanel.m_title.color = GetEndColor(info.gameState);
+        resultPanel.m_content.text = $"进攻方（拆塔）：{(int)info.attackScore}\n" +
+                                     $"防守方：{(int)info.defenseScore}（击杀 ×{info.killScore}）\n" +
+                                     $"本局获得经验：{info.expGain}";
+        resultPanel.visible = true;
+        resultPanel.m_t0.Play();
+        settleCloseAt = Time.time + SettleAutoClose;
+    }
+
+    private void CloseSettlement()
+    {
+        settleCloseAt = -1f;
+        if (resultPanel != null) resultPanel.visible = false;
+        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
+        Tool.UIManager?.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
+    }
+
+    private void HideSettlement()
+    {
+        settleCloseAt = -1f;
+        if (resultPanel != null) resultPanel.visible = false;
+    }
+
+    private void OnMinimapUpdate(SCMinimapInfo info)
+    {
+        if (info.minimapLost)
+        {
+            ClearMinimap();
+            return;
+        }
+        var mapBase = panel.m_Minimap?.m_mapBase;
+        if (mapBase == null) return;
+        var seen = new HashSet<ushort>();
+        foreach (var entity in info.entities)
+        {
+            if (entity == null) continue;
+            seen.Add(entity.entityId);
+            if (!minimapItems.TryGetValue(entity.entityId, out var item))
+            {
+                item = UI_MinimapItem.CreateInstance();
+                mapBase.AddChild(item);
+                minimapItems[entity.entityId] = item;
+            }
+            item.m_type.selectedIndex = GetMinimapType(entity);
+            //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）
+            item.SetXY(entity.posX / Landscape.MapSize * mapBase.width, (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
+        }
+        //消失的实体移除点位
+        List<ushort> expired = null;
+        foreach (var pair in minimapItems)
+        {
+            if (!seen.Contains(pair.Key)) (expired ??= new List<ushort>()).Add(pair.Key);
+        }
+        if (expired != null)
+        {
+            foreach (var id in expired) RemoveMinimapItem(id);
         }
     }
 
-    private void OnSettleClose()
+    /// <summary>小地图档位映射：0 自己 / 1 队友 / 2 敌人 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点。</summary>
+    private int GetMinimapType(SCMinimapInfo.MinimapEntity entity)
     {
-        settlementPanel.Hide();
-        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
-        Tool.UIManager?.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
+        switch (entity.type.category)
+        {
+            case EntityCategory.Character_Attack:
+            case EntityCategory.Character_Defense:
+                if (entity.entityId == NetworkManager.battleInfo?.playerEntityId) return 0;
+                return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
+            case EntityCategory.PlagueTree: return 3;
+            case EntityCategory.Crystal: return 4;
+            case EntityCategory.Tower: return 5;
+            case EntityCategory.Zombie: return 6;
+            case EntityCategory.EliteZombie: return 7;
+            case EntityCategory.Beacon: return entity.type == EntityType.CoreBeacon ? 8 : 9;
+            default: return 7;
+        }
+    }
+
+    private void RemoveMinimapItem(ushort entityId)
+    {
+        if (minimapItems.TryGetValue(entityId, out var item))
+        {
+            if (item != null) item.Dispose();
+            minimapItems.Remove(entityId);
+        }
+    }
+
+    private void ClearMinimap()
+    {
+        foreach (var item in minimapItems.Values)
+        {
+            if (item != null) item.Dispose();
+        }
+        minimapItems.Clear();
     }
 
     private void OnBattleEvent(SCBattleEvent e)
@@ -205,23 +318,40 @@ public partial class BattlePage : RosPage
                 ShowDamage(e.value, (ushort)e.targetId);
                 break;
             case SCBattleEvent.Type.Kill:
-                Tool.UIManager?.ShowFloating("击杀！", CampAttackColor);
+            {
+                //「玩家A (图标) 玩家B」：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体（名字按归属反查）
+                int killerId = e.value;
+                string victimName = barOwners.TryGetValue((ushort)e.targetId, out var owner)
+                    ? NetworkManager.GetMemberName(owner) : "玩家";
+                string killerName = killerId >= 0 ? NetworkManager.GetMemberName(killerId) : "玩家";
+                SpawnEventItem(item =>
+                {
+                    item.m_type.selectedIndex = 2; // 文字+图标+文字
+                    item.m_type2_loader.m_type.selectedIndex = 6; // 玩家间击败
+                    item.m_type2_label1.text = killerName;
+                    item.m_type2_label2.text = victimName;
+                });
                 break;
+            }
             case SCBattleEvent.Type.BeaconDestroyed:
-                Tool.UIManager?.ShowFloating("守护点被摧毁！", new Color(1f, 0.32f, 0.3f));
+                SpawnTextEvent("守护点被摧毁！", CampAttackColor);
                 break;
             case SCBattleEvent.Type.CrystalCollected:
-                Tool.UIManager?.ShowFloating("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
+                SpawnTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
                 break;
             case SCBattleEvent.Type.CrystalBroken:
-                Tool.UIManager?.ShowFloating("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
+                SpawnTextEvent("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
                 break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
-                Tool.UIManager?.ShowFloating("攻占瘟疫树！获得瘟疫祝福", CampDefenseColor);
+                SpawnEventItem(item =>
+                {
+                    item.m_type.selectedIndex = 1; // 图标+文字
+                    item.m_type1_loader.m_type.selectedIndex = 1; // 瘟疫树被击败
+                    item.m_type1_label.text = "攻占瘟疫树！获得瘟疫祝福";
+                });
                 break;
             case SCBattleEvent.Type.ShowText:
-                //消息提示控件尚未在 uGUI 重建，暂以飘字代替
-                Tool.UIManager?.ShowFloating(NoticeMessageMap.Get(e.value), Color.white);
+                SpawnTextEvent(NoticeMessageMap.Get(e.value), Color.white);
                 break;
         }
     }
@@ -230,12 +360,11 @@ public partial class BattlePage : RosPage
     {
         if (info == null) return;
         bool isLocal = NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId;
-        if (!isLocal || revivePanel == null) return;
-        revivePanel.SetActive(!info.ready);
+        if (!isLocal) return;
+        panel.m_showRegenerationBar.selectedIndex = info.ready ? 0 : 1;
         if (info.ready) return;
-        if (reviveFill != null) reviveFill.fillAmount = Mathf.Clamp01(info.progress);
-        if (reviveLabel != null)
-            reviveLabel.text = $"复活中 {Mathf.RoundToInt(info.progress * 100f)}%   （愈战愈勇 ×{info.yzStack}）";
+        if (panel.m_regeneration_progressbar != null)
+            panel.m_regeneration_progressbar.fillAmount = Mathf.Clamp01(info.progress);
     }
 
     private void OnRightClickBlocked(string msg)
@@ -245,10 +374,102 @@ public partial class BattlePage : RosPage
     #endregion
 
     #region//Local
-    /// <summary>伤害飘字：value 0=无效，>0=普通伤害，<0=暴击（绝对值为伤害量）；在受击实体头顶生成。</summary>
+    /// <summary>创建/刷新玩家名牌：UI_PlayerName（名字，头顶）+ UI_EntityBar（血条，名字下方），阵营配色。</summary>
+    private void UpdateEntityBar(SCEntityDisplayInfo info)
+    {
+        bool isAttack = info.camp == EntityCamp.Attack;
+        Color campColor = isAttack ? CampAttackColor : CampDefenseColor;
+
+        if (!nameLabels.TryGetValue(info.entityId, out var nameItem))
+        {
+            nameItem = UI_PlayerName.CreateInstance();
+            Root.AddChild(nameItem);
+            nameLabels[info.entityId] = nameItem;
+        }
+        nameItem.visible = true;
+        if (nameItem.m_num != null)
+        {
+            nameItem.m_num.text = NetworkManager.GetMemberName(info.ownerClientId);
+            nameItem.m_num.color = campColor;
+        }
+
+        if (!entityBars.TryGetValue(info.entityId, out var barItem))
+        {
+            barItem = UI_EntityBar.CreateInstance();
+            Root.AddChild(barItem);
+            entityBars[info.entityId] = barItem;
+        }
+        barItem.visible = true;
+        barItem.m_fill.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
+        barItem.m_fill.color = campColor;
+        if (barItem.m_label != null) barItem.m_label.text = $"{info.health}/{info.maxHealth}";
+        barOwners[info.entityId] = info.ownerClientId;
+    }
+
+    /// <summary>逐帧：名牌/血条跟随实体头顶（世界 → 屏幕 → 面板局部；相机背面隐藏；名字在血条上方）。</summary>
+    private void UpdateEntityBarPositions()
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+        foreach (var pair in entityBars)
+        {
+            var bar = pair.Value;
+            if (bar == null) continue;
+            bool visible = Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(pair.Key, out var headPos) == true;
+            Vector2 local = Vector2.zero;
+            if (visible)
+            {
+                var screen = cam.WorldToScreenPoint(headPos);
+                visible = screen.z > 0f;
+                if (visible) local = new Vector2(screen.x / UiScale, screen.y / UiScale);
+            }
+            bar.visible = visible;
+            if (visible) bar.xy = local;
+        }
+        foreach (var pair in nameLabels)
+        {
+            var name = pair.Value;
+            if (name == null) continue;
+            //名字挂在血条上方；血条不可见（实体消失/背面）时名字一并隐藏
+            bool visible = entityBars.TryGetValue(pair.Key, out var bar) && bar != null && bar.visible;
+            name.visible = visible;
+            if (visible) name.xy = bar.xy + new Vector2(0f, -26f);
+        }
+    }
+
+    private void RemoveEntityBar(ushort entityId)
+    {
+        if (nameLabels.TryGetValue(entityId, out var name))
+        {
+            if (name != null) name.Dispose();
+            nameLabels.Remove(entityId);
+        }
+        if (entityBars.TryGetValue(entityId, out var bar))
+        {
+            if (bar != null) bar.Dispose();
+            entityBars.Remove(entityId);
+        }
+        barOwners.Remove(entityId);
+    }
+
+    private void ClearEntityBars()
+    {
+        foreach (var name in nameLabels.Values)
+        {
+            if (name != null) name.Dispose();
+        }
+        foreach (var bar in entityBars.Values)
+        {
+            if (bar != null) bar.Dispose();
+        }
+        nameLabels.Clear();
+        entityBars.Clear();
+        barOwners.Clear();
+    }
+
+    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；在受击实体头顶生成，上浮+渐隐+到期销毁。</summary>
     private void ShowDamage(int encoded, ushort targetId)
     {
-        if (damagePanel == null || damageTextTemplate == null) return;
         string text;
         Color color;
         int fontSize;
@@ -256,35 +477,33 @@ public partial class BattlePage : RosPage
         {
             text = "无效";
             color = new Color(0.7f, 0.7f, 0.7f);
-            fontSize = 16;
+            fontSize = 14;
         }
         else if (encoded > 0)
         {
             text = encoded.ToString();
             color = Color.white;
-            fontSize = 20;
+            fontSize = 18;
         }
         else
         {
             text = $"暴击 {-encoded}";
             color = new Color(1f, 0.62f, 0.28f);
-            fontSize = 26;
+            fontSize = 22;
         }
-        var label = Instantiate(damageTextTemplate, damagePanel);
-        label.text = text;
-        label.color = color;
-        label.fontSize = fontSize;
-        //定位：受击实体头顶（屏幕坐标；假设 Canvas 为 Screen Space - Overlay）
-        if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out var headPos) == true
-            && Camera.main != null)
+        var label = UI_DamageLabel.CreateInstance();
+        label.m_num.text = text;
+        label.m_num.color = color;
+        label.m_num.fontSize = fontSize;
+        Root.AddChild(label);
+        if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out var headPos) == true)
         {
-            label.transform.position = Camera.main.WorldToScreenPoint(headPos);
+            label.xy = WorldToPanel(headPos);
         }
         damageLabels.Add((label, Time.time));
     }
 
-    /// <summary>伤害飘字逐帧：上浮 + 后半段渐隐 + 到期销毁。</summary>
-    private void TickDamageLabels()
+    private void TickDamageLabels(float deltaTime)
     {
         for (int i = damageLabels.Count - 1; i >= 0; i--)
         {
@@ -292,7 +511,7 @@ public partial class BattlePage : RosPage
             float age = Time.time - item.time;
             if (age > DamageLife)
             {
-                if (item.label != null) Destroy(item.label.gameObject);
+                if (item.label != null) item.label.Dispose();
                 damageLabels.RemoveAt(i);
                 continue;
             }
@@ -301,25 +520,72 @@ public partial class BattlePage : RosPage
                 damageLabels.RemoveAt(i);
                 continue;
             }
-            item.label.transform.position += Vector3.up * (60f * Time.deltaTime);
-            if (age > DamageLife * 0.5f) item.label.CrossFadeAlpha(0f, DamageLife * 0.5f, false);
+            item.label.y -= 60f * deltaTime;
+            if (age > DamageLife * 0.5f)
+                item.label.alpha = Mathf.Clamp01(1f - (age - DamageLife * 0.5f) / (DamageLife * 0.5f));
+        }
+    }
+
+    /// <summary>事件条目：加入 m_EventList，纵排，到期移除并重排。</summary>
+    private void SpawnEventItem(System.Action<UI_EventItem> setup)
+    {
+        var container = panel.m_EventList;
+        if (container == null) return;
+        var item = UI_EventItem.CreateInstance();
+        container.AddChild(item);
+        setup(item);
+        eventItems.Add((item, Time.time));
+        RelayoutEventItems();
+    }
+
+    private void SpawnTextEvent(string text, Color color)
+    {
+        SpawnEventItem(item =>
+        {
+            item.m_type.selectedIndex = 0; // 纯文字
+            item.m_type0_label.text = text;
+            item.m_type0_label.color = color;
+        });
+    }
+
+    private void TickEventItems()
+    {
+        bool removed = false;
+        for (int i = eventItems.Count - 1; i >= 0; i--)
+        {
+            var entry = eventItems[i];
+            if (Time.time - entry.time > EventLife)
+            {
+                if (entry.item != null) entry.item.Dispose();
+                eventItems.RemoveAt(i);
+                removed = true;
+            }
+        }
+        if (removed) RelayoutEventItems();
+    }
+
+    private void RelayoutEventItems()
+    {
+        for (int i = 0; i < eventItems.Count; i++)
+        {
+            if (eventItems[i].item != null) eventItems[i].item.SetXY(12f, 10f + i * 64f);
         }
     }
 
     /// <summary>昼夜图标：Time01（1=正午，0=午夜）线性映射到绕 Z 的 0°~180°。</summary>
     private void RefreshTimeIcon()
     {
-        if (timeIconPivot == null) return;
-        timeIconPivot.localEulerAngles = new Vector3(0f, 0f, 180f - EnvironmentManager.Time01 * 180f);
+        if (panel.m_icon_day_night == null) return;
+        panel.m_icon_day_night.rotation = 180f - EnvironmentManager.Time01 * 180f;
     }
 
     private static Color GetEndColor(int gameState)
     {
         switch (gameState)
         {
-            case 1: return CampAttackColor;  // 进攻方胜利：红
-            case 2: return CampDefenseColor; // 防守方胜利：蓝
-            default: return Color.white;     // 平局
+            case 1: return CampAttackColor;
+            case 2: return CampDefenseColor;
+            default: return Color.white;
         }
     }
 
@@ -337,6 +603,35 @@ public partial class BattlePage : RosPage
             case 2: return "防守方胜利";
             default: return "平局";
         }
+    }
+
+    /// <summary>技能槽刷新：图标（SkillInfo.icon，底图与图标一并设置）、CD=图标填充比例（0→100 一轮冷却）、库存、键位、经验星星（exp 与星星 1:1）。</summary>
+    private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot, int index)
+    {
+        var info = slot.skillId >= 0 && Tool.InfoManager != null ? Tool.InfoManager.GetSkillInfo(slot.skillId) : null;
+
+        var iconSprite = info != null ? info.icon : null;
+        if (item.m_loader_icon != null)
+        {
+            item.m_loader_icon.texture = iconSprite != null ? new NTexture(iconSprite) : null;
+            item.m_loader_icon.visible = iconSprite != null;
+        }
+        //底图与技能图标一并设置（同一张图，底图在后/图标在前由 prefab 层级保证）
+        if (item.m_loader_iconBase != null)
+        {
+            item.m_loader_iconBase.texture = iconSprite != null ? new NTexture(iconSprite) : null;
+            item.m_loader_iconBase.visible = iconSprite != null;
+        }
+        if (item.m_key != null) item.m_key.text = index < SlotKeys.Length ? SlotKeys[index] : "";
+        if (item.m_store != null) item.m_store.text = slot.store >= 0 ? $"x{slot.store}" : "";
+
+        //CD：填充比例随冷却进度增长（0 → 100）
+        bool cooling = slot.cdTotal > 0f && slot.cdRemain > 0f;
+        item.m_loader_icon.fillAmount = cooling ? 1f - Mathf.Clamp01(slot.cdRemain / slot.cdTotal) : 1f;
+
+        //技能经验：exp 与星星数量 1:1（numItems 需要 itemRenderer 非空，给空实现）
+        item.m_starList.itemRenderer = (_, _) => { };
+        item.m_starList.numItems = Mathf.Max(0, slot.exp);
     }
     #endregion
 }

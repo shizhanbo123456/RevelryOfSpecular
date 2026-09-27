@@ -105,9 +105,6 @@ public partial class BattleManager
     /// <summary>死亡统一处理：进入复活流程并下发进度；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；销毁时机交给 BeginDying（等死亡动画播完）。</summary>
     private void HandleDeath(EntityData entity)
     {
-        // 水晶的产出与重生排程在其子类 OnKilled 里处理（该方法先于本方法调用）
-        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.Kill);
-
         // 击杀归属：击杀者由 lastAttacker 反查（归属已随死亡移除时算不出，例如同归于尽 → 不计）
         var killer = entity.lastAttacker;
         bool victimIsPlayer = entity.type.category == EntityCategory.Character_Attack ||
@@ -118,6 +115,16 @@ public partial class BattleManager
             KillCountByClient.TryGetValue(killerClient, out int killCount);
             KillCountByClient[killerClient] = killCount + 1;
         }
+
+        // 击杀事件（供客户端「玩家A 击杀 玩家B」飘字）：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体
+        int killerId = -1;
+        if (killer != null && EntityOwnerClient.TryGetValue(killer.id, out var killerOwner)) killerId = killerOwner;
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.Kill,
+            value = killerId,
+            targetId = entity.id,
+        });
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
         {

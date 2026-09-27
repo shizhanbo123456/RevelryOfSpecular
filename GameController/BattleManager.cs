@@ -426,6 +426,7 @@ public partial class BattleManager : EnsBehaviour
                 clientId = pair.Key,
                 camp = campValue,
                 characterIndex = characterIndex,
+                name = pair.Value.name,
             });
         }
         Tool.NetworkManager.SendRoomInfo(info);

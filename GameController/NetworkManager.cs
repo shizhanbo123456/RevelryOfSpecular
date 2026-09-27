@@ -169,6 +169,7 @@ public partial class NetworkManager : EnsBehaviour
             attackLevel = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedAttackIndex) : 1,
             defenseCharacter = EntityType.Defense(Mathf.Clamp(ClientSelection.selectedDefenseIndex, 0, Config.defense_character_count - 1)),
             defenseLevel = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex) : 1,
+            name = ClientSelection.playerName,
         };
         CallFuncRpc(ServerReceivePlayerInfoLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
     }
@@ -401,7 +402,18 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (info == null) return;
         BattleRunning = info.battleStarted;
+        LatestRoomInfo = info; // 缓存最新房间状态（战斗期头顶名字按 clientId 反查）
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
+    }
+
+    /// <summary>最近一次房间状态（战斗期按 clientId 反查玩家名用）。</summary>
+    public static SCRoomInfo LatestRoomInfo { get; private set; }
+
+    /// <summary>按客户端 id 取玩家名（未设置时回退"玩家{id}"）。</summary>
+    public static string GetMemberName(int clientId)
+    {
+        var member = LatestRoomInfo?.members.Find(m => m != null && m.clientId == clientId);
+        return string.IsNullOrEmpty(member?.name) ? $"玩家{clientId}" : member.name;
     }
 
     /// <summary>客户端：接收昼夜快照（周期时间 + 白天时长 + 晚上时长），之后按这组参数自行推演。</summary>

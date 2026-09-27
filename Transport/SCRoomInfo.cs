@@ -26,6 +26,8 @@ namespace Ros.Transport
             public int camp = -1;
             /// <summary>当前所选角色下标（进/守各自序号，大厅头像用；-1 = 未选/未知）。</summary>
             public int characterIndex = -1;
+            /// <summary>玩家名（玩家信息页可编辑；空 = 未设置，显示"玩家{id}"）。</summary>
+            public string name = "";
         }
     }
 
@@ -51,6 +53,7 @@ namespace Ros.Transport
                     if (!IntSerializer.Serialize(member.clientId, result, ref indexStart)) return false;
                     if (!IntSerializer.Serialize(member.camp, result, ref indexStart)) return false;
                     if (!IntSerializer.Serialize(member.characterIndex, result, ref indexStart)) return false;
+                    if (!StringSerializer.Serialize(member.name, result, ref indexStart)) return false;
                 }
             }
             return true;
@@ -75,6 +78,7 @@ namespace Ros.Transport
                     clientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    name = StringSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
             return info;

@@ -9,4 +9,7 @@ public static class ClientSelection
 
     /// <summary>防守方所选角色下标（0 ~ defense_character_count-1）。</summary>
     public static int selectedDefenseIndex = 0;
+
+    /// <summary>玩家名（玩家信息页可编辑，进场时随 CSPlayerInfo 上报；空 = 未设置）。</summary>
+    public static string playerName = "";
 }
