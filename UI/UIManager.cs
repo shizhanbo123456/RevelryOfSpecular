@@ -30,6 +30,11 @@ public class UIManager : MonoBehaviour
         lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
         battle = new BattlePage(UI_BattlePanel.CreateInstance());
 
+        //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
+        home.Construct();
+        lobby.Construct();
+        battle.Construct();
+
         ApplyResize();
 
         currentPage = home;
