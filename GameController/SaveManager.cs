@@ -149,7 +149,7 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    private void Save()
+    public void Save()
     {
         EnsureListSize(0);
         var sb = new System.Text.StringBuilder();
