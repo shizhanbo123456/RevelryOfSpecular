@@ -495,7 +495,7 @@ public class BattlePage : PageBase
         var label = UI_DamageLabel.CreateInstance();
         label.m_num.text = text;
         label.m_num.color = color;
-        label.m_num.fontSize = fontSize;
+        label.m_num.textFormat.size = fontSize;
         Root.AddChild(label);
         if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out var headPos) == true)
         {

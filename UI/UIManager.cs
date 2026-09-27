@@ -73,7 +73,7 @@ public class UIManager : MonoBehaviour
         var label = new GTextField();
         label.text = text;
         label.color = color;
-        label.fontSize = 22;
+        label.textFormat.size = 22;
         label.width = 800f;
         label.align = AlignType.Center;
         GRoot.inst.AddChild(label);

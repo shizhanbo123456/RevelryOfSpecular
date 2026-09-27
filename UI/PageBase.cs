@@ -19,7 +19,7 @@ public abstract class PageBase
     protected PageBase(GComponent root)
     {
         Root = root;
-        GRoot.Instance.AddChild(root);
+        GRoot.inst.AddChild(root);
         root.visible = false;
     }
 

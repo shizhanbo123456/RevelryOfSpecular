@@ -33,7 +33,7 @@ public class LobbyPage : PageBase
         view.m_defenserAI_minus.onClick.Add(() => ChangeAICount(true, -1));
         view.m_defenserAI_add.onClick.Add(() => ChangeAICount(true, +1));
         view.m_btn_battleStart.onClick.Add(OnStartClicked);
-        view.m_btn_exit.onClick.Add(OnExitClicked);
+        panel.m_btn_exit.onClick.Add(OnExitClicked);
     }
 
     public override void Enter(ShowParam param)
