@@ -38,7 +38,7 @@ public class LobbyPage : PageBase
 
     public override void Enter(ShowParam param)
     {
-        base.Enter();
+        base.Enter(param);
         EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
     }
 
