@@ -197,6 +197,13 @@ public class HomePage : PageBase
     /// <summary>连接服务器（成功后由 UIManager 的 OnConnect 事件统一切页）。</summary>
     private async void OnConnectClicked()
     {
+        // 连接前校验玩家名字长度，不合法则飘字提示并拦截连接
+        var name = ClientSelection.playerName;
+        if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 8)
+        {
+            Tool.UIManager?.ShowFloating("玩家名字必须为2-8个字符", new Color(1f, 0.62f, 0.28f));
+            return;
+        }
         if (Tool.NetworkManager == null) return;
         var result = await Tool.NetworkManager.TryConnect(panel.m_connectPanel.m_input_ipaddress.m_content.text);
         if (result != NetworkManager.ConnectResult.Success) return;
