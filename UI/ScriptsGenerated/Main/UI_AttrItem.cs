@@ -20,8 +20,8 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_attrName = (GTextField)GetChildAt(1);
-            m_attrValue = (GTextField)GetChildAt(2);
+            m_attrName = (GTextField)GetChildAt(2);
+            m_attrValue = (GTextField)GetChildAt(3);
         }
     }
 }
