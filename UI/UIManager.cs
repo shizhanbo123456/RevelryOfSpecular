@@ -76,8 +76,8 @@ public class UIManager : MonoBehaviour
         label.fontSize = 22;
         label.width = 800f;
         label.align = AlignType.Center;
-        GRoot.Instance.AddChild(label);
-        label.SetXY((GRoot.Instance.width - label.width) * 0.5f, 140f);
+        GRoot.inst.AddChild(label);
+        label.SetXY((GRoot.inst.width - label.width) * 0.5f, 140f);
         floatingLabels.Add((label, Time.time));
     }
 

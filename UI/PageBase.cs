@@ -62,3 +62,8 @@ public abstract class PageBase
         return new Vector2(screen.x / UiScale, screen.y / UiScale);
     }
 }
+
+/// <summary>切页参数（当前无页面使用，预留扩展）。</summary>
+public class ShowParam
+{
+}
