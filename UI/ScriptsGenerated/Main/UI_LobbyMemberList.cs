@@ -12,6 +12,12 @@ namespace Main
         public UI_Button1 m_btn_joinAttacker;
         public GList m_attackerPlayers;
         public UI_Button1 m_btn_joinDefenser;
+        public UI_Button1 m_attackerAI_minus;
+        public GTextField m_label_attackerAI_count;
+        public UI_Button1 m_attackerAI_add;
+        public UI_Button1 m_defenserAI_minus;
+        public GTextField m_label_defenserAI_count;
+        public UI_Button1 m_defenserAI_add;
         public UI_Button1 m_btn_battleStart;
         public const string URL = "ui://q68vr2bftwqeh9";
 
@@ -29,6 +35,12 @@ namespace Main
             m_btn_joinAttacker = (UI_Button1)GetChildAt(4);
             m_attackerPlayers = (GList)GetChildAt(5);
             m_btn_joinDefenser = (UI_Button1)GetChildAt(6);
+            m_attackerAI_minus = (UI_Button1)GetChildAt(8);
+            m_label_attackerAI_count = (GTextField)GetChildAt(9);
+            m_attackerAI_add = (UI_Button1)GetChildAt(10);
+            m_defenserAI_minus = (UI_Button1)GetChildAt(12);
+            m_label_defenserAI_count = (GTextField)GetChildAt(13);
+            m_defenserAI_add = (UI_Button1)GetChildAt(14);
             m_btn_battleStart = (UI_Button1)GetChildAt(15);
         }
     }

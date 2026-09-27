@@ -19,14 +19,17 @@ namespace Main
             UIObjectFactory.SetPackageItemExtension(UI_MinimapItem.URL, typeof(UI_MinimapItem));
             UIObjectFactory.SetPackageItemExtension(UI_DamageLabel.URL, typeof(UI_DamageLabel));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerName.URL, typeof(UI_PlayerName));
+            UIObjectFactory.SetPackageItemExtension(UI_EntityBar.URL, typeof(UI_EntityBar));
             UIObjectFactory.SetPackageItemExtension(UI_EventIcon.URL, typeof(UI_EventIcon));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
             UIObjectFactory.SetPackageItemExtension(UI_HomeCharacterList.URL, typeof(UI_HomeCharacterList));
             UIObjectFactory.SetPackageItemExtension(UI_Panel_1.URL, typeof(UI_Panel_1));
             UIObjectFactory.SetPackageItemExtension(UI_AttrItem.URL, typeof(UI_AttrItem));
             UIObjectFactory.SetPackageItemExtension(UI_HomeAttrList.URL, typeof(UI_HomeAttrList));
+            UIObjectFactory.SetPackageItemExtension(UI_LobbyPanel.URL, typeof(UI_LobbyPanel));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberList.URL, typeof(UI_LobbyMemberList));
             UIObjectFactory.SetPackageItemExtension(UI_HomePanel.URL, typeof(UI_HomePanel));
             UIObjectFactory.SetPackageItemExtension(UI_Button1.URL, typeof(UI_Button1));
