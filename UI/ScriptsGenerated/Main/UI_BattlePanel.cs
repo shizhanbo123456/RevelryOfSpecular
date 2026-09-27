@@ -19,6 +19,7 @@ namespace Main
         public UI_DefensivePointBar m_progressSub1;
         public UI_DefensivePointBar m_progressSub2;
         public UI_DefensivePointBar m_progressSub3;
+        public GButton m_btn_exit;
         public const string URL = "ui://q68vr2bfjtpbhd";
 
         public static UI_BattlePanel CreateInstance()
@@ -42,6 +43,7 @@ namespace Main
             m_progressSub1 = (UI_DefensivePointBar)GetChildAt(16);
             m_progressSub2 = (UI_DefensivePointBar)GetChildAt(17);
             m_progressSub3 = (UI_DefensivePointBar)GetChildAt(18);
+            m_btn_exit = (GButton)GetChildAt(20);
         }
     }
 }

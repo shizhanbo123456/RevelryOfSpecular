@@ -11,6 +11,7 @@ namespace Main
         public GList m_characterList;
         public UI_Button1 m_btn_attacker;
         public UI_Button1 m_btn_defenser;
+        public UI_Button1 m_btn_finish;
         public const string URL = "ui://q68vr2bftwqeh2";
 
         public static UI_HomeCharacterList CreateInstance()
@@ -26,6 +27,7 @@ namespace Main
             m_characterList = (GList)GetChildAt(1);
             m_btn_attacker = (UI_Button1)GetChildAt(2);
             m_btn_defenser = (UI_Button1)GetChildAt(3);
+            m_btn_finish = (UI_Button1)GetChildAt(4);
         }
     }
 }

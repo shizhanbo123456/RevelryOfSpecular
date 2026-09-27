@@ -24,6 +24,7 @@ namespace Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_PlayerInfo.URL, typeof(UI_PlayerInfo));
             UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
             UIObjectFactory.SetPackageItemExtension(UI_HomeCharacterList.URL, typeof(UI_HomeCharacterList));
             UIObjectFactory.SetPackageItemExtension(UI_Panel_1.URL, typeof(UI_Panel_1));

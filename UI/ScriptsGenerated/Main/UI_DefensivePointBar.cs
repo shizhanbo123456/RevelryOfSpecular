@@ -7,6 +7,7 @@ namespace Main
 {
     public partial class UI_DefensivePointBar : GComponent
     {
+        public Controller m_destroyed;
         public GImage m_fill;
         public const string URL = "ui://q68vr2bfrzmhih";
 
@@ -19,6 +20,7 @@ namespace Main
         {
             base.ConstructFromXML(xml);
 
+            m_destroyed = GetControllerAt(0);
             m_fill = (GImage)GetChildAt(1);
         }
     }
