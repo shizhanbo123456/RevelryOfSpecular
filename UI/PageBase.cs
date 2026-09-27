@@ -11,10 +11,10 @@ public abstract class PageBase
     protected GComponent Root { get; private set; }
 
     /// <summary>当前面板缩放（屏幕高 / 1080）。</summary>
-    protected float UiScale { get; private set; } = 1f;
+    public float UiScale { get; private set; } = 1f;
 
     /// <summary>当前宽高比下 1080 高对应的宽度（设计单位）。</summary>
-    protected float PanelWidth { get; private set; } = 1920f;
+    public float PanelWidth { get; private set; } = 1920f;
 
     protected PageBase(GComponent root)
     {
@@ -29,13 +29,18 @@ public abstract class PageBase
 
     public virtual void Enter(ShowParam param)
     {
+        IsVisible = true;
         Root.visible = true;
     }
 
     public virtual void Exit()
     {
+        IsVisible = false;
         Root.visible = false;
     }
+
+    /// <summary>当前是否显示（Enter/Exit 维护）。</summary>
+    public bool IsVisible { get; private set; }
 
     /// <summary>每帧推进（仅当前页，由 UIManager.Update 驱动）。</summary>
     public virtual void Tick(float deltaTime) { }

@@ -21,29 +21,42 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        Tool.UIManager = this;
+        try
+        {
+            Tool.UIManager = this;
+            Debug.Log("[UIManager] 启动：加载 Main 包...");
 
-        UIPackage.AddPackage("GUI/Main");
-        MainBinder.BindAll();
+            UIPackage.AddPackage("GUI/Main");
+            Debug.Log($"[UIManager] 包已加载，包含组件数：{UIPackage.GetPackageItemCount("Main")}");
+            MainBinder.BindAll();
 
-        home = new HomePage(UI_HomePanel.CreateInstance());
-        lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
-        battle = new BattlePage(UI_BattlePanel.CreateInstance());
+            home = new HomePage(UI_HomePanel.CreateInstance());
+            lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
+            battle = new BattlePage(UI_BattlePanel.CreateInstance());
+            Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}");
 
-        //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
-        home.Construct();
-        lobby.Construct();
-        battle.Construct();
+            //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
+            home.Construct();
+            lobby.Construct();
+            battle.Construct();
+            Debug.Log("[UIManager] Construct 完成");
 
-        ApplyResize();
+            ApplyResize();
+            Debug.Log($"[UIManager] 适配完成：屏幕 {Screen.width}x{Screen.height}，面板宽 {home.PanelWidth:0}，缩放 {home.UiScale:0.00}，GRoot {GRoot.inst.width:0}x{GRoot.inst.height:0}");
 
-        currentPage = home;
-        home.Enter(null);
+            currentPage = home;
+            home.Enter(null);
+            Debug.Log($"[UIManager] 首页已显示：home.visible={home.IsVisible}，children={GRoot.inst.numChildren}");
 
-        //切页事件（发送方在 NetworkManager）：连接成功→大厅、开战→战斗、断开/超时→首页
-        EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
-        EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
-        EventManager.AddEvent(ClientEvent.OnRestartGame, OnRestartGame);
+            //切页事件（发送方在 NetworkManager）：连接成功→大厅、开战→战斗、断开/超时→首页
+            EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
+            EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
+            EventManager.AddEvent(ClientEvent.OnRestartGame, OnRestartGame);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogException(e); // 任何被吞掉的异常都显式暴露
+        }
     }
 
     private void OnDestroy()
