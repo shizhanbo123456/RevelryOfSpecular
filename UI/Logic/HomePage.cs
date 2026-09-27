@@ -91,7 +91,7 @@ public class HomePage : PageBase
         head.m_headIcon.texture = hasIcon ? new NTexture(icons[index]) : null;
 
         //点击选中（FGUI onClick 为追加制，先清后加以防列表复用叠加）
-        head.onClick.Clear();
+        head.onClick.Set(() => { });
         head.onClick.Add(() =>
         {
             if (defenseTab) ClientSelection.selectedDefenseIndex = index;
