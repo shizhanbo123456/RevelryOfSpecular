@@ -2,7 +2,7 @@
 
 using FairyGUI;
 
-namespace Main
+namespace Ros.UI.Main
 {
     public class MainBinder
     {

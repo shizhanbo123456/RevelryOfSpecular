@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FairyGUI;
+using Main;
 using UnityEngine;
 
 /// <summary>

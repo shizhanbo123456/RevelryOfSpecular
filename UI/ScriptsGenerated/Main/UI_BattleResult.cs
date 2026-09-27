@@ -3,7 +3,7 @@
 using FairyGUI;
 using FairyGUI.Utils;
 
-namespace Main
+namespace Ros.UI.Main
 {
     public partial class UI_BattleResult : GComponent
     {
