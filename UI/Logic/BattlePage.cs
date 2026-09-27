@@ -2,6 +2,7 @@ using Ros.UI.Main;
 using System.Collections.Generic;
 using Ros.Info;
 using Ros.Transport;
+using FairyGUI;
 using UnityEngine;
 
 /// <summary>
@@ -254,12 +255,13 @@ public class BattlePage : PageBase
             if (!minimapItems.TryGetValue(entity.entityId, out var item))
             {
                 item = UI_MinimapItem.CreateInstance();
-                mapBase.AddChild(item);
+                panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
                 minimapItems[entity.entityId] = item;
             }
             item.m_type.selectedIndex = GetMinimapType(entity);
-            //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）
-            item.SetXY(entity.posX / Landscape.MapSize * mapBase.width, (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
+            //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）；坐标含 mapBase 在面板内的偏移
+            item.SetXY(mapBase.x + entity.posX / Landscape.MapSize * mapBase.width,
+                mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
         }
         //消失的实体移除点位
         List<ushort> expired = null;
@@ -416,7 +418,8 @@ public class BattlePage : PageBase
         {
             var bar = pair.Value;
             if (bar == null) continue;
-            bool visible = Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(pair.Key, out var headPos) == true;
+            var headPos = Vector3.zero;
+            bool visible = Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(pair.Key, out headPos) == true;
             Vector2 local = Vector2.zero;
             if (visible)
             {
@@ -497,7 +500,8 @@ public class BattlePage : PageBase
         label.m_num.color = color;
         label.m_num.textFormat.size = fontSize;
         Root.AddChild(label);
-        if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out var headPos) == true)
+        var headPos = Vector3.zero;
+        if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out headPos) == true)
         {
             label.xy = WorldToPanel(headPos);
         }

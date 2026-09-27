@@ -33,7 +33,7 @@ public class HomePage : PageBase
         charPanel.m_btn_finish.onClick.Add(() => panel.m_page.selectedIndex = 0); // 编辑完成 → 玩家信息页
 
         panel.m_playerInfo.m_btn_editSelectedCharacter.onClick.Add(() => panel.m_page.selectedIndex = 1);
-        var nameInput = panel.m_playerInfo.m_input_playerName.m_content;
+        var nameInput = panel.m_playerInfo.m_input_playerName;
         nameInput.text = ClientSelection.playerName;
         nameInput.onChanged.Add(() => ClientSelection.playerName = nameInput.text);
 
