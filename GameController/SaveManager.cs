@@ -15,6 +15,7 @@ public class SaveManager : MonoBehaviour
     {
         Tool.SaveManager = this;
         LoadOrCreate();
+        ClientSelection.playerName = playerName;
     }
 
     #region 数据
@@ -22,6 +23,9 @@ public class SaveManager : MonoBehaviour
     public int playerLevel = 1;
     /// <summary>玩家经验。</summary>
     public int playerExp;
+
+    /// <summary>玩家名（局外存档；空 = 无效存档，重建时随机六位数）。</summary>
+    public string playerName = "";
 
     /// <summary>角色等级（全局角色索引 0~23，进攻 0~17 / 防守 18~23）。</summary>
     public List<int> characterLevels = new();
@@ -115,7 +119,7 @@ public class SaveManager : MonoBehaviour
         string data = PlayerPrefs.GetString(SaveKey, "");
         if (string.IsNullOrEmpty(data))
         {
-            Save();
+            CreateNewSave();
             return;
         }
         try
@@ -128,11 +132,20 @@ public class SaveManager : MonoBehaviour
             for (int i = 0; i < count && idx < parts.Length; i++) characterLevels[i] = int.Parse(parts[idx++]);
             for (int i = 0; i < count && idx < parts.Length; i++) characterExp[i] = int.Parse(parts[idx++]);
             for (int i = 0; i < count && idx < parts.Length; i++) characterUnlocked[i] = parts[idx++] == "1";
+            if (idx < parts.Length) playerName = parts[idx++];
         }
         catch (System.Exception e)
         {
             Debug.LogWarning($"存档解析失败，已重建：{e.Message}");
-            Save();
+            CreateNewSave();
+            return;
+        }
+
+        // 名字为空 → 视为无效存档 → 新建存档（随机六位数名字）
+        if (string.IsNullOrEmpty(playerName))
+        {
+            Debug.LogWarning("存档玩家名为空，视为无效，新建存档");
+            CreateNewSave();
         }
     }
 
@@ -145,18 +158,35 @@ public class SaveManager : MonoBehaviour
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterLevels[i]).Append('|');
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterExp[i]).Append('|');
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterUnlocked[i] ? "1" : "0").Append('|');
+        sb.Append((playerName ?? "").Replace("|", ""));
         PlayerPrefs.SetString(SaveKey, sb.ToString());
         PlayerPrefs.Save();
+    }
+
+    /// <summary>随机六位数名字（100000-999999），用于新/无效存档。</summary>
+    private string GenerateRandomName()
+    {
+        return UnityEngine.Random.Range(100000, 1000000).ToString();
+    }
+
+    /// <summary>新建存档：进度清零 + 随机六位数名字（用于无数据/解析失败/名字为空三种情况）。</summary>
+    private void CreateNewSave()
+    {
+        playerLevel = 1;
+        playerExp = 0;
+        characterLevels.Clear();
+        characterExp.Clear();
+        characterUnlocked.Clear();
+        EnsureListSize(0);
+        playerName = GenerateRandomName();
+        Save();
     }
 
     [ContextMenu("ClearSave")]
     private void ClearSave()
     {
         PlayerPrefs.DeleteKey(SaveKey);
-        playerLevel = 1;
-        playerExp = 0;
-        EnsureListSize(0);
-        Save();
+        CreateNewSave();
         Debug.Log("存档已清除");
     }
     #endregion

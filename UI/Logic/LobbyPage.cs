@@ -131,6 +131,12 @@ public class LobbyPage : PageBase
 
     private void OnStartClicked()
     {
+        var name = ClientSelection.playerName;
+        if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 8)
+        {
+            Tool.UIManager?.ShowFloating("玩家名字必须为2-8个字符", new Color(1f, 0.62f, 0.28f));
+            return;
+        }
         Tool.NetworkManager?.SendStartRequest();
     }
 

@@ -35,7 +35,15 @@ public class HomePage : PageBase
         panel.m_playerInfo.m_btn_editSelectedCharacter.onClick.Add(() => panel.m_page.selectedIndex = 1);
         var nameInput = panel.m_playerInfo.m_input_playerName;
         nameInput.text = ClientSelection.playerName;
-        nameInput.onChanged.Add(() => ClientSelection.playerName = nameInput.text);
+        nameInput.onChanged.Add(() =>
+        {
+            ClientSelection.playerName = nameInput.text;
+            if (Tool.SaveManager != null)
+            {
+                Tool.SaveManager.playerName = nameInput.text;
+                Tool.SaveManager.Save();
+            }
+        });
 
         panel.m_connectPanel.m_btn_connect.onClick.Add(OnConnectClicked);
     }
@@ -43,6 +51,7 @@ public class HomePage : PageBase
     public override void Enter(ShowParam param)
     {
         base.Enter(param);
+        panel.m_playerInfo.m_input_playerName.text = ClientSelection.playerName;
         RefreshLists();
         RefreshPlayerInfo();
         RefreshAttrList();
