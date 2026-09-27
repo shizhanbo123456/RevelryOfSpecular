@@ -47,6 +47,8 @@ public class BattlePage : PageBase
 
     public override void Enter(ShowParam param)
     {
+        base.Enter();
+    {
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.AddEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
@@ -65,6 +67,8 @@ public class BattlePage : PageBase
     }
 
     public override void Exit()
+    {
+        base.Exit();
     {
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);

@@ -38,10 +38,14 @@ public class LobbyPage : PageBase
 
     public override void Enter(ShowParam param)
     {
+        base.Enter();
+    {
         EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
     }
 
     public override void Exit()
+    {
+        base.Exit();
     {
         EventManager.RemoveEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
     }
