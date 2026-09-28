@@ -403,6 +403,7 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveRoomInfoLocal(SCRoomInfo info)
     {
         if (info == null) return;
+        hasRoomInfo = true; // 已收到服务器房间状态，允许发送大厅命令（选队/开始/输入）
         BattleRunning = info.battleStarted;
         LatestRoomInfo = info; // 缓存最新房间状态（战斗期头顶名字按 clientId 反查）
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);

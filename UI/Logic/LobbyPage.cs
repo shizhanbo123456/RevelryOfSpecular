@@ -17,6 +17,8 @@ public class LobbyPage : PageBase
     private int attackAICount;        // 本地显示值，服务器回显为准
     private int defenseAICount;
     private bool syncingFromServer;   // 服务器回显期间屏蔽本地回调，避免回环上报
+    private bool canStartBattle;      // 最近一次服务器回显：是否满足开始条件（双方均有玩家或 AI）
+    private bool battleStarted;       // 最近一次服务器回显：对局是否已开始
 
     public LobbyPage(UI_LobbyPanel panel) : base(panel)
     {
@@ -104,8 +106,8 @@ public class LobbyPage : PageBase
 
         int attackHumans = info.members.Count(m => m != null && m.camp == 0);
         int defenseHumans = info.members.Count(m => m != null && m.camp == 1);
-        bool canStart = attackHumans + info.attackAICount > 0 && defenseHumans + info.defenseAICount > 0;
-        panel.m_mainView.m_btn_battleStart.enabled = canStart && !info.battleStarted;
+        canStartBattle = attackHumans + info.attackAICount > 0 && defenseHumans + info.defenseAICount > 0;
+        battleStarted = info.battleStarted;
         syncingFromServer = false;
     }
 
@@ -131,6 +133,9 @@ public class LobbyPage : PageBase
 
     private void OnStartClicked()
     {
+        // 不在代码里用 enabled 禁用按钮（disabled 会让 onClick 完全不触发）；改为在回调内判断，不满足条件则阻断并飘字提示
+        if (battleStarted) { Tool.UIManager?.ShowFlyText("对局已开始"); return; }
+        if (!canStartBattle) { Tool.UIManager?.ShowFlyText("进攻方与防守方都需至少一名玩家或AI"); return; }
         Tool.NetworkManager?.SendStartRequest();
     }
 
