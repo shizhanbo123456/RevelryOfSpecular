@@ -49,7 +49,7 @@ public class BattlePage : PageBase
 
     public override void Construct()
     {
-        panel.m_btn_exit.onClick.Add(() => Tool.NetworkManager?.ExitWorld()); // 切页由 OnRestartGame 事件统一处理
+        panel.m_btn_exit.onClick.Add(() => Tool.NetworkManager?.ExitWorld()); // 主动退出：NetworkManager 触发 OnExitWorld，UIManager 切回主界面
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
     }
 

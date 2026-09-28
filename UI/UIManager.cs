@@ -62,6 +62,7 @@ public class UIManager : MonoBehaviour
             EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
             EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
             EventManager.AddEvent(ClientEvent.OnRestartGame, OnRestartGame);
+            EventManager.AddEvent(ClientEvent.OnExitWorld, OnExitWorld);
         }
         catch (System.Exception e)
         {
@@ -75,6 +76,7 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent(ClientEvent.OnConnect, OnConnect);
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
+        EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
     }
 
     private void Update()
@@ -158,7 +160,19 @@ public class UIManager : MonoBehaviour
 
     private void OnRestartGame()
     {
-        Tool.ClientLogicManager?.EntityPlayers.ClearAll(); // 清空上一局实体表现残留
+        ReturnToHome();
+    }
+
+    /// <summary>主动退出世界（组队/战斗页退出按钮）：清空残留并切回主界面。</summary>
+    private void OnExitWorld()
+    {
+        ReturnToHome();
+    }
+
+    /// <summary>断开/超时/主动退出统一返回主界面，并清空上一局实体表现残留。</summary>
+    private void ReturnToHome()
+    {
+        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
         TurnPage(PageType.Home);
     }
 }

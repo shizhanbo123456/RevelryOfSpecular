@@ -108,8 +108,7 @@ public partial class NetworkManager : EnsBehaviour
         }
         if (!connected)
         {
-            connecting = false;
-            Debug.LogError("Ens层连接失败");
+            Debug.LogError($"Ens层连接失败 rejected={rejected}");
             return ConnectResult.Failed;
         }
         ClientRoomManagerEventCenter.TrigEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
@@ -149,6 +148,8 @@ public partial class NetworkManager : EnsBehaviour
         }
         hasRoomInfo = false;
         EnsInstance.Corr.ShutDown();
+        // 主动退出：通知 UI 返回主界面。断开回调 OnServerDisconnect 仅用于抑制 OnRestartGame，避免重复重启流程。
+        EventManager.TrigEvent(ClientEvent.OnExitWorld);
     }
 
     private IEnumerator EnterWorldFallBack()
@@ -162,6 +163,7 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientSendInfo()
     {
         if (!tryingEnterWorld) return;
+        tryingEnterWorld = false;
         // 双方角色各自选择并随 CSPlayerInfo 上报；阵营完全在房间内确定，服务器按最终阵营取对应一侧
         var info = new CSPlayerInfo()
         {
