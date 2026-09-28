@@ -160,6 +160,10 @@ public abstract class EntityData : MonoBehaviour
         }
 
         SetupBody();
+
+        // 模型碰撞体：按烘焙的本地包围盒构造胶囊碰撞体（高度 = Y 范围，半径 = Z 范围一半）。
+        // 服务器无图形模板时 ModelInfo 为 null，自动跳过。
+        ModelInfo?.BuildCapsuleCollider();
     }
 
     /// <summary>动画攻击帧回调（AnimAttackEvent 触发；攻击帧相关逻辑如武器判定后续在此实现）。</summary>
