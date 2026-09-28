@@ -8,6 +8,7 @@ namespace Ros.UI.Main
     public partial class UI_Panel_1 : GComponent
     {
         public Controller m_hideTitle;
+        public GTextField m_title;
         public const string URL = "ui://q68vr2bftwqeh4";
 
         public static UI_Panel_1 CreateInstance()
@@ -20,6 +21,7 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_hideTitle = GetControllerAt(0);
+            m_title = (GTextField)GetChildAt(4);
         }
     }
 }

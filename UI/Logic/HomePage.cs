@@ -25,14 +25,23 @@ public class HomePage : PageBase
     public override void Construct()
     {
         panel.m_page.selectedIndex = 0; // 默认玩家信息页
+        panel.m_attributePanel.visible = false; // 属性列表初始隐藏
 
         var charPanel = panel.m_characterPanel;
         charPanel.m_characterList.itemRenderer = RenderCharacter;
         charPanel.m_btn_attacker.onClick.Add(() => SwitchTab(false));
         charPanel.m_btn_defenser.onClick.Add(() => SwitchTab(true));
-        charPanel.m_btn_finish.onClick.Add(() => panel.m_page.selectedIndex = 0); // 编辑完成 → 玩家信息页
+        charPanel.m_btn_finish.onClick.Add(() => // 编辑完成 → 玩家信息页，并一并关闭属性列表
+        {
+            panel.m_page.selectedIndex = 0;
+            panel.m_attributePanel.visible = false;
+        });
 
-        panel.m_playerInfo.m_btn_editSelectedCharacter.onClick.Add(() => panel.m_page.selectedIndex = 1);
+        panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮已移至连接面板
+        {
+            panel.m_page.selectedIndex = 1;
+            SwitchTab(defenseTab); // 同步页签选中态：默认进攻页签，避免进入后无任何页签选中
+        });
         var nameInput = panel.m_playerInfo.m_input_playerName;
         nameInput.text = ClientSelection.playerName;
         nameInput.onChanged.Add(() =>
@@ -46,6 +55,7 @@ public class HomePage : PageBase
         });
 
         panel.m_connectPanel.m_btn_connect.onClick.Add(OnConnectClicked);
+        SetTitles(); // 集中设置子面板标题与各按钮标题
     }
 
     public override void Enter(ShowParam param)
@@ -55,6 +65,7 @@ public class HomePage : PageBase
         RefreshLists();
         RefreshPlayerInfo();
         RefreshAttrList();
+        panel.m_attributePanel.visible = false; // 每次进入首页默认隐藏属性列表
         //同步场景预览：当前选中的两角色复制到预览锚点
         Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
     }
@@ -66,6 +77,21 @@ public class HomePage : PageBase
         panel.m_characterPanel.m_btn_attacker.m_selected.selectedIndex = defense ? 0 : 1;
         panel.m_characterPanel.m_btn_defenser.m_selected.selectedIndex = defense ? 1 : 0;
         RefreshLists();
+        if (panel.m_attributePanel.visible) RefreshAttrList(); // 阵营切换时若属性列表已显示则同步刷新
+    }
+
+    /// <summary>集中设置子面板标题与各按钮标题（UI 编辑器已精简，标题文字改由代码设定）。</summary>
+    private void SetTitles()
+    {
+        // 子面板标题（UI_Panel_1.m_title）
+        panel.m_characterPanel.m_panel.m_title.text = "角色选择";
+        panel.m_attributePanel.m_panel.m_title.text = "角色属性";
+        // 按钮标题（GButton.title）
+        panel.m_connectPanel.m_btn_editSelection.title = "选择角色"; // 打开角色选择面板
+        panel.m_characterPanel.m_btn_attacker.title = "进攻";
+        panel.m_characterPanel.m_btn_defenser.title = "防守";
+        panel.m_characterPanel.m_btn_finish.title = "完成";
+        panel.m_connectPanel.m_btn_connect.title = "连接";
     }
 
     /// <summary>刷新两页签对应阵营的角色列表（GList 虚拟渲染）。</summary>
@@ -107,34 +133,17 @@ public class HomePage : PageBase
             else ClientSelection.selectedAttackIndex = index;
             RefreshLists();
             RefreshAttrList();
+            panel.m_attributePanel.visible = true; // 点击角色 → 显示属性列表
             Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
         });
     }
 
-    /// <summary>玩家信息页：名字/等级/两阵营选中角色 RoleHead。</summary>
+    /// <summary>玩家信息页：仅保留玩家名与等级（角色头像已移至角色选择面板，故不再渲染）。</summary>
     private void RefreshPlayerInfo()
     {
         var info = panel.m_playerInfo;
         if (info.m_label_level != null)
             info.m_label_level.text = $"玩家等级 Lv{(Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1)}";
-        RenderHead(info.m_selectedAttacker, ClientSelection.selectedAttackIndex, false);
-        RenderHead(info.m_selectedDefenser, ClientSelection.selectedDefenseIndex, true);
-    }
-
-    private void RenderHead(UI_RoleHead head, int index, bool isDefense)
-    {
-        var info = Tool.InfoManager == null ? null
-            : isDefense ? (index < Tool.InfoManager.DefenseCharacterInfoList.Count ? Tool.InfoManager.DefenseCharacterInfoList[index] : null)
-                        : (index < Tool.InfoManager.AttackCharacterInfoList.Count ? Tool.InfoManager.AttackCharacterInfoList[index] : null);
-        int saveIndex = isDefense ? Config.attack_character_count + index : index;
-        int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
-        head.m_roleName.text = info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : $"角色 {index}";
-        head.m_level.selectedIndex = Mathf.Clamp(level - 1, 0, head.m_level.pageCount - 1);
-        head.m_lock.selectedIndex = 0;
-        var icons = Tool.AssetsManager == null ? null
-            : isDefense ? Tool.AssetsManager.DefenseCharacterIcons : Tool.AssetsManager.AttackCharacterIcons;
-        bool hasIcon = icons != null && index < icons.Count && icons[index] != null;
-        head.m_headIcon.texture = hasIcon ? new NTexture(icons[index]) : null;
     }
 
     /// <summary>属性列表：UBB 三段式（当前值白 + 绿累计增益 + 橙下级增益）。</summary>

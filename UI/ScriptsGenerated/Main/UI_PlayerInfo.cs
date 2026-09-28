@@ -9,9 +9,6 @@ namespace Ros.UI.Main
     {
         public GTextInput m_input_playerName;
         public GTextField m_label_level;
-        public UI_RoleHead m_selectedAttacker;
-        public UI_RoleHead m_selectedDefenser;
-        public GButton m_btn_editSelectedCharacter;
         public const string URL = "ui://q68vr2bfphy0ii";
 
         public static UI_PlayerInfo CreateInstance()
@@ -23,11 +20,8 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_input_playerName = (GTextInput)GetChildAt(1);
-            m_label_level = (GTextField)GetChildAt(2);
-            m_selectedAttacker = (UI_RoleHead)GetChildAt(3);
-            m_selectedDefenser = (UI_RoleHead)GetChildAt(4);
-            m_btn_editSelectedCharacter = (GButton)GetChildAt(5);
+            m_input_playerName = (GTextInput)GetChildAt(2);
+            m_label_level = (GTextField)GetChildAt(3);
         }
     }
 }

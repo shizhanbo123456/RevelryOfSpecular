@@ -13,9 +13,12 @@ public class RSServerLauncher : MonoBehaviour
     public IEnumerator StartHost()
     {
         yield return new WaitForSeconds(2);
+        Debug.LogWarning("Starting Host");
         EnsInstance.Corr.StartHost();
+        Debug.LogWarning("Start listening");
         EnsInstance.Corr.SetServerListening(true);
         yield return new WaitForSeconds(1);
+        Debug.LogWarning("Initializing virtual client");
         JoinRoom.SendRequest(EnsRoomManager.roomIdStart);
         Debug.LogWarning("Server Started");
     }
