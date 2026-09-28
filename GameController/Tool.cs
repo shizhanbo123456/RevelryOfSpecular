@@ -20,10 +20,22 @@ public class Tool : MonoBehaviour
         Instance = this;
     }
 
+    private int _frameCount;
+    private float _frameTimer;
+
     private void Update()
     {
         Thread.Sleep(delay);
         Timer.Update();
+
+        _frameCount++;
+        _frameTimer += Time.unscaledDeltaTime;
+        if (_frameTimer >= 1f)
+        {
+            Debug.Log($"[FPS] 每秒经过帧数: {_frameCount}");
+            _frameCount = 0;
+            _frameTimer -= 1f;
+        }
     }
 
     /// <summary>启动 1 秒后自检（等各管理器在 Awake 里注册完）。</summary>
