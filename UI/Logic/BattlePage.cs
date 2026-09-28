@@ -218,17 +218,17 @@ public class BattlePage : PageBase
             Root.AddChild(resultPanel);
             resultPanel.visible = false;
         }
-        resultPanel.m_title.text = GetEndText(r.gameState);
+        var battle = NetworkManager.battleInfo;
+        EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
+        resultPanel.m_title.text = GetEndText(r.gameState, camp);
         resultPanel.m_title.color = GetEndColor(r.gameState);
+        resultPanel.m_content.text = $"战斗用时：{Mathf.RoundToInt(Mathf.Max(0f, Config.battle_duration - r.remainTime))} 秒";
 
-        // 结算细节：用 BattleResultDetail 列表承载全部结算数据（替换原 m_content 纯文本块）
+        // 结算细节：BattleResultDetail 列表承载（位置/尺寸由 FGUI 包决定，代码不做适配）
         if (resultDetail == null)
         {
             resultDetail = UI_BattleResultDetail.CreateInstance();
             resultPanel.AddChild(resultDetail);
-            resultDetail.SetXY(resultPanel.m_content.x, resultPanel.m_content.y);
-            resultDetail.width = resultPanel.m_content.width;
-            resultPanel.m_content.visible = false;
         }
         BuildResultRows(resultDetail, r);
 
@@ -237,33 +237,32 @@ public class BattlePage : PageBase
         settleCloseAt = Time.time + SettleAutoClose;
     }
 
-    /// <summary>把结算明细（原始分数 + 奖励明细）逐行写入 BattleResultDetail 的列表；每行单行文本。</summary>
+    /// <summary>把结算明细逐行写入 BattleResultDetail 的列表；每行单行文本，按本地阵营二选一显示守护点数据。</summary>
     private static void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
     {
         detail.m_resultList.RemoveChildren();
+        var battle = NetworkManager.battleInfo;
+        EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
         var rows = new List<string>
         {
-            $"胜负：{GetEndText(r.gameState)}",
-            $"进攻方（拆塔）：{(int)r.attackScore}",
-            $"防守方分数：{(int)r.defenseScore}（击杀 ×{r.killScore}）",
-            $"剩余时间：{r.remainTime:F1} 秒",
-            $"本局获得经验：{r.expGain}",
-            $"账号经验 +{r.expGain}（等级 {r.playerLevelBefore} → {r.playerLevelAfter}）",
-            $"角色经验 +{r.expGain}（等级 {r.characterLevelBefore} → {r.characterLevelAfter}）",
+            $"战斗分数：进攻方 {(int)r.attackScore} ／ 防守方 {(int)r.defenseScore}",
+            $"击杀数：{r.killScore}",
+            camp == EntityCamp.Attack
+                ? $"对防守点伤害：{(int)r.expGain}"
+                : $"防守点剩余血量：{(int)r.beaconHealth}",
+            $"获得的角色经验：+{r.expGain}",
+            $"获得的玩家经验：+{r.expGain}",
         };
-        float totalH = 0f;
-        float lineGap = detail.m_resultList.lineGap;
-        for (int i = 0; i < rows.Count; i++)
+        if (r.characterLevelAfter > r.characterLevelBefore)
+            rows.Add($"角色升级：{r.characterLevelBefore} → {r.characterLevelAfter}");
+        if (r.playerLevelAfter > r.playerLevelBefore)
+            rows.Add($"玩家升级：{r.playerLevelBefore} → {r.playerLevelAfter}");
+        foreach (var text in rows)
         {
             var item = UI_BattleResultDetailItem.CreateInstance();
-            item.m_content.text = rows[i];
+            item.m_content.text = text;
             detail.m_resultList.AddChild(item);
-            totalH += item.height;
         }
-        totalH += lineGap * (rows.Count - 1);
-        // 列表与外层高度至少容纳所有行，避免被裁剪
-        detail.m_resultList.height = Mathf.Max(detail.m_resultList.height, totalH);
-        detail.height = Mathf.Max(detail.height, detail.m_resultList.y + totalH);
     }
 
     private void CloseSettlement()
@@ -642,14 +641,12 @@ public class BattlePage : PageBase
         return $"{s / 60:D2}:{s % 60:D2}";
     }
 
-    private static string GetEndText(int gameState)
+    /// <summary>标题文字：本地玩家阵营获胜显示"胜利"，其余（败北/平局）显示"结束"。</summary>
+    private static string GetEndText(int gameState, EntityCamp camp)
     {
-        switch (gameState)
-        {
-            case 1: return "进攻方胜利";
-            case 2: return "防守方胜利";
-            default: return "平局";
-        }
+        bool win = (gameState == 1 && camp == EntityCamp.Attack)
+                || (gameState == 2 && camp == EntityCamp.Defense);
+        return win ? "胜利" : "结束";
     }
 
     /// <summary>技能槽刷新：图标（SkillInfo.icon，底图与图标一并设置）、CD=图标填充比例（0→100 一轮冷却）、库存、键位、经验星星（exp 与星星 1:1）。</summary>

@@ -482,15 +482,21 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
-    public float DefenseScore()
+    /// <summary>守护点剩余血量合计（服务器，终局随 SCScoreInfo 下发）。</summary>
+    public float BeaconRemainingHealth()
     {
         float remaining = 0f;
         foreach (var beacon in EntityContainer.Beacons)
         {
             if (beacon != null && beacon.floatingAttribute != null) remaining += beacon.floatingAttribute.health;
         }
-        return remaining * (1f + Config.kill_score_factor * DefenseKills);
+        return remaining;
+    }
+
+    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
+    public float DefenseScore()
+    {
+        return BeaconRemainingHealth() * (1f + Config.kill_score_factor * DefenseKills);
     }
 
     #endregion
@@ -621,6 +627,7 @@ public partial class BattleManager : EnsBehaviour
                 killScore = DefenseKills,
                 remainTime = Mathf.Max(0f, BattleRemainTime),
                 expGain = Mathf.RoundToInt(harvest), // 经验 = 采集量 = 对守护点造成的伤害量（策划案 17.3）
+                beaconHealth = BeaconRemainingHealth(),
             });
         }
         BroadcastRoomInfo(); // battleStarted = false：客户端结算页关闭后回组队大厅准备下一轮

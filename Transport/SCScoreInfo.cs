@@ -18,6 +18,8 @@ namespace Ros.Transport
         public float remainTime;
         /// <summary>本局获得经验（= 采集量 = 对守护点造成的伤害量，策划案 17.3；客户端结算写入存档）。</summary>
         public int expGain;
+        /// <summary>守护点剩余血量合计（终局时刻，服务器统计）。</summary>
+        public float beaconHealth;
     }
 
     /// <summary>SCScoreInfo 网络序列化器。</summary>
@@ -32,7 +34,8 @@ namespace Ros.Transport
             if (!FloatSerializer.Serialize(value.defenseScore, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.killScore, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.remainTime, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.expGain, result, ref indexStart);
+            if (!IntSerializer.Serialize(value.expGain, result, ref indexStart)) return false;
+            return FloatSerializer.Serialize(value.beaconHealth, result, ref indexStart);
         }
 
         public static SCScoreInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -46,6 +49,7 @@ namespace Ros.Transport
                 killScore = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 remainTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 expGain = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                beaconHealth = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }
