@@ -168,13 +168,6 @@ public partial class BattleManager : EnsBehaviour
     #region 实体生命周期
     private ushort nextEntityId = 1;
 
-    /// <summary>递归设置 Layer（物理判定按层筛选，子物体上的碰撞体也要改）。</summary>
-    private static void SetLayerRecursively(GameObject go, int layer)
-    {
-        go.layer = layer;
-        foreach (Transform child in go.transform) SetLayerRecursively(child.gameObject, layer);
-    }
-
     /// <summary>生成实体（服务器），返回实体 id。</summary>
     public ushort SpawnEntity(EntityType type, int level, Vector3 pos, EntityCamp camp)
     {
@@ -185,7 +178,6 @@ public partial class BattleManager : EnsBehaviour
         }
         ushort id = AllocEntityId();
         var go = Instantiate(template, pos, Quaternion.identity);
-        SetLayerRecursively(go, Tool.InfoManager.entity_layer);
         // EntityData 不挂预制体（模板与客户端图形是同一批预制体），生成时按类别补上对应子类
         var data = go.GetComponent<EntityData>();
         if (data == null) data = EntityData.AddTo(go, type.category);
