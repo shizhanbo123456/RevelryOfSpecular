@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 /// <summary>
 /// 视野系统（partial BattleManager，策划案第十五章）。
@@ -17,6 +18,19 @@ using UnityEngine;
 /// </summary>
 public partial class BattleManager
 {
+    // 小地图同步的分段性能采样标签（仅用于 Profiler 定位，不影响任何逻辑）
+    private const string kMinimapSyncTag = "BM.Minimap.Sync";
+    private const string kMinimapPruneTag = "BM.Minimap.Prune";
+    private const string kMinimapCampLoopTag = "BM.Minimap.CampLoop";
+    private const string kMinimapCampLostTag = "BM.Minimap.IsCampLost";
+    private const string kMinimapBuildCampTag = "BM.Minimap.BuildCamp";
+    private const string kMinimapCampScanTag = "BM.Minimap.Scan";
+    private const string kMinimapVisionTag = "BM.Minimap.IsInCampVision";
+    private const string kMinimapAppendTag = "BM.Minimap.Append";
+    private const string kMinimapMessageTag = "BM.Minimap.BuildMessage";
+    private const string kMinimapBuildSelfTag = "BM.Minimap.BuildSelf";
+    private const string kMinimapSendTag = "BM.Minimap.Send";
+
     /// <summary>小地图下发节流计时（秒）。</summary>
     private float minimapTimer;
 
@@ -106,24 +120,43 @@ public partial class BattleManager
     /// <summary>小地图同步：按阵营构建共享视野并下发（失联阵营改为按客户端下发自身视野）。</summary>
     private void SyncMinimapToClients()
     {
+        // 采样名带上实体总数 E：在 Profiler 里可直接读出参与遍历的规模（判定 O(E²) 是否被实体数放大）
+        Profiler.BeginSample(kMinimapSyncTag + " E=" + EntityContainer.Entities.Count);
+
+        Profiler.BeginSample(kMinimapPruneTag);
         PruneVisibilityCache();
+        Profiler.EndSample();
+
+        Profiler.BeginSample(kMinimapCampLoopTag);
         foreach (var camp in s_camps)
         {
+            Profiler.BeginSample(kMinimapCampLostTag);
             bool lost = IsCampMinimapLost(camp);
+            Profiler.EndSample();
+
+            Profiler.BeginSample(kMinimapBuildCampTag);
             SCMinimapInfo shared = lost ? null : BuildCampMinimap(camp);
+            Profiler.EndSample();
+
+            Profiler.BeginSample(kMinimapSendTag);
             foreach (var pair in PlayerInfoList)
             {
                 if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
                 var info = lost ? BuildSelfMinimap(pair.Key) : shared;
                 if (info != null) Tool.NetworkManager.SendMinimapInfo(pair.Key, info);
             }
+            Profiler.EndSample();
         }
+        Profiler.EndSample();
+
+        Profiler.EndSample();
     }
 
     /// <summary>阵营共享视野：己方单位恒显示；敌方 / 中立单位在本阵营任一成员视野内、或被白眼标记时显示。</summary>
     private SCMinimapInfo BuildCampMinimap(EntityCamp camp)
     {
         s_minimapEntries.Clear();
+        Profiler.BeginSample(kMinimapCampScanTag);
         foreach (var entity in EntityContainer.Entities)
         {
             if (entity == null) continue;
@@ -134,14 +167,20 @@ public partial class BattleManager
             }
             if (IsMarkedOnMinimap(entity) || IsInCampVision(camp, entity)) AppendMinimapEntry(entity);
         }
-        return BuildMinimapMessage(false);
+        Profiler.EndSample();
+
+        Profiler.BeginSample(kMinimapMessageTag);
+        var result = BuildMinimapMessage(false);
+        Profiler.EndSample();
+        return result;
     }
 
     /// <summary>「小地图失联」下的自身视野：只含自己、自身可见距离内的敌方 / 中立、以及被白眼标记的敌方。</summary>
     private SCMinimapInfo BuildSelfMinimap(short clientId)
     {
+        Profiler.BeginSample(kMinimapBuildSelfTag);
         var viewer = GetEntityOfClient(clientId);
-        if (viewer == null) return null;
+        if (viewer == null) { Profiler.EndSample(); return null; }
         s_minimapEntries.Clear();
         float radius = VisionRadius(viewer);
         foreach (var entity in EntityContainer.Entities)
@@ -158,22 +197,31 @@ public partial class BattleManager
                 AppendMinimapEntry(entity);
             }
         }
-        return BuildMinimapMessage(true);
+        var result = BuildMinimapMessage(true);
+        Profiler.EndSample();
+        return result;
     }
 
     /// <summary>目标是否落在该阵营任一成员的可见距离内（团队共享视野）。</summary>
     private static bool IsInCampVision(EntityCamp camp, EntityData target)
     {
+        Profiler.BeginSample(kMinimapVisionTag);
         foreach (var member in EntityContainer.Entities)
         {
             if (member == null || member.camp != camp) continue;
-            if (IsInRadius(member.transform.position, target.transform.position, VisionRadius(member))) return true;
+            if (IsInRadius(member.transform.position, target.transform.position, VisionRadius(member)))
+            {
+                Profiler.EndSample();
+                return true;
+            }
         }
+        Profiler.EndSample();
         return false;
     }
 
     private static void AppendMinimapEntry(EntityData entity)
     {
+        Profiler.BeginSample(kMinimapAppendTag);
         var pos = entity.transform.position;
         s_minimapEntries.Add(new SCMinimapInfo.MinimapEntity()
         {
@@ -184,6 +232,7 @@ public partial class BattleManager
             posZ = pos.z,
             marked = IsMarkedOnMinimap(entity),
         });
+        Profiler.EndSample();
     }
 
     private static SCMinimapInfo BuildMinimapMessage(bool lost)
