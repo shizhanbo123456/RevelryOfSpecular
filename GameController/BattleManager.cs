@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Ros.Transport;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 /// <summary>
 /// 战斗管理器（服务器权威，客户端仅接收信息摘要做表现）。
@@ -627,11 +628,30 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 帧循环（服务器权威推进）
+    // 性能采样标签：在 Profiler 中把 ManagedUpdate 拆成独立项，按调用顺序逐个看耗时
+    private const string kManagedUpdateProfilerTag = "BattleManager.ManagedUpdate";
+    private const string kTimerTag = "BattleManager.Timer";
+    private const string kDayNightTag = "BattleManager.DayNight";
+    private const string kEntityUpdateTag = "BattleManager.EntityUpdate";
+    private const string kTickMovementTag = "BattleManager.TickMovement";
+    private const string kSyncTransformsTag = "BattleManager.SyncTransforms";
+    private const string kTickBulletsTag = "BattleManager.TickBullets";
+    private const string kTickReviveTag = "BattleManager.TickRevive";
+    private const string kTickWorldRespawnTag = "BattleManager.TickWorldRespawn";
+    private const string kProcessKilledTag = "BattleManager.ProcessKilled";
+    private const string kTickDyingTag = "BattleManager.TickDying";
+    private const string kUpdateAITag = "BattleManager.UpdateAI";
+    private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
+    private const string kSyncEntitiesTag = "BattleManager.SyncEntitiesToClients";
+    private const string kSyncMinimapTag = "BattleManager.SyncMinimap";
+
     public override void ManagedUpdate()
     {
-        if (!AtServer || !BattleStarted) return;
+        Profiler.BeginSample(kManagedUpdateProfilerTag);
+        if (!AtServer || !BattleStarted) { Profiler.EndSample(); return; }
 
         // 计时
+        Profiler.BeginSample(kTimerTag);
         if (BattleRemainTime > 0f)
         {
             BattleRemainTime -= UnityEngine.Time.deltaTime;
@@ -639,12 +659,16 @@ public partial class BattleManager : EnsBehaviour
             {
                 // 时间耗尽按分数结算（分数制，不单独处理平局）
                 EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
+                Profiler.EndSample(); // kTimerTag
+                Profiler.EndSample(); // kManagedUpdateProfilerTag
                 return;
             }
         }
+        Profiler.EndSample(); // kTimerTag
 
         // 昼夜推进（服务器权威，见策划案 13 章）：周期值在 [0,2) 循环（0/2 午夜、1 正午），方向由周期值推导。
         // 时长或时间被改动时立即补发快照；此外每 Config.daynight_sync_interval 秒心跳一次，兜底两端漂移
+        Profiler.BeginSample(kDayNightTag);
         if (Tool.EnvironmentManager != null)
         {
             Tool.EnvironmentManager.Tick(UnityEngine.Time.deltaTime);
@@ -655,21 +679,35 @@ public partial class BattleManager : EnsBehaviour
                 Tool.NetworkManager.SendDayNightInfo(Tool.EnvironmentManager.BuildSnapshot());
             }
         }
+        Profiler.EndSample(); // kDayNightTag
 
         // 实体更新
+        Profiler.BeginSample(kEntityUpdateTag);
         foreach (var entity in EntityContainer.Entities)
         {
             if (entity != null) entity.OnUpdate();
         }
+        Profiler.EndSample(); // kEntityUpdateTag
 
         // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与水晶重生
+        Profiler.BeginSample(kTickMovementTag);
         TickMovement();
+        Profiler.EndSample();
+        Profiler.BeginSample(kSyncTransformsTag);
         Physics.SyncTransforms(); //位移已由刚体积分，此处兜底按 transform 移动的对象（项目关闭了自动同步）
+        Profiler.EndSample();
+        Profiler.BeginSample(kTickBulletsTag);
         TickBullets();
+        Profiler.EndSample();
+        Profiler.BeginSample(kTickReviveTag);
         TickRevive();
+        Profiler.EndSample();
+        Profiler.BeginSample(kTickWorldRespawnTag);
         TickWorldRespawn();
+        Profiler.EndSample();
 
         // 处理本帧死亡实体：入队等死亡动画播完再销毁（死亡动画由 EntityData.MarkAsKilled 立刻播放）
+        Profiler.BeginSample(kProcessKilledTag);
         if (EntityData.KilledList.Count > 0)
         {
             var killed = new List<EntityData>(EntityData.KilledList);
@@ -681,14 +719,20 @@ public partial class BattleManager : EnsBehaviour
             }
             EntityData.ClearKilled();
         }
+        Profiler.EndSample(); // kProcessKilledTag
 
+        Profiler.BeginSample(kTickDyingTag);
         TickDying(); // 死亡动画播完后物理销毁（BeginDying 入队）
+        Profiler.EndSample();
 
         // AI 行为（各实体在内部按 id 错峰，见 UpdateAI）
+        Profiler.BeginSample(kUpdateAITag);
         UpdateAI();
+        Profiler.EndSample();
 
         // 夜间僵尸刷新（策划案第九章）：cd 进度满 1 → 刷新一只并清零；
         // 僵尸数量达上限时不刷新且进度清零；白天（t ≥ 0.5）进度不增加
+        Profiler.BeginSample(kZombieRefreshTag);
         if (!EnvironmentManager.IsDay) // t < 0.5 = 晚上
         {
             if (zombieCount >= Config.zombie_max)
@@ -708,8 +752,10 @@ public partial class BattleManager : EnsBehaviour
                 }
             }
         }
+        Profiler.EndSample(); // kZombieRefreshTag
 
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
+        Profiler.BeginSample(kSyncEntitiesTag);
         syncTimer -= UnityEngine.Time.deltaTime;
         detailsTimer -= UnityEngine.Time.deltaTime;
         if (syncTimer <= 0f)
@@ -719,14 +765,18 @@ public partial class BattleManager : EnsBehaviour
             if (details) detailsTimer = Config.entity_sync_interval_details;
             SyncEntitiesToClients(details);
         }
+        Profiler.EndSample(); // kSyncEntitiesTag
 
         // 小地图同步（阵营共享视野，独立节流，见 Config.minimap_sync_interval）
+        Profiler.BeginSample(kSyncMinimapTag);
         minimapTimer -= UnityEngine.Time.deltaTime;
         if (minimapTimer <= 0f)
         {
             minimapTimer = Config.minimap_sync_interval;
             SyncMinimapToClients();
         }
+        Profiler.EndSample(); // kSyncMinimapTag
+        Profiler.EndSample(); // kManagedUpdateProfilerTag
     }
 
     /// <summary>
