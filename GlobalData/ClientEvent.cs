@@ -26,7 +26,9 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     /// <summary>分数更新（param=SCScoreInfo）。</summary>
     public const int OnScoreUpdate = 10213;
-    // 10214 / 10217~10219 未占用：守护点血量、技能槽位与武器等信息统一随实体表现摘要下发
+    /// <summary>结算明细（param=SettlementResult；由 SettlementManager 在经验入账后触发，含原始分数与奖励明细）。</summary>
+    public const int OnSettlementResult = 10214;
+    // 10217~10219 未占用：守护点血量、技能槽位与武器等信息统一随实体表现摘要下发
     // （param=SCEntityDisplayInfo，见 OnEntityDisplayUpdate），不单独发事件
     /// <summary>复活进度更新（param=SCReviveInfo）。</summary>
     public const int OnReviveProgressUpdate = 10215;

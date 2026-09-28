@@ -14,6 +14,7 @@ public class BattlePage : PageBase
 {
     private readonly UI_BattlePanel panel;
     private UI_BattleResult resultPanel;
+    private UI_BattleResultDetail resultDetail;
     private float battleStartTime;
     private float settleCloseAt = -1f;
 
@@ -52,6 +53,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.AddEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
+        EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
@@ -72,6 +74,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.RemoveEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
+        EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
@@ -204,11 +207,10 @@ public class BattlePage : PageBase
     {
         if (info == null) return;
         if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
-        if (info.gameState != 0) ShowSettlement(info);
     }
 
     /// <summary>结算面板：显示 + 转场动画，SettleAutoClose 秒后自动关闭回组队大厅。</summary>
-    private void ShowSettlement(SCScoreInfo info)
+    private void OnSettlementResult(SettlementResult r)
     {
         if (resultPanel == null)
         {
@@ -216,14 +218,52 @@ public class BattlePage : PageBase
             Root.AddChild(resultPanel);
             resultPanel.visible = false;
         }
-        resultPanel.m_title.text = GetEndText(info.gameState);
-        resultPanel.m_title.color = GetEndColor(info.gameState);
-        resultPanel.m_content.text = $"进攻方（拆塔）：{(int)info.attackScore}\n" +
-                                     $"防守方：{(int)info.defenseScore}（击杀 ×{info.killScore}）\n" +
-                                     $"本局获得经验：{info.expGain}";
+        resultPanel.m_title.text = GetEndText(r.gameState);
+        resultPanel.m_title.color = GetEndColor(r.gameState);
+
+        // 结算细节：用 BattleResultDetail 列表承载全部结算数据（替换原 m_content 纯文本块）
+        if (resultDetail == null)
+        {
+            resultDetail = UI_BattleResultDetail.CreateInstance();
+            resultPanel.AddChild(resultDetail);
+            resultDetail.SetXY(resultPanel.m_content.x, resultPanel.m_content.y);
+            resultDetail.width = resultPanel.m_content.width;
+            resultPanel.m_content.visible = false;
+        }
+        BuildResultRows(resultDetail, r);
+
         resultPanel.visible = true;
         resultPanel.m_t0.Play();
         settleCloseAt = Time.time + SettleAutoClose;
+    }
+
+    /// <summary>把结算明细（原始分数 + 奖励明细）逐行写入 BattleResultDetail 的列表；每行单行文本。</summary>
+    private static void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
+    {
+        detail.m_resultList.RemoveChildren();
+        var rows = new List<string>
+        {
+            $"胜负：{GetEndText(r.gameState)}",
+            $"进攻方（拆塔）：{(int)r.attackScore}",
+            $"防守方分数：{(int)r.defenseScore}（击杀 ×{r.killScore}）",
+            $"剩余时间：{r.remainTime:F1} 秒",
+            $"本局获得经验：{r.expGain}",
+            $"账号经验 +{r.expGain}（等级 {r.playerLevelBefore} → {r.playerLevelAfter}）",
+            $"角色经验 +{r.expGain}（等级 {r.characterLevelBefore} → {r.characterLevelAfter}）",
+        };
+        float totalH = 0f;
+        float lineGap = detail.m_resultList.lineGap;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var item = UI_BattleResultDetailItem.CreateInstance();
+            item.m_content.text = rows[i];
+            detail.m_resultList.AddChild(item);
+            totalH += item.height;
+        }
+        totalH += lineGap * (rows.Count - 1);
+        // 列表与外层高度至少容纳所有行，避免被裁剪
+        detail.m_resultList.height = Mathf.Max(detail.m_resultList.height, totalH);
+        detail.height = Mathf.Max(detail.height, detail.m_resultList.y + totalH);
     }
 
     private void CloseSettlement()
