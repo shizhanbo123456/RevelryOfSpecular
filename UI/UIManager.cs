@@ -15,8 +15,8 @@ public class UIManager : MonoBehaviour
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
-    // 全局飘字（任意界面可用，屏幕上方居中，2.5s 消失）
-    private readonly List<(GTextField label, float time)> floatingLabels = new();
+    // 全局飘字（任意界面可用，屏幕上方居中，2.5s 消失），用 UI_NoticePanel 承载
+    private readonly List<(GComponent comp, float time)> floatingLabels = new();
     private const float FloatingLife = 2.5f;
 
     private void Start()
@@ -85,18 +85,18 @@ public class UIManager : MonoBehaviour
         battle?.OnResize(width, 1080f);
     }
 
-    /// <summary>飘字提示（事件提示/规则提醒等，2.5s 自动消失，任何界面都能调）。</summary>
+    /// <summary>飘字提示（事件提示/规则提醒等，2.5s 自动消失，任何界面都能调）。用 UI_NoticePanel 承载，文字写入 m_title。</summary>
     public void ShowFloating(string text, Color color)
     {
-        var label = new GTextField();
-        label.text = text;
-        label.color = color;
-        label.textFormat.size = 22;
-        label.width = 800f;
-        label.align = AlignType.Center;
-        GRoot.inst.AddChild(label);
-        label.SetXY((GRoot.inst.width - label.width) * 0.5f, 140f);
-        floatingLabels.Add((label, Time.time));
+        var panel = UI_NoticePanel.CreateInstance();
+        if (panel.m_title != null)
+        {
+            panel.m_title.text = text;
+            panel.m_title.color = color;
+        }
+        GRoot.inst.AddChild(panel);
+        panel.SetXY((GRoot.inst.width - panel.width) * 0.5f, 140f);
+        floatingLabels.Add((panel, Time.time));
     }
 
     public void TurnPage(PageType type, ShowParam param = null)
@@ -123,7 +123,7 @@ public class UIManager : MonoBehaviour
             var item = floatingLabels[i];
             if (Time.time - item.time > FloatingLife)
             {
-                if (item.label != null) item.label.Dispose();
+                if (item.comp != null) item.comp.Dispose();
                 floatingLabels.RemoveAt(i);
             }
         }
