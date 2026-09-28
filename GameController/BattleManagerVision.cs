@@ -25,7 +25,7 @@ public partial class BattleManager
     private const string kMinimapCampLostTag = "BM.Minimap.IsCampLost";
     private const string kMinimapBuildCampTag = "BM.Minimap.BuildCamp";
     private const string kMinimapCampScanTag = "BM.Minimap.Scan";
-    private const string kMinimapVisionTag = "BM.Minimap.IsInCampVision";
+    private const string kMinimapCollectTag = "BM.Minimap.CollectVision";
     private const string kMinimapAppendTag = "BM.Minimap.Append";
     private const string kMinimapMessageTag = "BM.Minimap.BuildMessage";
     private const string kMinimapBuildSelfTag = "BM.Minimap.BuildSelf";
@@ -42,6 +42,15 @@ public partial class BattleManager
     private static readonly HashSet<ushort> s_visibleScratch = new();
     private static readonly HashSet<ushort> s_removedScratch = new();
     private static readonly HashSet<short> s_clientScratch = new();
+
+    /// <summary>本阵营成员的视野源（XZ 坐标 + 视野半径²）。每次构建前收集一次，供全部实体复用（消除 O(n²) 的嵌套全量扫描）。</summary>
+    private struct CampVisionSource
+    {
+        public float x;
+        public float z;
+        public float radiusSq;
+    }
+    private static readonly List<CampVisionSource> s_campVisionSources = new();
 
     #region 世界可见（模型同步过滤）
     /// <summary>该客户端的观察者实体（未出战 / 复活等待中返回 null）。</summary>
@@ -156,6 +165,13 @@ public partial class BattleManager
     private SCMinimapInfo BuildCampMinimap(EntityCamp camp)
     {
         s_minimapEntries.Clear();
+
+        // 先收集本阵营成员的视野源（只扫一遍，O(n)）；之后每个实体只需与"成员数 k"比较，
+        // 而不是与"实体总数 n"比较 —— 消除原本 IsInCampVision 对每个敌方实体再全量扫 n 的 O(n²)。
+        Profiler.BeginSample(kMinimapCollectTag);
+        CollectCampVisionSources(camp);
+        Profiler.EndSample();
+
         Profiler.BeginSample(kMinimapCampScanTag);
         foreach (var entity in EntityContainer.Entities)
         {
@@ -165,7 +181,7 @@ public partial class BattleManager
                 AppendMinimapEntry(entity);
                 continue;
             }
-            if (IsMarkedOnMinimap(entity) || IsInCampVision(camp, entity)) AppendMinimapEntry(entity);
+            if (IsMarkedOnMinimap(entity) || IsInCachedCampVision(entity.transform.position)) AppendMinimapEntry(entity);
         }
         Profiler.EndSample();
 
@@ -202,20 +218,32 @@ public partial class BattleManager
         return result;
     }
 
-    /// <summary>目标是否落在该阵营任一成员的可见距离内（团队共享视野）。</summary>
-    private static bool IsInCampVision(EntityCamp camp, EntityData target)
+    /// <summary>
+    /// 收集该阵营全部成员的视野源（位置 + 视野半径²），每次构建前只做一次（O(n)）。
+    /// 让后续每个实体只需与"成员数 k"比较，而不是与"实体总数 n"比较 —— 消除原本 O(n²) 的嵌套全量扫描。
+    /// </summary>
+    private static void CollectCampVisionSources(EntityCamp camp)
     {
-        Profiler.BeginSample(kMinimapVisionTag);
+        s_campVisionSources.Clear();
         foreach (var member in EntityContainer.Entities)
         {
             if (member == null || member.camp != camp) continue;
-            if (IsInRadius(member.transform.position, target.transform.position, VisionRadius(member)))
-            {
-                Profiler.EndSample();
-                return true;
-            }
+            float r = VisionRadius(member);
+            var p = member.transform.position;
+            s_campVisionSources.Add(new CampVisionSource { x = p.x, z = p.z, radiusSq = r * r });
         }
-        Profiler.EndSample();
+    }
+
+    /// <summary>目标是否落在该阵营任一成员的可见距离内（用预收集的视野源判定，O(k)，团队共享视野）。</summary>
+    private static bool IsInCachedCampVision(Vector3 target)
+    {
+        for (int i = 0; i < s_campVisionSources.Count; i++)
+        {
+            var s = s_campVisionSources[i];
+            float dx = s.x - target.x;
+            float dz = s.z - target.z;
+            if (dx * dx + dz * dz <= s.radiusSq) return true;
+        }
         return false;
     }
 
