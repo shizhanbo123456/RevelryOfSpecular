@@ -46,19 +46,25 @@ public static class Timer
 
         public void Cancel()
         {
-            if (task is TransitionTask t) t.cancelled = true;
+            if (task != null) task.cancelled = true;
         }
     }
 
-    private class TransitionTask<T> : TimerTask
+    private abstract class TransitionTask : TimerTask
     {
         public bool cancelled;
+
+        protected TransitionTask() : base(0f, int.MaxValue, true) { }
+    }
+
+    private class TransitionTask<T> : TransitionTask
+    {
         private readonly T value;
         private readonly float duration;
         private readonly Action<T, float> callback;
         private float elapsed;
 
-        public TransitionTask(T value, Action<T, float> callback, float duration) : base(0f, int.MaxValue, true)
+        public TransitionTask(T value, Action<T, float> callback, float duration)
         {
             this.value = value;
             this.callback = callback;
