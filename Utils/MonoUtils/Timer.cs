@@ -42,12 +42,9 @@ public static class Timer
     /// <summary>过渡任务句柄：可随时取消；任务自然结束后再调用 Cancel 无副作用。</summary>
     public sealed class TransitionHandle
     {
-        private TransitionTask task;
+        internal Action cancel;
 
-        public void Cancel()
-        {
-            if (task != null) task.cancelled = true;
-        }
+        public void Cancel() => cancel?.Invoke();
     }
 
     private abstract class TransitionTask : TimerTask
@@ -107,7 +104,7 @@ public static class Timer
         var handle = new TransitionHandle();
         if (onTick == null || duration <= 0) return handle;
         var task = new TransitionTask<T>(value, onTick, duration);
-        handle.task = task;
+        handle.cancel = () => task.cancelled = true;
         _tasks.Add(task);
         return handle;
     }
