@@ -42,7 +42,7 @@ public static class Timer
     /// <summary>过渡任务句柄：可随时取消；任务自然结束后再调用 Cancel 无副作用。</summary>
     public sealed class TransitionHandle
     {
-        internal TimerTask task;
+        private TransitionTask task;
 
         public void Cancel()
         {
