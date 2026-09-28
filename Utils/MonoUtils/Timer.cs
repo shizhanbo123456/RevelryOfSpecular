@@ -39,6 +39,53 @@ public static class Timer
             }
         }
     }
+    /// <summary>过渡任务句柄：可随时取消；任务自然结束后再调用 Cancel 无副作用。</summary>
+    public sealed class TransitionHandle
+    {
+        internal TimerTask task;
+
+        public void Cancel()
+        {
+            if (task is TransitionTask t) t.cancelled = true;
+        }
+    }
+
+    private class TransitionTask<T> : TimerTask
+    {
+        public bool cancelled;
+        private readonly T value;
+        private readonly float duration;
+        private readonly Action<T, float> callback;
+        private float elapsed;
+
+        public TransitionTask(T value, Action<T, float> callback, float duration) : base(0f, int.MaxValue, true)
+        {
+            this.value = value;
+            this.callback = callback;
+            this.duration = duration;
+        }
+
+        public override void Invoke()
+        {
+            if (cancelled)
+            {
+                invokeTimeLeft = 0;// 交给 Update 移除
+                return;
+            }
+            elapsed += Time.deltaTime;
+            float t01 = elapsed >= duration ? 1f : elapsed / duration;
+            try
+            {
+                callback?.Invoke(value, t01);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+            if (t01 >= 1f) invokeTimeLeft = 0;// 时间结束，交给 Update 移除
+        }
+    }
+
     private static readonly List<TimerTask> _tasks = new();
 
     public static void AddTimer<T>(T value, Action<T> act, float invokeInterval, int invokeTime, bool invokeInstantly)
@@ -46,6 +93,17 @@ public static class Timer
         if (act == null) return;
         if (invokeTime <= 0) return;
         _tasks.Add(new TimerTask<T>(value,act,invokeInterval,invokeTime,invokeInstantly));
+    }
+
+    /// <summary>过渡任务：持续 duration 秒，每帧调用 onTick(value, t01)（t01 = 归一化时间 0~1，最后一帧保证传 1），返回句柄可随时取消。</summary>
+    public static TransitionHandle AddTransition<T>(T value, float duration, Action<T, float> onTick)
+    {
+        var handle = new TransitionHandle();
+        if (onTick == null || duration <= 0) return handle;
+        var task = new TransitionTask<T>(value, onTick, duration);
+        handle.task = task;
+        _tasks.Add(task);
+        return handle;
     }
 
     public static void Update()

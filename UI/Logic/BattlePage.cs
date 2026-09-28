@@ -25,11 +25,17 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly List<(UI_DamageLabel label, float time)> damageLabels = new();
     private readonly List<(UI_EventItem item, float time)> eventItems = new();
+    private readonly List<UI_BattleResultDetailItem> settleItems = new();
+    private Timer.TransitionHandle settleTransition;
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
     private const float SettleAutoClose = 5f;
+    private const float DetailStartDelay = 0.5f;   // 面板转场后首条细节出现
+    private const float DetailItemInterval = 0.3f; // 相邻两条细节的间隔
+    private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
+    private const float DetailFadeDuration = 0.5f; // 全部细节同步淡出时长
     private static readonly string[] SlotKeys = { "U", "I", "O", "L", "H" };
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
@@ -234,13 +240,15 @@ public class BattlePage : PageBase
 
         resultPanel.visible = true;
         resultPanel.m_t0.Play();
+        ScheduleDetailAnimations();
         settleCloseAt = Time.time + SettleAutoClose;
     }
 
-    /// <summary>把结算明细逐行写入 BattleResultDetail 的列表；每行单行文本，按本地阵营二选一显示守护点数据。</summary>
-    private static void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
+    /// <summary>把结算明细逐行写入 BattleResultDetail 的列表；每行单行文本，按本地阵营二选一显示守护点数据。条目初始透明，由动画序列逐条显现。</summary>
+    private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
     {
         detail.m_resultList.RemoveChildren();
+        settleItems.Clear();
         var battle = NetworkManager.battleInfo;
         EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
         var rows = new List<string>
@@ -261,13 +269,52 @@ public class BattlePage : PageBase
         {
             var item = UI_BattleResultDetailItem.CreateInstance();
             item.m_content.text = text;
+            item.alpha = 0f; // 播放自身动画前保持透明
             detail.m_resultList.AddChild(item);
+            settleItems.Add(item);
         }
+    }
+
+    /// <summary>结算动画序列：面板转场后逐条播放细节动画（播放前透明），全部出现后同步淡出至消失。单个过渡任务按归一化时间驱动整个序列。</summary>
+    private void ScheduleDetailAnimations()
+    {
+        CancelDetailAnimations();
+        if (settleItems.Count == 0) return;
+        int shown = 0;
+        float fadeStart = DetailStartDelay + settleItems.Count * DetailItemInterval + DetailHoldDelay;
+        float total = fadeStart + DetailFadeDuration;
+        settleTransition = Timer.AddTransition(0, total, (_, t01) =>
+        {
+            float elapsed = t01 * total;
+            // 到达出现时刻的条目逐条播放自身动画（shown 指针保证每条只播一次）
+            while (shown < settleItems.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
+            {
+                var item = settleItems[shown++];
+                if (item != null && item.displayObject != null) item.m_t0.Play();
+            }
+            // 全部出现后同步淡出直至消失
+            if (elapsed >= fadeStart)
+            {
+                float alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / DetailFadeDuration);
+                foreach (var item in settleItems)
+                {
+                    if (item != null && item.displayObject != null) item.alpha = alpha;
+                }
+            }
+        });
+    }
+
+    /// <summary>取消未完成的结算动画序列（面板关闭/隐藏时调用，防止对已释放组件操作）。</summary>
+    private void CancelDetailAnimations()
+    {
+        settleTransition?.Cancel();
+        settleTransition = null;
     }
 
     private void CloseSettlement()
     {
         settleCloseAt = -1f;
+        CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
         Tool.ClientLogicManager?.EntityPlayers.ClearAll();
         Tool.UIManager?.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
@@ -276,6 +323,7 @@ public class BattlePage : PageBase
     private void HideSettlement()
     {
         settleCloseAt = -1f;
+        CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
     }
 
