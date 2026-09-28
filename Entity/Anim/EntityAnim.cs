@@ -87,6 +87,13 @@ public class EntityAnim : MonoBehaviour
         this.data = data;
         this.onAttack = onAttack;
 
+        // 参数包复位：重复 Init（如视图重建）时清掉上一轮残留的持久参数与触发戳
+        paramPack = AnimParamPack.Default;
+        System.Array.Clear(triggerSetFrames, 0, triggerSetFrames.Length);
+
+        animData = GetComponent<EntityAnimData>();
+        if (animData == null) Debug.LogError($"{gameObject.name}未挂载animData");
+
         animators = new();
         if(TryGetComponent<Animator>(out var anim))
         {
@@ -114,8 +121,8 @@ public class EntityAnim : MonoBehaviour
     }
     public void SetType(CharcterAnimType type)
     {
-        foreach (var animator in animators)
-            animator.SetInteger(key_characterType, (int)type);
+        paramPack.characterType = (int)type;
+        SetIntAll(key_characterType, (int)type);
     }
 
     public void NotifyStateEnter(int animId, AnimState state)
@@ -198,62 +205,132 @@ public class EntityAnim : MonoBehaviour
     }
     #endregion
 
+    #region//参数打包（方案 B：参数随表现摘要同步）
+    private AnimParamPack paramPack = AnimParamPack.Default; // 持久参数（int/bool），所有设置必须经过这里
+    private enum TrigIndex { Spawn = 0, Jump, SlideEnd, Roll, Attack, Hit, Die, Count }
+    private static readonly string[] triggerKeys = { key_spawn, key_jump, key_slideEnd, key_roll, key_doAttack, key_hit, key_die };
+    private readonly int[] triggerSetFrames = new int[(int)TrigIndex.Count]; // 各 trigger 最后被设置的帧，用于生成"本帧触发"标志
+
+    /// <summary>
+    /// 取当前参数包：持久参数 + 本帧内被设置的 trigger。
+    /// trigger 按 Time.frameCount 打戳，无需手动清除——下一帧自动失效；
+    /// 客户端若错过该帧包，由后续同步的状态 hash（animId）兜底对齐。
+    /// </summary>
+    public AnimParamPack GetParamPack()
+    {
+        var pack = paramPack;
+        int frame = Time.frameCount;
+        pack.trigSpawn = triggerSetFrames[(int)TrigIndex.Spawn] == frame;
+        pack.trigJump = triggerSetFrames[(int)TrigIndex.Jump] == frame;
+        pack.trigSlideEnd = triggerSetFrames[(int)TrigIndex.SlideEnd] == frame;
+        pack.trigRoll = triggerSetFrames[(int)TrigIndex.Roll] == frame;
+        pack.trigAttack = triggerSetFrames[(int)TrigIndex.Attack] == frame;
+        pack.trigHit = triggerSetFrames[(int)TrigIndex.Hit] == frame;
+        pack.trigDie = triggerSetFrames[(int)TrigIndex.Die] == frame;
+        return pack;
+    }
+
+    /// <summary>
+    /// 应用参数包（客户端）：持久参数逐个写入，trigger 原样 SetTrigger，
+    /// 由客户端 Controller 按条件自动转换到下一状态；之后的 Play(hash) 仅作服务器权威对齐。
+    /// </summary>
+    public void ApplyParamPack(in AnimParamPack pack)
+    {
+        if (animators == null || animators.Count == 0) return;
+        // 记录持久值，保证 GetParamPack 在客户端也能取到当前参数
+        paramPack = new AnimParamPack()
+        {
+            characterType = pack.characterType,
+            attackId = pack.attackId,
+            inAir = pack.inAir,
+            moving = pack.moving,
+            slide = pack.slide,
+        };
+        foreach (var animator in animators)
+        {
+            animator.SetInteger(key_characterType, pack.characterType);
+            animator.SetInteger(key_attackId, pack.attackId);
+            animator.SetBool(key_inAir, pack.inAir);
+            animator.SetBool(key_moving, pack.moving);
+            animator.SetBool(key_slide, pack.slide);
+            if (pack.trigSpawn) animator.SetTrigger(key_spawn);
+            if (pack.trigJump) animator.SetTrigger(key_jump);
+            if (pack.trigSlideEnd) animator.SetTrigger(key_slideEnd);
+            if (pack.trigRoll) animator.SetTrigger(key_roll);
+            if (pack.trigAttack) animator.SetTrigger(key_doAttack);
+            if (pack.trigHit) animator.SetTrigger(key_hit);
+            if (pack.trigDie) animator.SetTrigger(key_die);
+        }
+    }
+
+    private void SetIntAll(string key, int value)
+    {
+        foreach (var animator in animators)
+            animator.SetInteger(key, value);
+    }
+
+    private void SetBoolAll(string key, bool value)
+    {
+        foreach (var animator in animators)
+            animator.SetBool(key, value);
+    }
+
+    /// <summary>设置 trigger：写本帧触发戳（供 GetParamPack 采集）+ 推给所有 Animator。</summary>
+    private void FireTriggerAll(TrigIndex index)
+    {
+        triggerSetFrames[(int)index] = Time.frameCount;
+        foreach (var animator in animators)
+            animator.SetTrigger(triggerKeys[(int)index]);
+    }
+    #endregion
+
     #region//动画控制
     public void DoSpawn()
     {
-        foreach(var animator in animators)
-            animator.SetTrigger(key_spawn);
+        FireTriggerAll(TrigIndex.Spawn);
     }
     public void DoJump()
     {
-        foreach (var animator in animators)
-            animator.SetTrigger(key_jump);
+        FireTriggerAll(TrigIndex.Jump);
     }
     public void InAir(bool inAir)
     {
-        foreach (var animator in animators)
-            animator.SetBool(key_inAir, inAir);
+        paramPack.inAir = inAir;
+        SetBoolAll(key_inAir, inAir);
     }
     public void Move(bool moving)
     {
-        foreach (var animator in animators)
-            animator.SetBool(key_moving, moving);
+        paramPack.moving = moving;
+        SetBoolAll(key_moving, moving);
     }
     public void DoSlide(float last = 3f)
     {
-        foreach (var animator in animators)
-            animator.SetBool(key_slide, true);
+        paramPack.slide = true;
+        SetBoolAll(key_slide, true);
     }
     public void EndSlide()
     {
-        foreach (var animator in animators)
-        {
-            animator.SetBool(key_slide, false);
-            animator.SetTrigger(key_slideEnd);
-        }
+        paramPack.slide = false;
+        SetBoolAll(key_slide, false);
+        FireTriggerAll(TrigIndex.SlideEnd);
     }
     public void Roll()
     {
-        foreach (var animator in animators)
-            animator.SetTrigger(key_roll);
+        FireTriggerAll(TrigIndex.Roll);
     }
     public void DoAttack(AttackType attack)
     {
-        foreach (var animator in animators)
-        {
-            animator.SetInteger(key_attackId, (int)attack);
-            animator.SetTrigger(key_doAttack);
-        }
+        paramPack.attackId = (int)attack;
+        SetIntAll(key_attackId, (int)attack);
+        FireTriggerAll(TrigIndex.Attack);
     }
     public void DoHit()
     {
-        foreach (var animator in animators)
-            animator.SetTrigger(key_hit);
+        FireTriggerAll(TrigIndex.Hit);
     }
     public void DoDie()
     {
-        foreach (var animator in animators)
-            animator.SetTrigger(key_die);
+        FireTriggerAll(TrigIndex.Die);
     }
     #endregion
 }

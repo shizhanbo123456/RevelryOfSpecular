@@ -344,14 +344,21 @@ public class EntityPlayerManager : ClientSubManager
         ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 手上武器（近战类）按服务器下发
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算
 
-        // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续
-        if (view.animator != null && info.animId > 0 && info.animId != view.animHash)
+        // 方案 B：先还原 Animator 参数（持久参数 + 本帧 trigger），客户端 Controller
+        // 按参数条件自动转换状态；之后的 Play(hash) 仅作服务器权威对齐（同片段不重播）
+        view.anim?.ApplyParamPack(info.animParams);
+
+        // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续。
+        // 有效性判断用 -1（EntityAnim.currentAnimId 的"未进入任何状态"哨兵）：
+        // fullPathHash 是路径哈希，可能为负数，不能用 > 0 判有效（否则负 hash 的状态永远不播）
+        if (view.animator != null && info.animId != -1 && info.animId != view.animHash)
         {
             view.animHash = info.animId;
             view.animator.Play(info.animId, 0, info.animFrame);
         }
-        // 动画移速载体（加速/减速/泥沼 = 移动状态播放速度）：完整同步时按 Buff 重算
-        if (info.includeRuntime && view.anim != null && info.buffs.Count > 0)
+        // 动画移速载体（加速/减速/泥沼 = 移动状态播放速度）：完整同步时按 Buff 重算。
+        // 不判 buffs.Count > 0：移速类 Buff 全部消失时列表为空，跳过重算会卡在上一次倍率不回 1
+        if (info.includeRuntime && view.anim != null)
         {
             var types = new List<int>(info.buffs.Count);
             foreach (var b in info.buffs)

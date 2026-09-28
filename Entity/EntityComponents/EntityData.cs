@@ -419,6 +419,7 @@ public abstract class EntityData : MonoBehaviour
                 SetRbHorizontal(speed <= 0.0001f ? Vector3.zero : carried * (next / speed));
             }
         }
+        Debug.Log($"id={id} {name} 分支={(motion != null ? "motion" : (declaredForward || declaredHorizontal ? "声明" : "摩擦"))} pos={transform.position:F2} rbV={rb.velocity} 地面={grounded}");
 
         // ④ 区块索引跟着走：范围索敌（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人
         BattleManager.EntityContainer.Entities.UpdateObjectPosition(id);
@@ -614,6 +615,7 @@ public abstract class EntityData : MonoBehaviour
             anim.GetDisplayAnim(out var animId, out var frame);
             info.animId = animId;
             info.animFrame = frame;
+            info.animParams = anim.GetParamPack(); // 方案 B：Animator 参数随包同步（含本帧 trigger）
         }
         effectController?.FillDisplayInfo(info);
         skillController?.FillDisplayInfo(info);
@@ -656,15 +658,16 @@ public abstract class EntityData : MonoBehaviour
     }
 
     #region//Local
-    /// <summary>落地检测探针：脚底附近的一个小重叠球（中心抬高 + 半径）。</summary>
+    /// <summary>落地检测射线：起点为脚底上方一点。</summary>
     private const float ground_probe_up = 0.1f;
-    private const float ground_probe_radius = 0.15f;
-    /// <summary>判落地允许的最大上升速度：超过它（起跳/击飞上升段）即使脚底碰到地面层也不算落地。</summary>
-    private const float GroundMaxRiseSpeed = 0.1f;
-    private static readonly Collider[] s_groundBuffer = new Collider[4];
+    /// <summary>落地检测射线长度：从起点（脚底上方 0.1m）向下 0.4m。</summary>
+    private const float ground_probe_length = 0.4f;
+    /// <summary>判落地允许的最大上升速度：超过它（起跳/击飞上升段）即使射线打到地面层也不算落地。</summary>
+    private const float GroundMaxRiseSpeed = 1f;
+    private static readonly RaycastHit[] s_groundHits = new RaycastHit[4];
 
     /// <summary>
-    /// 落地检测：先判垂直速度（上升段必然离地，省一次物理查询），再脚底一个小重叠球，
+    /// 落地检测：先判垂直速度（上升段必然离地，省一次物理查询），再从脚底上方 0.1m 向下打一条 0.4m 的射线，
     /// 命中**地面层**（InfoManager.ground_layer）上任意非 trigger 碰撞体即算踩在地面上，结果写入状态机 InAir。
     /// 只查地面层：全层查询会把踩着的角色也算成地面；仍剔除自身兜底（层号配错时防自踩）。
     /// 空中/落地**只由物理决定**，不用"跳跃时长到了就当落地"这类计时——任何状态下 InAir 都必须反映真实姿态。
@@ -675,7 +678,7 @@ public abstract class EntityData : MonoBehaviour
         // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
         if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
 
-        // 先判垂直速度：仍有明显上升速度（起跳/击飞上升段，初帧脚底球可能仍与地面重叠）必然离地
+        // 先判垂直速度：仍有明显上升速度（起跳/击飞上升段）必然离地
         if (rb.velocity.y >= GroundMaxRiseSpeed)
         {
             if (grounded)
@@ -686,12 +689,12 @@ public abstract class EntityData : MonoBehaviour
             return;
         }
 
-        Vector3 center = transform.position + Vector3.up * ground_probe_up;
-        int count = Physics.OverlapSphereNonAlloc(center, ground_probe_radius, s_groundBuffer, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);
+        Vector3 origin = transform.position + Vector3.up * ground_probe_up;
+        int count = Physics.RaycastNonAlloc(origin, Vector3.down, s_groundHits, ground_probe_length, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);
         bool onGround = false;
         for (int i = 0; i < count; i++)
         {
-            var col = s_groundBuffer[i];
+            var col = s_groundHits[i].collider;
             if (col == null) continue;
             if (col.GetComponentInParent<EntityData>() == this) continue; // 自己的碰撞体不算地面
             onGround = true;

@@ -6,7 +6,7 @@ namespace Ros.Transport
     /// <summary>
     /// 服务器 → 客户端：实体表现同步信息（高频）。
     /// 客户端不持有完整实体逻辑，仅根据该摘要更新表现。
-    /// 包含：位姿 / 血量 / 动画状态与播放进度（受击=Hit 状态，死亡=Die 状态）/ Buff 列表 / 技能槽列表。
+    /// 包含：位姿 / 血量 / 动画状态与播放进度 + Animator 参数包（方案 B）/ Buff 列表 / 技能槽列表。
     /// 守护点等所有实体共用本结构，不再有独立 DTO。
     /// </summary>
     public class SCEntityDisplayInfo
@@ -35,6 +35,8 @@ namespace Ros.Transport
         public int animId;
         /// <summary>动画播放进度（归一化 0~1）。</summary>
         public float animFrame;
+        /// <summary>Animator 参数包（持久参数全量 + 本帧 trigger 标志；客户端 ApplyParamPack 还原后由 Controller 自动转换）。</summary>
+        public AnimParamPack animParams;
         /// <summary>手上临时握着的武器类别（WeaponCategory；0 = 无）。仅近战类技能期间有值，攻击动作结束清空。</summary>
         public int weaponCategory;
         /// <summary>手上临时握着的武器在该类别列表中的下标（-1 = 无）。</summary>
@@ -94,6 +96,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.weaponCategory, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.weaponIndex, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
+            if (!AnimParamPackSerializer.Serialize(value.animParams, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
@@ -147,6 +150,7 @@ namespace Ros.Transport
                 weaponCategory = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 weaponIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                animParams = AnimParamPackSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };

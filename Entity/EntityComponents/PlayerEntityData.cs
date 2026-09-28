@@ -12,8 +12,8 @@ public class PlayerEntityData : EntityData
     private class MoveState
     {
         public PlayerKey held;  // 当前按住的移动键
-        public bool moving;
-        public Vector2 dir;     // 原始按键输入（x = 左右横移，y = 前后）
+        public bool moving;     // 是否位移中（只有 W 算移动；A/D 单独按住 = 原地转向）
+        public Vector2 dir;     // x = 转向（-1 左 / +1 右），y = W 按住标志（1/0）；S 弃用
         public float yaw;       // 角色朝向（度）
         public float yawSpeed;  // 绕 Y 角速度（度/秒，客户端推演用）
     }
@@ -35,7 +35,8 @@ public class PlayerEntityData : EntityData
     {
         EnsureMoveState();
 
-        // 移动：按下位并入按住掩码，抬起位清除对应按住位（右移一位，位布局刻意相邻），随即重算方向
+        // 移动（坦克式）：W = 前进；A/D = 转向（W 按住 = 边走边转，未按 = 原地转）；S 弃用不参与方向计算。
+        // 按下位并入按住掩码，抬起位清除对应按住位（右移一位，位布局刻意相邻），随即重算方向
         var press = input.pressed & PlayerKey.MovePressMask;
         var release = (PlayerKey)((uint)(input.pressed & PlayerKey.MoveReleaseMask) >> 1);
         if (press != 0 || release != 0)
@@ -43,14 +44,14 @@ public class PlayerEntityData : EntityData
             moveState.held = (moveState.held | press) & ~release;
 
             float x = ((moveState.held & PlayerKey.DPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.APress) != 0 ? 1f : 0f);
-            float z = ((moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.SPress) != 0 ? 1f : 0f);
-            moveState.dir = new Vector2(x, z).normalized;
-            moveState.moving = x != 0f || z != 0f;
+            float z = (moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f; // S 弃用：前后方向只认 W
+            moveState.dir = new Vector2(x, z);
+            moveState.moving = z != 0f; // 只有 W 算移动；单独 A/D = 原地转向，不位移
 
-            // 输入只落到实体这一个字段（角色本地系方向与正负）；速度大小由动画模块声明的速度决定（见 TickVelocity）
-            SetMoveInput(new Vector3(moveState.dir.x, 0f, moveState.dir.y));
+            // 位移只走本地正前方，转向由 OnTickMove 每帧推进；A/D 单独按住时输入归零（原地转）
+            SetMoveInput(moveState.moving ? Vector3.forward : Vector3.zero);
 
-            // Run/Idle 随表现摘要同步给客户端
+            // Run/Idle 随表现摘要同步给客户端（原地转向播 Idle）
             anim?.Move(moveState.moving);
         }
 
@@ -126,7 +127,7 @@ public class PlayerEntityData : EntityData
     }
 
     /// <summary>
-    /// 每帧朝向与移动推进。真人由输入驱动（前后 + 左右同按时逐渐偏向横移侧，yaw 正 = 右转）；
+    /// 每帧朝向与移动推进。真人：A/D 按住即转向（W+A/D 边走边转，单独 A/D 原地转），yaw 正 = 右转；
     /// AI 玩家走 <see cref="TickAiMove"/>：朝向与前进都由 AI 指定。
     /// </summary>
     public override void OnTickMove(float deltaTime, bool canInput)
@@ -141,10 +142,11 @@ public class PlayerEntityData : EntityData
             return;
         }
 
-        if (canInput && moveState.moving && MotionCanMove)
+        if (canInput && MotionCanMove)
         {
+            // A/D 按住即转向，不再要求同时在移动（单独 A/D = 原地转）
             float yawDelta = 0f;
-            if (Mathf.Abs(moveState.dir.x) > 0.01f && Mathf.Abs(moveState.dir.y) > 0.01f)
+            if (Mathf.Abs(moveState.dir.x) > 0.01f)
             {
                 yawDelta = Config.move_turn_rate * Mathf.Sign(moveState.dir.x) * deltaTime;
                 moveState.yaw += yawDelta;
