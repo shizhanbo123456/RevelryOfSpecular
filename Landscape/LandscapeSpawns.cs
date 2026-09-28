@@ -15,12 +15,55 @@ using UnityEngine;
 /// 点位列表允许暂时为空（为空时回退地图中心 Landscape.MapCenter，不影响编译与加载）。
 /// 注：本组件是战斗逻辑的绝对前提，未注册时 Tool.LandscapeSpawns 取用即报错。
 /// </summary>
+#if UNITY_EDITOR
+[AddComponentMenu("Landscape/LandscapeSpawns")]
+#endif
 public class LandscapeSpawns : MonoBehaviour
 {
+    [Header("地形（在 Inspector 中指定；右键菜单生成水晶/僵尸点位时用于贴合表面）")]
+    [SerializeField] private Terrain terrain;
+
     private void Awake()
     {
         Tool.LandscapeSpawns = this;
     }
+
+    #region 运行时点位贴合（吸附到 Terrain 表面上方 0.1m）
+
+    /// <summary>
+    /// 运行时将战斗相关坐标点位（水晶刷新点 + 僵尸出生点，即两个 Vector3 列表）吸附到 Terrain 表面上方 SurfaceOffset。
+    /// 与右键菜单生成时的表面贴合等价，但放到运行时统一处理；仅调整 Y，X/Z 不变。
+    /// </summary>
+    private void Start()
+    {
+        SnapCombatPointsToTerrain();
+    }
+
+    private void SnapCombatPointsToTerrain()
+    {
+        if (terrain == null)
+        {
+            Debug.LogWarning("[LandscapeSpawns] 未指定 Terrain，跳过战斗点位运行时贴合（水晶刷新点/僵尸出生点保持原 Y）。");
+            return;
+        }
+        SnapListToSurface(crystalSpawnPositions);
+        SnapListToSurface(zombieSpawnPositions);
+    }
+
+    /// <summary>将坐标列表每个点的 Y 吸附到 Terrain 表面上方 SurfaceOffset，X/Z 保持原值。</summary>
+    private void SnapListToSurface(List<Vector3> list)
+    {
+        if (list == null || list.Count == 0) return;
+        Vector3 origin = terrain.transform.position;
+        for (int i = 0; i < list.Count; i++)
+        {
+            Vector3 p = list[i];
+            float y = origin.y + terrain.SampleHeight(new Vector3(p.x, 0f, p.z)) + SurfaceOffset;
+            list[i] = new Vector3(p.x, y, p.z);
+        }
+    }
+
+    #endregion
 
     [Header("守护点出生点（前 3 个外围 + 最后 1 个中心）")]
     public List<Transform> beaconSpawnPositions = new();
@@ -89,6 +132,9 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>点位净空半径（米）：与其它 collider、与其它已配置点位的最短距离下限。</summary>
     private const float ClearanceRadius = 0.5f;
 
+    /// <summary>战斗相关坐标点位（水晶刷新点 + 僵尸出生点）在运行时吸附到 Terrain 表面上方时的额外抬升高度（米），避免陷入地表。仅影响 Y，不改变 X/Z。</summary>
+    private const float SurfaceOffset = 0.1f;
+
     /// <summary>单个点位的最大尝试次数，超过则放弃该点。</summary>
     private const int MaxAttemptsPerPoint = 500;
 
@@ -125,10 +171,9 @@ public class LandscapeSpawns : MonoBehaviour
     /// <summary>清空目标列表后，在 Terrain 表面按指定密度偏向重新生成 count 个净空点位。</summary>
     private void GeneratePointsOnTerrain(List<Vector3> target, int count, DensityBias bias, string label)
     {
-        var terrain = FindTerrain();
         if (terrain == null)
         {
-            Debug.LogError($"[LandscapeSpawns] 场景中找不到可用的 Terrain（含 TerrainData），无法生成{label}。");
+            Debug.LogError($"[LandscapeSpawns] 未在主控面板的 Inspector 中指定 Terrain，无法生成{label}。");
             return;
         }
 
@@ -149,42 +194,6 @@ public class LandscapeSpawns : MonoBehaviour
         {
             Debug.Log($"[LandscapeSpawns] {label}：已生成 {target.Count} 个（Terrain = {terrain.name}）。");
         }
-    }
-
-    /// <summary>宽度优先搜索场景中的 Terrain：先在本对象所属层级树内找，再遍历所有已加载场景（含 Prefab Mode）。</summary>
-    private Terrain FindTerrain()
-    {
-        Terrain found = BreadthFirstSearch(transform != null ? transform.root : null);
-        if (found != null) return found;
-
-        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
-        {
-            var roots = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).GetRootGameObjects();
-            for (int j = 0; j < roots.Length; j++)
-            {
-                found = BreadthFirstSearch(roots[j].transform);
-                if (found != null) return found;
-            }
-        }
-        return null;
-    }
-
-    /// <summary>以 root 为起点做宽度优先（逐层）搜索，返回第一个带 TerrainData 的 Terrain。</summary>
-    private static Terrain BreadthFirstSearch(Transform root)
-    {
-        if (root == null) return null;
-
-        var queue = new Queue<Transform>();
-        queue.Enqueue(root);
-        while (queue.Count > 0)
-        {
-            var t = queue.Dequeue();
-            var terrain = t.GetComponent<Terrain>();
-            if (terrain != null && terrain.terrainData != null) return terrain;
-
-            for (int i = 0; i < t.childCount; i++) queue.Enqueue(t.GetChild(i));
-        }
-        return null;
     }
 
     /// <summary>在 Terrain 上找一个净空点：随机取 XZ → 按密度偏向决定是否接受 → 采样高度 → 净空校验。</summary>
