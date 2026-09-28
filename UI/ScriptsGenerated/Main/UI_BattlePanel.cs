@@ -8,7 +8,7 @@ namespace Ros.UI.Main
     public partial class UI_BattlePanel : GComponent
     {
         public Controller m_showRegenerationBar;
-        public GComponent m_skillList;
+        public UI_SkillList m_skillList;
         public UI_PlayerHealth m_PlayerBar;
         public GComponent m_EventList;
         public UI_Minimap m_Minimap;
@@ -32,7 +32,7 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_showRegenerationBar = GetControllerAt(0);
-            m_skillList = (GComponent)GetChildAt(0);
+            m_skillList = (UI_SkillList)GetChildAt(0);
             m_PlayerBar = (UI_PlayerHealth)GetChildAt(1);
             m_EventList = (GComponent)GetChildAt(2);
             m_Minimap = (UI_Minimap)GetChildAt(3);

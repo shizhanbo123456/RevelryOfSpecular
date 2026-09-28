@@ -18,7 +18,7 @@ public class BattlePage : PageBase
     private float battleStartTime;
     private float settleCloseAt = -1f;
 
-    private readonly List<UI_SkillListItem> skillSlots = new();
+    private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
     private readonly Dictionary<ushort, UI_PlayerName> nameLabels = new();
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, int> barOwners = new();
@@ -26,6 +26,7 @@ public class BattlePage : PageBase
     private readonly List<(UI_DamageLabel label, float time)> damageLabels = new();
     private readonly List<(UI_EventItem item, float time)> eventItems = new();
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
+    private readonly List<string> settleRows = new(); // 渲染器按索引读取的明细行文本
     private Timer.TransitionHandle settleTransition;
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
 
@@ -134,25 +135,20 @@ public class BattlePage : PageBase
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
     {
-        var skillList = panel.m_skillList;
-        if (skillList == null) return;
-        //槽位数量变化时增减（模板实例化进容器）；每次摘要到达整表重渲染
-        while (skillSlots.Count < info.skills.Count)
-        {
-            var item = UI_SkillListItem.CreateInstance();
-            skillList.AddChild(item);
-            item.m_loader_icon.fillMethod = FillMethod.Horizontal;
-            skillSlots.Add(item);
-        }
-        for (int i = skillSlots.Count - 1; i >= info.skills.Count; i--)
-        {
-            skillSlots[i].Dispose();
-            skillSlots.RemoveAt(i);
-        }
-        for (int i = 0; i < skillSlots.Count; i++)
-        {
-            RefreshSkillSlot(skillSlots[i], info.skills[i], i);
-        }
+        var list = panel.m_skillList?.m_content;
+        if (list == null) return;
+        // GList 渲染器模式：代码不手动创建格子，只驱动数量与内容
+        skillSummary.Clear();
+        if (info.skills != null) skillSummary.AddRange(info.skills);
+        list.itemRenderer = RenderSkillSlot;
+        list.numItems = skillSummary.Count;
+    }
+
+    private void RenderSkillSlot(int index, GObject obj)
+    {
+        if (obj is not UI_SkillListItem slot || index >= skillSummary.Count) return;
+        slot.m_loader_icon.fillMethod = FillMethod.Horizontal; // CD 用图标填充比例
+        RefreshSkillSlot(slot, skillSummary[index], index);
     }
 
     /// <summary>守护点摘要 → 中心守护点走 m_progressMain，外围守护点按 value 对号 m_progressSub1~3。</summary>
@@ -244,35 +240,36 @@ public class BattlePage : PageBase
         settleCloseAt = Time.time + SettleAutoClose;
     }
 
-    /// <summary>把结算明细逐行写入 BattleResultDetail 的列表；每行单行文本，按本地阵营二选一显示守护点数据。条目初始透明，由动画序列逐条显现。</summary>
+    /// <summary>把结算明细组织为行文本，交给 BattleResultDetail 的 GList 渲染（代码不手动创建行组件）；条目渲染为初始透明，由动画序列逐条显现。</summary>
     private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
     {
-        detail.m_resultList.RemoveChildren();
+        settleRows.Clear();
         settleItems.Clear();
         var battle = NetworkManager.battleInfo;
         EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
-        var rows = new List<string>
-        {
-            $"战斗分数：进攻方 {(int)r.attackScore} ／ 防守方 {(int)r.defenseScore}",
-            $"击杀数：{r.killScore}",
-            camp == EntityCamp.Attack
-                ? $"对防守点伤害：{(int)r.expGain}"
-                : $"防守点剩余血量：{(int)r.beaconHealth}",
-            $"获得的角色经验：+{r.expGain}",
-            $"获得的玩家经验：+{r.expGain}",
-        };
+        settleRows.Add($"战斗分数：进攻方 {(int)r.attackScore} ／ 防守方 {(int)r.defenseScore}");
+        settleRows.Add($"击杀数：{r.killScore}");
+        settleRows.Add(camp == EntityCamp.Attack
+            ? $"对防守点伤害：{(int)r.expGain}"
+            : $"防守点剩余血量：{(int)r.beaconHealth}");
+        settleRows.Add($"获得的角色经验：+{r.expGain}");
+        settleRows.Add($"获得的玩家经验：+{r.expGain}");
         if (r.characterLevelAfter > r.characterLevelBefore)
-            rows.Add($"角色升级：{r.characterLevelBefore} → {r.characterLevelAfter}");
+            settleRows.Add($"角色升级：{r.characterLevelBefore} → {r.characterLevelAfter}");
         if (r.playerLevelAfter > r.playerLevelBefore)
-            rows.Add($"玩家升级：{r.playerLevelBefore} → {r.playerLevelAfter}");
-        foreach (var text in rows)
-        {
-            var item = UI_BattleResultDetailItem.CreateInstance();
-            item.m_content.text = text;
-            item.alpha = 0f; // 播放自身动画前保持透明
-            detail.m_resultList.AddChild(item);
-            settleItems.Add(item);
-        }
+            settleRows.Add($"玩家升级：{r.playerLevelBefore} → {r.playerLevelAfter}");
+
+        var list = detail.m_resultList;
+        list.itemRenderer = RenderResultRow;
+        list.numItems = settleRows.Count; // 非虚拟列表同步建条目并回调渲染器
+    }
+
+    private void RenderResultRow(int index, GObject obj)
+    {
+        if (obj is not UI_BattleResultDetailItem item) return;
+        item.alpha = 0f; // 播放自身动画前保持透明
+        item.m_content.text = index < settleRows.Count ? settleRows[index] : string.Empty;
+        if (!settleItems.Contains(item)) settleItems.Add(item); // 动画序列按此顺序逐条播放
     }
 
     /// <summary>结算动画序列：面板转场后逐条播放细节动画（播放前透明），全部出现后同步淡出至消失。单个过渡任务按归一化时间驱动整个序列。</summary>

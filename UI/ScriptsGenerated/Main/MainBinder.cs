@@ -11,6 +11,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
             UIObjectFactory.SetPackageItemExtension(UI_BattlePanel.URL, typeof(UI_BattlePanel));
+            UIObjectFactory.SetPackageItemExtension(UI_SkillList.URL, typeof(UI_SkillList));
             UIObjectFactory.SetPackageItemExtension(UI_SkillListItem.URL, typeof(UI_SkillListItem));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerHealth.URL, typeof(UI_PlayerHealth));
             UIObjectFactory.SetPackageItemExtension(UI_NoticePanel.URL, typeof(UI_NoticePanel));
