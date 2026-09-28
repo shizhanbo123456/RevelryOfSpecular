@@ -31,8 +31,9 @@ public class LandscapeSpawns : MonoBehaviour
     #region 运行时点位贴合（吸附到 Terrain 表面上方 0.1m）
 
     /// <summary>
-    /// 运行时将战斗相关坐标点位（水晶刷新点 + 僵尸出生点，即两个 Vector3 列表）吸附到 Terrain 表面上方 SurfaceOffset。
-    /// 与右键菜单生成时的表面贴合等价，但放到运行时统一处理；仅调整 Y，X/Z 不变。
+    /// 运行时将所有战斗相关点位吸附到 Terrain 表面上方 SurfaceOffset：仅调整 Y，X/Z 不变。
+    /// 覆盖：水晶刷新点/僵尸出生点（Vector3 列表）与 守护点/防御塔/瘟疫树/进攻方出生-复活/防守方出生-复活（Transform 锚点）。
+    /// 初始界面预览锚点（attackerPreviewPos / defenserPreviewPos / cameraPreviewPos）非战斗刷新点，不在此处理。
     /// </summary>
     private void Start()
     {
@@ -43,11 +44,18 @@ public class LandscapeSpawns : MonoBehaviour
     {
         if (terrain == null)
         {
-            Debug.LogWarning("[LandscapeSpawns] 未指定 Terrain，跳过战斗点位运行时贴合（水晶刷新点/僵尸出生点保持原 Y）。");
+            Debug.LogWarning("[LandscapeSpawns] 未指定 Terrain，跳过战斗点位运行时贴合（保持原 Y）。");
             return;
         }
+        // 坐标类点位（Vector3）
         SnapListToSurface(crystalSpawnPositions);
         SnapListToSurface(zombieSpawnPositions);
+        // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
+        SnapTransformsToSurface(beaconSpawnPositions);
+        SnapTransformsToSurface(towerSpawnPositions);
+        SnapTransformsToSurface(plagueTreeSpawnPositions);
+        SnapTransformsToSurface(attackPositions);
+        SnapTransformsToSurface(defensePositions);
     }
 
     /// <summary>将坐标列表每个点的 Y 吸附到 Terrain 表面上方 SurfaceOffset，X/Z 保持原值。</summary>
@@ -60,6 +68,20 @@ public class LandscapeSpawns : MonoBehaviour
             Vector3 p = list[i];
             float y = origin.y + terrain.SampleHeight(new Vector3(p.x, 0f, p.z)) + SurfaceOffset;
             list[i] = new Vector3(p.x, y, p.z);
+        }
+    }
+
+    /// <summary>将锚点列表中每个 Transform 的 Y 吸附到 Terrain 表面上方 SurfaceOffset，X/Z 保持原值（跳过空位）。</summary>
+    private void SnapTransformsToSurface(List<Transform> list)
+    {
+        if (list == null) return;
+        Vector3 origin = terrain.transform.position;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var t = list[i];
+            if (t == null) continue;
+            float y = origin.y + terrain.SampleHeight(t.position) + SurfaceOffset;
+            t.position = new Vector3(t.position.x, y, t.position.z);
         }
     }
 
