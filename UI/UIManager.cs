@@ -15,9 +15,19 @@ public class UIManager : MonoBehaviour
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
-    // 全局飘字（任意界面可用，屏幕上方居中，2.5s 消失），用 UI_NoticePanel 承载
-    private readonly List<(GComponent comp, float time)> floatingLabels = new();
-    private const float FloatingLife = 2.5f;
+    // 全局飘字（任意界面可用，屏幕上方居中、随时间上浮、透明度淡入淡出），用 UI_NoticePanel 承载
+    private readonly List<FloatingLabel> floatingLabels = new();
+    private const float FloatingLife = 2.5f;   // 总存活时长
+    private const float FloatRise = 90f;       // 存活期内上移的设计像素
+    private const float FadeIn = 0.3f;         // 淡入时长
+    private const float FadeOut = 0.6f;        // 淡出时长
+
+    private class FloatingLabel
+    {
+        public GComponent comp;
+        public float startTime;
+        public float startY;
+    }
 
     private void Start()
     {
@@ -85,18 +95,16 @@ public class UIManager : MonoBehaviour
         battle?.OnResize(width, 1080f);
     }
 
-    /// <summary>飘字提示（事件提示/规则提醒等，2.5s 自动消失，任何界面都能调）。用 UI_NoticePanel 承载，文字写入 m_title。</summary>
-    public void ShowFloating(string text, Color color)
+    public void ShowFlyText(string text)
     {
         var panel = UI_NoticePanel.CreateInstance();
-        if (panel.m_title != null)
-        {
-            panel.m_title.text = text;
-            panel.m_title.color = color;
-        }
+        if (panel.m_title != null) panel.m_title.text = text;
         GRoot.inst.AddChild(panel);
-        panel.SetXY((GRoot.inst.width - panel.width) * 0.5f, 140f);
-        floatingLabels.Add((panel, Time.time));
+        float x = (GRoot.inst.width - panel.width) * 0.5f;
+        float y = 140f;
+        panel.SetXY(x, y);
+        panel.alpha = 0f; // 从透明起步，由 TickFloating 淡入
+        floatingLabels.Add(new FloatingLabel { comp = panel, startTime = Time.time, startY = y });
     }
 
     public void TurnPage(PageType type, ShowParam param = null)
@@ -110,6 +118,7 @@ public class UIManager : MonoBehaviour
     {
         return type switch
         {
+            PageType.Home =>home,
             PageType.Lobby => lobby,
             PageType.Battle => battle,
             _ => home,
@@ -121,11 +130,19 @@ public class UIManager : MonoBehaviour
         for (int i = floatingLabels.Count - 1; i >= 0; i--)
         {
             var item = floatingLabels[i];
-            if (Time.time - item.time > FloatingLife)
+            float elapsed = Time.time - item.startTime;
+            if (elapsed >= FloatingLife)
             {
                 if (item.comp != null) item.comp.Dispose();
                 floatingLabels.RemoveAt(i);
+                continue;
             }
+            // 上浮：存活期内匀速上移
+            item.comp.y = item.startY - FloatRise * (elapsed / FloatingLife);
+            // 透明度：开头淡入、结尾淡出，中间保持不透明
+            float fadeIn = Mathf.Clamp01(elapsed / FadeIn);
+            float fadeOut = Mathf.Clamp01((FloatingLife - elapsed) / FadeOut);
+            item.comp.alpha = Mathf.Min(fadeIn, fadeOut);
         }
     }
 

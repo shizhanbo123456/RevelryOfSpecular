@@ -424,7 +424,9 @@ public class EntityEffectController
             case EffectType.AttrKnockback: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistance: return EntityAttributeDelta.Field.ViewDistance;
             case EffectType.AttrWeaponSlot: return EntityAttributeDelta.Field.WeaponSlotCount;
-            default: return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
+            default:
+                Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");
+                return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
         }
     }
 

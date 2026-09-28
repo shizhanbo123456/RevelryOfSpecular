@@ -376,7 +376,9 @@ public class BattlePage : PageBase
             case EntityCategory.Zombie: return 6;
             case EntityCategory.EliteZombie: return 7;
             case EntityCategory.Beacon: return entity.type == EntityType.CoreBeacon ? 8 : 9;
-            default: return 7;
+            default:
+                Debug.LogError($"[Minimap] 未处理的实体类别：{entity.type.category}");
+                return 7;
         }
     }
 
@@ -458,7 +460,7 @@ public class BattlePage : PageBase
 
     private void OnRightClickBlocked(string msg)
     {
-        Tool.UIManager?.ShowFloating(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg, new Color(1f, 0.62f, 0.28f));
+        Tool.UIManager.ShowFlyText(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg);
     }
     #endregion
 
@@ -676,7 +678,9 @@ public class BattlePage : PageBase
         {
             case 1: return CampAttackColor;
             case 2: return CampDefenseColor;
-            default: return Color.white;
+            default:
+                Debug.LogError($"[BattlePage] 未处理的结算状态：{gameState}");
+                return Color.white;
         }
     }
 
