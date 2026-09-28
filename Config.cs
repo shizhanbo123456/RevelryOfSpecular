@@ -57,9 +57,12 @@ public static class Config
     public const int tower_count = 4;
     /// <summary>防御塔施法距离（米）：靠近即被攻击、无预警（策划案 8.1）。</summary>
     public const float tower_attack_range = 20f;
-    /// <summary>水晶刷新冷却下限/上限（秒，30~60s 随机）。</summary>
-    public const float crystal_respawn_min = 30f;
-    public const float crystal_respawn_max = 60f;
+    /// <summary>水晶邻近生成：每秒检测次数（每次 = 随机玩家 → 环带内随机刷新点 → 视情况生成）。</summary>
+    public const float crystal_spawn_checks_per_second = 10f;
+    /// <summary>水晶邻近生成：离所选玩家的最近距离（米）；此距离内视为"近处有玩家"，不生成。</summary>
+    public const float crystal_spawn_min_dist = 40f;
+    /// <summary>水晶邻近生成：离所选玩家的最远距离（米），即生成环带的外边界。</summary>
+    public const float crystal_spawn_max_dist = 80f;
     /// <summary>摧毁水晶后获得技能的概率（15%，可调）。</summary>
     public const float crystal_skill_drop_chance = 0.15f;
 

@@ -344,7 +344,6 @@ public partial class BattleManager
     {
         activeBullets.Clear();
         reviveStates.Clear();
-        crystalRespawns.Clear();
         plagueTreeRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
         HarvestByClient.Clear();
         KillCountByClient.Clear();

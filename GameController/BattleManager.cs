@@ -642,6 +642,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kTickDyingTag = "BattleManager.TickDying";
     private const string kUpdateAITag = "BattleManager.UpdateAI";
     private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
+    private const string kCrystalSpawnTag = "BattleManager.CrystalSpawn";
     private const string kSyncEntitiesTag = "BattleManager.SyncEntitiesToClients";
     private const string kSyncMinimapTag = "BattleManager.SyncMinimap";
 
@@ -753,6 +754,11 @@ public partial class BattleManager : EnsBehaviour
             }
         }
         Profiler.EndSample(); // kZombieRefreshTag
+
+        // 水晶邻近生成：按 Config.crystal_spawn_checks_per_second 每秒若干次检测（随机玩家 → 40~80m 环带内刷新点）
+        Profiler.BeginSample(kCrystalSpawnTag);
+        TickCrystalSpawn(UnityEngine.Time.deltaTime);
+        Profiler.EndSample();
 
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
         Profiler.BeginSample(kSyncEntitiesTag);
