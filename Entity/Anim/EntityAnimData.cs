@@ -14,7 +14,7 @@ public class EntityAnimData : MonoBehaviour
         Gizmos.DrawCube(transform.position + Vector3.up * legHeight * 0.5f, new Vector3(0.3f, legHeight, 0.3f));
     }
 
-    public float RunSpeed => legHeight * 2.6f;
+    public float RunSpeed => legHeight * 5f;
     private float JumpHeight => legHeight * 0.4f;
     public float JumpSpeed => Mathf.Sqrt(20 * JumpHeight);
 }

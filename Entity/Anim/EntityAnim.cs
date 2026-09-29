@@ -303,7 +303,7 @@ public class EntityAnim : MonoBehaviour
         paramPack.moving = moving;
         SetBoolAll(key_moving, moving);
     }
-    public void DoSlide(float last = 3f)
+    public void DoSlide()
     {
         paramPack.slide = true;
         SetBoolAll(key_slide, true);

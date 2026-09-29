@@ -329,9 +329,9 @@ public abstract class EntityData : MonoBehaviour
     private Vector3 DeclaredVelocity()
     {
         Vector3 v = Vector3.zero;
-        if (declaredHorizontal) v += new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
-        if (declaredForward) v += declaredForwardSpeed * transform.forward;
-        if (declaredVertical) v += Vector3.up * declaredVerticalSpeed;
+        if (declaredHorizontal) v = new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
+        if (declaredForward) v = declaredForwardSpeed * transform.forward;
+        if (declaredVertical) v = Vector3.up * declaredVerticalSpeed;
         return v;
     }
 
@@ -364,39 +364,21 @@ public abstract class EntityData : MonoBehaviour
             if (motion.canMove) final += DeclaredVelocity();
             rb.velocity = final;
         }
+        else if (declaredForward || declaredHorizontal || declaredVertical)
+        {
+            var declared= DeclaredVelocity();
+            if (!grounded)
+            {
+                declared.y = rb.velocity.y;
+            }
+            rb.velocity = declared;
+        }
         else
         {
-            //y方向速度此处无意义
-            Vector3 targetVelocity=rb.velocity;
-            float targetVelocityY=rb.velocity.y;
-            if (declaredForward || declaredHorizontal || declaredVertical)
+            if (grounded)
             {
-                targetVelocity = DeclaredVelocity();
-                targetVelocityY = targetVelocity.y;
+                rb.velocity=rb.velocity*Mathf.Min(0.9f,Time.deltaTime*500);
             }
-            else if (grounded)
-            {
-                targetVelocity = Vector3.zero;
-            }
-
-            //摩擦仅仅针对水平速度生效
-            Vector3 rbV = rb.velocity;
-            float rby = rb.velocity.y;
-            float targety = targetVelocity.y;
-            rbV.y = 0;
-            targety = 0;
-            float deltaSpeed = Config.move_ground_friction * deltaTime;
-            Vector3 endVelocity;
-            if ((targetVelocity - rbV).magnitude < deltaSpeed)
-            {
-                endVelocity = targetVelocity;
-            }
-            else
-            {
-                endVelocity = (targetVelocity - rbV).normalized * deltaSpeed + rbV;
-            }
-            endVelocity.y = targetVelocityY;
-            rb.velocity = endVelocity;
         }
 
         //区块索引刷新
