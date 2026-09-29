@@ -66,18 +66,19 @@ public class AttackData
     /// 结算本次攻击的最终伤害：基础 = rate × (魔法或力量) × (1 + 10% × 武器经验) × 出伤乘区，
     /// 按攻击者暴击率掷暴击（× 暴击伤害倍率），是否暴击由 isCrit 传出。
     /// </summary>
-    public float GetDamage(out bool isCrit)
+    public int GetDamage(out bool isCrit)
     {
         isCrit = false;
-        if (attribute == null) return 0f;
+        if (attribute == null) return 0;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
-        final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤（策划案 14 章）
-        final *= outDamageMultiplier;                            // 出伤乘区（愈战愈勇增伤）
+        final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤
+        final *= outDamageMultiplier;                            // 出伤乘区
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
             isCrit = true;
-            final *= attribute.critDamage; // 暴击伤害为倍率（默认 1.5 = 150%）
+            final *= attribute.critDamage; // 暴击伤害为倍率
         }
-        return final;
+        if (final < 1f) return 1;
+        return (int)final;
     }
 }

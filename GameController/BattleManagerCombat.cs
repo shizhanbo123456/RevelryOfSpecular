@@ -74,7 +74,7 @@ public partial class BattleManager
             if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
             if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
 
-            float damage = attack.GetDamage(out bool isCrit);
+            int damage = attack.GetDamage(out bool isCrit);
             // 击飞方向取子弹上一帧位置：高速弹一帧穿过目标时，用当前位置算方向会反转
             e.ProcessHit(attack, damage, isCrit, b.LastPosition);
             if (attack.addEffectEvent != null && e.effectController != null)

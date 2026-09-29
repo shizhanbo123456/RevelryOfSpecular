@@ -102,19 +102,6 @@ public class PlayerEntityData : EntityData
         anim?.DoJump();
     }
 
-    /// <summary>被打断但没击飞：转身面向命中来源。同步 moveState.yaw，否则下一帧 OnTickMove 会按旧 yaw 弹回原朝向。</summary>
-    protected override void OnHitInterrupted(Vector3 hitOrigin)
-    {
-        Vector3 to = hitOrigin - transform.position;
-        to.y = 0f;
-        if (to.sqrMagnitude > 0.0001f)
-        {
-            EnsureMoveState();
-            moveState.yaw = Quaternion.LookRotation(to.normalized).eulerAngles.y;
-        }
-        base.OnHitInterrupted(hitOrigin);
-    }
-
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
     public void UseSkillSlot(int slot)
     {

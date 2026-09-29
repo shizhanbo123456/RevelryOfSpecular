@@ -396,11 +396,10 @@ public class EntityEffectController
         owner.floatingAttribute = attr;
     }
 
-    /// <summary>强控施加：打断位移（Exit）+ 动画播放速度直接置 0（当前攻击随之被打断）。</summary>
+    //强控施加
     private void ApplyControl()
     {
-        owner?.RemoveMotion();
-        owner?.SetAnimPaused(true);
+        owner.SetAnimPaused(true);
     }
 
     /// <summary>强控全部移除后恢复动画播放速度。</summary>
@@ -410,7 +409,7 @@ public class EntityEffectController
         {
             if (type.IsControl()) return;
         }
-        owner?.SetAnimPaused(false);
+        owner.SetAnimPaused(false);
     }
 
     private static EntityAttributeDelta.Field FieldFromType(EffectType type)

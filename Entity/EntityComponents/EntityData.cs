@@ -1,6 +1,7 @@
-using System.Collections.Generic;
 using Ros.Info;
 using Ros.Transport;
+using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -280,171 +281,131 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>设置位移效果（直接替换，旧效果不调用 Exit；对新效果调用 Enter（传当前角色速度）；本帧速度由 TickVelocity 向 Update 取）。</summary>
     public void SetMotion(MotionBase motion)
     {
+        if (rb == null || anim == null) return;
         this.motion = motion;
-        if (motion != null && rb != null) motion.Enter(this, rb.velocity);
-    }
-
-    /// <summary>中途移除位移效果（破霸体命中/强控打断/替换）：**不调用 Exit**，位移速度直接消失，残留速度交回摩擦/动画接管。</summary>
-    public void RemoveMotion()
-    {
-        motion = null;
-    }
-
-    /// <summary>位移时间自然到期（仅此路径调用 Exit）：传入当前速度，返回位移结束后的速度并写回刚体水平分量。</summary>
-    private void FinishMotion()
-    {
-        MotionBase finished = motion;
-        motion = null;
-        if (finished == null) return;
-        if (rb == null)
-        {
-            finished.Exit(this, Vector3.zero);
-            return;
-        }
-        SetRbHorizontal(finished.Exit(this, rb.velocity));
+        if (motion != null) declaredMotionEnter = true;
     }
 
     /// <summary>位移期间是否允许玩家输入移动（无位移效果时允许）。</summary>
     public bool MotionCanMove => motion == null || motion.canMove;
 
-    #region//速度（写入必须携带 VelocitySource 来源；内部只记录动画声明值，位移逐帧取、击飞一次性覆盖，混合在本区内完成）
-    /// <summary>动画当前声明的"前后"速度（**角色本地前后**，正 = 朝前；0 = 本状态不动）。</summary>
+    #region//速度
     private bool declaredForward;
     private float declaredForwardSpeed;
-    /// <summary>动画当前声明的"水平"速度（**世界空间**：x → 世界 X、y → 世界 Z）。</summary>
     private bool declaredHorizontal;
     private Vector2 declaredHorizontalSpeed;
-    /// <summary>声明时所处的动画状态 hash：换状态即失效（"动画没设置"就是由此产生的）。</summary>
-    private int declaredAnimId = -1;
+    private bool declaredVertical;
+    private float declaredVerticalSpeed;
+    private bool declaredMotionEnter;
 
-    /// <summary>声明前后速度（EntityAnim.SetVelocityForward）：角色本地前后，正 = 朝前、负 = 朝后。声明在"当前动画状态"内有效。</summary>
+    //设置前后速度
     public void SetVelocityForward(float speed, VelocitySource source)
     {
+        if (rb == null) return;
         declaredForward = true;
         declaredForwardSpeed = speed;
-        declaredHorizontal = false; // 前后与水平通常不会同时声明；后声明的为准
         LastVelocitySource = source;
-        if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
-    /// <summary>声明水平速度（EntityAnim.SetVelocityHorizontal）：**世界空间**的水平速度，x → 世界 X、y → 世界 Z（不是本地系）。</summary>
+    //设置水平速度
     public void SetVelocityHorizontal(Vector2 speed, VelocitySource source)
     {
+        if (rb == null) return;
         declaredHorizontal = true;
         declaredHorizontalSpeed = speed;
-        declaredForward = false;
         LastVelocitySource = source;
-        if (anim != null) anim.GetDisplayAnim(out declaredAnimId, out _);
     }
 
-    /// <summary>声明垂直速度（EntityAnim.SetVelocityVertical）：**只在这次调用生效**（起跳/下落初速），之后交给重力。</summary>
+    //设置垂直速度
     public void SetVelocityVertical(float speed, VelocitySource source)
     {
-        LastVelocitySource = source;
         if (rb == null) return;
-        Vector3 velocity = rb.velocity;
-        velocity.y = speed;
-        rb.velocity = velocity;
-    }
-
-    /// <summary>
-    /// 统一设速入口：写入必须携带 VelocitySource。目前只有击飞（Knockback）走这里——
-    /// 一次性覆盖：直接写刚体水平分量并清除动画声明，之后由未声明分支自然保持/衰减。
-    /// 动画速度走声明接口，MotionBase 由 TickVelocity 每帧内部结算。
-    /// </summary>
-    public void SetVelocity(VelocitySource source, Vector3 horizontalVelocity)
-    {
         LastVelocitySource = source;
-        if (rb == null || source != VelocitySource.Knockback) return;
-        declaredForward = false;
-        declaredHorizontal = false;
-        SetRbHorizontal(horizontalVelocity);
+        declaredVerticalSpeed = speed;
+        declaredVertical = true;
     }
 
-    /// <summary>
-    /// 每帧速度结算（服务器权威移动的唯一决策处，由 BattleManagerCombat.TickMovement 调用）：
-    /// ① 更新 MotionBase（时间到移除，否则取本帧位移速度）② 朝向与输入推进（OnTickMove）③ 混合写刚体 ④ 区块索引同步。
-    /// 混合规则：**有 MotionBase 时无视摩擦**——canMove 时最终速度 = 位移速度 + 动画声明（空中同样生效），
-    /// 否则位移完全接管（阻断动画来源）；无 MotionBase 时：动画声明有效按声明施加（空中同样生效），
-    /// 未声明且在地面按 Config.move_ground_friction 衰减、空中保持刚体速度。
-    /// **玩家主动操控的速度只能来自动画声明**；加速/减速/泥沼已在 EntityAnim 声明时按播放速度缩放，这里不再乘。
-    /// </summary>
+    //水平方向速度混合
+    private Vector3 DeclaredVelocity()
+    {
+        Vector3 v = Vector3.zero;
+        if (declaredHorizontal) v += new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
+        if (declaredForward) v += declaredForwardSpeed * transform.forward;
+        if (declaredVertical) v += Vector3.up * declaredVerticalSpeed;
+        return v;
+    }
+
+    // 每帧速度结算
     public void TickVelocity(float deltaTime)
     {
         if (rb == null) return;
 
-        // ① MotionBase 每帧更新：时间自然到期 → FinishMotion（唯一调用 Exit 的路径）；否则取本帧位移速度
-        Vector3 motionVelocity = Vector3.zero;
-        if (motion != null)
-        {
-            if (Time.time >= motion.endTime) FinishMotion();
-            else motionVelocity = motion.Update(this, rb.velocity);
-        }
-
-        // ② 朝向与输入推进（强控/位移锁输入期间输入不生效）
+        //朝向与输入推进（强控/位移锁输入期间输入不生效）
         bool canInput = effectController == null || effectController.CanMove();
         OnTickMove(deltaTime, canInput);
 
-        // 换状态 → 动画声明失效
-        if ((declaredForward || declaredHorizontal) && anim != null)
-        {
-            anim.GetDisplayAnim(out var animId, out _);
-            if (animId != declaredAnimId)
-            {
-                declaredForward = false;
-                declaredHorizontal = false;
-            }
-        }
-
-        // ③ 混合写刚体（只写 X/Z，Y 归重力与 SetVelocityVertical）
+        // 混合写刚体
         if (motion != null)
         {
-            Vector3 final = motionVelocity;
+            Vector3 final = Vector3.zero;
+            if (declaredMotionEnter)
+            {
+                final = motion.Enter(this, rb.velocity);
+            }
+            else if (Time.time >= motion.endTime)
+            {
+                final = motion.Exit(this, rb.velocity);
+            }
+            else
+            {
+                final = motion.Update(this, rb.velocity);
+            }
+
             if (motion.canMove) final += DeclaredVelocity();
-            SetRbHorizontal(final);
-        }
-        else if (declaredForward || declaredHorizontal)
-        {
-            SetRbHorizontal(DeclaredVelocity()); // 空中也照常应用动画速度
+            rb.velocity = final;
         }
         else
         {
-            // 未声明：刚体现有水平速度（含击飞残留）原地保持；在地面按摩擦朝 0 衰减
-            Vector3 carried = rb.velocity;
-            carried.y = 0f;
-            float speed = carried.magnitude;
-            if (grounded)
+            //y方向速度此处无意义
+            Vector3 targetVelocity=rb.velocity;
+            float targetVelocityY=rb.velocity.y;
+            if (declaredForward || declaredHorizontal || declaredVertical)
             {
-                float next = Mathf.Max(0f, speed - Config.move_ground_friction * deltaTime);
-                SetRbHorizontal(speed <= 0.0001f ? Vector3.zero : carried * (next / speed));
+                targetVelocity = DeclaredVelocity();
+                targetVelocityY = targetVelocity.y;
             }
-        }
-        Debug.Log($"id={id} {name} 分支={(motion != null ? "motion" : (declaredForward || declaredHorizontal ? "声明" : "摩擦"))} pos={transform.position:F2} rbV={rb.velocity} 地面={grounded}");
+            else if (grounded)
+            {
+                targetVelocity = Vector3.zero;
+            }
 
-        // ④ 区块索引跟着走：范围索敌（GetNearestEnemy 等）只查区块桶，不更新就会一直按出生区块找人
+            //摩擦仅仅针对水平速度生效
+            Vector3 rbV = rb.velocity;
+            float rby = rb.velocity.y;
+            float targety = targetVelocity.y;
+            rbV.y = 0;
+            targety = 0;
+            float deltaSpeed = Config.move_ground_friction * deltaTime;
+            Vector3 endVelocity;
+            if ((targetVelocity - rbV).magnitude < deltaSpeed)
+            {
+                endVelocity = targetVelocity;
+            }
+            else
+            {
+                endVelocity = (targetVelocity - rbV).normalized * deltaSpeed + rbV;
+            }
+            endVelocity.y = targetVelocityY;
+            rb.velocity = endVelocity;
+        }
+
+        //区块索引刷新
         BattleManager.EntityContainer.Entities.UpdateObjectPosition(id);
-    }
 
-    /// <summary>当前动画声明换算成的世界水平速度（未声明返回零）。</summary>
-    private Vector3 DeclaredVelocity()
-    {
-        if (declaredHorizontal) return new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
-        if (declaredForward)
-        {
-            // 前后声明是角色本地前后：符号取输入的前后轴（动画只知道"在移动"，不知道玩家按的是前还是后）
-            float sign = moveInput.z < -0.001f ? -1f : 1f;
-            return transform.forward * (declaredForwardSpeed * sign);
-        }
-        return Vector3.zero;
-    }
-
-    /// <summary>把水平分量写入刚体（Y 不动）。</summary>
-    private void SetRbHorizontal(Vector3 horizontal)
-    {
-        Vector3 velocity = rb.velocity;
-        velocity.x = horizontal.x;
-        velocity.z = horizontal.z;
-        rb.velocity = velocity;
+        declaredForward = false;
+        declaredHorizontal = false;
+        declaredVertical = false;
+        declaredMotionEnter = false;
     }
     #endregion
 
@@ -481,16 +442,16 @@ public abstract class EntityData : MonoBehaviour
     /// 随后按攻击力度施加击飞，最后结算伤害（damage 已由 AttackData.GetDamage 按公式与暴击算好，isCrit 为本次是否暴击）。
     /// hitOrigin = 命中位置（子弹位置 / 近战判定球心），用于确定击飞的水平方向。
     /// </summary>
-    public void ProcessHit(AttackData attack, float damage, bool isCrit, Vector3 hitOrigin)
+    public void ProcessHit(AttackData attack, int damage, bool isCrit, Vector3 hitOrigin)
     {
         EndureType endure = GetEndureLevel();
-        bool enterHit = endure == EndureType.None || (attack.breakEndure && endure == EndureType.Common);
+        bool enterHit = anim!=null && (attack.breakEndure ? (endure == EndureType.None || endure == EndureType.Common) : endure == EndureType.None);
         if (enterHit)
         {
-            RemoveMotion();  // 破霸体命中：打断位移
-            anim?.DoHit();
-            // 被击飞（还会受到击飞抗性影响）；被打断但没击飞时转身面向命中来源，让 Hit 动画朝向正确
-            if (!ApplyKnockback(attack, hitOrigin)) OnHitInterrupted(hitOrigin);
+            motion=null;  // 破霸体命中：打断位移
+            // 被击飞/被打断
+            if (!ApplyKnockback(attack, hitOrigin)) 
+                OnHitInterrupted(hitOrigin);
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
@@ -498,12 +459,7 @@ public abstract class EntityData : MonoBehaviour
         Tool.BattleManager.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
     }
 
-    /// <summary>
-    /// 击飞：v = 攻击力度 − 被击飞抗性（同量纲，v ≤ 0 一并落在阈值内），不够阈值就不击飞并返回 false。
-    /// 水平方向 = 命中位置指向本实体的水平方向，垂直方向向上，**两个方向的速度值都取 v**。
-    /// **这是一条独立的水平速度来源**（攻击命中的一次性速度覆盖，不走动画声明、也不走 MotionBase）；
-    /// 写入 Knockback 来源时清除动画声明与保留值，之后空中保持、落地才按地面摩擦衰减。
-    /// </summary>
+    //击飞
     private bool ApplyKnockback(AttackData attack, Vector3 hitOrigin)
     {
         if (rb == null || floatingAttribute == null) return false;
@@ -513,28 +469,22 @@ public abstract class EntityData : MonoBehaviour
         Vector3 away = transform.position - hitOrigin;
         away.y = 0f;
         Vector3 dir = away.sqrMagnitude > 0.0001f ? away.normalized : transform.forward;
-        SetVelocity(VelocitySource.Knockback, dir * v); // 水平（只写 X/Z）
-        SetVelocityVertical(v, VelocitySource.Knockback); // 垂直（一次性初速，之后交回重力）
+        SetVelocityHorizontal(dir * v, VelocitySource.Knockback); // 水平
+        SetVelocityVertical(v, VelocitySource.Knockback); // 垂直
         return true;
     }
 
-    /// <summary>
-    /// 被打断但没击飞：转身面向命中来源（被击飞方向的反向）。
-    /// 保持视角水平——命中来源坐标压平到水平面后 LookRotation，结果只含绕 Y 的旋转。
-    /// </summary>
-    protected virtual void OnHitInterrupted(Vector3 hitOrigin)
+    // 被打断但没击飞
+    private void OnHitInterrupted(Vector3 hitOrigin)
     {
+        anim.DoHit();
         Vector3 to = hitOrigin - transform.position;
         to.y = 0f;
         if (to.sqrMagnitude < 0.0001f) return; // 命中来源几乎在正上/正下方，保持原朝向
         transform.rotation = Quaternion.LookRotation(to.normalized);
     }
 
-    /// <summary>
-    /// 受伤计算（统一入口）。触发死亡时进入 KilledEntities 由 BattleManager 统一处理。
-    /// 管线：护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤。
-    /// fixedDamage = true 表示固定数值伤害（DoT/反伤：吃护盾/减伤，不吃增减伤乘区）。
-    /// </summary>
+    // 受伤计算
     public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false)
     {
         if (floatingAttribute == null || !Alive) return;
@@ -569,7 +519,7 @@ public abstract class EntityData : MonoBehaviour
     {
         int display = Mathf.RoundToInt(finalDamage);
         if (isCrit) display = -display;
-        Tool.NetworkManager?.SendBattleEvent(new SCBattleEvent()
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
         {
             type = SCBattleEvent.Type.Damage,
             value = display,
