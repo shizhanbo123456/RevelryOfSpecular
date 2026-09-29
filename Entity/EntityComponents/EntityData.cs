@@ -451,7 +451,10 @@ public abstract class EntityData : MonoBehaviour
         Vector3 away = transform.position - hitOrigin;
         away.y = 0f;
         Vector3 dir = away.sqrMagnitude > 0.0001f ? away.normalized : transform.forward;
-        SetVelocityHorizontal(dir * v, VelocitySource.Knockback); // 水平
+        // 水平声明是「二维对」：x→世界X、y→世界Z。这里必须显式取 (dir.x, dir.z)——
+        // 直接传 dir*v 会走 Vector3→Vector2 隐式转换、只保留 (x, y)，dir.z*v 被静默丢弃，
+        // 后果是击飞只能沿世界 ±X 推出（南北向命中会变成东西向飞）。
+        SetVelocityHorizontal(new Vector2(dir.x * v, dir.z * v), VelocitySource.Knockback); // 水平
         SetVelocityVertical(v, VelocitySource.Knockback); // 垂直
         return true;
     }
