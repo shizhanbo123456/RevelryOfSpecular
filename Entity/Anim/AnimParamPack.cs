@@ -16,7 +16,6 @@ public struct AnimParamPack
     public bool trigSpawn;      // Spawn trigger（本帧被设置）
     public bool trigJump;       // Jump trigger
     public bool trigSlideEnd;   // SlideEnd trigger
-    public bool trigRoll;       // Roll trigger
     public bool trigAttack;     // Attack trigger
     public bool trigHit;        // Hit trigger
     public bool trigDie;        // Died trigger
@@ -39,10 +38,9 @@ public struct AnimParamPackSerializer
             (value.trigSpawn ? 1 : 0) |
             (value.trigJump ? 2 : 0) |
             (value.trigSlideEnd ? 4 : 0) |
-            (value.trigRoll ? 8 : 0) |
-            (value.trigAttack ? 16 : 0) |
-            (value.trigHit ? 32 : 0) |
-            (value.trigDie ? 64 : 0));
+            (value.trigAttack ? 8 : 0) |
+            (value.trigHit ? 16 : 0) |
+            (value.trigDie ? 32 : 0));
         return ByteSerializer.Serialize(trigBits, result, ref indexStart);
     }
 
@@ -60,10 +58,9 @@ public struct AnimParamPackSerializer
         pack.trigSpawn = (trigBits & 1) != 0;
         pack.trigJump = (trigBits & 2) != 0;
         pack.trigSlideEnd = (trigBits & 4) != 0;
-        pack.trigRoll = (trigBits & 8) != 0;
-        pack.trigAttack = (trigBits & 16) != 0;
-        pack.trigHit = (trigBits & 32) != 0;
-        pack.trigDie = (trigBits & 64) != 0;
+        pack.trigAttack = (trigBits & 8) != 0;
+        pack.trigHit = (trigBits & 16) != 0;
+        pack.trigDie = (trigBits & 32) != 0;
         return pack;
     }
 }

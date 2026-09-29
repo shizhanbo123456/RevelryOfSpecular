@@ -174,7 +174,6 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnUpdate()
     {
         effectController?.OnUpdate();
-        UpdateGrounded();
     }
 
     /// <summary>朝向与移动输入的逐帧推进（由移动循环调用，canInput = 未被强控）。默认无操作。</summary>
@@ -339,6 +338,8 @@ public abstract class EntityData : MonoBehaviour
     public void TickVelocity(float deltaTime)
     {
         if (rb == null) return;
+
+        UpdateGrounded();
 
         //朝向与输入推进（强控/位移锁输入期间输入不生效）
         bool canInput = effectController == null || effectController.CanMove();

@@ -11,7 +11,6 @@ public class EntityAnim : MonoBehaviour
     private const string key_inAir = "InAir";
     private const string key_slide = "Slide";
     private const string key_slideEnd = "SlideEnd";
-    private const string key_roll = "Roll";
     private const string key_doAttack = "Attack";
     private const string key_attackId = "AttackId";
     private const string key_hit = "Hit";
@@ -35,8 +34,7 @@ public class EntityAnim : MonoBehaviour
         Idle,
         Run,
         Jump,
-        Slide,
-        Roll
+        Slide
     }
     public enum AttackType
     {
@@ -207,8 +205,8 @@ public class EntityAnim : MonoBehaviour
 
     #region//参数打包（方案 B：参数随表现摘要同步）
     private AnimParamPack paramPack = AnimParamPack.Default; // 持久参数（int/bool），所有设置必须经过这里
-    private enum TrigIndex { Spawn = 0, Jump, SlideEnd, Roll, Attack, Hit, Die, Count }
-    private static readonly string[] triggerKeys = { key_spawn, key_jump, key_slideEnd, key_roll, key_doAttack, key_hit, key_die };
+    private enum TrigIndex { Spawn = 0, Jump, SlideEnd, Attack, Hit, Die, Count }
+    private static readonly string[] triggerKeys = { key_spawn, key_jump, key_slideEnd, key_doAttack, key_hit, key_die };
     private readonly int[] triggerSetFrames = new int[(int)TrigIndex.Count]; // 各 trigger 最后被设置的帧，用于生成"本帧触发"标志
 
     /// <summary>
@@ -223,7 +221,6 @@ public class EntityAnim : MonoBehaviour
         pack.trigSpawn = triggerSetFrames[(int)TrigIndex.Spawn] == frame;
         pack.trigJump = triggerSetFrames[(int)TrigIndex.Jump] == frame;
         pack.trigSlideEnd = triggerSetFrames[(int)TrigIndex.SlideEnd] == frame;
-        pack.trigRoll = triggerSetFrames[(int)TrigIndex.Roll] == frame;
         pack.trigAttack = triggerSetFrames[(int)TrigIndex.Attack] == frame;
         pack.trigHit = triggerSetFrames[(int)TrigIndex.Hit] == frame;
         pack.trigDie = triggerSetFrames[(int)TrigIndex.Die] == frame;
@@ -256,7 +253,6 @@ public class EntityAnim : MonoBehaviour
             if (pack.trigSpawn) animator.SetTrigger(key_spawn);
             if (pack.trigJump) animator.SetTrigger(key_jump);
             if (pack.trigSlideEnd) animator.SetTrigger(key_slideEnd);
-            if (pack.trigRoll) animator.SetTrigger(key_roll);
             if (pack.trigAttack) animator.SetTrigger(key_doAttack);
             if (pack.trigHit) animator.SetTrigger(key_hit);
             if (pack.trigDie) animator.SetTrigger(key_die);
@@ -313,10 +309,6 @@ public class EntityAnim : MonoBehaviour
         paramPack.slide = false;
         SetBoolAll(key_slide, false);
         FireTriggerAll(TrigIndex.SlideEnd);
-    }
-    public void Roll()
-    {
-        FireTriggerAll(TrigIndex.Roll);
     }
     public void DoAttack(AttackType attack)
     {

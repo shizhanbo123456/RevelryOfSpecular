@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class AnimRollEvent : AnimMotionEvent
+public class AnimRunJumpEvent : AnimMotionEvent
 {
     [SerializeField] private AnimationCurve speedCurve;
 

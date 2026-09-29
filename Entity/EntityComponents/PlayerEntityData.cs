@@ -20,9 +20,6 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
-    /// <summary>翻滚冷却到期时刻（Time.time 基准 = 上次翻滚 + Config.roll_cd）。</summary>
-    private float rollReadyTime;
-
     /// <summary>绕 Y 角速度（度/秒，随表现摘要下发客户端做包间推演）。</summary>
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
@@ -61,20 +58,11 @@ public class PlayerEntityData : EntityData
 
         bool moving = moveState.moving;
 
-        // 跳跃键：移动中且翻滚不在冷却 → 优先翻滚；否则（未移动 / 冷却中）普通跳跃
+        // 跳跃键：普通跳跃（翻滚动作已整体移除，K 只做跳跃）
         if ((input.pressed & PlayerKey.K) != 0)
         {
-            if (moving && Time.time >= rollReadyTime)
-            {
-                rollReadyTime = Time.time + Config.roll_cd;
-                anim?.Roll();
-                Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 翻滚（移动中且翻滚不在冷却）");
-            }
-            else
-            {
-                Jump();
-                Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 普通跳跃（移动中={moving}，翻滚冷却剩 {Mathf.Max(0f, rollReadyTime - Time.time):F2}s）");
-            }
+            Jump();
+            Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 跳跃（移动中={moving}）");
         }
         // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
         if ((input.pressed & PlayerKey.LShift) != 0)
