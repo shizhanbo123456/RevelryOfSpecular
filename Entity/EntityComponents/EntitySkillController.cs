@@ -158,7 +158,6 @@ public class EntitySkillController
         if (GetStore(skillId) == 0) return false;
         if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
-        if (!skill.HasTargetInRange(owner)) return false; // 施法距离门闸（CastRange = 0 不限）
 
         CastingSlotIndex = skillIds.IndexOf(skillId);
         SkillContext context = skill.SkillLogic(owner);
@@ -166,6 +165,23 @@ public class EntitySkillController
         StartCd(skillId);
         ConsumeStore(skillId);
         return true;
+    }
+
+    /// <summary>
+    /// 诊断用：描述"此刻释放该技能会卡在哪一步"——只做只读校验，**不消耗 CD/库存、不执行技能逻辑**
+    /// （校验顺序与 TryUseSkill 严格一致）。返回 "通过" 即此刻可释放。
+    /// 仅供玩家输入等低频路径打日志用——AI / 僵尸等高频路径不要调用，否则会刷屏。
+    /// </summary>
+    public string DescribeUseFailure(int skillId)
+    {
+        if (skillId < 0) return "槽位没有技能（id 无效）";
+        float cd = GetCdRemain(skillId);
+        if (cd > 0f) return $"CD 中（剩 {cd:F2}s）";
+        if (GetStore(skillId) == 0) return "库存为 0";
+        if (owner != null && owner.effectController != null && !owner.effectController.CanCastSkill())
+            return owner.effectController.IsSilenced() ? "被沉默" : "被强控（麻痹/冰冻/定身）";
+        if (!SkillManager.TryGet(skillId, out _)) return "技能未注册（SkillManager 里找不到）";
+        return "通过";
     }
 
     /// <summary>填充实体表现摘要的技能槽列表与最近触发槽位下标。</summary>

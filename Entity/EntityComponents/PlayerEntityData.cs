@@ -53,6 +53,10 @@ public class PlayerEntityData : EntityData
 
             // Run/Idle 随表现摘要同步给客户端（原地转向播 Idle）
             anim?.Move(moveState.moving);
+
+            // 诊断：确认服务器上 WASD 的下沿（按下）与上沿（抬起）都被处理到
+            // 注：上沿打印原始位（WRelease 等），release 是右移后的"按住位语义"，直接打印会显示成 WPress 造成误读
+            Debug.Log($"[输入处理] id={id} {gameObject.name} 按键位={input.pressed}（下沿 {press} / 上沿 {input.pressed & PlayerKey.MoveReleaseMask}）→ 按住掩码={moveState.held} 移动={moveState.moving} 方向={moveState.dir}");
         }
 
         bool moving = moveState.moving;
@@ -64,16 +68,19 @@ public class PlayerEntityData : EntityData
             {
                 rollReadyTime = Time.time + Config.roll_cd;
                 anim?.Roll();
+                Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 翻滚（移动中且翻滚不在冷却）");
             }
             else
             {
                 Jump();
+                Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 普通跳跃（移动中={moving}，翻滚冷却剩 {Mathf.Max(0f, rollReadyTime - Time.time):F2}s）");
             }
         }
         // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
         if ((input.pressed & PlayerKey.LShift) != 0)
         {
             anim?.DoSlide();
+            Debug.Log($"[输入处理] id={id} 滑铲键(Shift) 下沿 → 滑铲");
         }
         // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
         if ((input.pressed & PlayerKey.J) != 0)
@@ -81,7 +88,15 @@ public class PlayerEntityData : EntityData
             int meleeSkill = moving
                 ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
                 : Config.unarmed_attack_smash;
-            skillController.TryUseSkill(meleeSkill);
+            if (skillController == null)
+            {
+                Debug.Log($"[输入处理] id={id} 攻击键(J) 下沿 → 技能控制器缺失，无法释放");
+            }
+            else
+            {
+                bool ok = skillController.TryUseSkill(meleeSkill);
+                Debug.Log($"[输入处理] id={id} 攻击键(J) 下沿 → 空手技能 {meleeSkill}（{(moving ? "移动出拳" : "原地砸击")}），结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(meleeSkill))}");
+            }
         }
 
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
@@ -105,12 +120,22 @@ public class PlayerEntityData : EntityData
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
     public void UseSkillSlot(int slot)
     {
-        if (skillController == null) return;
+        if (skillController == null)
+        {
+            Debug.Log($"[输入处理] id={id} 技能槽{slot} → 技能控制器缺失，无法释放");
+            return;
+        }
         var ids = skillController.GetSkillIds();
-        if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return;
+        if (slot < 0 || slot >= ids.Count || ids[slot] < 0)
+        {
+            Debug.Log($"[输入处理] id={id} 技能槽{slot} → 该槽位没有技能（技能表 [{string.Join(",", ids)}]）");
+            return;
+        }
 
         skillController.SelectIndex(slot); // 选中下标供 UI 高亮
-        skillController.TryUseSkill(ids[slot]);
+        bool ok = skillController.TryUseSkill(ids[slot]);
+        string key = slot < Config.skill_slot_keys.Length ? Config.skill_slot_keys[slot].ToString() : "?";
+        Debug.Log($"[输入处理] id={id} 技能槽{slot}（键 {key}）→ 技能 {ids[slot]}，结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(ids[slot]))}");
     }
 
     /// <summary>
