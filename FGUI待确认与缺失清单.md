@@ -9,7 +9,7 @@
 |---|---|
 | **UI_HomePanel** | m_page 控制器（**0=玩家信息页，1=角色列表页**）+ m_playerInfo(UI_PlayerInfo) + m_characterPanel(HomeCharacterList) + m_attributePanel(HomeAttrList) + m_connectPanel(HomeConnect) |
 | **UI_LobbyPanel** | m_mainView(LobbyMemberList) + m_btn_exit（断开并返回） |
-| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3） |
+| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3） |
 
 ## 二、组件规则（全部按你的讲解落实）
 
@@ -21,12 +21,13 @@
 | UI_HomeAttrList + UI_AttrItem | m_attrValue 用 **UBB**：基础属性白 + 已取得的全部升级加成绿 `[color=#6BD98C]+150[/color]` + 仅下一级将加成的属性橙 `[color=#FF9E47]（+50）[/color]` |
 | UI_HomeConnect + UI_InputField | m_input_ipaddress.m_content(GTextInput) 读 IP + m_btn_connect；无连接状态文本（未连接就在 Home） |
 | UI_LobbyMemberList | 攻/守成员列表（条目 = RoleHead：玩家名+所选角色头像）+ m_btn_joinAttacker/m_btn_joinDefenser（选队）+ AI 编辑（m_attackerAI_minus/m_label_attackerAI_count/m_attackerAI_add + 防守方同组）+ m_btn_battleStart |
-| UI_BattlePanel | m_icon_day_night 绕 Z 旋转（0°=正午，180°=午夜，Time01 线性插值）+ m_label_time_left（本地推演）+ m_PlayerBar（左上角固定，本地玩家等级+血量数字+血条）+ m_skillList + m_EventList + m_Minimap |
+| UI_BattlePanel | m_icon_day_night 绕 Z 旋转（0°=正午，180°=午夜，Time01 线性插值）+ m_label_time_left（本地推演）+ m_PlayerBar（左上角固定，本地玩家等级+血量数字+血条）+ m_skillList + m_EventList（UI_EventList）+ m_Minimap |
 | UI_BattlePanel 复活进度 | m_showRegenerationBar 控制器显隐 + m_regeneration_progressbar 填充比例 |
 | **UI_DefensivePointBar**（×4：m_progressMain + m_progressSub1~3） | m_fill 填充比例 = 血量比；**m_destroyed 控制器 = 被摧毁标识**；减伤不在 UI 显示 |
 | UI_EntityBar（世界空间血条） | m_fill + m_label（血量数字）；名牌（PlayerName 名字 + EntityBar 血条）屏幕跟随实体头顶，锚点 = TryGetEntityHeadPos（EntityModelInfo 顶点） |
 | UI_SkillListItem | m_loader_iconBase（底图）+ m_loader_icon（图标，**CD = 填充比例 0→100 一轮冷却**）+ m_store + m_key（U I O L H）+ **m_starList（技能经验，exp 与星星 1:1）**；无选中态、无经验/CD 文本 |
 | UI_DamageLabel | value 0=无效（灰）/ >0=普通（白）/ <0=暴击（橙大号），受击实体头顶 |
+| **UI_EventList**（BattlePanel.m_EventList） | m_EventItemContainer（**GList，纵向单列**，defaultItem = EventItem）：代码只设 `itemRenderer` + `numItems`，条目组件与排布全由界面决定；数据是 `BattlePage.eventEntries`（3.5s 到期从表头移除） |
 | UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字（"玩家A (图标) 玩家B"= A 击杀 B，图标档位 6=玩家间击败）；type0/type1 按需；EventIcon 档位：0 无源死亡 / 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它 |
 | UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；世界坐标映射到 m_mapBase（Z 取反） |
 | UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅** |

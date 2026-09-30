@@ -24,7 +24,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, int> barOwners = new();
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly List<(UI_DamageLabel label, float time)> damageLabels = new();
-    private readonly List<(UI_EventItem item, float time)> eventItems = new();
+    private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
     private readonly List<string> settleRows = new(); // 渲染器按索引读取的明细行文本
     private Timer.TransitionHandle settleTransition;
@@ -41,6 +41,18 @@ public class BattlePage : PageBase
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
+
+    /// <summary>事件列表条目数据：列表本体是 FGUI 里的 GList（UI_EventList.m_EventItemContainer），代码只维护这份数据，位置/排布由界面决定。</summary>
+    private struct EventEntry
+    {
+        public int type;     // UI_EventItem 的 type 控制器：0 纯文字 / 1 图标+文字 / 2 文字+图标+文字
+        public string text;  // type 0/1 的文本
+        public Color color;  // type 0 的文本颜色
+        public int icon;     // type 1/2 的 EventIcon 档位
+        public string left;  // type 2 左侧文本（击杀者）
+        public string right; // type 2 右侧文本（受害者）
+        public float time;   // 入列时间；超过 EventLife 的条目从列表头部移除
+    }
 
     public BattlePage(UI_BattlePanel panel) : base(panel)
     {
@@ -72,6 +84,7 @@ public class BattlePage : PageBase
         ResetBeacons();
         ClearEntityBars();
         ClearMinimap();
+        ClearEventItems();
         HideSettlement();
         RefreshTimeIcon();
     }
@@ -417,34 +430,34 @@ public class BattlePage : PageBase
                 string victimName = barOwners.TryGetValue((ushort)e.targetId, out var owner)
                     ? NetworkManager.GetMemberName(owner) : "玩家";
                 string killerName = killerId >= 0 ? NetworkManager.GetMemberName(killerId) : "玩家";
-                SpawnEventItem(item =>
+                AddEventEntry(new EventEntry
                 {
-                    item.m_type.selectedIndex = 2; // 文字+图标+文字
-                    item.m_type2_loader.m_type.selectedIndex = 6; // 玩家间击败
-                    item.m_type2_label1.text = killerName;
-                    item.m_type2_label2.text = victimName;
+                    type = 2, // 文字+图标+文字
+                    icon = 6, // 玩家间击败
+                    left = killerName,
+                    right = victimName,
                 });
                 break;
             }
             case SCBattleEvent.Type.BeaconDestroyed:
-                SpawnTextEvent("守护点被摧毁！", CampAttackColor);
+                AddTextEvent("守护点被摧毁！", CampAttackColor);
                 break;
             case SCBattleEvent.Type.CrystalCollected:
-                SpawnTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
+                AddTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
                 break;
             case SCBattleEvent.Type.CrystalBroken:
-                SpawnTextEvent("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
+                AddTextEvent("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
                 break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
-                SpawnEventItem(item =>
+                AddEventEntry(new EventEntry
                 {
-                    item.m_type.selectedIndex = 1; // 图标+文字
-                    item.m_type1_loader.m_type.selectedIndex = 1; // 瘟疫树被击败
-                    item.m_type1_label.text = "攻占瘟疫树！获得瘟疫祝福";
+                    type = 1, // 图标+文字
+                    icon = 1, // 瘟疫树被击败
+                    text = "攻占瘟疫树！获得瘟疫祝福",
                 });
                 break;
             case SCBattleEvent.Type.ShowText:
-                SpawnTextEvent(NoticeMessageMap.Get(e.value), Color.white);
+                AddTextEvent(NoticeMessageMap.Get(e.value), Color.white);
                 break;
         }
     }
@@ -621,50 +634,66 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>事件条目：加入 m_EventList，纵排，到期移除并重排。</summary>
-    private void SpawnEventItem(System.Action<UI_EventItem> setup)
+    /// <summary>事件列表数据：追加一条并按 GList 渲染器模式刷新（代码不创建条目、不设位置）。</summary>
+    private void AddEventEntry(EventEntry entry)
     {
-        var container = panel.m_EventList;
-        if (container == null) return;
-        var item = UI_EventItem.CreateInstance();
-        container.AddChild(item);
-        setup(item);
-        eventItems.Add((item, Time.time));
-        RelayoutEventItems();
+        entry.time = Time.time;
+        eventEntries.Add(entry);
+        RefreshEventItems();
     }
 
-    private void SpawnTextEvent(string text, Color color)
+    /// <summary>把数据交给事件列表：只设 itemRenderer + numItems，条目组件与排布由 FGUI 的 GList 负责。</summary>
+    private void RefreshEventItems()
     {
-        SpawnEventItem(item =>
+        var list = panel.m_EventList?.m_EventItemContainer;
+        if (list == null) return;
+        list.itemRenderer = RenderEventItem;
+        list.numItems = eventEntries.Count;
+    }
+
+    private void RenderEventItem(int index, GObject obj)
+    {
+        if (obj is not UI_EventItem item || index >= eventEntries.Count) return;
+        EventEntry entry = eventEntries[index];
+        item.m_type.selectedIndex = entry.type;
+        switch (entry.type)
         {
-            item.m_type.selectedIndex = 0; // 纯文字
-            item.m_type0_label.text = text;
-            item.m_type0_label.color = color;
-        });
+            case 0:
+                item.m_type0_label.text = entry.text;
+                item.m_type0_label.color = entry.color;
+                break;
+            case 1:
+                item.m_type1_loader.m_type.selectedIndex = entry.icon;
+                item.m_type1_label.text = entry.text;
+                break;
+            default:
+                item.m_type2_loader.m_type.selectedIndex = entry.icon;
+                item.m_type2_label1.text = entry.left;
+                item.m_type2_label2.text = entry.right;
+                break;
+        }
     }
 
+    private void AddTextEvent(string text, Color color)
+    {
+        AddEventEntry(new EventEntry { type = 0, text = text, color = color });
+    }
+
+    /// <summary>到期条目从数据头部移除（条目按时间先后入列，最老的必在表头）。</summary>
     private void TickEventItems()
     {
-        bool removed = false;
-        for (int i = eventItems.Count - 1; i >= 0; i--)
-        {
-            var entry = eventItems[i];
-            if (Time.time - entry.time > EventLife)
-            {
-                if (entry.item != null) entry.item.Dispose();
-                eventItems.RemoveAt(i);
-                removed = true;
-            }
-        }
-        if (removed) RelayoutEventItems();
+        int expired = 0;
+        while (expired < eventEntries.Count && Time.time - eventEntries[expired].time > EventLife) expired++;
+        if (expired == 0) return;
+        eventEntries.RemoveRange(0, expired);
+        RefreshEventItems();
     }
 
-    private void RelayoutEventItems()
+    /// <summary>清空事件列表数据并同步列表。</summary>
+    private void ClearEventItems()
     {
-        for (int i = 0; i < eventItems.Count; i++)
-        {
-            if (eventItems[i].item != null) eventItems[i].item.SetXY(12f, 10f + i * 64f);
-        }
+        eventEntries.Clear();
+        RefreshEventItems();
     }
 
     /// <summary>昼夜图标：Time01（1=正午，0=午夜）线性映射到绕 Z 的 0°~180°。</summary>

@@ -16,6 +16,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_PlayerHealth.URL, typeof(UI_PlayerHealth));
             UIObjectFactory.SetPackageItemExtension(UI_NoticePanel.URL, typeof(UI_NoticePanel));
             UIObjectFactory.SetPackageItemExtension(UI_EventItem.URL, typeof(UI_EventItem));
+            UIObjectFactory.SetPackageItemExtension(UI_EventList.URL, typeof(UI_EventList));
             UIObjectFactory.SetPackageItemExtension(UI_Minimap.URL, typeof(UI_Minimap));
             UIObjectFactory.SetPackageItemExtension(UI_MinimapItem.URL, typeof(UI_MinimapItem));
             UIObjectFactory.SetPackageItemExtension(UI_DamageLabel.URL, typeof(UI_DamageLabel));
