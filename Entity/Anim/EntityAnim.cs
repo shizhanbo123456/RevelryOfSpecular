@@ -78,6 +78,9 @@ public class EntityAnim : MonoBehaviour
     private List<Animator> animators;
     private Animator mainAnimator;
 
+    /// <summary>主 Animator（人形骨骼查询用，如脚/头/手；Init 后有效，未找到 Animator 时为 null）。</summary>
+    public Animator MainAnimator => mainAnimator;
+
 
     public void Init(EntityData data, Action<AttackType> onAttack)
     {

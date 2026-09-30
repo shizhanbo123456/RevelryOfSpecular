@@ -13,7 +13,7 @@ public class EntityModelInfo:MonoBehaviour
     /// <summary>
     /// 按录入的本地包围盒构造一个胶囊碰撞体：
     /// - 高度（上下范围）取 Y 轴范围 yRange.y - yRange.x；
-    /// - 半径取 Z 轴前后距离的一半 (zRange.y - zRange.x) * 0.5f；
+    /// - 半径取 X 轴与 Z 轴范围的平均值的一半（宽深平均，避免侧向胖/前后瘦的模型单轴失真）；
     /// - 沿 Y 轴（direction = 1），中心落在各轴中点。
     /// 已存在 CapsuleCollider 则复用并覆盖参数，不重复创建其它碰撞体。
     /// 值域为根节点本地空间，因此直接配到本组件所在 GameObject 的本地 transform 上即可。
@@ -21,7 +21,7 @@ public class EntityModelInfo:MonoBehaviour
     public CapsuleCollider BuildCapsuleCollider()
     {
         float height = yRange.y - yRange.x;
-        float radius = (zRange.y - zRange.x) * 0.5f;
+        float radius = ((xRange.y - xRange.x) + (zRange.y - zRange.x)) * 0.25f;
         Vector3 center = new Vector3(
             (xRange.x + xRange.y) * 0.5f,
             (yRange.x + yRange.y) * 0.5f,
@@ -34,6 +34,21 @@ public class EntityModelInfo:MonoBehaviour
         col.radius = radius;
         col.center = center;
         return col;
+    }
+
+    /// <summary>
+    /// 按模型根节点本地空间的上下边界调整胶囊（人形实体的动态受击体积，见 EntityData.TickDynamicCapsule）：
+    /// 只改高度与 Y 中心，X/Z 中心与半径不变；高度会夹到不小于直径（Unity 要求 height >= 2 × radius）。
+    /// </summary>
+    public void SetCapsuleVerticalBounds(float localBottom, float localTop)
+    {
+        var col = GetComponent<CapsuleCollider>();
+        if (col == null) return;
+        float height = Mathf.Max(localTop - localBottom, col.radius * 2f);
+        float centerY = (localBottom + localTop) * 0.5f;
+        if (Mathf.Approximately(height, col.height) && Mathf.Approximately(centerY, col.center.y)) return; // 值没变不惊动物理
+        col.height = height;
+        col.center = new Vector3(col.center.x, centerY, col.center.z);
     }
 
     private void OnDrawGizmos()

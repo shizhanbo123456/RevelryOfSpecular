@@ -162,9 +162,10 @@ public abstract class EntityData : MonoBehaviour
 
         SetupBody();
 
-        // 模型碰撞体：按烘焙的本地包围盒构造胶囊碰撞体（高度 = Y 范围，半径 = Z 范围一半）。
+        // 模型碰撞体：按烘焙的本地包围盒构造胶囊碰撞体（高度 = Y 范围，半径 = X/Z 范围平均的一半）。
         // 服务器无图形模板时 ModelInfo 为 null，自动跳过。
         ModelInfo?.BuildCapsuleCollider();
+        InitDynamicCapsule(); // 人形实体的动态受击体积：记录脚/头骨骼初始高度基准（见 TickDynamicCapsule）
     }
 
     /// <summary>动画攻击帧回调（AnimAttackEvent 触发；攻击帧相关逻辑如武器判定后续在此实现）。</summary>
@@ -340,6 +341,7 @@ public abstract class EntityData : MonoBehaviour
         if (rb == null) return;
 
         UpdateGrounded();
+        TickDynamicCapsule();
 
         //朝向与输入推进（强控/位移锁输入期间输入不生效）
         bool canInput = effectController == null || effectController.CanMove();
@@ -585,6 +587,68 @@ public abstract class EntityData : MonoBehaviour
     {
         deathAnimDone = true;
     }
+
+    #region 动态受击体积（人形实体：胶囊上下边界跟随脚/头骨骼的动画姿态）
+    private CapsuleCollider capsule;      // 动态胶囊（OnCreate 建好后缓存）
+    private bool capsuleDynamicReady;     // 人形骨骼齐全才启用；否则胶囊保持静态包围盒
+    private float boneInitFootY;          // 初始姿态脚部高度（模型根节点本地空间，双脚取低者）
+    private float boneInitHeadY;          // 初始姿态头部高度（同上）
+    private float capsuleBaseBottom;      // 建胶囊时的下边界（本地 Y）
+    private float capsuleBaseTop;         // 建胶囊时的上边界（本地 Y）
+
+    /// <summary>
+    /// 动态受击体积初始化（OnCreate，仅人形 = 带 EntityAnim 的实体）：
+    /// 此刻 Animator 尚未驱动、骨骼处于默认姿态，正好作基准——记录脚/头骨骼在模型根节点本地空间的高度，
+    /// 与建胶囊时的上下边界一起存下，之后每帧按骨骼相对基准的差量平移胶囊边界（见 TickDynamicCapsule）。
+    /// 非人形/无图形/取不到人形骨骼的实体直接跳过，胶囊维持静态包围盒。
+    /// </summary>
+    private void InitDynamicCapsule()
+    {
+        if (anim == null || ModelInfo == null) return;
+        capsule = ModelInfo.GetComponent<CapsuleCollider>();
+        if (capsule == null) return;
+        if (!TrySampleBoneSpan(ModelInfo.transform, out float footY, out float headY)) return;
+
+        boneInitFootY = footY;
+        boneInitHeadY = headY;
+        capsuleBaseBottom = capsule.center.y - capsule.height * 0.5f;
+        capsuleBaseTop = capsule.center.y + capsule.height * 0.5f;
+        capsuleDynamicReady = true;
+    }
+
+    /// <summary>
+    /// 每帧刷新动态受击体积（TickVelocity 内调用，随移动循环走）：
+    /// 脚部比初始化时高多少，胶囊下边界就抬多少；头部同理定上边界——
+    /// 这样动作造成的姿态变化（抬脚、下蹲、前倾等）会真实反映进碰撞范围，而不只跟着物体位置走。
+    /// 差值低于阈值不写（SetCapsuleVerticalBounds 内部还会再查重），避免静止时每帧惊动物理。
+    /// </summary>
+    private void TickDynamicCapsule()
+    {
+        if (!capsuleDynamicReady) return;
+        if (!TrySampleBoneSpan(ModelInfo.transform, out float footY, out float headY)) return;
+        float bottom = capsuleBaseBottom + (footY - boneInitFootY);
+        float top = capsuleBaseTop + (headY - boneInitHeadY);
+        ModelInfo.SetCapsuleVerticalBounds(bottom, top);
+    }
+
+    /// <summary>采样脚/头骨骼在 space 本地空间的高度：脚取双脚中较低者；头缺失或双脚全缺视为非人形返回 false。</summary>
+    private bool TrySampleBoneSpan(Transform space, out float footY, out float headY)
+    {
+        footY = headY = 0f;
+        var animator = anim != null ? anim.MainAnimator : null;
+        if (animator == null) return false;
+        var footL = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+        var footR = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+        var head = animator.GetBoneTransform(HumanBodyBones.Head);
+        if (head == null || (footL == null && footR == null)) return false;
+
+        headY = space.InverseTransformPoint(head.position).y;
+        footY = float.MaxValue;
+        if (footL != null) footY = space.InverseTransformPoint(footL.position).y;
+        if (footR != null) footY = Mathf.Min(footY, space.InverseTransformPoint(footR.position).y);
+        return true;
+    }
+    #endregion
 
     #region//Local
     /// <summary>落地检测射线：起点为脚底上方一点。</summary>
