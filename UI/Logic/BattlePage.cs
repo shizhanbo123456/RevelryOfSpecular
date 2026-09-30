@@ -216,7 +216,7 @@ public class BattlePage : PageBase
             int level = Tool.SaveManager == null ? 1
                 : info.camp == EntityCamp.Attack ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedAttackIndex)
                 : Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex);
-            bar.m_label_level.text = $"Lv{level}";
+            bar.m_label_level.text = level.ToString(); // 只显示等级数字，不带 "Lv" 前缀
         }
     }
 
