@@ -67,6 +67,8 @@ public class BattlePage : PageBase
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
+        // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
+        Tool.ClientLogicManager?.HomePreview?.Hide();
         ResetBeacons();
         ClearEntityBars();
         ClearMinimap();

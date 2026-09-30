@@ -18,7 +18,7 @@ public class ClientLogicManager : MonoBehaviour
     /// <summary>战斗时间（Sub/ClientBattleTimeManager）：昼夜快照与推演、分数快照。</summary>
     public ClientBattleTimeManager BattleTime { get; private set; }
 
-    /// <summary>初始界面预览（Sub/HomePreviewManager）：选中角色复制到预览锚点 + 相机机位。</summary>
+    /// <summary>首页/大厅的选角预览（Sub/HomePreviewManager）：选中角色复制到预览锚点 + 相机机位（随页面显隐）。</summary>
     public HomePreviewManager HomePreview { get; private set; }
 
     private ClientSubManager[] subManagers;

@@ -1,9 +1,10 @@
 using UnityEngine;
 
 /// <summary>
-/// 初始界面角色预览（Sub/HomePreview）：把当前选中的进攻/防守角色图形复制到 LandscapeSpawns
-/// 的预览锚点展示，并把主相机摆到预览机位（CameraController 在 lookTarget 为空时不驱动相机，摆一次即保持）。
-/// 离开首页时由 HomePage.OnDisable 调 Hide 清理模型。
+/// 初始界面与组队大厅的角色预览（Sub/HomePreview）：把当前选中的进攻/防守角色图形复制到 LandscapeSpawns
+/// 的预览锚点展示，并把主相机摆到预览机位（CameraController 在 lookTarget 为空/已销毁时不驱动相机，摆一次即保持）。
+/// 生命周期随页面：HomePage / LobbyPage 的 Enter 调 Refresh 重建，BattlePage 的 Enter 调 Hide 清理
+/// （预览模型不带父物体、直接挂在锚点世界坐标，不清会残留在地图上）。
 /// </summary>
 public class HomePreviewManager : ClientSubManager
 {
@@ -22,7 +23,7 @@ public class HomePreviewManager : ClientSubManager
         defenserView = Swap(defenserView, TryGetGraphic(EntityType.Defense(defenseIndex)), spawns.defenserPreviewPos);
     }
 
-    /// <summary>销毁预览模型（相机留在原地，战斗开始后由 CameraController 接管）。</summary>
+    /// <summary>销毁预览模型（相机留在原地，随后由 CameraController 接管或由下次 Refresh 重新摆位）。</summary>
     public void Hide()
     {
         if (attackerView != null) Object.Destroy(attackerView);
