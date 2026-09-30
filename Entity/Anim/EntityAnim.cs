@@ -151,7 +151,16 @@ public class EntityAnim : MonoBehaviour
         normalizedTime = 0f;
         if (mainAnimator != null && mainAnimator.layerCount > 0)
         {
+            // 过渡期间 GetCurrentAnimatorStateInfo 仍是旧状态（OnStateEnter 在过渡开始时就把 currentAnimId
+            // 更新成了新状态，hash 与进度会错位——进度会变成旧循环片段的任意值）。
+            // 此时若 next 就是 currentAnimId 指向的新状态，进度必须从 next 读，保证 hash 与进度配对一致；
+            // next 不是它（状态又被打断切换）或已过渡完毕，则照旧读 current。
             var st = mainAnimator.GetCurrentAnimatorStateInfo(0);
+            if (mainAnimator.IsInTransition(0) &&
+                mainAnimator.GetNextAnimatorStateInfo(0).fullPathHash == currentAnimId)
+            {
+                st = mainAnimator.GetNextAnimatorStateInfo(0);
+            }
             normalizedTime = st.length > 0f ? Mathf.Repeat(st.normalizedTime, 1f) : 0f;
         }
     }
