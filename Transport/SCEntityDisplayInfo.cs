@@ -4,9 +4,11 @@ using UnityEngine;
 namespace Ros.Transport
 {
     /// <summary>
-    /// 服务器 → 客户端：实体表现同步信息（高频）。
+    /// 服务器 → 客户端：实体表现同步信息（高频姿态包）。
     /// 客户端不持有完整实体逻辑，仅根据该摘要更新表现。
-    /// 包含：位姿 / 血量 / 动画状态与播放进度 + Animator 参数包（方案 B）/ Buff 列表 / 技能槽列表。
+    /// 包含：位姿 / 速度 / 角速度 / 血量 / Buff 列表 / 技能槽列表。**不含任何动画信息**——
+    /// 动画（状态切换、参数、播放速度）全部走事件通道（SCEntityAnimInfo，见《代码架构说明》动画同步节），
+    /// 否则这个 0.02s 的包会持续替事件通道做切换，把切换时机拖到轮询粒度上。
     /// 守护点等所有实体共用本结构，不再有独立 DTO。
     /// </summary>
     public class SCEntityDisplayInfo
@@ -25,18 +27,12 @@ namespace Ros.Transport
         public Vector3 velocity;
         /// <summary>绕 Y 轴角速度（度/秒，客户端推演朝向用；静止为零）。</summary>
         public float yawSpeed;
-        /// <summary>是否包含运行时数据（血量/Buff/技能槽）：高频同步(0.02s)=false 只含位姿动画，完整同步(0.2s)=true；客户端 false 时保留上一次运行时数据。</summary>
+        /// <summary>是否包含运行时数据（血量/Buff/技能槽）：高频同步(0.02s)=false 只含位姿，完整同步(0.2s)=true；客户端 false 时保留上一次运行时数据。</summary>
         public bool includeRuntime;
         /// <summary>当前生命（守护点 HUD 等直接读取；&lt;=0 视为已摧毁/死亡）。</summary>
         public int health;
         /// <summary>最大生命。</summary>
         public int maxHealth;
-        /// <summary>动画片段标识 = 状态的 fullPathHash（两端一致，客户端据此定位并播放）。</summary>
-        public int animId;
-        /// <summary>动画播放进度（归一化 0~1）。</summary>
-        public float animFrame;
-        /// <summary>Animator 参数包（持久参数全量 + 本帧 trigger 标志；客户端 ApplyParamPack 还原后由 Controller 自动转换）。</summary>
-        public AnimParamPack animParams;
         /// <summary>手上临时握着的武器类别（WeaponCategory；0 = 无）。仅近战类技能期间有值，攻击动作结束清空。</summary>
         public int weaponCategory;
         /// <summary>手上临时握着的武器在该类别列表中的下标（-1 = 无）。</summary>
@@ -92,11 +88,8 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.animId, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.weaponCategory, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.weaponIndex, result, ref indexStart)) return false;
-            if (!FloatSerializer.Serialize(value.animFrame, result, ref indexStart)) return false;
-            if (!AnimParamPackSerializer.Serialize(value.animParams, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
@@ -146,11 +139,8 @@ namespace Ros.Transport
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 weaponCategory = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 weaponIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                animFrame = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                animParams = AnimParamPackSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };

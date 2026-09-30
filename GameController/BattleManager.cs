@@ -788,6 +788,8 @@ public partial class BattleManager : EnsBehaviour
     /// <summary>
     /// 按视野把实体表现同步给各客户端（策划案第十五章）：
     /// 己方单位恒同步；敌方 / 中立单位仅当在观察者可见距离内才同步；差集（离开视野）主动下发移除。
+    /// 姿态信息（位置/朝向/速度/角速度，**不含任何动画信息**）按节流周期发送；
+    /// 动画**只有事件通道**：实体动画脏（状态或播放速度变化）时对可见客户端补发一条动画事件（见 SendEntityAnim）。
     /// </summary>
     private void SyncEntitiesToClients(bool includeRuntime)
     {
@@ -799,6 +801,8 @@ public partial class BattleManager : EnsBehaviour
                 visibleByClient.Remove(clientId); // 复活等待中无观察者：实体已由 DestroyEntity 通知移除
                 continue;
             }
+            // 上一轮可见集合：用于判断"刚进入视野"，新实体必须整包下发（客户端要靠持久参数才能摆对状态）
+            visibleByClient.TryGetValue(clientId, out var prevSeen);
             BeginClientVisibility(clientId);
             foreach (var entity in EntityContainer.Entities)
             {
@@ -806,13 +810,40 @@ public partial class BattleManager : EnsBehaviour
                 if (!CanSeeModel(viewer, entity)) continue;
                 MarkClientVisible(entity.id);
                 var info = entity.GetDisplayInfo();
-                info.includeRuntime = includeRuntime;
+                bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
+                info.includeRuntime = includeRuntime || firstSeen;
                 info.ownerClientId = EntityOwnerClient.TryGetValue(entity.id, out var oc) ? oc : (short)-1;
                 FillDisplayVelocity(entity, info);
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
+
+                if (entity.anim != null && (entity.anim.AnimSyncDirty || firstSeen)) SendEntityAnim(clientId, entity);
             }
             EndClientVisibility(clientId);
         }
+
+        // 脏标记是实体级的（与客户端无关），全部客户端处理完再统一清除
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity?.anim != null) entity.anim.ClearAnimSyncDirty();
+        }
+    }
+
+    /// <summary>
+    /// 下发一条动画事件（状态 hash + 进度 + 持久参数 + 播放速度/暂停；trigger 不参与传输）。
+    /// 触发时机：实体动画脏（状态或播放速度变化），以及**该客户端首次看到该实体**（客户端需要初始状态与参数才能摆对）。
+    /// </summary>
+    private void SendEntityAnim(short clientId, EntityData entity)
+    {
+        entity.anim.GetDisplayAnim(out int animId, out float frame);
+        Tool.NetworkManager.SendEntityAnim(clientId, new SCEntityAnimInfo()
+        {
+            entityId = entity.id,
+            animId = animId,
+            animFrame = frame,
+            animParams = entity.anim.GetParamPack(),
+            moveSpeedScale = entity.anim.MoveSpeedScale,
+            paused = entity.anim.Paused,
+        });
     }
 
     /// <summary>填充表现推演数据：真实速度（刚体实际速度的水平分量）与绕 Y 角速度（客户端包间推演用）。</summary>

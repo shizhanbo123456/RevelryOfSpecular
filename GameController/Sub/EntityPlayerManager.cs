@@ -23,6 +23,16 @@ public class EntityPlayerManager : ClientSubManager
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
+        /// <summary>待打印的强制切换日志（Play 要到下一次 Animator 更新才生效，片段名与落地进度下一帧才读得到）。</summary>
+        public string pendingForcedSwitch;
+
+        /// <summary>待执行的片段切换（0 = 无）：收到事件只写参数，切换延后一帧再判断是否需要硬切。</summary>
+        public int pendingPlayHash;
+        /// <summary>该次切换要求的归一化进度。</summary>
+        public float pendingPlayFrame;
+        /// <summary>收到请求时的帧号（下一帧才执行，先给状态机一帧时间按新参数自行转换）。</summary>
+        public int pendingPlayTick;
+
         /// <summary>手上临时握着的武器（服务器下发；近战类技能期间才有，用于变化检测）。</summary>
         public WeaponRef heldWeapon;
         /// <summary>常驻悬浮武器实例（按槽位下标；null = 该槽无武器）。</summary>
@@ -79,11 +89,70 @@ public class EntityPlayerManager : ClientSubManager
             {
                 transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y + yawSpeed * Time.deltaTime, 0f);
             }
+
+            // 强制切换日志（延后一帧：Play 生效后片段名与落地进度才读得到）
+            if (pendingForcedSwitch != null)
+            {
+                string actual = animator != null
+                    ? $"片段={ResolvePlayingClips()} 进度={animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1f:F2}"
+                    : "片段=?";
+                Debug.LogWarning($"{pendingForcedSwitch} → {actual}");
+                pendingForcedSwitch = null;
+            }
+
+            // 片段切换**延后一帧**执行：参数已在收到事件时写入，先让状态机用它自己的转换走一帧；
+            // 若下一帧本地已经（或正在）切到目标状态，就不硬切——让控制器配的过渡时长生效。
+            if (pendingPlayHash != 0 && animator != null && Time.frameCount > pendingPlayTick)
+            {
+                int target = pendingPlayHash;
+                float progress = pendingPlayFrame;
+                pendingPlayHash = 0;
+                animHash = target; // 该目标已被"记账"，避免重复请求
+                if (!IsHeadingTo(target))
+                {
+                    animator.Play(target, 0, progress);
+                    if (logForcedAnimSwitch)
+                    {
+                        pendingForcedSwitch = $"[动画强制切换] 实体{id}({type}) hash={target} 要求进度={progress:F2}";
+                    }
+                }
+            }
+        }
+
+        /// <summary>本地是否已经（或正在）处于目标状态：已到位或正在向它过渡时不必硬切。</summary>
+        private bool IsHeadingTo(int targetHash)
+        {
+            if (animator == null) return false;
+            if (animator.GetCurrentAnimatorStateInfo(0).fullPathHash == targetHash) return true;
+            return animator.IsInTransition(0)
+                && animator.GetNextAnimatorStateInfo(0).fullPathHash == targetHash;
+        }
+
+        /// <summary>当前正在播放的片段名（多个=混合中；拿不到返回 "?"）。</summary>
+        private string ResolvePlayingClips()
+        {
+            if (animator == null) return "?";
+            var infos = animator.GetCurrentAnimatorClipInfo(0);
+            if (infos == null || infos.Length == 0) return "?";
+            var sb = new System.Text.StringBuilder();
+            foreach (var ci in infos)
+            {
+                if (ci.clip == null) continue;
+                if (sb.Length > 0) sb.Append('+');
+                sb.Append(ci.clip.name);
+            }
+            return sb.Length > 0 ? sb.ToString() : "?";
         }
     }
 
     /// <summary>实体 id → 表现视图。</summary>
     private readonly Dictionary<ushort, ClientEntityView> views = new();
+
+    /// <summary>视图尚未创建时先到的动画事件（可靠通道可能快于姿态包），建好视图后补应用。</summary>
+    private readonly Dictionary<ushort, SCEntityAnimInfo> pendingAnim = new();
+
+    /// <summary>动画调试日志开关（强制切换 + 本地状态变化/自转观察；确认后置 false）。静态：嵌套的 ClientEntityView 也要用。</summary>
+    private static bool logForcedAnimSwitch = true;
 
     /// <summary>表现超时移除时长（秒）：超过该时长未收到同步即移除，兜底防漏删。</summary>
     private const float ViewTimeoutSeconds = 3f;
@@ -134,6 +203,13 @@ public class EntityPlayerManager : ClientSubManager
         view.yawSpeed = info.yawSpeed;
         ApplyDisplay(view, info);
 
+        // 先到的动画事件（可靠通道可能快于姿态包）：视图建好后补应用，避免初始参数丢失
+        if (pendingAnim.TryGetValue(info.entityId, out var pending))
+        {
+            pendingAnim.Remove(info.entityId);
+            ApplyAnim(view, pending);
+        }
+
         // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
         if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
@@ -144,9 +220,45 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
+    /// <summary>
+    /// 接收动画事件（服务器在状态或播放速度变化时下发，低频；首次可见时也会补发一次）。
+    /// 顺序：还原持久参数 → 镜像播放速度（含强控暂停）→ 状态 hash 变化时按服务器进度切换。
+    /// </summary>
+    public void OnEntityAnim(SCEntityAnimInfo info)
+    {
+        if (info == null) return;
+        if (!views.TryGetValue(info.entityId, out var view) || view == null)
+        {
+            pendingAnim[info.entityId] = info; // 视图尚未创建：暂存，等首个姿态包建好视图后补应用
+            return;
+        }
+        view.lastSeenTime = Time.time;
+        ApplyAnim(view, info);
+    }
+
+    /// <summary>
+    /// 应用一条动画事件：**立即**还原参数、镜像播放速度（含强控暂停）；状态 hash 变化时只登记待切换，
+    /// 由 <see cref="ClientEntityView.Update"/> 在下一帧决定"状态机已自行切过去（不硬切）"还是"强制 Play"。
+    /// </summary>
+    private void ApplyAnim(ClientEntityView view, SCEntityAnimInfo info)
+    {
+        view.anim?.ApplyParamPack(info.animParams);
+        view.anim?.SetMoveSpeedScale(info.moveSpeedScale);
+        view.anim?.SetPaused(info.paused); // 强控期间置 0：与服务器一致地冻结动画
+
+        // -1 = "未进入任何状态"哨兵；fullPathHash 是路径哈希、可能为负，不能用 > 0 判有效
+        if (view.animator != null && info.animId != -1 && info.animId != view.animHash)
+        {
+            view.pendingPlayHash = info.animId;
+            view.pendingPlayFrame = info.animFrame;
+            view.pendingPlayTick = Time.frameCount; // 下一帧才执行
+        }
+    }
+
     /// <summary>移除实体表现。</summary>
     public void OnRemoveEntity(int entityId)
     {
+        pendingAnim.Remove((ushort)entityId);
         if (views.TryGetValue((ushort)entityId, out var view))
         {
             views.Remove((ushort)entityId);
@@ -181,6 +293,7 @@ public class EntityPlayerManager : ClientSubManager
             if (view != null) UnityEngine.Object.Destroy(view.gameObject);
         }
         views.Clear();
+        pendingAnim.Clear();
     }
 
     /// <summary>按实体 id 获取头顶锚点世界坐标（模型最高点，懒解析缓存；无烘焙信息回退 2m）。</summary>
@@ -344,29 +457,8 @@ public class EntityPlayerManager : ClientSubManager
         ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 手上武器（近战类）按服务器下发
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算
 
-        // 方案 B：先还原 Animator 参数（持久参数 + 本帧 trigger），客户端 Controller
-        // 按参数条件自动转换状态；之后的 Play(hash) 仅作服务器权威对齐（同片段不重播）
-        view.anim?.ApplyParamPack(info.animParams);
-
-        // 按状态 hash 定位并播放动画片段，进度取自服务器；同片段不重播，让本地动画继续。
-        // 有效性判断用 -1（EntityAnim.currentAnimId 的"未进入任何状态"哨兵）：
-        // fullPathHash 是路径哈希，可能为负数，不能用 > 0 判有效（否则负 hash 的状态永远不播）
-        if (view.animator != null && info.animId != -1 && info.animId != view.animHash)
-        {
-            view.animHash = info.animId;
-            view.animator.Play(info.animId, 0, info.animFrame);
-        }
-        // 动画移速载体（加速/减速/泥沼 = 移动状态播放速度）：完整同步时按 Buff 重算。
-        // 不判 buffs.Count > 0：移速类 Buff 全部消失时列表为空，跳过重算会卡在上一次倍率不回 1
-        if (info.includeRuntime && view.anim != null)
-        {
-            var types = new List<int>(info.buffs.Count);
-            foreach (var b in info.buffs)
-            {
-                if (b != null) types.Add(b.type);
-            }
-            view.anim.SetMoveSpeedScale(EntityEffectController.ComputeMoveAnimSpeedMultiplier(types));
-        }
+        // 动画不在本（高频）包里：状态切换、参数、播放速度一律由动画事件驱动（见 OnEntityAnim）。
+        // 这里的代价要知道：客户端一旦自己转离了服务器的状态，只能等服务器下一次状态变化才被纠正。
         // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
         if (info.includeRuntime) ApplyBuffVfx(view, info.buffs);
 

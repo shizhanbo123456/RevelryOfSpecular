@@ -546,13 +546,6 @@ public abstract class EntityData : MonoBehaviour
             weaponCategory = (int)heldWeapon.category,
             weaponIndex = heldWeapon.index,
         };
-        if (anim != null)
-        {
-            anim.GetDisplayAnim(out var animId, out var frame);
-            info.animId = animId;
-            info.animFrame = frame;
-            info.animParams = anim.GetParamPack(); // 方案 B：Animator 参数随包同步（含本帧 trigger）
-        }
         effectController?.FillDisplayInfo(info);
         skillController?.FillDisplayInfo(info);
         return info;

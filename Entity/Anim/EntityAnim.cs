@@ -10,7 +10,6 @@ public class EntityAnim : MonoBehaviour
     private const string key_moving = "Moving";
     private const string key_inAir = "InAir";
     private const string key_slide = "Slide";
-    private const string key_slideEnd = "SlideEnd";
     private const string key_doAttack = "Attack";
     private const string key_attackId = "AttackId";
     private const string key_hit = "Hit";
@@ -85,9 +84,8 @@ public class EntityAnim : MonoBehaviour
         this.data = data;
         this.onAttack = onAttack;
 
-        // 参数包复位：重复 Init（如视图重建）时清掉上一轮残留的持久参数与触发戳
+        // 参数包复位：重复 Init（如视图重建）时清掉上一轮残留的持久参数
         paramPack = AnimParamPack.Default;
-        System.Array.Clear(triggerSetFrames, 0, triggerSetFrames.Length);
 
         animData = GetComponent<EntityAnimData>();
         if (animData == null) Debug.LogError($"{gameObject.name}未挂载animData");
@@ -116,17 +114,32 @@ public class EntityAnim : MonoBehaviour
             var behaviours = animator.GetBehaviours<AnimEvent>();
             foreach (var behaviour in behaviours) behaviour.Init(this, data,i==0);
         }
+        // 把复位后的参数推给状态机：保证"paramPack 与 Animator 参数一致"这个前提（值比较的脏标记依赖它）
+        PushParamsToAnimators();
+    }
+
+    /// <summary>把当前参数包整体推给所有 Animator（Init 后调用，不置脏）。</summary>
+    private void PushParamsToAnimators()
+    {
+        foreach (var animator in animators)
+        {
+            animator.SetInteger(key_characterType, paramPack.characterType);
+            animator.SetInteger(key_attackId, paramPack.attackId);
+            animator.SetBool(key_inAir, paramPack.inAir);
+            animator.SetBool(key_moving, paramPack.moving);
+            animator.SetBool(key_slide, paramPack.slide);
+        }
     }
     public void SetType(CharcterAnimType type)
     {
-        paramPack.characterType = (int)type;
-        SetIntAll(key_characterType, (int)type);
+        SetIntParam(ref paramPack.characterType, (int)type, key_characterType);
     }
 
     public void NotifyStateEnter(int animId, AnimState state)
     {
         currentAnimId = animId;
         CurrentState = state;
+        MarkAnimSyncDirty(); // 状态变化 = 动画事件的唯一触发源（trigger 不参与同步）
     }
 
     public void GetDisplayAnim(out int animId, out float normalizedTime)
@@ -161,16 +174,26 @@ public class EntityAnim : MonoBehaviour
     #region//速度控制
     private float speed=1;
     private bool paused=false;
+
+    /// <summary>当前动画播放倍率（移速类 Buff 的载体；客户端由其镜像 animator.speed）。</summary>
+    public float MoveSpeedScale => speed;
+    /// <summary>是否被强控暂停（强控期间动画速度置 0，见 EntityData.SetAnimPaused）。</summary>
+    public bool Paused => paused;
+
     public void SetPaused(bool paused)
     {
+        if (this.paused == paused) return;
         this.paused = paused;
         UpdateSpeed();
+        MarkAnimSyncDirty(); // 播放速度变化也要同步（否则被强控时客户端动画照播）
     }
 
     public void SetMoveSpeedScale(float scale)
     {
+        if (Mathf.Approximately(speed, scale)) return;
         speed = scale;
         UpdateSpeed();
+        MarkAnimSyncDirty();
     }
     private void UpdateSpeed()
     {
@@ -203,60 +226,53 @@ public class EntityAnim : MonoBehaviour
     }
     #endregion
 
-    #region//参数打包（方案 B：参数随表现摘要同步）
+    #region//参数打包（持久参数随动画事件同步；trigger 不同步）
     private AnimParamPack paramPack = AnimParamPack.Default; // 持久参数（int/bool），所有设置必须经过这里
-    private enum TrigIndex { Spawn = 0, Jump, SlideEnd, Attack, Hit, Die, Count }
-    private static readonly string[] triggerKeys = { key_spawn, key_jump, key_slideEnd, key_doAttack, key_hit, key_die };
-    private readonly int[] triggerSetFrames = new int[(int)TrigIndex.Count]; // 各 trigger 最后被设置的帧，用于生成"本帧触发"标志
 
     /// <summary>
-    /// 取当前参数包：持久参数 + 本帧内被设置的 trigger。
-    /// trigger 按 Time.frameCount 打戳，无需手动清除——下一帧自动失效；
-    /// 客户端若错过该帧包，由后续同步的状态 hash（animId）兜底对齐。
+    /// 动画同步脏标记（服务器）：状态进入、播放倍率或暂停变化时置位，
+    /// 由 BattleManager 在同步 pass 中对可见该实体的客户端补发一条动画事件后清除。客户端不使用本标记。
     /// </summary>
+    public bool AnimSyncDirty { get; private set; }
+    public void MarkAnimSyncDirty() => AnimSyncDirty = true;
+    public void ClearAnimSyncDirty() => AnimSyncDirty = false;
+
+    /// <summary>取当前持久参数包（trigger 不参与同步，故只含持久参数）。</summary>
     public AnimParamPack GetParamPack()
     {
-        var pack = paramPack;
-        int frame = Time.frameCount;
-        pack.trigSpawn = triggerSetFrames[(int)TrigIndex.Spawn] == frame;
-        pack.trigJump = triggerSetFrames[(int)TrigIndex.Jump] == frame;
-        pack.trigSlideEnd = triggerSetFrames[(int)TrigIndex.SlideEnd] == frame;
-        pack.trigAttack = triggerSetFrames[(int)TrigIndex.Attack] == frame;
-        pack.trigHit = triggerSetFrames[(int)TrigIndex.Hit] == frame;
-        pack.trigDie = triggerSetFrames[(int)TrigIndex.Die] == frame;
-        return pack;
+        return paramPack;
     }
 
     /// <summary>
-    /// 应用参数包（客户端）：持久参数逐个写入，trigger 原样 SetTrigger，
-    /// 由客户端 Controller 按条件自动转换到下一状态；之后的 Play(hash) 仅作服务器权威对齐。
+    /// 应用参数包（客户端）：持久参数逐个写入，由客户端 Controller 按条件自行转换；
+    /// 状态本身由动画事件 / 姿态包里的状态 hash 对齐（trigger 不再传输）。
     /// </summary>
     public void ApplyParamPack(in AnimParamPack pack)
     {
         if (animators == null || animators.Count == 0) return;
-        // 记录持久值，保证 GetParamPack 在客户端也能取到当前参数
-        paramPack = new AnimParamPack()
-        {
-            characterType = pack.characterType,
-            attackId = pack.attackId,
-            inAir = pack.inAir,
-            moving = pack.moving,
-            slide = pack.slide,
-        };
-        foreach (var animator in animators)
-        {
-            animator.SetInteger(key_characterType, pack.characterType);
-            animator.SetInteger(key_attackId, pack.attackId);
-            animator.SetBool(key_inAir, pack.inAir);
-            animator.SetBool(key_moving, pack.moving);
-            animator.SetBool(key_slide, pack.slide);
-            if (pack.trigSpawn) animator.SetTrigger(key_spawn);
-            if (pack.trigJump) animator.SetTrigger(key_jump);
-            if (pack.trigSlideEnd) animator.SetTrigger(key_slideEnd);
-            if (pack.trigAttack) animator.SetTrigger(key_doAttack);
-            if (pack.trigHit) animator.SetTrigger(key_hit);
-            if (pack.trigDie) animator.SetTrigger(key_die);
-        }
+        paramPack = pack; // 记录持久值（客户端：GetParamPack 也取得到）；不置脏——客户端不做同步
+        PushParamsToAnimators();
+    }
+
+    /// <summary>
+    /// 持久参数的**唯一写入入口（int）**：与 paramPack 里的当前值比较，值真的变化才写状态机并置动画脏标记。
+    /// 脏标记即"参数变化也要同步"的来源——参数陈旧会让客户端状态机按错的参数自行转换（见《代码架构说明》动画同步节）。
+    /// </summary>
+    private void SetIntParam(ref int field, int value, string key)
+    {
+        if (field == value) return;
+        field = value;
+        SetIntAll(key, value);
+        MarkAnimSyncDirty();
+    }
+
+    /// <summary>持久参数的**唯一写入入口（bool）**；语义同 <see cref="SetIntParam"/>（InAir 每帧都会被写，靠值比较避免刷屏）。</summary>
+    private void SetBoolParam(ref bool field, bool value, string key)
+    {
+        if (field == value) return;
+        field = value;
+        SetBoolAll(key, value);
+        MarkAnimSyncDirty();
     }
 
     private void SetIntAll(string key, int value)
@@ -271,58 +287,52 @@ public class EntityAnim : MonoBehaviour
             animator.SetBool(key, value);
     }
 
-    /// <summary>设置 trigger：写本帧触发戳（供 GetParamPack 采集）+ 推给所有 Animator。</summary>
-    private void FireTriggerAll(TrigIndex index)
+    /// <summary>推 trigger 给所有 Animator（本地状态机用；trigger 不写任何同步数据）。</summary>
+    private void SetTriggerAll(string key)
     {
-        triggerSetFrames[(int)index] = Time.frameCount;
         foreach (var animator in animators)
-            animator.SetTrigger(triggerKeys[(int)index]);
+            animator.SetTrigger(key);
     }
     #endregion
 
     #region//动画控制
     public void DoSpawn()
     {
-        FireTriggerAll(TrigIndex.Spawn);
+        SetTriggerAll(key_spawn);
     }
     public void DoJump()
     {
-        FireTriggerAll(TrigIndex.Jump);
+        SetTriggerAll(key_jump);
     }
     public void InAir(bool inAir)
     {
-        paramPack.inAir = inAir;
-        SetBoolAll(key_inAir, inAir);
+        SetBoolParam(ref paramPack.inAir, inAir, key_inAir); // 每帧都会被调用，值未变不置脏
     }
     public void Move(bool moving)
     {
-        paramPack.moving = moving;
-        SetBoolAll(key_moving, moving);
+        SetBoolParam(ref paramPack.moving, moving, key_moving);
     }
     public void DoSlide()
     {
-        paramPack.slide = true;
-        SetBoolAll(key_slide, true);
+        SetBoolParam(ref paramPack.slide, true, key_slide);
     }
+    /// <summary>结束滑铲：Slide 置回 false，退出滑铲状态由控制器按该参数判断。</summary>
     public void EndSlide()
     {
-        paramPack.slide = false;
-        SetBoolAll(key_slide, false);
-        FireTriggerAll(TrigIndex.SlideEnd);
+        SetBoolParam(ref paramPack.slide, false, key_slide);
     }
     public void DoAttack(AttackType attack)
     {
-        paramPack.attackId = (int)attack;
-        SetIntAll(key_attackId, (int)attack);
-        FireTriggerAll(TrigIndex.Attack);
+        SetIntParam(ref paramPack.attackId, (int)attack, key_attackId);
+        SetTriggerAll(key_doAttack);
     }
     public void DoHit()
     {
-        FireTriggerAll(TrigIndex.Hit);
+        SetTriggerAll(key_hit);
     }
     public void DoDie()
     {
-        FireTriggerAll(TrigIndex.Die);
+        SetTriggerAll(key_die);
     }
     #endregion
 }

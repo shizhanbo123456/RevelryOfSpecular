@@ -290,25 +290,6 @@ public class EntityEffectController
         if (HasEffect(EffectType.DeathStroll)) m *= Config.death_stroll_speed_up;
         return m;
     }
-
-    /// <summary>
-    /// 客户端：按同步来的 Buff 类型列表计算动画移速倍率（客户端无控制器，直接按类型换算）。
-    /// </summary>
-    public static float ComputeMoveAnimSpeedMultiplier(IEnumerable<int> buffTypes)
-    {
-        float m = 1f;
-        foreach (var t in buffTypes)
-        {
-            switch ((EffectType)t)
-            {
-                case EffectType.AnimSpeedUp: m *= Config.anim_move_speed_up; break;
-                case EffectType.AnimSlowDown: m *= Config.anim_move_speed_down; break;
-                case EffectType.Mire: m *= Config.anim_move_speed_mire; break;
-                case EffectType.DeathStroll: m *= Config.death_stroll_speed_up; break;
-            }
-        }
-        return m;
-    }
     #endregion
 
     #region//每帧推进（只做两件事：到期移除、DoT/光环 tick）

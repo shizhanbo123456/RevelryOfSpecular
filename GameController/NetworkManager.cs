@@ -221,6 +221,16 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Unreliable, info);
     }
 
+    /// <summary>
+    /// 发送动画事件（定向，可靠）：仅在该实体动画的状态或播放速度变化时调用，低频。
+    /// 协议见《代码架构说明》动画同步节。
+    /// </summary>
+    public void SendEntityAnim(short clientId, SCEntityAnimInfo info)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
     /// <summary>移除实体（定向）。</summary>
     public void SendRemoveEntity(short clientId, int entityId)
     {
@@ -353,6 +363,14 @@ public partial class NetworkManager : EnsBehaviour
         var logic = Tool.ClientLogicManager;
         if (logic != null) logic.EntityPlayers.OnEntityDisplay(info);
         else EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+    }
+
+    /// <summary>客户端：接收动画事件（状态变化 / 播放速度变化）。</summary>
+    [Rpc]
+    private void ClientReceiveEntityAnimLocal(SCEntityAnimInfo info)
+    {
+        if (info == null) return;
+        Tool.ClientLogicManager?.EntityPlayers.OnEntityAnim(info);
     }
 
     /// <summary>客户端：移除实体。</summary>

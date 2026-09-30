@@ -1,9 +1,8 @@
 /// <summary>
-/// EntityAnim 的 Animator 参数打包（方案 B：参数随表现摘要逐包同步）。
-/// 持久参数：CharacterType / AttackId / InAir / Moving / Slide，随包全量下发；
-/// Trigger（一次性）：仅"服务器本帧内被设置"时为 true（EntityAnim 按 Time.frameCount 打戳），
-/// 客户端 ApplyParamPack 原样 SetTrigger 交由 Controller 自动转换；
-/// 若客户端错过该帧包，由后续同步的状态 hash（animId）兜底对齐。
+/// EntityAnim 的 Animator 持久参数打包（CharacterType / AttackId / InAir / Moving / Slide）。
+/// **trigger 不参与网络传输**：trigger 的作用是驱动状态切换，而状态切换本身已由
+/// "状态 hash 变化 → 动画事件" 同步（见《代码架构说明》动画同步节），再单独传 trigger 只会重复且时序不可靠。
+/// 因此本包只在**动画事件**（SCEntityAnimInfo）里下发，客户端 ApplyParamPack 还原参数供自身 Controller 使用。
 /// </summary>
 public struct AnimParamPack
 {
@@ -13,17 +12,10 @@ public struct AnimParamPack
     public bool moving;         // Moving
     public bool slide;          // Slide
 
-    public bool trigSpawn;      // Spawn trigger（本帧被设置）
-    public bool trigJump;       // Jump trigger
-    public bool trigSlideEnd;   // SlideEnd trigger
-    public bool trigAttack;     // Attack trigger
-    public bool trigHit;        // Hit trigger
-    public bool trigDie;        // Died trigger
-
     public static AnimParamPack Default => default;
 }
 
-/// <summary>AnimParamPack 网络序列化器（trigger 压缩为一个字节的位标志）。</summary>
+/// <summary>AnimParamPack 网络序列化器。</summary>
 public struct AnimParamPackSerializer
 {
     public static bool Serialize(AnimParamPack value, byte[] result, ref int indexStart)
@@ -33,20 +25,12 @@ public struct AnimParamPackSerializer
         if (!BoolSerializer.Serialize(value.inAir, result, ref indexStart)) return false;
         if (!BoolSerializer.Serialize(value.moving, result, ref indexStart)) return false;
         if (!BoolSerializer.Serialize(value.slide, result, ref indexStart)) return false;
-
-        byte trigBits = (byte)(
-            (value.trigSpawn ? 1 : 0) |
-            (value.trigJump ? 2 : 0) |
-            (value.trigSlideEnd ? 4 : 0) |
-            (value.trigAttack ? 8 : 0) |
-            (value.trigHit ? 16 : 0) |
-            (value.trigDie ? 32 : 0));
-        return ByteSerializer.Serialize(trigBits, result, ref indexStart);
+        return true;
     }
 
     public static AnimParamPack Deserialize(byte[] data, ref int indexStart, int invalidIndex)
     {
-        var pack = new AnimParamPack()
+        return new AnimParamPack()
         {
             characterType = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             attackId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -54,13 +38,5 @@ public struct AnimParamPackSerializer
             moving = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
             slide = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
         };
-        byte trigBits = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex);
-        pack.trigSpawn = (trigBits & 1) != 0;
-        pack.trigJump = (trigBits & 2) != 0;
-        pack.trigSlideEnd = (trigBits & 4) != 0;
-        pack.trigAttack = (trigBits & 8) != 0;
-        pack.trigHit = (trigBits & 16) != 0;
-        pack.trigDie = (trigBits & 32) != 0;
-        return pack;
     }
 }
