@@ -6,7 +6,8 @@ using FairyGUI;
 using UnityEngine;
 
 /// <summary>
-/// 战斗 HUD 逻辑（FGUI）：顶栏时间/昼夜图标、本地玩家大血条（左上角固定）、技能栏（CD=图标填充比例、库存、键位、经验星星）、
+/// 战斗 HUD 逻辑（FGUI）：顶栏时间/昼夜图标、本地玩家大血条（左上角固定）、
+/// 技能栏（格数 = 角色技能槽位数、空槽用 m_empty 控制器、边框 m_randomOutline 进战斗随机一次；已入槽的显示图标/CD 填充比例/库存/经验星星/键位）、
 /// 守护点血量面板 ×4（中心 + 外围 3）、小地图（10 档位点位）、事件列表、伤害飘字、
 /// 名牌（UI_PlayerName + UI_EntityBar 屏幕跟随）、复活进度、结算面板（显示 SettleAutoClose 秒后自动关闭回大厅）。
 /// </summary>
@@ -19,6 +20,9 @@ public class BattlePage : PageBase
     private float settleCloseAt = -1f;
 
     private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
+    private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
+    private int skillSlotCount;                           // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
+    private bool skillSlotsBuilt;                         // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
     private readonly Dictionary<ushort, UI_PlayerName> nameLabels = new();
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, int> barOwners = new();
@@ -37,7 +41,7 @@ public class BattlePage : PageBase
     private const float DetailItemInterval = 0.3f; // 相邻两条细节的间隔
     private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
     private const float DetailFadeDuration = 0.5f; // 全部细节同步淡出时长
-    private static readonly string[] SlotKeys = { "U", "I", "O", "L", "H" };
+    private const int SkillOutlineVariants = 5;    // UI_SkillListItem.m_randomOutline 的档位数（0~4）
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
@@ -85,6 +89,7 @@ public class BattlePage : PageBase
         ClearEntityBars();
         ClearMinimap();
         ClearEventItems();
+        BuildSkillSlots(NetworkManager.battleInfo != null ? NetworkManager.battleInfo.camp : EntityCamp.None);
         HideSettlement();
         RefreshTimeIcon();
     }
@@ -152,18 +157,86 @@ public class BattlePage : PageBase
     {
         var list = panel.m_skillList?.m_content;
         if (list == null) return;
-        // GList 渲染器模式：代码不手动创建格子，只驱动数量与内容
         skillSummary.Clear();
         if (info.skills != null) skillSummary.AddRange(info.skills);
-        list.itemRenderer = RenderSkillSlot;
-        list.numItems = skillSummary.Count;
+        if (!skillSlotsBuilt) BuildSkillSlots(info.camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
+        // 数量与边框样式已定，这里重新设置 numItems 只是按新数据原地重渲染（FGUI 规定的刷新方式，不改变条目数）
+        list.numItems = skillSlotCount;
     }
 
+    /// <summary>进入战斗时一次性搭好技能栏骨架：条目数 = 本地角色的技能槽位数属性、每个槽位随机一种边框样式、列表宽度 = 全部条目宽度之和。
+    /// 之后技能摘要只刷新条目内容，不再改数量、不再重掷边框。</summary>
+    private void BuildSkillSlots(EntityCamp camp)
+    {
+        var list = panel.m_skillList?.m_content;
+        if (list == null) return;
+        int capacity = ResolveSkillSlotCapacity(camp);
+        if (capacity <= 0) capacity = Mathf.Max(1, skillSummary.Count); // 取不到属性时退化为"已持有技能数"，至少露出一格
+        skillSlotCount = capacity;
+        skillOutlineIndex.Clear();
+        for (int i = 0; i < capacity; i++) skillOutlineIndex.Add(Random.Range(0, SkillOutlineVariants));
+        list.itemRenderer = RenderSkillSlot;
+        list.numItems = capacity; // 非虚拟列表会同步建出全部条目并回调渲染器
+        RefreshSkillListWidth(list);
+        skillSlotsBuilt = true;
+    }
+
+    /// <summary>技能列表宽度 = 所有条目宽度之和。该列表在界面里是横向单行、溢出可见且没有滚动面板（FGUI 不会自己撑开），
+    /// 故由代码设宽度；**位置、高度、条目尺寸一律仍由界面决定**。</summary>
+    private static void RefreshSkillListWidth(GList list)
+    {
+        float width = 0f;
+        for (int i = 0; i < list.numChildren; i++)
+        {
+            var child = list.GetChildAt(i);
+            if (child != null) width += child.width;
+        }
+        list.width = width;
+    }
+
+    /// <summary>技能槽渲染：先定"一次性"的部分（边框样式、键位、空槽态），再按数据填内容。</summary>
     private void RenderSkillSlot(int index, GObject obj)
     {
-        if (obj is not UI_SkillListItem slot || index >= skillSummary.Count) return;
-        slot.m_loader_icon.fillMethod = FillMethod.Horizontal; // CD 用图标填充比例
-        RefreshSkillSlot(slot, skillSummary[index], index);
+        if (obj is not UI_SkillListItem slot) return;
+        // 边框样式：进入战斗时随好，之后每次刷新都用同一个
+        if (slot.m_randomOutline != null)
+            slot.m_randomOutline.selectedIndex = index < skillOutlineIndex.Count ? skillOutlineIndex[index] : 0;
+        // 键位：槽位顺序即 Config.skill_slot_keys（U I O L H Y）
+        if (slot.m_key != null)
+            slot.m_key.text = index < Config.skill_slot_keys.Length ? Config.skill_slot_keys[index].ToString() : "";
+
+        // 该槽位还没拿到技能（服务器摘要还没下发，或这个槽位本来就是空的）
+        var data = index < skillSummary.Count ? skillSummary[index] : null;
+        bool empty = data == null || data.skillId < 0;
+        if (slot.m_empty != null) slot.m_empty.selectedIndex = empty ? 1 : 0;
+        if (empty) ClearSkillSlot(slot);
+        else
+        {
+            slot.m_loader_icon.fillMethod = FillMethod.Horizontal; // CD 用图标填充比例
+            RefreshSkillSlot(slot, data);
+        }
+    }
+
+    /// <summary>空槽：清掉可能残留的图标/库存/星星（列表条目会被复用，不清会留下上一次的内容）。</summary>
+    private static void ClearSkillSlot(UI_SkillListItem slot)
+    {
+        if (slot.m_loader_icon != null)
+        {
+            slot.m_loader_icon.texture = null;
+            slot.m_loader_icon.visible = false;
+            slot.m_loader_icon.fillAmount = 1f;
+        }
+        if (slot.m_loader_iconBase != null)
+        {
+            slot.m_loader_iconBase.texture = null;
+            slot.m_loader_iconBase.visible = false;
+        }
+        if (slot.m_store != null) slot.m_store.text = "";
+        if (slot.m_starList != null)
+        {
+            slot.m_starList.itemRenderer = (_, _) => { };
+            slot.m_starList.numItems = 0;
+        }
     }
 
     /// <summary>守护点摘要 → 中心守护点走 m_progressMain，外围守护点按 value 对号 m_progressSub1~3。</summary>
@@ -212,12 +285,30 @@ public class BattlePage : PageBase
         if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
         if (bar.m_label_level != null)
         {
-            // 本地玩家等级：按自己阵营取所选角色的局外等级
-            int level = Tool.SaveManager == null ? 1
-                : info.camp == EntityCamp.Attack ? Tool.SaveManager.GetCharacterLevel(ClientSelection.selectedAttackIndex)
-                : Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex);
-            bar.m_label_level.text = level.ToString(); // 只显示等级数字，不带 "Lv" 前缀
+            // 本地玩家等级：按自己阵营取所选角色的局外等级（只显示数字，不带 "Lv"）
+            int saveIndex = GetLocalSaveIndex(info.camp);
+            int level = saveIndex < 0 || Tool.SaveManager == null ? 1 : Tool.SaveManager.GetCharacterLevel(saveIndex);
+            bar.m_label_level.text = level.ToString();
         }
+    }
+
+    /// <summary>本地玩家所选角色在存档/配置里的全局下标（进攻方 = 选角下标；防守方 = 攻击方角色数 + 选角下标；阵营未知返回 -1）。</summary>
+    private static int GetLocalSaveIndex(EntityCamp camp)
+    {
+        if (camp == EntityCamp.Attack) return ClientSelection.selectedAttackIndex;
+        if (camp == EntityCamp.Defense) return Config.attack_character_count + ClientSelection.selectedDefenseIndex;
+        return -1;
+    }
+
+    /// <summary>本地角色的技能槽位数属性（EntityAttribute.weaponSlotCount，默认 3、可被升级路线抬高；
+    /// 服务器加武器时就是用它卡"槽满"）——技能栏按它决定显示几格。取不到返回 0。</summary>
+    private static int ResolveSkillSlotCapacity(EntityCamp camp)
+    {
+        int saveIndex = GetLocalSaveIndex(camp);
+        if (saveIndex < 0 || Tool.InfoManager == null || Tool.SaveManager == null) return 0;
+        var characterInfo = Tool.InfoManager.GetPlayerCharacterInfo(saveIndex);
+        if (characterInfo == null) return 0;
+        return characterInfo.GetAttribute(Tool.SaveManager.GetCharacterLevel(saveIndex)).weaponSlotCount;
     }
 
     private void OnScoreUpdate(SCScoreInfo info)
@@ -729,8 +820,9 @@ public class BattlePage : PageBase
         return win ? "胜利" : "结束";
     }
 
-    /// <summary>技能槽刷新：图标（SkillInfo.icon，底图与图标一并设置）、CD=图标填充比例（0→100 一轮冷却）、库存、键位、经验星星（exp 与星星 1:1）。</summary>
-    private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot, int index)
+    /// <summary>技能槽内容刷新（仅已被填充的槽位）：图标（SkillInfo.icon，底图与图标一并设置）、CD=图标填充比例（0→100 一轮冷却）、库存、经验星星（exp 与星星 1:1）。
+    /// 键位与边框样式属于"进战斗时定一次"的部分，由 RenderSkillSlot 设置。</summary>
+    private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
     {
         var info = slot.skillId >= 0 && Tool.InfoManager != null ? Tool.InfoManager.GetSkillInfo(slot.skillId) : null;
 
@@ -746,7 +838,6 @@ public class BattlePage : PageBase
             item.m_loader_iconBase.texture = iconSprite != null ? new NTexture(iconSprite) : null;
             item.m_loader_iconBase.visible = iconSprite != null;
         }
-        if (item.m_key != null) item.m_key.text = index < SlotKeys.Length ? SlotKeys[index] : "";
         if (item.m_store != null) item.m_store.text = slot.store >= 0 ? $"x{slot.store}" : "";
 
         //CD：填充比例随冷却进度增长（0 → 100）

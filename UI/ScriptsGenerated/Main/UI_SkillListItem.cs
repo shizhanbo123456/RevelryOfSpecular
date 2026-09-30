@@ -7,6 +7,8 @@ namespace Ros.UI.Main
 {
     public partial class UI_SkillListItem : GComponent
     {
+        public Controller m_empty;
+        public Controller m_randomOutline;
         public GLoader m_loader_iconBase;
         public GLoader m_loader_icon;
         public GTextField m_store;
@@ -23,6 +25,8 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
+            m_empty = GetControllerAt(0);
+            m_randomOutline = GetControllerAt(1);
             m_loader_iconBase = (GLoader)GetChildAt(7);
             m_loader_icon = (GLoader)GetChildAt(8);
             m_store = (GTextField)GetChildAt(10);
