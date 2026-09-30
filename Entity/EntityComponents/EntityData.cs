@@ -403,6 +403,9 @@ public abstract class EntityData : MonoBehaviour
         moveInput = new Vector3(localDirection.x, 0f, localDirection.z);
     }
 
+    /// <summary>当前是否在向前移动：本地 Z 分量（前）大于阈值即算。真人按 W 与 AI 寻路意图都会反映进来；强控/锁输入期间 moveInput 被清零，自然为否。</summary>
+    public bool IsMovingForward => moveInput.z > 0.01f;
+
     /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
     public void SetAnimPaused(bool paused)
     {
