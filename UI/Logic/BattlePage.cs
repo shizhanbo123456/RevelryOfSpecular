@@ -603,7 +603,9 @@ public class BattlePage : PageBase
         barOwners[info.entityId] = info.ownerClientId;
     }
 
-    /// <summary>逐帧：名牌/血条跟随实体头顶（世界 → 屏幕 → 面板局部；相机背面隐藏；名字在血条上方）。</summary>
+    /// <summary>逐帧：名牌/血条跟随实体头顶（世界 → 屏幕 → 面板局部；相机背面隐藏；名字在血条上方）。
+    /// 注意：这几个组件的轴心是左上角且未勾"作为锚点"（FGUI 里 xy 即左上角），所以设置位置时要减去半个宽度，
+    /// 让元素的**正中**落在头顶正上方。</summary>
     private void UpdateEntityBarPositions()
     {
         var cam = Camera.main;
@@ -622,7 +624,7 @@ public class BattlePage : PageBase
                 if (visible) local = new Vector2(screen.x / UiScale, screen.y / UiScale);
             }
             bar.visible = visible;
-            if (visible) bar.xy = local;
+            if (visible) bar.xy = local - new Vector2(bar.width * 0.5f, 0f); // 血条正中在头顶正上方
         }
         foreach (var pair in nameLabels)
         {
@@ -631,7 +633,8 @@ public class BattlePage : PageBase
             //名字挂在血条上方；血条不可见（实体消失/背面）时名字一并隐藏
             bool visible = entityBars.TryGetValue(pair.Key, out var bar) && bar != null && bar.visible;
             name.visible = visible;
-            if (visible) name.xy = bar.xy + new Vector2(0f, -26f);
+            //名字与血条同轴：以血条中心为准再补上两者宽度差的一半，名字的中间对齐血条中间
+            if (visible) name.xy = bar.xy + new Vector2((bar.width - name.width) * 0.5f, -26f);
         }
     }
 
@@ -697,7 +700,8 @@ public class BattlePage : PageBase
         var headPos = Vector3.zero;
         if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out headPos) == true)
         {
-            label.xy = WorldToPanel(headPos);
+            //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在受击实体头顶
+            label.xy = WorldToPanel(headPos) - new Vector2(label.width * 0.5f, 0f);
         }
         damageLabels.Add((label, Time.time));
     }
