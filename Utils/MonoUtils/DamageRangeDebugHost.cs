@@ -39,23 +39,16 @@ public class DamageRangeDebugHost : MonoBehaviour
     {
         Instance = this;
         warnedNoInstance = false;
-        heartbeatLeft = 3;
+        DontDestroyOnLoad(gameObject); // 战斗开始会加载战斗场景，宿主必须跨场景存活，否则 Instance 失效后判定全部被丢弃
         Debug.Log($"[DamageRangeDebugHost] 已挂载（场景={gameObject.scene.name}, 物体={name}），等待伤害判定数据");
     }
     private void OnDisable() { if (Instance == this) Instance = null; }
-
-    private int heartbeatLeft;
 
     private void Update()
     {
         while (shapes.Count > 0 && Time.time - shapes[0].birth >= duration) shapes.RemoveAt(0);
 
-        // 心跳：前 15 秒每 5 秒报一次存活与缓存形状数，确认组件确实在服务器进程中运行
-        if (heartbeatLeft > 0 && Time.frameCount % 300 == 0)
-        {
-            heartbeatLeft--;
-            Debug.Log($"[DamageRangeDebugHost] 运行中 shapes={shapes.Count}");
-        }
+        if (Time.frameCount % 300 == 0) Debug.Log($"[DamageRangeDebugHost] 运行中 shapes={shapes.Count}");
     }
     public static void Sphere(Vector3 center, float radius) => Record(false, center, center, radius);
     public static void Capsule(Vector3 p0, Vector3 p1, float radius) => Record(true, p0, p1, radius);
