@@ -23,8 +23,8 @@ public class EntityAttribute
     public float critDamage = 1.5f;
     /// <summary>被击飞抗性（与攻击力度同量纲；命中时 击飞速度 = 力度 − 本值）。</summary>
     public float knockbackResistance = 0f;
-    /// <summary>可见距离（米）。</summary>
-    public float viewDistance = 20f;
+    /// <summary>可见距离（米）。注意：EntityAttributeInfo 资产序列化后以资产内存的值为准，本默认值只在无配置兜底（如 InfoManager 缺失）时生效。</summary>
+    public float viewDistance = 80f;
     /// <summary>武器槽位数量（技能列表可容纳武器数，双方角色均为此属性）。</summary>
     public int weaponSlotCount = 3;
 
