@@ -107,7 +107,7 @@ public partial class BattleManager
     /// </summary>
     private void TickCrystalSpawn(float dt)
     {
-        int count = crystalAtPoint?.Length ?? 0;
+        int count = crystalAtPoint != null ? crystalAtPoint.Length : 0;
         if (count == 0) return;
 
         float rate = Config.crystal_spawn_checks_per_second;

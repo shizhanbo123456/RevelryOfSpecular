@@ -233,7 +233,7 @@ public class EnvironmentManager : MonoBehaviour
     {
         if (wasDay == IsDay) return;
         EventManager.TrigEvent(ClientEvent.OnDayNightChange, State);
-        if (BattleManager.AtServer) DayNightFlipped?.Invoke(IsDay);
+        if (BattleManager.AtServer && DayNightFlipped != null) DayNightFlipped.Invoke(IsDay);
     }
 
     /// <summary>天空盒曝光：午夜 0.28 ~ 正午 1.92，按光照值线性插值。</summary>

@@ -20,7 +20,7 @@ public class AnimDieEvent : AnimEvent
         if (canTrigEvent && stateInfo.normalizedTime > threshold)
         {
             canTrigEvent = false;
-            anim?.OnDeathEventEnd?.Invoke();
+            if (anim != null && anim.OnDeathEventEnd != null) anim.OnDeathEventEnd.Invoke();
         }
     }
 }

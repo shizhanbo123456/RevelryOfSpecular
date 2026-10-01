@@ -59,7 +59,7 @@ public class EntityAnim : MonoBehaviour
         set
         {
             if (currentState == value) return;
-            OnStateChange?.Invoke(currentState, value);
+            if (OnStateChange != null) OnStateChange.Invoke(currentState, value);
             currentState = value;
         }
     }

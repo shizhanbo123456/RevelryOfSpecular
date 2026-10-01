@@ -42,7 +42,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.defenseAICount, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.battleStarted, result, ref indexStart)) return false;
 
-            int count = value.members?.Count ?? 0;
+            int count = value.members != null ? value.members.Count : 0;
             if (!IntSerializer.Serialize(count, result, ref indexStart)) return false;
             if (value.members != null)
             {

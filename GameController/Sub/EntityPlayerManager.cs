@@ -242,9 +242,9 @@ public class EntityPlayerManager : ClientSubManager
     /// </summary>
     private void ApplyAnim(ClientEntityView view, SCEntityAnimInfo info)
     {
-        view.anim?.ApplyParamPack(info.animParams);
-        view.anim?.SetMoveSpeedScale(info.moveSpeedScale);
-        view.anim?.SetPaused(info.paused); // 强控期间置 0：与服务器一致地冻结动画
+        if (view.anim != null) view.anim.ApplyParamPack(info.animParams);
+        if (view.anim != null) view.anim.SetMoveSpeedScale(info.moveSpeedScale);
+        if (view.anim != null) view.anim.SetPaused(info.paused); // 强控期间置 0：与服务器一致地冻结动画
 
         // -1 = "未进入任何状态"哨兵；fullPathHash 是路径哈希、可能为负，不能用 > 0 判有效
         if (view.animator != null && info.animId != -1 && info.animId != view.animHash)
@@ -347,7 +347,7 @@ public class EntityPlayerManager : ClientSubManager
             // EntityAnim 挂在预制体根节点、Animator 在子物体（模型）上，故从根往下找，不能用 animator.GetComponent
             view.anim = go.GetComponentInChildren<EntityAnim>();
             // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传（伤害只由服务器算）
-            view.anim?.Init(null, null);
+            if (view.anim != null) view.anim.Init(null, null);
         }
         return view;
     }
@@ -492,7 +492,7 @@ public class EntityPlayerManager : ClientSubManager
                     break;
                 }
             }
-            Tool.EnvironmentManager?.SetFogEnabled(fogged);
+            if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.SetFogEnabled(fogged);
         }
     }
     #endregion

@@ -49,7 +49,7 @@ public class PlayerEntityData : EntityData
             SetMoveInput(moveState.moving ? Vector3.forward : Vector3.zero);
 
             // Run/Idle 随表现摘要同步给客户端（原地转向播 Idle）
-            anim?.Move(moveState.moving);
+            if (anim != null) anim.Move(moveState.moving);
 
             // 诊断：确认服务器上 WASD 的下沿（按下）与上沿（抬起）都被处理到
             // 注：上沿打印原始位（WRelease 等），release 是右移后的"按住位语义"，直接打印会显示成 WPress 造成误读
@@ -67,7 +67,7 @@ public class PlayerEntityData : EntityData
         // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
         if ((input.pressed & PlayerKey.LShift) != 0)
         {
-            anim?.DoSlide();
+            if (anim != null) anim.DoSlide();
             Debug.Log($"[输入处理] id={id} 滑铲键(Shift) 下沿 → 滑铲");
         }
         // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
@@ -102,7 +102,7 @@ public class PlayerEntityData : EntityData
     /// </summary>
     private void Jump()
     {
-        anim?.DoJump();
+        if (anim != null) anim.DoJump();
     }
 
     /// <summary>技能槽直触：槽位下标 → 服务器权威技能 id（CD/库存/强控校验在 TryUseSkill 内）。</summary>
@@ -196,7 +196,7 @@ public class PlayerEntityData : EntityData
         if (!canInput || !MotionCanMove)
         {
             SetMoveInput(Vector3.zero);
-            anim?.Move(false);
+            if (anim != null) anim.Move(false);
             moveState.yawSpeed = 0f;
             return;
         }
@@ -206,13 +206,13 @@ public class PlayerEntityData : EntityData
         {
             SteerTo(transform.position + dir, deltaTime); // 朝行进方向渐转
             SetMoveInput(Vector3.forward);
-            anim?.Move(true);
+            if (anim != null) anim.Move(true);
             return;
         }
 
         // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
         SetMoveInput(Vector3.zero);
-        anim?.Move(false);
+        if (anim != null) anim.Move(false);
         if (aiFaceSet) SteerTo(aiFacePoint, deltaTime);
         else moveState.yawSpeed = 0f;
     }

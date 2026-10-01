@@ -53,7 +53,7 @@ public abstract class BulletTrajectory
             return true;
         }
         // 客户端：表现物体
-        var players = Tool.ClientLogicManager?.EntityPlayers;
+        var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
         if (players != null)
         {
             return players.TryGetEntityTransform(entityId, out pos, out rot);

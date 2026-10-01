@@ -114,7 +114,8 @@ public class TransitionManager : MonoBehaviour
             float progress = Mathf.Clamp01(_elapsedTime / _totalTime);
 
             // 执行过渡逻辑，接收返回值
-            bool isActive = _updateAction?.Invoke(progress) ?? false;
+            bool isActive = false;
+            if (_updateAction != null) isActive = _updateAction.Invoke(progress);
 
             // 如果返回 false → 立即终止，不执行完成回调
             if (!isActive)
@@ -127,7 +128,7 @@ public class TransitionManager : MonoBehaviour
             if (_elapsedTime >= _totalTime)
             {
                 IsCompleted = true;
-                _onFinish?.Invoke();
+                if (_onFinish != null) _onFinish.Invoke();
             }
         }
     }

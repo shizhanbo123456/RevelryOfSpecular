@@ -82,7 +82,7 @@ public class UIManager : MonoBehaviour
     private void Update()
     {
         if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight) ApplyResize();
-        currentPage?.Tick(Time.deltaTime);
+        if (currentPage != null) currentPage.Tick(Time.deltaTime);
         TickFloating();
     }
 
@@ -92,9 +92,9 @@ public class UIManager : MonoBehaviour
         lastScreenWidth = Screen.width;
         lastScreenHeight = Screen.height;
         float width = 1080f * ((float)Screen.width / Screen.height);
-        home?.OnResize(width, 1080f);
-        lobby?.OnResize(width, 1080f);
-        battle?.OnResize(width, 1080f);
+        if (home != null) home.OnResize(width, 1080f);
+        if (lobby != null) lobby.OnResize(width, 1080f);
+        if (battle != null) battle.OnResize(width, 1080f);
     }
 
     public void ShowFlyText(string text)
@@ -111,9 +111,9 @@ public class UIManager : MonoBehaviour
 
     public void TurnPage(PageType type, ShowParam param = null)
     {
-        currentPage?.Exit();
+        if (currentPage != null) currentPage.Exit();
         currentPage = GetPage(type);
-        currentPage?.Enter(param);
+        if (currentPage != null) currentPage.Enter(param);
     }
 
     private PageBase GetPage(PageType type)
@@ -172,7 +172,7 @@ public class UIManager : MonoBehaviour
     /// <summary>断开/超时/主动退出统一返回主界面，并清空上一局实体表现残留。</summary>
     private void ReturnToHome()
     {
-        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
+        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
         TurnPage(PageType.Home);
     }
 }

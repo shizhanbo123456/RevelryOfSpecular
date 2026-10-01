@@ -31,7 +31,7 @@ public static class Timer
         {
             try
             {
-                callback?.Invoke(value);
+                if (callback != null) callback.Invoke(value);
             }
             catch(Exception e)
             {
@@ -44,7 +44,10 @@ public static class Timer
     {
         internal Action cancel;
 
-        public void Cancel() => cancel?.Invoke();
+        public void Cancel()
+        {
+            if (cancel != null) cancel.Invoke();
+        }
     }
 
     private abstract class TransitionTask : TimerTask
@@ -79,7 +82,7 @@ public static class Timer
             float t01 = elapsed >= duration ? 1f : elapsed / duration;
             try
             {
-                callback?.Invoke(value, t01);
+                if (callback != null) callback.Invoke(value, t01);
             }
             catch (Exception e)
             {

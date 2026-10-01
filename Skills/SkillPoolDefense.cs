@@ -156,7 +156,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var markTarget = Tool.BattleManager?.GetTopHarvester(); // 进攻方采集量最高者
+            EntityData markTarget = null;
+            if (Tool.BattleManager != null) markTarget = Tool.BattleManager.GetTopHarvester(); // 进攻方采集量最高者
             if (markTarget != null) context.AddInts(markTarget.id);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
@@ -235,7 +236,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            Tool.EnvironmentManager?.SetCycleTime(0f); // 周期值 0 = 午夜，即夜晚起点
+            if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.SetCycleTime(0f); // 周期值 0 = 午夜，即夜晚起点
         }
 
         public override void PlayVFX(SkillContext context) { } // 昼夜切换本身即表现
@@ -269,7 +270,7 @@ namespace Ros.Skill
             for (int i = 0; i < Config.summon_zombie_count; i++)
             {
                 var type = EntityType.Zombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
-                Tool.BattleManager?.SpawnEntity(type, Config.summon_zombie_level,
+                if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_zombie_level,
                     caster.transform.position + SummonOffset(i), EntityCamp.Zombie);
             }
         }
@@ -333,7 +334,7 @@ namespace Ros.Skill
             {
                 // 种类范围是精英僵尸自己的 14 种，不是普通僵尸的 21 种外观变体
                 var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
-                Tool.BattleManager?.SpawnEntity(type, Config.summon_elite_level,
+                if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_elite_level,
                     caster.transform.position + SummonOffset(i, 3f), EntityCamp.Zombie);
             }
         }
@@ -511,7 +512,7 @@ namespace Ros.Skill
                 caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
-                TargetBuffer[i]?.OnDamaged(Config.absorb_crystal_damage, caster);
+                if (TargetBuffer[i] != null) TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
             }
         }
 

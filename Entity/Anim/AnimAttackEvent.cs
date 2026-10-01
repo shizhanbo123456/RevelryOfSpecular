@@ -44,6 +44,6 @@ public class AnimAttackEvent : AnimEvent
     }
     private void OnAttack()
     {
-        anim.onAttack?.Invoke(type);
+        if (anim.onAttack != null) anim.onAttack.Invoke(type);
     }
 }

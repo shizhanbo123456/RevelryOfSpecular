@@ -149,7 +149,8 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            Caster(context)?.SetMotion(new MotionDash(0.4f, 10f)); // 冲锋位移（速度积分，不瞬移）
+            var caster = Caster(context);
+            if (caster != null) caster.SetMotion(new MotionDash(0.4f, 10f)); // 冲锋位移（速度积分，不瞬移）
         }
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
     }
@@ -267,7 +268,8 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            Caster(context)?.SetMotion(new MotionToPoint(context.vectors[1], 20f)); // 位移到目标点
+            var caster = Caster(context);
+            if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[1], 20f)); // 位移到目标点
         }
         public override void PlayVFX(SkillContext context)
         {
@@ -433,7 +435,8 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            Caster(context)?.SetMotion(new MotionDash(0.3f, 12f)); // 突进位移
+            var caster = Caster(context);
+            if (caster != null) caster.SetMotion(new MotionDash(0.3f, 12f)); // 突进位移
         }
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
     }
@@ -808,7 +811,8 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            Caster(context)?.SetMotion(new MotionToPoint(context.vectors[0], 28f)); // 长距闪现
+            var caster = Caster(context);
+            if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[0], 28f)); // 长距闪现
         }
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
     }
@@ -1057,7 +1061,7 @@ namespace Ros.Skill
         {
             var caster = Caster(context);
             var attack = BuildAttack(caster, 1.4f, 0.45f, useMagic: true);
-            Tool.BattleManager?.ShootBullet(caster, attack, CreateTrajectory(context, 0));
+            if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 3 });
     }
@@ -1109,7 +1113,8 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            Caster(context)?.effectController?.RemoveAllNegative(); // 净化：移除自身全部负面 Buff
+            var caster = Caster(context);
+            if (caster != null && caster.effectController != null) caster.effectController.RemoveAllNegative(); // 净化：移除自身全部负面 Buff
         }
         public override void PlayVFX(SkillContext context)
             => PlayAt(SkillVfxKind.MagicCircle, 1, context.vectors[0], 1.2f); // MC2

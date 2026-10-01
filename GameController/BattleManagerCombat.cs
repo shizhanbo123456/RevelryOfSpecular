@@ -84,7 +84,7 @@ public partial class BattleManager
             {
                 attack.addEffectEvent.Invoke(e.effectController);
             }
-            attack.onHit?.Invoke(e);
+            if (attack.onHit != null) attack.onHit.Invoke(e);
         }
     }
     #endregion
@@ -316,7 +316,7 @@ public partial class BattleManager
         int yz = stacks[Mathf.Min(rs.deathCount, stacks.Length - 1)];
         if (yz > 0 && data != null)
         {
-            data.effectController?.AddEffect(EffectType.YzCy, yz, float.MaxValue);
+            if (data.effectController != null) data.effectController.AddEffect(EffectType.YzCy, yz, float.MaxValue);
         }
 
         rs.progress = 0f; // deathCount 保留，供下次倍率与叠层

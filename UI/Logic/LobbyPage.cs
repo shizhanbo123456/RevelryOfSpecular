@@ -43,7 +43,8 @@ public class LobbyPage : PageBase
         base.Enter(param);
         EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
         // 大厅与首页一样展示所选攻/守角色的场景预览（战斗页 Enter 时会隐藏，故返回大厅需重建）
-        Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
+        if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
+            Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
     }
 
     public override void Exit()
@@ -100,7 +101,8 @@ public class LobbyPage : PageBase
 
         // 回显自己的队伍选择
         var me = info.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
-        int myServerCamp = me?.camp ?? -1;
+        int myServerCamp = -1;
+        if (me != null) myServerCamp = me.camp;
         myCamp = myServerCamp;
 
         RenderMemberList(panel.m_mainView.m_attackerPlayers, info.members, 0);
@@ -136,15 +138,15 @@ public class LobbyPage : PageBase
     private void OnStartClicked()
     {
         // 不在代码里用 enabled 禁用按钮（disabled 会让 onClick 完全不触发）；改为在回调内判断，不满足条件则阻断并飘字提示
-        if (battleStarted) { Tool.UIManager?.ShowFlyText("对局已开始"); return; }
-        if (!canStartBattle) { Tool.UIManager?.ShowFlyText("进攻方与防守方都需至少一名玩家或AI"); return; }
-        Tool.NetworkManager?.SendStartRequest();
+        if (battleStarted) { if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("对局已开始"); return; }
+        if (!canStartBattle) { if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("进攻方与防守方都需至少一名玩家或AI"); return; }
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendStartRequest();
     }
 
     /// <summary>断开并返回初始界面（页面切换由 NetworkManager 的 OnRestartGame 事件统一处理）。</summary>
     private void OnExitClicked()
     {
-        Tool.NetworkManager?.ExitWorld();
+        if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld();
     }
     #endregion
 }

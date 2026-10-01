@@ -23,6 +23,6 @@ public class BeaconEntityData : EntityData
     public override void OnKilled()
     {
         base.OnKilled();
-        Tool.BattleManager?.UpdateCoreBeaconReduce();
+        if (Tool.BattleManager != null) Tool.BattleManager.UpdateCoreBeaconReduce();
     }
 }

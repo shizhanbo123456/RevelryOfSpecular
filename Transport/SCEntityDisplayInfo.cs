@@ -93,7 +93,7 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
-            int buffCount = value.buffs?.Count ?? 0;
+            int buffCount = value.buffs != null ? value.buffs.Count : 0;
             if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
             if (value.buffs != null)
             {
@@ -106,7 +106,7 @@ namespace Ros.Transport
                 }
             }
 
-            int skillCount = value.skills?.Count ?? 0;
+            int skillCount = value.skills != null ? value.skills.Count : 0;
             if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
             if (value.skills != null)
             {

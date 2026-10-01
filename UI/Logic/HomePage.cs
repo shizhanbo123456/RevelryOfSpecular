@@ -67,7 +67,8 @@ public class HomePage : PageBase
         RefreshAttrList();
         panel.m_attributePanel.visible = false; // 每次进入首页默认隐藏属性列表
         //同步场景预览：当前选中的两角色复制到预览锚点
-        Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
+        if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
+            Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
     }
 
     #region//Local
@@ -100,13 +101,15 @@ public class HomePage : PageBase
         var charPanel = panel.m_characterPanel;
         var infoList = Tool.InfoManager == null ? null
             : defenseTab ? Tool.InfoManager.DefenseCharacterInfoList : Tool.InfoManager.AttackCharacterInfoList;
-        charPanel.m_characterList.numItems = infoList?.Count ?? 0;
+        charPanel.m_characterList.numItems = infoList != null ? infoList.Count : 0;
     }
 
     private void RenderCharacter(int index, GObject obj)
     {
         var head = (UI_RoleHead)obj;
-        var infoList = defenseTab ? Tool.InfoManager?.DefenseCharacterInfoList : Tool.InfoManager?.AttackCharacterInfoList;
+        var infoList = Tool.InfoManager != null
+            ? (defenseTab ? Tool.InfoManager.DefenseCharacterInfoList : Tool.InfoManager.AttackCharacterInfoList)
+            : null;
         var info = infoList != null && index < infoList.Count ? infoList[index] : null;
         string name = info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : (defenseTab ? $"防守角色 {index}" : $"进攻角色 {index}");
         int saveIndex = defenseTab ? Config.attack_character_count + index : index;
@@ -134,7 +137,8 @@ public class HomePage : PageBase
             RefreshLists();
             RefreshAttrList();
             panel.m_attributePanel.visible = true; // 点击角色 → 显示属性列表
-            Tool.ClientLogicManager?.HomePreview?.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
+            if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
+                Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
         });
     }
 
@@ -165,16 +169,24 @@ public class HomePage : PageBase
         var attr = info.GetAttribute(level);
         var baseAttr = info.GetAttribute(1);
         var nextAttr = level < Config.max_entity_level ? info.GetAttribute(level + 1) : null;
+        float? nextHealth = nextAttr != null ? nextAttr.health : (float?)null;
+        float? nextStrength = nextAttr != null ? nextAttr.strength : (float?)null;
+        float? nextMagic = nextAttr != null ? nextAttr.magic : (float?)null;
+        float? nextCritRate = nextAttr != null ? nextAttr.critRate : (float?)null;
+        float? nextCritDamage = nextAttr != null ? nextAttr.critDamage : (float?)null;
+        float? nextKnockbackResistance = nextAttr != null ? nextAttr.knockbackResistance : (float?)null;
+        float? nextViewDistance = nextAttr != null ? nextAttr.viewDistance : (float?)null;
+        float? nextWeaponSlotCount = nextAttr != null ? nextAttr.weaponSlotCount : (float?)null;
         string[] values =
         {
-            StatPart(attr.health, baseAttr.health, nextAttr?.health),
-            StatPart(attr.strength, baseAttr.strength, nextAttr?.strength),
-            StatPart(attr.magic, baseAttr.magic, nextAttr?.magic),
-            StatPart(attr.critRate, baseAttr.critRate, nextAttr?.critRate, "%"),
-            StatPart(attr.critDamage, baseAttr.critDamage, nextAttr?.critDamage, "x"),
-            StatPart(attr.knockbackResistance, baseAttr.knockbackResistance, nextAttr?.knockbackResistance),
-            StatPart(attr.viewDistance, baseAttr.viewDistance, nextAttr?.viewDistance, "m"),
-            StatPart(attr.weaponSlotCount, baseAttr.weaponSlotCount, nextAttr?.weaponSlotCount),
+            StatPart(attr.health, baseAttr.health, nextHealth),
+            StatPart(attr.strength, baseAttr.strength, nextStrength),
+            StatPart(attr.magic, baseAttr.magic, nextMagic),
+            StatPart(attr.critRate, baseAttr.critRate, nextCritRate, "%"),
+            StatPart(attr.critDamage, baseAttr.critDamage, nextCritDamage, "x"),
+            StatPart(attr.knockbackResistance, baseAttr.knockbackResistance, nextKnockbackResistance),
+            StatPart(attr.viewDistance, baseAttr.viewDistance, nextViewDistance, "m"),
+            StatPart(attr.weaponSlotCount, baseAttr.weaponSlotCount, nextWeaponSlotCount),
         };
         attrList.itemRenderer = (i, obj) =>
         {
@@ -210,7 +222,7 @@ public class HomePage : PageBase
         var name = ClientSelection.playerName;
         if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 8)
         {
-            Tool.UIManager?.ShowFlyText("玩家名字必须为2-8个字符");
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("玩家名字必须为2-8个字符");
             return;
         }
         if (Tool.NetworkManager == null) return;

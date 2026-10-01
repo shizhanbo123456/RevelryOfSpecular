@@ -67,7 +67,7 @@ public partial class BattleManager
         // PC104 被动「攻击暴击时附加轻微麻痹」：目标已死则不再挂状态
         if (!isCrit || attacker == null || target == null || !target.Alive) return;
         if (attacker.type != EntityType.Defense(Config.defense_index_deer_knight)) return;
-        target.effectController?.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration,
+        if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration,
             negative: true, payload: new EntityEffectController.EffectPayload { sourceId = attacker.id });
     }
 

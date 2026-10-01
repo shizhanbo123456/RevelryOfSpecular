@@ -94,7 +94,7 @@ public class ZombieEntityData : EntityData
         StopMoving();
         yawSpeed = 0f;
         SetMoveInput(Vector3.zero);
-        anim?.Move(false);
+        if (anim != null) anim.Move(false);
     }
 
     /// <summary>逐帧推进：算方向 → 渐转朝向 → 写移动输入（速度由动画声明，本类不产出速度）。</summary>
@@ -120,7 +120,7 @@ public class ZombieEntityData : EntityData
         if (!canInput || !MotionCanMove)
         {
             yawSpeed = 0f;
-            anim?.Move(false);
+            if (anim != null) anim.Move(false);
             return;
         }
 
@@ -128,7 +128,7 @@ public class ZombieEntityData : EntityData
         if (dir.sqrMagnitude < 0.0001f) // 方向退化（理论上不该发生）：停住，不沿用上一帧的输入
         {
             SetMoveInput(Vector3.zero);
-            anim?.Move(false);
+            if (anim != null) anim.Move(false);
             return;
         }
 
@@ -141,7 +141,7 @@ public class ZombieEntityData : EntityData
         // 只喂"前进"：朝向已由上面的渐转负责。喂实际方向会在目标位于背后时触发"后退"语义
         // （前后声明的负号是给玩家输入的，见 TickVelocity），表现为僵尸倒着走
         SetMoveInput(Vector3.forward);
-        anim?.Move(true);
+        if (anim != null) anim.Move(true);
     }
 
     #region AI 行为

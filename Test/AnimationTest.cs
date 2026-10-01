@@ -42,10 +42,10 @@ public class AnimationTest : MonoBehaviour
         current.SetTestInput(forward, turn);
 
         // Run/Idle 切换（正式版在输入边沿写，轮询等效）
-        current.anim?.Move(current.TestMoving);
+        if (current.anim != null) current.anim.Move(current.TestMoving);
 
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.K)) current.anim?.DoJump();
-        if (Input.GetKeyDown(KeyCode.LeftShift)) current.anim?.DoSlide();
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.K)) && current.anim != null) current.anim.DoJump();
+        if (Input.GetKeyDown(KeyCode.LeftShift) && current.anim != null) current.anim.DoSlide();
 
         // 诊断：绕过动画声明直写速度，用于区分"声明侧断了"还是"刚体/物理侧断了"
         if (Input.GetKey(KeyCode.T)) current.SetVelocityForward(3f, VelocitySource.Animation);

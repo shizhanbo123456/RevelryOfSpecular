@@ -370,7 +370,7 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveEntityAnimLocal(SCEntityAnimInfo info)
     {
         if (info == null) return;
-        Tool.ClientLogicManager?.EntityPlayers.OnEntityAnim(info);
+        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.OnEntityAnim(info);
     }
 
     /// <summary>客户端：移除实体。</summary>
@@ -433,8 +433,10 @@ public partial class NetworkManager : EnsBehaviour
     /// <summary>按客户端 id 取玩家名（未设置时回退"玩家{id}"）。</summary>
     public static string GetMemberName(int clientId)
     {
-        var member = LatestRoomInfo?.members.Find(m => m != null && m.clientId == clientId);
-        return string.IsNullOrEmpty(member?.name) ? $"玩家{clientId}" : member.name;
+        SCRoomInfo.RoomMemberInfo member = null;
+        if (LatestRoomInfo != null) member = LatestRoomInfo.members.Find(m => m != null && m.clientId == clientId);
+        if (member == null || string.IsNullOrEmpty(member.name)) return $"玩家{clientId}";
+        return member.name;
     }
 
     /// <summary>客户端：接收昼夜快照（周期时间 + 白天时长 + 晚上时长），之后按这组参数自行推演。</summary>
@@ -444,7 +446,7 @@ public partial class NetworkManager : EnsBehaviour
         if (info == null) return;
         var logic = Tool.ClientLogicManager;
         if (logic != null) logic.BattleTime.OnDayNightSync(info);
-        else Tool.EnvironmentManager?.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
+        else if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
     }
 
     /// <summary>客户端：使用技能（按技能 id 取技能实例，用上下文重建轨迹播放表现）。</summary>

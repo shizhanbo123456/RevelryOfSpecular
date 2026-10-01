@@ -31,7 +31,7 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
 
-            int intCount = value.ints?.Count ?? 0;
+            int intCount = value.ints != null ? value.ints.Count : 0;
             if (!IntSerializer.Serialize(intCount, result, ref indexStart)) return false;
             if (value.ints != null)
             {
@@ -41,7 +41,7 @@ namespace Ros.Transport
                 }
             }
 
-            int vectorCount = value.vectors?.Count ?? 0;
+            int vectorCount = value.vectors != null ? value.vectors.Count : 0;
             if (!IntSerializer.Serialize(vectorCount, result, ref indexStart)) return false;
             if (value.vectors != null)
             {

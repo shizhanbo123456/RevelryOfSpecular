@@ -44,7 +44,7 @@ namespace Ros.Transport
             if (value == null) return true;
             if (!BoolSerializer.Serialize(value.minimapLost, result, ref indexStart)) return false;
 
-            int count = value.entities?.Count ?? 0;
+            int count = value.entities != null ? value.entities.Count : 0;
             if (!IntSerializer.Serialize(count, result, ref indexStart)) return false;
             if (value.entities == null) return true;
             foreach (var entity in value.entities)

@@ -19,19 +19,39 @@ public class VfxManager : MonoBehaviour
 
     #region 特效模板获取（按类别返回预制体，供自定义播放方式使用）
     /// <summary>子弹特效模板（60 个：20 类 × 3 颜色变体，下标 0~59 见特效清单）。</summary>
-    public GameObject GetBulletVfx(int index) => GetVFX(Tool.AssetsManager?.BulletVFX, index);
+    public GameObject GetBulletVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.BulletVFX : null;
+        return GetVFX(list, index);
+    }
 
     /// <summary>护盾特效模板（13 个）。</summary>
-    public GameObject GetShieldVfx(int index) => GetVFX(Tool.AssetsManager?.ShieldVFX, index);
+    public GameObject GetShieldVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.ShieldVFX : null;
+        return GetVFX(list, index);
+    }
 
     /// <summary>范围魔法特效模板（10 个）。</summary>
-    public GameObject GetRangeMagicVfx(int index) => GetVFX(Tool.AssetsManager?.RangeMagicVFX, index);
+    public GameObject GetRangeMagicVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.RangeMagicVFX : null;
+        return GetVFX(list, index);
+    }
 
     /// <summary>魔法阵特效模板（10 个）。</summary>
-    public GameObject GetMagicCircleVfx(int index) => GetVFX(Tool.AssetsManager?.MagicCircleVFX, index);
+    public GameObject GetMagicCircleVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.MagicCircleVFX : null;
+        return GetVFX(list, index);
+    }
 
     /// <summary>Buff 特效模板（31 个）。</summary>
-    public GameObject GetBuffVfx(int index) => GetVFX(Tool.AssetsManager?.BuffVFX, index);
+    public GameObject GetBuffVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.BuffVFX : null;
+        return GetVFX(list, index);
+    }
     #endregion
 
     #region 通用播放原语（已持有模板 GameObject 时使用）

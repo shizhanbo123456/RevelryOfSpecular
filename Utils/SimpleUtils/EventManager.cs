@@ -140,7 +140,7 @@ public static class EventManager
         if (_eventDict.TryGetValue(eventId, out Action action))
         {
             //UnityEngine.Debug.Log($"触发无参事件 ID = {eventId}");
-            action?.Invoke();
+            if (action != null) action.Invoke();
         }
 #if !RELEASE
         else

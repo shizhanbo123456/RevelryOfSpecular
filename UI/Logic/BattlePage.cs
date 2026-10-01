@@ -65,7 +65,7 @@ public class BattlePage : PageBase
 
     public override void Construct()
     {
-        panel.m_btn_exit.onClick.Add(() => Tool.NetworkManager?.ExitWorld()); // 主动退出：NetworkManager 触发 OnExitWorld，UIManager 切回主界面
+        panel.m_btn_exit.onClick.Add(() => { if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld(); }); // 主动退出：NetworkManager 触发 OnExitWorld，UIManager 切回主界面
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
     }
 
@@ -84,7 +84,8 @@ public class BattlePage : PageBase
         battleStartTime = Time.time;
         localPlayerCamp = -1;
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
-        Tool.ClientLogicManager?.HomePreview?.Hide();
+        if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
+            Tool.ClientLogicManager.HomePreview.Hide();
         ResetBeacons();
         ClearEntityBars();
         ClearMinimap();
@@ -155,7 +156,7 @@ public class BattlePage : PageBase
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
     {
-        var list = panel.m_skillList?.m_content;
+        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
         if (list == null) return;
         skillSummary.Clear();
         if (info.skills != null) skillSummary.AddRange(info.skills);
@@ -168,7 +169,7 @@ public class BattlePage : PageBase
     /// 之后技能摘要只刷新条目内容，不再改数量、不再重掷边框。</summary>
     private void BuildSkillSlots(EntityCamp camp)
     {
-        var list = panel.m_skillList?.m_content;
+        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
         if (list == null) return;
         int capacity = ResolveSkillSlotCapacity(camp);
         if (capacity <= 0) capacity = Mathf.Max(1, skillSummary.Count); // 取不到属性时退化为"已持有技能数"，至少露出一格
@@ -410,7 +411,7 @@ public class BattlePage : PageBase
     /// <summary>取消未完成的结算动画序列（面板关闭/隐藏时调用，防止对已释放组件操作）。</summary>
     private void CancelDetailAnimations()
     {
-        settleTransition?.Cancel();
+        if (settleTransition != null) settleTransition.Cancel();
         settleTransition = null;
     }
 
@@ -419,8 +420,8 @@ public class BattlePage : PageBase
         settleCloseAt = -1f;
         CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
-        Tool.ClientLogicManager?.EntityPlayers.ClearAll();
-        Tool.UIManager?.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
+        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
+        if (Tool.UIManager != null) Tool.UIManager.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
     }
 
     private void HideSettlement()
@@ -437,13 +438,13 @@ public class BattlePage : PageBase
             ClearMinimap();
             return;
         }
-        var mapBase = panel.m_Minimap?.m_mapBase;
+        var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return;
 
         // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出即移除点位）
         bool hasSelf = false;
         Vector3 myPos = Vector3.zero;
-        if (NetworkManager.battleInfo != null && Tool.ClientLogicManager?.EntityPlayers != null)
+        if (NetworkManager.battleInfo != null && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
         {
             hasSelf = Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
                 (ushort)NetworkManager.battleInfo.playerEntityId, out myPos);
@@ -490,7 +491,7 @@ public class BattlePage : PageBase
         {
             case EntityCategory.Character_Attack:
             case EntityCategory.Character_Defense:
-                if (entity.entityId == NetworkManager.battleInfo?.playerEntityId) return 0;
+                if (NetworkManager.battleInfo != null && entity.entityId == NetworkManager.battleInfo.playerEntityId) return 0;
                 return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
             case EntityCategory.PlagueTree: return 3;
             case EntityCategory.Crystal: return 4;
@@ -631,7 +632,9 @@ public class BattlePage : PageBase
             var bar = pair.Value;
             if (bar == null) continue;
             var headPos = Vector3.zero;
-            bool visible = Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(pair.Key, out headPos) == true;
+            bool visible = false;
+            if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
+                visible = Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(pair.Key, out headPos);
             Vector2 local = Vector2.zero;
             if (visible)
             {
@@ -694,7 +697,12 @@ public class BattlePage : PageBase
             Vector2 rand = Random.insideUnitCircle;
             anchor = hitPos + new Vector3(rand.x, 0f, rand.y);
         }
-        else if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out anchor) != true)
+        else
+        {
+            anchor = Vector3.zero;
+            if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
+                Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(targetId, out anchor);
+        }
         {
             anchor = Vector3.zero;
         }
@@ -758,7 +766,7 @@ public class BattlePage : PageBase
     /// <summary>把数据交给事件列表：只设 itemRenderer + numItems，条目组件与排布由 FGUI 的 GList 负责。</summary>
     private void RefreshEventItems()
     {
-        var list = panel.m_EventList?.m_EventItemContainer;
+        var list = panel.m_EventList != null ? panel.m_EventList.m_EventItemContainer : null;
         if (list == null) return;
         list.itemRenderer = RenderEventItem;
         list.numItems = eventEntries.Count;

@@ -27,7 +27,7 @@ public class TestEntityData : EntityData
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
 
         // SetType 必须在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集
-        anim?.Init(this, OnAnimAttack);
+        if (anim != null) anim.Init(this, OnAnimAttack);
         if (anim != null)
         {
             if (animData != null) anim.SetType(animData.type);
@@ -39,7 +39,8 @@ public class TestEntityData : EntityData
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
         SetupTestBody();
-        GetComponentInChildren<EntityModelInfo>()?.BuildCapsuleCollider();
+        var modelInfo = GetComponentInChildren<EntityModelInfo>();
+        if (modelInfo != null) modelInfo.BuildCapsuleCollider();
     }
 
     /// <summary>朝向推进（对齐 PlayerEntityData 真人分支：A/D 按住即转向，yaw 正 = 右转）。</summary>

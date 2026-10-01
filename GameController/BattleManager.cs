@@ -191,7 +191,7 @@ public partial class BattleManager : EnsBehaviour
         data.OnCreate(id, type, level, camp);
         // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/防御塔/瘟疫树）同一条路径，
         // 未登记的类别得空表（见 Config.initial_skills）
-        data.skillController?.SetSkillList(Config.GetInitialSkills(type));
+        if (data.skillController != null) data.skillController.SetSkillList(Config.GetInitialSkills(type));
         ApplyMinimapLostOnSpawn(data); // 夜间出生/复活：补上「小地图失联」（昼夜事件只在翻转那一刻遍历）
         AddToContainer(data);
         return id;
@@ -470,7 +470,7 @@ public partial class BattleManager : EnsBehaviour
         {
             if (beacon != null && beacon.type == EntityType.CoreBeacon)
             {
-                beacon.effectController?.AddEffect(EffectType.BeaconReduce, aliveOuter, float.MaxValue);
+                if (beacon.effectController != null) beacon.effectController.AddEffect(EffectType.BeaconReduce, aliveOuter, float.MaxValue);
             }
         }
     }
@@ -824,7 +824,7 @@ public partial class BattleManager : EnsBehaviour
         // 脏标记是实体级的（与客户端无关），全部客户端处理完再统一清除
         foreach (var entity in EntityContainer.Entities)
         {
-            if (entity?.anim != null) entity.anim.ClearAnimSyncDirty();
+            if (entity != null && entity.anim != null) entity.anim.ClearAnimSyncDirty();
         }
     }
 

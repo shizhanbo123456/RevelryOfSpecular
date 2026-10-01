@@ -43,7 +43,7 @@ namespace Ros.Skill
         /// </summary>
         protected static void BroadcastSkillCast(int skillId, SkillContext context)
         {
-            Tool.NetworkManager?.SendSkillCast(skillId, context);
+            if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         }
 
         #region 通用工具（服务端/客户端共用，保证伤害与特效一致）
@@ -330,7 +330,7 @@ namespace Ros.Skill
         /// <summary>构造"命中拉拽"回调：把目标拉向 to（走 MotionToPoint 速度积分）。</summary>
         protected static Action<EntityData> PullTo(Vector3 to, float speed = 16f)
         {
-            return target => target?.SetMotion(new MotionToPoint(to, speed));
+            return target => { if (target != null) target.SetMotion(new MotionToPoint(to, speed)); };
         }
 
         /// <summary>双端按实体 id 取位置 / 取完整变换（位置 + 朝向）。</summary>
@@ -352,7 +352,7 @@ namespace Ros.Skill
         {
             for (int i = 0; i < ShotCount(context); i++)
             {
-                Tool.BattleManager?.ShootBullet(entity, attack, CreateTrajectory(context, i));
+                if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(entity, attack, CreateTrajectory(context, i));
             }
         }
 
@@ -374,7 +374,7 @@ namespace Ros.Skill
                 {
                     attack.addEffectEvent.Invoke(target.effectController);
                 }
-                attack.onHit?.Invoke(target);
+                if (attack.onHit != null) attack.onHit.Invoke(target);
             }
         }
 

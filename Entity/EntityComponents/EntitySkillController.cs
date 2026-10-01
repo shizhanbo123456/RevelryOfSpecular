@@ -161,7 +161,7 @@ public class EntitySkillController
 
         CastingSlotIndex = skillIds.IndexOf(skillId);
         SkillContext context = skill.SkillLogic(owner);
-        Tool.NetworkManager?.SendSkillCast(skillId, context);
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         StartCd(skillId);
         ConsumeStore(skillId);
         return true;

@@ -151,7 +151,7 @@ public abstract class EntityData : MonoBehaviour
 
         // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
         // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
-        anim?.Init(this, OnAnimAttack);
+        if (anim != null) anim.Init(this, OnAnimAttack);
         if (anim != null)
         {
             // SetType 必须排在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集，早调等于没设
@@ -164,7 +164,7 @@ public abstract class EntityData : MonoBehaviour
 
         // 模型碰撞体：按烘焙的本地包围盒构造胶囊碰撞体（高度 = Y 范围，半径 = X/Z 范围平均的一半）。
         // 服务器无图形模板时 ModelInfo 为 null，自动跳过。
-        ModelInfo?.BuildCapsuleCollider();
+        if (ModelInfo != null) ModelInfo.BuildCapsuleCollider();
         InitDynamicCapsule(); // 人形实体的动态受击体积：记录脚/头骨骼初始高度基准（见 TickDynamicCapsule）
     }
 
@@ -174,7 +174,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>每帧更新（BattleManager 遍历调用）。技能 CD 为时间戳惰性计算，无需每帧推进。</summary>
     public virtual void OnUpdate()
     {
-        effectController?.OnUpdate();
+        if (effectController != null) effectController.OnUpdate();
     }
 
     /// <summary>朝向与移动输入的逐帧推进（由移动循环调用，canInput = 未被强控）。默认无操作。</summary>
@@ -409,7 +409,7 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>暂停/恢复动画播放（强控施加 = 暂停，全部移除 = 恢复）。</summary>
     public void SetAnimPaused(bool paused)
     {
-        anim?.SetPaused(paused);
+        if (anim != null) anim.SetPaused(paused);
     }
 
     /// <summary>
@@ -534,7 +534,7 @@ public abstract class EntityData : MonoBehaviour
         {
             anim.OnDeathEventEnd -= OnDeathAnimEnd;
         }
-        effectController?.Clear();
+        if (effectController != null) effectController.Clear();
     }
 
     /// <summary>
@@ -555,8 +555,8 @@ public abstract class EntityData : MonoBehaviour
             weaponCategory = (int)heldWeapon.category,
             weaponIndex = heldWeapon.index,
         };
-        effectController?.FillDisplayInfo(info);
-        skillController?.FillDisplayInfo(info);
+        if (effectController != null) effectController.FillDisplayInfo(info);
+        if (skillController != null) skillController.FillDisplayInfo(info);
         return info;
     }
 
@@ -586,7 +586,7 @@ public abstract class EntityData : MonoBehaviour
     {
         if (KilledEntities.Contains(this)) return;
         KilledEntities.Add(this);
-        anim?.DoDie();
+        if (anim != null) anim.DoDie();
     }
 
     /// <summary>死亡动画播完（AnimDieEvent 于片段 80% 处回调）：此时才允许销毁物体。</summary>

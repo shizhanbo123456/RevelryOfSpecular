@@ -116,12 +116,17 @@ public partial class BattleManager
 
     #region 小地图（阵营共享视野）
     /// <summary>可见距离（属性值，已含属性类 Buff 的修改量）：模型与小地图共用这一套数值。</summary>
-    private static float VisionRadius(EntityData entity) =>
-        entity?.floatingAttribute != null ? Mathf.Max(0f, entity.floatingAttribute.viewDistance) : 0f;
+    private static float VisionRadius(EntityData entity)
+    {
+        if (entity == null || entity.floatingAttribute == null) return 0f;
+        return Mathf.Max(0f, entity.floatingAttribute.viewDistance);
+    }
 
     /// <summary>是否被「白眼标记」（小地图强制显示）。</summary>
-    private static bool IsMarkedOnMinimap(EntityData entity) =>
-        entity?.effectController != null && entity.effectController.HasEffect(EffectType.EyeMark);
+    private static bool IsMarkedOnMinimap(EntityData entity)
+    {
+        return entity != null && entity.effectController != null && entity.effectController.HasEffect(EffectType.EyeMark);
+    }
 
     /// <summary>
     /// 该阵营是否处于「小地图失联」（策划案 11.3 的 Buff：无法获得来自队友的小地图视野，
@@ -332,7 +337,8 @@ public partial class BattleManager
     /// <summary>添加 / 移除「小地图失联」。</summary>
     private static void SetMinimapLost(EntityData entity, bool lost)
     {
-        var effect = entity?.effectController;
+        if (entity == null) return;
+        var effect = entity.effectController;
         if (effect == null) return;
         if (!lost)
         {

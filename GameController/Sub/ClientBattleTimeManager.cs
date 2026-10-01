@@ -40,7 +40,7 @@ public class ClientBattleTimeManager : ClientSubManager
     public void OnDayNightSync(SCDayNightInfo info)
     {
         if (info == null) return;
-        Tool.EnvironmentManager?.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
+        if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.ApplyServerSync(info.cycleTime, info.dayDuration, info.nightDuration);
     }
 
     /// <summary>接收服务器分数：缓存快照，并照旧广播给表现层（UI 的数据来源不变）。</summary>

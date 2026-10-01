@@ -176,7 +176,7 @@ public class EntityEffectController
         // 苍白之光/暗叠层后判定转化（PC103 被动：满层转冰/雷、双高转火，见 BattleManagerPassive）
         if (type == EffectType.PaleLight || type == EffectType.PaleDark)
         {
-            Tool.BattleManager?.CheckPaleConversion(owner);
+            if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner);
         }
     }
 
@@ -324,7 +324,7 @@ public class EntityEffectController
             case EffectType.Poison:
             case EffectType.Burning:
                 EntityData source = FindEntity(rt.sourceId);
-                owner?.OnDamaged(rt.damage, source, fixedDamage: true);
+                if (owner != null) owner.OnDamaged(rt.damage, source, fixedDamage: true);
                 break;
             case EffectType.DeathStroll:
                 if (owner == null) break;
@@ -333,7 +333,7 @@ public class EntityEffectController
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, rt.value, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
                 {
-                    s_tickTargets[i]?.OnDamaged(rt.damage, owner, fixedDamage: true);
+                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(rt.damage, owner, fixedDamage: true);
                 }
                 break;
         }
