@@ -23,6 +23,9 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("地形（在 Inspector 中指定；右键菜单生成水晶/僵尸点位时用于贴合表面）")]
     [SerializeField] private Terrain terrain;
 
+    [Header("地形块列表（拆分后的 64 个子地形物体；供 TerrainChunkCuller 按相机方形可见距离显隐）")]
+    public List<GameObject> terrainChunks = new();
+
     private void Awake()
     {
         Tool.LandscapeSpawns = this;

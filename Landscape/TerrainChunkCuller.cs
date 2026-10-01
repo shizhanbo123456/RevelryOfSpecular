@@ -5,6 +5,8 @@ using UnityEngine;
 /// 地形块显隐跟随器（挂在相机上）：
 /// 运行时以相机 XZ 坐标为中心、按**方形**可见距离（轴对齐，边长 = 2 × 可见距离）做剔除——
 /// 与方形区域相交的地形块显示，其余整块隐藏（SetActive(false)）。
+/// 块列表来源：**Tool.LandscapeSpawns.terrainChunks**（在 LandscapeSpawns 的 Inspector 填 64 个子地形物体），
+/// 本组件不持有块引用；LandscapeSpawns 尚未注册（Awake 顺序）时静默等待，注册后自动生效。
 /// 判定用块的 XZ 包围盒与方形区域**相交**而非块中心：块中心在方形外但边缘已进入时仍显示，
 /// 避免视野边缘的地形块突然消失/出现。
 /// 性能：每帧只做 64 次数值比较，状态无变化时不碰 GameObject（SetActive 有引擎侧开销，绝不空调）。
@@ -14,10 +16,7 @@ public class TerrainChunkCuller : MonoBehaviour
     [Tooltip("方形可见距离（米）：相机 XZ ± 该值范围内的地形块可见")]
     public float visibleDistance = 250f;
 
-    [Tooltip("地形块列表：填入拆分生成的 64 个子地形物体")]
-    public List<GameObject> chunks = new List<GameObject>();
-
-    /// <summary>单块的剔除信息（启动/列表变化时缓存一次）。</summary>
+    /// <summary>单块的剔除信息（列表变化时缓存一次）。</summary>
     private struct ChunkInfo
     {
         public GameObject go;
@@ -27,14 +26,17 @@ public class TerrainChunkCuller : MonoBehaviour
     }
 
     private readonly List<ChunkInfo> chunkInfos = new();
+    private List<GameObject> cachedSource;      // 上次构建缓存时的源列表引用（换列表即重建）
     private int cachedChunkCount = -1;
 
     private void LateUpdate()
     {
-        // 列表变化（或首次运行）时重建缓存；运行时在 Inspector 里增删条目也能生效
-        if (chunkInfos.Count != cachedChunkCount || !CachesValid())
+        var source = Tool.LandscapeSpawns != null ? Tool.LandscapeSpawns.terrainChunks : null;
+        if (source == null) return;
+
+        if (!ReferenceEquals(source, cachedSource) || source.Count != cachedChunkCount || !CachesValid())
         {
-            RebuildCache();
+            RebuildCache(source);
         }
 
         float camX = transform.position.x;
@@ -55,17 +57,17 @@ public class TerrainChunkCuller : MonoBehaviour
         }
     }
 
-    private void RebuildCache()
+    private void RebuildCache(List<GameObject> source)
     {
         chunkInfos.Clear();
-        for (int i = 0; i < chunks.Count; i++)
+        for (int i = 0; i < source.Count; i++)
         {
-            var go = chunks[i];
+            var go = source[i];
             if (go == null) continue;
             var terrain = go.GetComponent<Terrain>();
             if (terrain == null || terrain.terrainData == null)
             {
-                Debug.LogWarning($"[TerrainChunkCuller] 列表第 {i} 项 '{go.name}' 没有 Terrain 组件，已跳过", go);
+                Debug.LogWarning($"[TerrainChunkCuller] LandscapeSpawns.terrainChunks 第 {i} 项 '{go.name}' 没有 Terrain 组件，已跳过", go);
                 continue;
             }
 
@@ -80,10 +82,11 @@ public class TerrainChunkCuller : MonoBehaviour
                 active = go.activeSelf,
             });
         }
-        cachedChunkCount = chunks.Count;
+        cachedSource = source;
+        cachedChunkCount = source.Count;
     }
 
-    /// <summary>缓存有效性：任意条目被清空/销毁即失效重建。</summary>
+    /// <summary>缓存有效性：任意条目被销毁即失效重建。</summary>
     private bool CachesValid()
     {
         for (int i = 0; i < chunkInfos.Count; i++)
