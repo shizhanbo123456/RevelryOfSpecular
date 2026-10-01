@@ -19,6 +19,9 @@ public class DamageRangeDebugHost : MonoBehaviour
     public Color sphereColor = new Color(1f, 0.45f, 0.15f);
     public Color capsuleColor = new Color(0.2f, 0.9f, 1f);
 
+    [Tooltip("常驻测试球（原点 r=2，不淡出）。用于验证渲染链路：勾选后 Scene 视图对准世界原点应能看到球")]
+    public bool drawTestShape = false;
+
     private struct Shape
     {
         public bool capsule;
@@ -29,9 +32,15 @@ public class DamageRangeDebugHost : MonoBehaviour
 
     private static readonly List<Shape> shapes = new();
     private const int MaxShapes = 512;
+    private static bool warnedNoInstance;
     private Material lineMaterial;
 
-    private void OnEnable() { Instance = this; }
+    private void OnEnable()
+    {
+        Instance = this;
+        warnedNoInstance = false;
+        Debug.Log("[DamageRangeDebugHost] 已挂载，等待伤害判定数据");
+    }
     private void OnDisable() { if (Instance == this) Instance = null; }
 
     public static void Sphere(Vector3 center, float radius) => Record(false, center, center, radius);
@@ -40,7 +49,16 @@ public class DamageRangeDebugHost : MonoBehaviour
     private static void Record(bool capsule, Vector3 p0, Vector3 p1, float radius)
     {
         var inst = Instance;
-        if (inst == null || !inst.show || radius <= 0f) return;
+        if (inst == null)
+        {
+            if (!warnedNoInstance)
+            {
+                warnedNoInstance = true;
+                Debug.LogWarning("[DamageRangeDebugHost] 有伤害判定调用被丢弃：本场景未挂载 DamageRangeDebugHost");
+            }
+            return;
+        }
+        if (!inst.show || radius <= 0f) return;
         if (shapes.Count >= MaxShapes) shapes.RemoveAt(0);
         shapes.Add(new Shape { capsule = capsule, p0 = p0, p1 = p1, radius = radius, birth = Time.time });
     }
@@ -52,7 +70,8 @@ public class DamageRangeDebugHost : MonoBehaviour
 
     private void OnRenderObject()
     {
-        if (shapes.Count == 0) return;
+        bool hasTest = drawTestShape;
+        if (shapes.Count == 0 && !hasTest) return;
         var cam = Camera.current;
         if (cam == null) return;
         if (lineMaterial == null)
@@ -63,6 +82,12 @@ public class DamageRangeDebugHost : MonoBehaviour
         GL.MultMatrix(cam.worldToCameraMatrix);
         GL.LoadProjectionMatrix(cam.projectionMatrix);
         GL.Begin(GL.LINES);
+        if (hasTest)
+        {
+            var c = Color.green;
+            c.a = 1f;
+            DrawSphereWire(Vector3.zero, 2f, c, 24);
+        }
         int seg = Mathf.Max(6, segments);
         for (int i = 0; i < shapes.Count; i++)
         {
