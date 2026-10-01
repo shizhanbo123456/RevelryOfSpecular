@@ -668,9 +668,25 @@ public class BattlePage : PageBase
         barOwners.Clear();
     }
 
-    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；命中位置有效时显示在命中处（含 1m 水平随机散布），否则回退受击实体头顶。上浮+渐隐+到期销毁。</summary>
+    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；命中位置有效时显示在命中处（含 1m 水平随机散布），否则回退受击实体头顶。上浮+渐隐+到期销毁。相机背后的点不显示（投影会镜像）。</summary>
     private void ShowDamage(int encoded, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
+        Vector3 anchor;
+        if (hasHitPos)
+        {
+            // 1m 范围水平随机散布，避免连续命中的飘字叠在一起
+            Vector2 rand = Random.insideUnitCircle;
+            anchor = hitPos + new Vector3(rand.x, 0f, rand.y);
+        }
+        else if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out anchor) != true)
+        {
+            anchor = Vector3.zero;
+        }
+
+        // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示
+        var cam = Camera.main;
+        if (cam != null && cam.WorldToScreenPoint(anchor).z <= 0f) return;
+
         var label = UI_DamageLabel.CreateInstance();
         if (encoded == 0)
         {
@@ -687,17 +703,6 @@ public class BattlePage : PageBase
             label.m_num_strike.text = (-encoded).ToString();
         }
         Root.AddChild(label);
-        Vector3 anchor;
-        if (hasHitPos)
-        {
-            // 1m 范围水平随机散布，避免连续命中的飘字叠在一起
-            Vector2 rand = Random.insideUnitCircle;
-            anchor = hitPos + new Vector3(rand.x, 0f, rand.y);
-        }
-        else if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out anchor) != true)
-        {
-            anchor = Vector3.zero;
-        }
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
         label.xy = WorldToPanel(anchor) - new Vector2(label.width * 0.5f, 0f);
         damageLabels.Add((label, Time.time));

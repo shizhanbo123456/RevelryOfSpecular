@@ -68,6 +68,17 @@ public partial class BattleManager
         return IsInRadius(viewer.transform.position, target.transform.position, VisionRadius(viewer));
     }
 
+    /// <summary>把战斗事件只发给能看到 target 模型的客户端（伤害飘字用，避免全图广播）。</summary>
+    public void SendBattleEventToViewers(EntityData target, SCBattleEvent e)
+    {
+        foreach (var clientId in PlayerInfoList.Keys)
+        {
+            var viewer = GetEntityOfClient(clientId);
+            if (viewer == null || !CanSeeModel(viewer, target)) continue;
+            Tool.NetworkManager.SendBattleEvent(clientId, e);
+        }
+    }
+
     /// <summary>开始本客户端的可见集合统计（同步循环前调用）。</summary>
     private void BeginClientVisibility(short clientId)
     {

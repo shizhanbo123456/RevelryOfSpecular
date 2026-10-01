@@ -505,19 +505,21 @@ public abstract class EntityData : MonoBehaviour
         if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
-    /// <summary>伤害飘字广播：value 0=无效，>0=普通伤害，<0=暴击（绝对值为伤害量），targetId=受击实体；hitPos 有效时飘字定位在命中位置。</summary>
+    /// <summary>伤害飘字广播：value 0=无效，>0=普通伤害，<0=暴击（绝对值为伤害量），targetId=受击实体；hitPos 有效时飘字定位在命中位置。只发给能看到受击实体的客户端。</summary>
     private void SendDamageEvent(float finalDamage, bool isCrit, Vector3? hitPos)
     {
         int display = Mathf.RoundToInt(finalDamage);
         if (isCrit) display = -display;
-        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        var e = new SCBattleEvent()
         {
             type = SCBattleEvent.Type.Damage,
             value = display,
             targetId = id,
             hasHitPos = hitPos.HasValue,
             hitPos = hitPos ?? Vector3.zero,
-        });
+        };
+        if (Tool.BattleManager != null) Tool.BattleManager.SendBattleEventToViewers(this, e);
+        else Tool.NetworkManager.SendBattleEvent(e);
     }
 
     /// <summary>被击杀回调（KilledEntities 统一处理后调用）。</summary>
