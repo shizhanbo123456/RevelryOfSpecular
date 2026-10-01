@@ -674,8 +674,7 @@ public class BattlePage : PageBase
         var label = UI_DamageLabel.CreateInstance();
         if (encoded == 0)
         {
-            label.m_type.selectedIndex = 2;
-            label.m_num_common.text = "无效";
+            label.m_type.selectedIndex = 2; // 无效文本已在 FGUI 中配置
         }
         else if (encoded > 0)
         {
@@ -685,7 +684,7 @@ public class BattlePage : PageBase
         else
         {
             label.m_type.selectedIndex = 1;
-            label.m_num_strike.text = $"暴击 {-encoded}";
+            label.m_num_strike.text = (-encoded).ToString();
         }
         Root.AddChild(label);
         Vector3 anchor;
