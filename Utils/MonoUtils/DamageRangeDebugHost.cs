@@ -10,6 +10,9 @@ public class DamageRangeDebugHost : MonoBehaviour
     [Tooltip("是否显示")]
     public bool show = true;
 
+    [Tooltip("实心图形（否则线框）")]
+    public bool solid = true;
+
     [Tooltip("单次判定的渲染时长（秒），期间线性淡出")]
     public float duration = 1f;
 
@@ -29,14 +32,8 @@ public class DamageRangeDebugHost : MonoBehaviour
 
     private static readonly List<Shape> shapes = new();
     private const int MaxShapes = 512;
-    private static bool warnedNoInstance;
 
-    private void OnEnable()
-    {
-        Instance = this;
-        warnedNoInstance = false;
-        Debug.Log($"[DamageRangeDebugHost] 已挂载（场景={gameObject.scene.name}, 物体={name}）");
-    }
+    private void OnEnable() { Instance = this; }
     private void OnDisable() { if (Instance == this) Instance = null; }
 
     public static void Sphere(Vector3 center, float radius) => Record(false, center, center, radius);
@@ -45,16 +42,7 @@ public class DamageRangeDebugHost : MonoBehaviour
     private static void Record(bool capsule, Vector3 p0, Vector3 p1, float radius)
     {
         var inst = Instance;
-        if (inst == null)
-        {
-            if (!warnedNoInstance)
-            {
-                warnedNoInstance = true;
-                Debug.LogWarning("[DamageRangeDebugHost] 有伤害判定调用被丢弃：本场景未挂载 DamageRangeDebugHost");
-            }
-            return;
-        }
-        if (!inst.show || radius <= 0f) return;
+        if (inst == null || !inst.show || radius <= 0f) return;
         if (shapes.Count >= MaxShapes) shapes.RemoveAt(0);
         shapes.Add(new Shape { capsule = capsule, p0 = p0, p1 = p1, radius = radius, birth = Time.time });
     }
@@ -62,7 +50,6 @@ public class DamageRangeDebugHost : MonoBehaviour
     private void Update()
     {
         while (shapes.Count > 0 && Time.time - shapes[0].birth >= duration) shapes.RemoveAt(0);
-        if (Time.frameCount % 300 == 0) Debug.Log($"[DamageRangeDebugHost] 运行中 shapes={shapes.Count}");
     }
 
     private void OnDrawGizmos()
@@ -81,20 +68,35 @@ public class DamageRangeDebugHost : MonoBehaviour
             Color c = s.capsule ? capsuleColor : sphereColor;
             c.a *= Mathf.Clamp01(1f - (Time.time - s.birth) / duration);
             Gizmos.color = c;
-            if (s.capsule) DrawCapsuleWire(s.p0, s.p1, s.radius);
+            if (s.capsule) DrawCapsule(s.p0, s.p1, s.radius);
+            else if (solid) Gizmos.DrawSphere(s.p0, s.radius);
             else Gizmos.DrawWireSphere(s.p0, s.radius);
         }
     }
 
-    private static void DrawCapsuleWire(Vector3 p0, Vector3 p1, float radius)
+    private void DrawCapsule(Vector3 p0, Vector3 p1, float radius)
     {
         Vector3 axis = p1 - p0;
         float len = axis.magnitude;
-        if (len < 0.0001f) { Gizmos.DrawWireSphere(p0, radius); return; }
+        if (len < 0.0001f)
+        {
+            if (solid) Gizmos.DrawSphere(p0, radius);
+            else Gizmos.DrawWireSphere(p0, radius);
+            return;
+        }
         axis /= len;
+
+        if (solid)
+        {
+            // 沿轴铺球近似实心胶囊
+            int count = Mathf.Max(2, Mathf.CeilToInt(len / (radius * 0.5f)));
+            for (int i = 0; i <= count; i++)
+                Gizmos.DrawSphere(Vector3.Lerp(p0, p1, i / (float)count), radius);
+            return;
+        }
+
         Vector3 u = Mathf.Abs(axis.y) < 0.99f ? Vector3.Cross(axis, Vector3.up).normalized : Vector3.right;
         Vector3 v = Vector3.Cross(axis, u).normalized;
-
         const int seg = 16;
         for (int end = 0; end < 2; end++)
         {
