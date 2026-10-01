@@ -512,7 +512,7 @@ public class BattlePage : PageBase
         switch (e.type)
         {
             case SCBattleEvent.Type.Damage:
-                ShowDamage(e.value, (ushort)e.targetId);
+                ShowDamage(e.value, (ushort)e.targetId, e.hasHitPos, e.hitPos);
                 break;
             case SCBattleEvent.Type.Kill:
             {
@@ -668,8 +668,8 @@ public class BattlePage : PageBase
         barOwners.Clear();
     }
 
-    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；在受击实体头顶生成，上浮+渐隐+到期销毁。</summary>
-    private void ShowDamage(int encoded, ushort targetId)
+    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；命中位置有效时显示在命中处（含 1m 水平随机散布），否则回退受击实体头顶。上浮+渐隐+到期销毁。</summary>
+    private void ShowDamage(int encoded, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
         string text;
         Color color;
@@ -697,12 +697,19 @@ public class BattlePage : PageBase
         label.m_num.color = color;
         label.m_num.textFormat.size = fontSize;
         Root.AddChild(label);
-        var headPos = Vector3.zero;
-        if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out headPos) == true)
+        Vector3 anchor;
+        if (hasHitPos)
         {
-            //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在受击实体头顶
-            label.xy = WorldToPanel(headPos) - new Vector2(label.width * 0.5f, 0f);
+            // 1m 范围水平随机散布，避免连续命中的飘字叠在一起
+            Vector2 rand = Random.insideUnitCircle;
+            anchor = hitPos + new Vector3(rand.x, 0f, rand.y);
         }
+        else if (Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityHeadPos(targetId, out anchor) != true)
+        {
+            anchor = Vector3.zero;
+        }
+        //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
+        label.xy = WorldToPanel(anchor) - new Vector2(label.width * 0.5f, 0f);
         damageLabels.Add((label, Time.time));
     }
 

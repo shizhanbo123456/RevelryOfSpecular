@@ -1,5 +1,7 @@
 namespace Ros.Transport
 {
+    using UnityEngine;
+
     /// <summary>
     /// 服务器 → 客户端：战斗事件（击杀/拆除守护点/采集水晶/攻占瘟疫树等）。
     /// 客户端据此播放表现与提示，不参与规则判定。
@@ -28,6 +30,10 @@ namespace Ros.Transport
         public int value;
         /// <summary>关联实体 id（Damage 时 = 受击实体，客户端据此定位飘字）。</summary>
         public int targetId;
+        /// <summary>Damage 时 = 命中位置（子弹位置/判定球心），飘字定位优先用它而非实体头顶。</summary>
+        public Vector3 hitPos;
+        /// <summary>hitPos 是否有效（无范围伤害如 DoT 为 false，客户端回退实体头顶定位）。</summary>
+        public bool hasHitPos;
     }
 
     /// <summary>SCBattleEvent 网络序列化器。</summary>
@@ -39,18 +45,24 @@ namespace Ros.Transport
             if (value == null) return true;
             if (!ByteSerializer.Serialize(value.type, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.value, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.targetId, result, ref indexStart);
+            if (!IntSerializer.Serialize(value.targetId, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.hasHitPos, result, ref indexStart)) return false;
+            if (value.hasHitPos && !Vector3Serializer.Serialize(value.hitPos, result, ref indexStart)) return false;
+            return true;
         }
 
         public static SCBattleEvent Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            return new SCBattleEvent()
+            var e = new SCBattleEvent()
             {
                 type = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 value = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 targetId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
+            e.hasHitPos = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            if (e.hasHitPos) e.hitPos = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
+            return e;
         }
     }
 }
