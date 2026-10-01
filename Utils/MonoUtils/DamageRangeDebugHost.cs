@@ -39,10 +39,24 @@ public class DamageRangeDebugHost : MonoBehaviour
     {
         Instance = this;
         warnedNoInstance = false;
-        Debug.Log("[DamageRangeDebugHost] 已挂载，等待伤害判定数据");
+        heartbeatLeft = 3;
+        Debug.Log($"[DamageRangeDebugHost] 已挂载（场景={gameObject.scene.name}, 物体={name}），等待伤害判定数据");
     }
     private void OnDisable() { if (Instance == this) Instance = null; }
 
+    private int heartbeatLeft;
+
+    private void Update()
+    {
+        while (shapes.Count > 0 && Time.time - shapes[0].birth >= duration) shapes.RemoveAt(0);
+
+        // 心跳：前 15 秒每 5 秒报一次存活与缓存形状数，确认组件确实在服务器进程中运行
+        if (heartbeatLeft > 0 && Time.frameCount % 300 == 0)
+        {
+            heartbeatLeft--;
+            Debug.Log($"[DamageRangeDebugHost] 运行中 shapes={shapes.Count}");
+        }
+    }
     public static void Sphere(Vector3 center, float radius) => Record(false, center, center, radius);
     public static void Capsule(Vector3 p0, Vector3 p1, float radius) => Record(true, p0, p1, radius);
 
@@ -61,11 +75,6 @@ public class DamageRangeDebugHost : MonoBehaviour
         if (!inst.show || radius <= 0f) return;
         if (shapes.Count >= MaxShapes) shapes.RemoveAt(0);
         shapes.Add(new Shape { capsule = capsule, p0 = p0, p1 = p1, radius = radius, birth = Time.time });
-    }
-
-    private void Update()
-    {
-        while (shapes.Count > 0 && Time.time - shapes[0].birth >= duration) shapes.RemoveAt(0);
     }
 
     private void OnRenderObject()
