@@ -273,7 +273,7 @@ namespace Ros.Skill
 
         /// <summary>把实际效果挂到动画攻击帧；返回 true 表示已在等待，调用方不要再立即执行。
         /// 仅武器类攻击动画会拿起 HoldWeapon（未重写 = None 不持有），随动画事件包下发。</summary>
-        protected static bool WaitAttackFrame(EntityData entity, EntityAnim.AttackType castAnim, System.Action onFrame)
+        protected bool WaitAttackFrame(EntityData entity, EntityAnim.AttackType castAnim, System.Action onFrame)
         {
             if (entity.anim == null) return false;
             if (castAnim == EntityAnim.AttackType.Attack_Weapon_R
