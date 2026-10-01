@@ -40,7 +40,7 @@ public class AnimAttackEvent : AnimEvent
         base.OnStateExit(animator, stateInfo, layerIndex);
         if (data == null) return;
         if (!main) return;
-        if (data != null) data.heldWeapon = WeaponRef.None; //攻击动作结束切回空手
+        // 手持武器不在此清除：发包时按当前动画状态解析（非武器类攻击 = 空手），残留值不会发给客户端
     }
     private void OnAttack()
     {

@@ -552,8 +552,6 @@ public abstract class EntityData : MonoBehaviour
             yaw = transform.eulerAngles.y,
             health = floatingAttribute != null ? (int)floatingAttribute.health : 0,   // 当前生命值
             maxHealth = baseAttribute != null ? (int)baseAttribute.health : 0,        // 生命值上限
-            weaponCategory = (int)heldWeapon.category,
-            weaponIndex = heldWeapon.index,
         };
         if (effectController != null) effectController.FillDisplayInfo(info);
         if (skillController != null) skillController.FillDisplayInfo(info);

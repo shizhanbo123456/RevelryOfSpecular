@@ -24,6 +24,10 @@ namespace Ros.Transport
         public float moveSpeedScale = 1f;
         /// <summary>是否被强控暂停（true = 动画播放速度置 0）。</summary>
         public bool paused;
+        /// <summary>手持武器类别（仅武器类攻击动画期间有效，其余状态 = None；与动画状态同包保证不与动画错序）。</summary>
+        public int heldWeaponCategory;
+        /// <summary>手持武器下标。</summary>
+        public int heldWeaponIndex = -1;
     }
 
     /// <summary>SCEntityAnimInfo 网络序列化器。</summary>
@@ -39,13 +43,14 @@ namespace Ros.Transport
             if (!AnimParamPackSerializer.Serialize(value.animParams, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.moveSpeedScale, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.paused, result, ref indexStart)) return false;
-            return true;
+            if (!IntSerializer.Serialize(value.heldWeaponCategory, result, ref indexStart)) return false;
+            return IntSerializer.Serialize(value.heldWeaponIndex, result, ref indexStart);
         }
 
         public static SCEntityAnimInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            return new SCEntityAnimInfo()
+            var info = new SCEntityAnimInfo()
             {
                 entityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 animId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -54,6 +59,9 @@ namespace Ros.Transport
                 moveSpeedScale = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 paused = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
+            info.heldWeaponCategory = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            info.heldWeaponIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            return info;
         }
     }
 }

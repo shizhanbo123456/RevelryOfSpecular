@@ -47,7 +47,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var tower = NearestIn(BattleManager.EntityContainer.Towers, entity.transform.position,
+            var tower = SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (tower != null) context.AddInts(tower.id);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
@@ -85,7 +85,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var crystal = NearestIn(BattleManager.EntityContainer.Crystals, entity.transform.position,
+            var crystal = SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (crystal != null) context.AddInts(crystal.id);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
@@ -120,7 +120,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllIn(BattleManager.EntityContainer.Towers); // 全场防御塔
+            SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
@@ -205,7 +205,7 @@ namespace Ros.Skill
         {
             var caster = Caster(context);
             if (caster == null) return;
-            AllInCamp(caster.camp); // 己方全体
+            SetEntitiesInCampToBuffer(caster.camp); // 己方全体
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 GiveEffect(TargetBuffer[i], EffectType.AttrViewDistance, 1, Config.buff_duration_buff,
@@ -356,7 +356,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            EnemiesIn(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
@@ -390,7 +390,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllInCamp(HostileOf(entity.camp)); // 全场敌方
+            SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全场敌方
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
@@ -424,7 +424,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllIn(BattleManager.EntityContainer.Beacons); // 所有守护点
+            SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
@@ -461,7 +461,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            EnemiesIn(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
@@ -508,7 +508,7 @@ namespace Ros.Skill
         {
             var caster = Caster(context);
             // 「矿石」即可采集水晶：直接造成巨量伤害 = 击败水晶，走概率产出流程
-            InRange(BattleManager.EntityContainer.Crystals,
+            SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
                 caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
@@ -532,7 +532,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             // 目标 = 全场带「瘟疫标记」的敌人
-            AllInCamp(HostileOf(entity.camp));
+            SetEntitiesInCampToBuffer(HostileOf(entity.camp));
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 var marked = TargetBuffer[i];
@@ -658,7 +658,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            AllInCamp(HostileOf(entity.camp)); // 全体敌方
+            SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全体敌方
             AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {

@@ -33,10 +33,6 @@ namespace Ros.Transport
         public int health;
         /// <summary>最大生命。</summary>
         public int maxHealth;
-        /// <summary>手上临时握着的武器类别（WeaponCategory；0 = 无）。仅近战类技能期间有值，攻击动作结束清空。</summary>
-        public int weaponCategory;
-        /// <summary>手上临时握着的武器在该类别列表中的下标（-1 = 无）。</summary>
-        public int weaponIndex = -1;
         /// <summary>最近触发槽位下标（键盘槽位直触）（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;
         /// <summary>所属客户端 id（非玩家实体 = -1；客户端据此显示玩家名字）。</summary>
@@ -88,8 +84,6 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.weaponCategory, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.weaponIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
@@ -139,8 +133,6 @@ namespace Ros.Transport
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                weaponCategory = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                weaponIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };

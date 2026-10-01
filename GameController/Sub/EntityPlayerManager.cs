@@ -245,6 +245,7 @@ public class EntityPlayerManager : ClientSubManager
         if (view.anim != null) view.anim.ApplyParamPack(info.animParams);
         if (view.anim != null) view.anim.SetMoveSpeedScale(info.moveSpeedScale);
         if (view.anim != null) view.anim.SetPaused(info.paused); // 强控期间置 0：与服务器一致地冻结动画
+        ApplyHeldWeapon(view, info.heldWeaponCategory, info.heldWeaponIndex); // 手持武器随动画事件同步（仅武器类攻击动画期间有值）
 
         // -1 = "未进入任何状态"哨兵；fullPathHash 是路径哈希、可能为负，不能用 > 0 判有效
         if (view.animator != null && info.animId != -1 && info.animId != view.animHash)
@@ -352,7 +353,7 @@ public class EntityPlayerManager : ClientSubManager
         return view;
     }
 
-    /// <summary>手上武器：近战类技能期间武器从悬浮位置到手部，攻击动作结束由服务器清空</summary>
+    /// <summary>手上武器：随动画事件包下发，仅武器类攻击动画期间有值（其余状态 = None 空手）</summary>
     private void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
     {
         var weapon = new WeaponRef((WeaponCategory)weaponCategory, weaponIndex);
@@ -454,8 +455,7 @@ public class EntityPlayerManager : ClientSubManager
         view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
-        ApplyHeldWeapon(view, info.weaponCategory, info.weaponIndex); // 手上武器（近战类）按服务器下发
-        ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算
+        ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
 
         // 动画不在本（高频）包里：状态切换、参数、播放速度一律由动画事件驱动（见 OnEntityAnim）。
         // 这里的代价要知道：客户端一旦自己转离了服务器的状态，只能等服务器下一次状态变化才被纠正。

@@ -165,6 +165,19 @@ public class EntityAnim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 发包时解析当前应显示的手持武器：仅武器类攻击动画期间持有（serverHeld 为施放时记录值，
+    /// 允许残留——非武器类攻击 / 非攻击状态一律返回 None），与动画状态同包下发保证不与动画错序。
+    /// </summary>
+    public WeaponRef GetDisplayHeldWeapon(WeaponRef serverHeld)
+    {
+        bool weaponAttack = CurrentState == AnimState.Attack
+            && paramPack.attackId is (int)AttackType.Attack_Weapon_R
+                or (int)AttackType.Attack_Weapon_L
+                or (int)AttackType.Attack_Weapon_R_And_L;
+        return weaponAttack && serverHeld.IsValid ? serverHeld : WeaponRef.None;
+    }
+
     #region//设置速度
     private float PlaybackSpeed => paused ? 0f : speed;
     public void SetVelocityForward(float speed)

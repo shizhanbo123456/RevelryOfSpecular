@@ -835,6 +835,7 @@ public partial class BattleManager : EnsBehaviour
     private void SendEntityAnim(short clientId, EntityData entity)
     {
         entity.anim.GetDisplayAnim(out int animId, out float frame);
+        var held = entity.anim.GetDisplayHeldWeapon(entity.heldWeapon); // 按当前动画状态解析手持武器（非武器类攻击 = 空手）
         Tool.NetworkManager.SendEntityAnim(clientId, new SCEntityAnimInfo()
         {
             entityId = entity.id,
@@ -843,6 +844,8 @@ public partial class BattleManager : EnsBehaviour
             animParams = entity.anim.GetParamPack(),
             moveSpeedScale = entity.anim.MoveSpeedScale,
             paused = entity.anim.Paused,
+            heldWeaponCategory = (int)held.category,
+            heldWeaponIndex = held.index,
         });
     }
 

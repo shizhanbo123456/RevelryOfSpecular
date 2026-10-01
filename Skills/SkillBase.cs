@@ -1,6 +1,7 @@
+using Ros.Transport;
 using System;
 using System.Collections.Generic;
-using Ros.Transport;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Ros.Skill
@@ -38,17 +39,7 @@ namespace Ros.Skill
         //客户端主入口，用于表现特效
         public abstract void PlayVFX(SkillContext context);
 
-        /// <summary>
-        /// 服务器：广播"使用技能"RPC（技能 id + 轨迹上下文），客户端据此重建轨迹播放表现。
-        /// </summary>
-        protected static void BroadcastSkillCast(int skillId, SkillContext context)
-        {
-            if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
-        }
-
         #region 通用工具（服务端/客户端共用，保证伤害与特效一致）
-        /// <summary>服务器：为手部赋值武器（表现随实体摘要同步给客户端）。</summary>
-        protected static void SetHeldWeapon(EntityData entity, WeaponRef weapon) => entity.heldWeapon = weapon;
 
         /// <summary>以 pos→dest 为基准方向生成扇形终点（水平展开 spreadDeg）。</summary>
         protected static Vector3[] FanDests(Vector3 pos, Vector3 dest, int count, float spreadDeg)
@@ -90,12 +81,6 @@ namespace Ros.Skill
             return pos + dir * Vector3.Distance(pos, dest);
         }
 
-        /// <summary>默认目标点：面前 distance 米。</summary>
-        protected static Vector3 DefaultDest(EntityData entity, float distance)
-        {
-            return entity.transform.position + entity.transform.forward * distance;
-        }
-
         /// <summary>最近敌人（范围内）。</summary>
         protected static EntityData GetNearestEnemy(EntityData entity, float radius = 10f)
         {
@@ -111,7 +96,7 @@ namespace Ros.Skill
         }
 
         /// <summary>全场指定阵营的存活实体（camp 可传掩码，命中掩码内任一位即算；不限距离，写 TargetBuffer）。</summary>
-        protected static void AllInCamp(EntityCamp camp)
+        protected static void SetEntitiesInCampToBuffer(EntityCamp camp)
         {
             TargetBuffer.Clear();
             foreach (var e in BattleManager.EntityContainer.Entities)
@@ -121,7 +106,7 @@ namespace Ros.Skill
         }
 
         /// <summary>全场指定类别的存活实体（如所有防御塔 / 守护点，写 TargetBuffer）。</summary>
-        protected static void AllOfCategory(EntityCategory category)
+        protected static void SetEntitiesOfCategoryToBuffer(EntityCategory category)
         {
             TargetBuffer.Clear();
             foreach (var e in BattleManager.EntityContainer.Entities)
@@ -134,7 +119,7 @@ namespace Ros.Skill
         protected static EntityCamp HostileOf(EntityCamp camp) => EntityCampUtil.HostileOf(camp);
 
         /// <summary>把实体分桶（Towers / Crystals / Beacons 等）里的存活实体全部写入 TargetBuffer。</summary>
-        protected static void AllIn(IEnumerable<EntityData> bucket)
+        protected static void SetEntitiesToBuffer(IEnumerable<EntityData> bucket)
         {
             TargetBuffer.Clear();
             foreach (var e in bucket)
@@ -144,7 +129,7 @@ namespace Ros.Skill
         }
 
         /// <summary>把实体分桶里范围内的存活实体写入 TargetBuffer（不限阵营）。</summary>
-        protected static void InRange(IEnumerable<EntityData> bucket, Vector3 pos, float radius)
+        protected static void SetEntitiesInRangeToBuffer(IEnumerable<EntityData> bucket, Vector3 pos, float radius)
         {
             TargetBuffer.Clear();
             float sqr = radius * radius;
@@ -155,7 +140,7 @@ namespace Ros.Skill
         }
 
         /// <summary>从实体分桶里取范围内最近的一个（排除 excludeId）。</summary>
-        protected static EntityData NearestIn(IEnumerable<EntityData> bucket, Vector3 pos, float radius,
+        protected static EntityData SelectNearest(IEnumerable<EntityData> bucket, Vector3 pos, float radius,
             ushort excludeId = 0)
         {
             EntityData best = null;
@@ -174,7 +159,7 @@ namespace Ros.Skill
         }
 
         /// <summary>范围内所有敌方实体写入 TargetBuffer（敌方 = ownCamp 的敌对阵营掩码）。</summary>
-        protected static void EnemiesIn(Vector3 center, float radius, EntityCamp ownCamp)
+        protected static void SetEnemiesInRangeToBuffer(Vector3 center, float radius, EntityCamp ownCamp)
         {
             TargetBuffer.Clear();
             EntityCamp hostile = EntityCampUtil.HostileOf(ownCamp);
@@ -197,15 +182,32 @@ namespace Ros.Skill
         /// 默认瞄准点：攻击者视野内最近的敌人，没有则正前方 Config.default_forward_aim_distance 米。
         /// 索敌半径 = 实体可见距离（未配置则用全局索敌半径）。要别的索敌逻辑的技能自行覆写。
         /// </summary>
-        protected virtual Vector3 AimPos(EntityData entity)
+        protected virtual Vector3 AimPos(EntityData entity, bool normalizeDistance = true, bool forceHorizontal = true)
         {
-            float view = entity.floatingAttribute != null && entity.floatingAttribute.viewDistance > 0f
-                ? entity.floatingAttribute.viewDistance
-                : Config.default_skill_auto_target_radius;
+            float view = entity.floatingAttribute.viewDistance;
             var target = GetNearestEnemy(entity, view);
-            return target != null
-                ? target.transform.position
-                : DefaultDest(entity, Config.default_forward_aim_distance);
+            if (target == null)
+            {
+                return entity.transform.position + entity.transform.forward * Config.default_forward_aim_distance;
+            }
+            else
+            {
+                if (normalizeDistance)
+                {
+                    var offset = target.transform.position - entity.transform.position;
+                    if(forceHorizontal)
+                        offset.y = 0;
+                    Vector3 dir = offset.normalized;
+                    return entity.transform.position + dir * Config.default_forward_aim_distance;
+                }
+                else
+                {
+                    var dest = target.transform.position;
+                    if(forceHorizontal)
+                        dest.y = entity.transform.position.y;
+                    return dest;
+                }
+            }
         }
         #endregion
 
@@ -269,10 +271,17 @@ namespace Ros.Skill
             return context;
         }
 
-        /// <summary>把实际效果挂到动画攻击帧；返回 true 表示已在等待，调用方不要再立即执行。</summary>
+        /// <summary>把实际效果挂到动画攻击帧；返回 true 表示已在等待，调用方不要再立即执行。
+        /// 仅武器类攻击动画会拿起 HoldWeapon（未重写 = None 不持有），随动画事件包下发。</summary>
         protected static bool WaitAttackFrame(EntityData entity, EntityAnim.AttackType castAnim, System.Action onFrame)
         {
             if (entity.anim == null) return false;
+            if (castAnim == EntityAnim.AttackType.Attack_Weapon_R
+                || castAnim == EntityAnim.AttackType.Attack_Weapon_L
+                || castAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
+            {
+                entity.heldWeapon = HoldWeapon;
+            }
             entity.anim.onAttack = _ => onFrame();
             entity.anim.DoAttack(castAnim);
             return true;
