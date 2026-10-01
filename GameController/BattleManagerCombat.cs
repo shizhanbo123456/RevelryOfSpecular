@@ -66,6 +66,7 @@ public partial class BattleManager
     private void TryHitBullet(Bullet b, Vector3 pos)
     {
         var attack = b.attack;
+        DamageRangeDebug.Capsule(b.LastPosition, pos, attack.radius); // 调试：可视化本次胶囊伤害判定范围（渐隐渲染）
         int count = EntityPhysics.OverlapCapsule(b.LastPosition, pos, attack.radius, s_bulletBuffer);
         for (int i = 0; i < count; i++)
         {
