@@ -671,31 +671,22 @@ public class BattlePage : PageBase
     /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；命中位置有效时显示在命中处（含 1m 水平随机散布），否则回退受击实体头顶。上浮+渐隐+到期销毁。</summary>
     private void ShowDamage(int encoded, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
-        string text;
-        Color color;
-        int fontSize;
+        var label = UI_DamageLabel.CreateInstance();
         if (encoded == 0)
         {
-            text = "无效";
-            color = new Color(0.7f, 0.7f, 0.7f);
-            fontSize = 14;
+            label.m_type.selectedIndex = 2;
+            label.m_num_common.text = "无效";
         }
         else if (encoded > 0)
         {
-            text = encoded.ToString();
-            color = Color.white;
-            fontSize = 18;
+            label.m_type.selectedIndex = 0;
+            label.m_num_common.text = encoded.ToString();
         }
         else
         {
-            text = $"暴击 {-encoded}";
-            color = new Color(1f, 0.62f, 0.28f);
-            fontSize = 22;
+            label.m_type.selectedIndex = 1;
+            label.m_num_strike.text = $"暴击 {-encoded}";
         }
-        var label = UI_DamageLabel.CreateInstance();
-        label.m_num.text = text;
-        label.m_num.color = color;
-        label.m_num.textFormat.size = fontSize;
         Root.AddChild(label);
         Vector3 anchor;
         if (hasHitPos)
