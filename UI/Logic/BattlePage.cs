@@ -439,10 +439,22 @@ public class BattlePage : PageBase
         }
         var mapBase = panel.m_Minimap?.m_mapBase;
         if (mapBase == null) return;
+
+        // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出即移除点位）
+        bool hasSelf = NetworkManager.battleInfo != null
+            && Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityPosition(
+                (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos) == true;
+        float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
+
         var seen = new HashSet<ushort>();
         foreach (var entity in info.entities)
         {
             if (entity == null) continue;
+            if (hasSelf)
+            {
+                float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
+                if (dx * dx + dz * dz > cullRadiusSq) continue; // 超出显示半径：不显示（下方对照会移除已有点位）
+            }
             seen.Add(entity.entityId);
             if (!minimapItems.TryGetValue(entity.entityId, out var item))
             {
