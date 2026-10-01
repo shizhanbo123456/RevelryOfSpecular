@@ -441,9 +441,13 @@ public class BattlePage : PageBase
         if (mapBase == null) return;
 
         // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出即移除点位）
-        bool hasSelf = NetworkManager.battleInfo != null
-            && Tool.ClientLogicManager?.EntityPlayers?.TryGetEntityPosition(
-                (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos) == true;
+        bool hasSelf = false;
+        Vector3 myPos = Vector3.zero;
+        if (NetworkManager.battleInfo != null && Tool.ClientLogicManager?.EntityPlayers != null)
+        {
+            hasSelf = Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
+                (ushort)NetworkManager.battleInfo.playerEntityId, out myPos);
+        }
         float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
 
         var seen = new HashSet<ushort>();
