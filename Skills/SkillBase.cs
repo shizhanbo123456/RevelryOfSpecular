@@ -359,7 +359,7 @@ namespace Ros.Skill
         /// <summary>球判定结算：对球内敌方各结算一次（跳过自己与非敌对阵营），命中附加效果与命中回调同样生效。</summary>
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
-            DamageRangeDebug.Sphere(center, radius); // 调试：可视化本次球形伤害判定范围（渐隐渲染）
+            DamageRangeDebugHost.Sphere(center, radius); // 调试：可视化本次球形伤害判定范围（渐隐渲染）
             int count = EntityPhysics.OverlapSphere(center, radius, s_hitBuffer);
             for (int i = 0; i < count; i++)
             {
