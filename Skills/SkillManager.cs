@@ -60,7 +60,7 @@ public static class SkillManager
     /// <summary>技能对应的漂浮武器（客户端常驻漂浮显示用；无武器返回 <see cref="WeaponRef.None"/>）。</summary>
     public static WeaponRef GetFlyWeapon(int id)
     {
-        return s_map.TryGetValue(id, out var skill) ? skill.FlyWeapon : WeaponRef.None;
+        return s_map.TryGetValue(id, out var skill) ? skill.Weapon : WeaponRef.None;
     }
 
     /// <summary>表现侧（客户端执行，收到"使用技能"RPC 后调用）。</summary>

@@ -78,7 +78,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 1f;
         public override int Store => 15;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 0);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -97,7 +97,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 2f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 1);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -120,7 +120,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 2);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -139,7 +139,7 @@ namespace Ros.Skill
         public override int Id => 3;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 3);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -162,7 +162,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 8f;
         public override int Store => 5;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 4);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -182,7 +182,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 10f;
         public override int Store => 3;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 5);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -209,7 +209,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 3f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 6);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -229,7 +229,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 12f;
         public override int Store => 4;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 7);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Point, AimPos(entity));
@@ -257,7 +257,7 @@ namespace Ros.Skill
         public override int Id => 8;
         public override float CD => 10f;
         public override int Store => 4;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 8);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 8);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -285,7 +285,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 9);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 9);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -310,8 +310,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 4f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Knife, 10);
-        public override WeaponRef HoldWeapon => new WeaponRef(WeaponCategory.Knife, 10); // 近战：释放期间拿到手上
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -336,7 +335,7 @@ namespace Ros.Skill
         public override float CastRange => 8f;
         public override float CD => 1.5f;
         public override int Store => 15;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 0);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -359,7 +358,7 @@ namespace Ros.Skill
         public override float CastRange => 8f;
         public override float CD => 4f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 1);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -378,7 +377,7 @@ namespace Ros.Skill
         public override float CastRange => 8f;
         public override float CD => 10f;
         public override int Store => 3;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 2);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.SkyFall, AimPos(entity));
@@ -401,7 +400,7 @@ namespace Ros.Skill
         public override float CastRange => 8f;
         public override float CD => 12f;
         public override int Store => 4;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 3);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Point, AimPos(entity));
@@ -425,7 +424,7 @@ namespace Ros.Skill
         public override int Id => 15;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 4);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -448,8 +447,7 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 5);
-        public override WeaponRef HoldWeapon => new WeaponRef(WeaponCategory.Spear, 5);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -471,7 +469,7 @@ namespace Ros.Skill
         public override int Id => 17;
         public override float CD => 20f;
         public override int Store => 2;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 6);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Point, AimPos(entity));
@@ -501,7 +499,7 @@ namespace Ros.Skill
         public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 3;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Spear, 7);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.SkyFall,
@@ -527,7 +525,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 0.5f;
         public override int Store => 20;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 0);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -546,7 +544,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 15;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 1);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -566,7 +564,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 2);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -585,7 +583,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 3.5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 3);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Bezier, AimPos(entity));
@@ -608,7 +606,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 4);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -637,7 +635,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 5);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -662,7 +660,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 6);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -687,7 +685,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 6f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 7);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Bezier, AimPos(entity));
@@ -713,7 +711,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 8);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -737,7 +735,7 @@ namespace Ros.Skill
         public override int Id => 28;
         public override float CD => 8f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 9);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 9);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -778,7 +776,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 8f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 10);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Bezier, AimPos(entity));
@@ -800,7 +798,7 @@ namespace Ros.Skill
         public override int Id => 30;
         public override float CD => 12f;
         public override int Store => 4;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 11);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 11);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -824,7 +822,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 10f;
         public override int Store => 5;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 12);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -843,7 +841,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 15f;
         public override int Store => 3;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 13);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 13);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -863,7 +861,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 20f;
         public override int Store => 1;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.Gun, 14);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 14);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -895,7 +893,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 0.6f;
         public override int Store => 20;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -915,7 +913,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Bezier, AimPos(entity));
@@ -939,7 +937,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -964,7 +962,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 2.5f;
         public override int Store => 12;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -984,7 +982,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 4f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -1010,7 +1008,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.SkyFall, AimPos(entity));
@@ -1034,7 +1032,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 6);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -1072,7 +1070,7 @@ namespace Ros.Skill
         public override int Id => 41;
         public override float CD => 10f;
         public override int Store => 8;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 7);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -1102,7 +1100,7 @@ namespace Ros.Skill
         public override int Id => 42;
         public override float CD => 10f;
         public override int Store => 8;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 8);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 8);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -1126,7 +1124,7 @@ namespace Ros.Skill
         public override int Id => 43;
         public override float CD => 10f;
         public override int Store => 8;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Point, AimPos(entity));
@@ -1155,7 +1153,7 @@ namespace Ros.Skill
         public override float CastRange => 3f;
         public override float CD => 10f;
         public override int Store => 6;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line,
@@ -1181,7 +1179,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 10f;
         public override int Store => 5;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.SkyFall, AimPos(entity));
@@ -1206,7 +1204,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 8;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Bezier, AimPos(entity));
@@ -1226,7 +1224,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 20f;
         public override int Store => 3;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 13);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 13);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.SkyFall,
@@ -1251,7 +1249,7 @@ namespace Ros.Skill
         public override float CastRange => 15f;
         public override float CD => 15f;
         public override int Store => 4;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 14);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 14);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Line, AimPos(entity));
@@ -1275,7 +1273,7 @@ namespace Ros.Skill
         public override int Id => 49;
         public override float CD => 20f;
         public override int Store => 2;
-        public override WeaponRef FlyWeapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, ProjectilePattern.Point, AimPos(entity));

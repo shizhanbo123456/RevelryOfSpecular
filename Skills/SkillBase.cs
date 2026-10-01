@@ -25,8 +25,7 @@ namespace Ros.Skill
         /// </summary>
         public virtual float CastRange => 0f;
 
-        public virtual WeaponRef HoldWeapon => WeaponRef.None;
-        public virtual WeaponRef FlyWeapon => WeaponRef.None;
+        public virtual WeaponRef Weapon => WeaponRef.None;
 
         //服务器使用技能主入口，内部生成上下文，并根据上下文生成轨迹发射子弹，并传出Context给客户端
         public abstract SkillContext SkillLogic(EntityData entity);
@@ -256,7 +255,7 @@ namespace Ros.Skill
         /// <summary>服务器发射点：有飞行武器用本技能槽位的悬浮武器位置，否则用通用发射点。</summary>
         protected Vector3 ShootPos(EntityData entity)
         {
-            if (!FlyWeapon.IsValid) return entity.BulletShootPos();
+            if (!Weapon.IsValid) return entity.BulletShootPos();
             int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
             return entity.GetWeaponFloatPos(slot < 0 ? 0 : slot);
         }
@@ -280,7 +279,7 @@ namespace Ros.Skill
                 || castAnim == EntityAnim.AttackType.Attack_Weapon_L
                 || castAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
             {
-                entity.heldWeapon = HoldWeapon;
+                entity.heldWeapon = Weapon;
             }
             entity.anim.onAttack = _ => onFrame();
             entity.anim.DoAttack(castAnim);
@@ -469,7 +468,7 @@ namespace Ros.Skill
             switch (kind)
             {
                 case SkillVfxKind.Weapon:
-                    Tool.VfxManager.PlayWeaponVFX(FlyWeapon, trajectory);
+                    Tool.VfxManager.PlayWeaponVFX(Weapon, trajectory);
                     break;
                 case SkillVfxKind.Bullet when index >= 0:
                     Tool.VfxManager.PlayBulletVFX(index, trajectory);
