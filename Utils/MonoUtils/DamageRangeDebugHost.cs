@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>伤害判定范围可视化：挂到场景任意物体（如相机）。判定处调用 Sphere/Capsule，形状渲染 duration 秒并线性淡出。</summary>
+/// <summary>伤害判定范围可视化（仅 Editor）：挂到场景任意物体（如相机）。判定处调用 Sphere/Capsule，形状渲染 duration 秒并线性淡出。</summary>
+#if UNITY_EDITOR
 public class DamageRangeDebugHost : MonoBehaviour
 {
     public static DamageRangeDebugHost Instance { get; private set; }
@@ -131,3 +132,4 @@ public class DamageRangeDebugHost : MonoBehaviour
         return new Vector3(0f, cos, sin);
     }
 }
+#endif
