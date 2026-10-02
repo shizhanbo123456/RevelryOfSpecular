@@ -47,7 +47,7 @@
 | Lobby | join 按钮 / AI ± | CSRoomUpdate 上报 |
 | Battle | OnEntityDisplayUpdate | 技能栏整表重渲染、m_PlayerBar、守护点 4 条 |
 | Battle | SCBattleEvent.Damage | DamageLabel（受击实体头顶，世界→屏幕→GRoot 坐标） |
-| Battle | OnMinimapUpdate | MinimapItem 按 10 档位显示/移除 |
+| Battle | OnMinimapUpdate | MinimapItem 按 10 档位显示；超时未更新（离屏/夜间停传）或超显示半径时由客户端移除，不每帧清空 |
 | Battle | OnScoreUpdate（仅终局一次） | BattleResult.Show + m_t0.Play + 5s 自动关闭 |
 | Battle | Tick 逐帧 | 时间推演 + 昼夜图标旋转 + EntityBar/名牌跟随 |
 | 全局 | OnConnect/OnBattleStart/OnRestartGame | UIManager 统一切页 |
