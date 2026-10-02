@@ -86,7 +86,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1f, 0.45f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1f, 0.45f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39 });
     }
 
@@ -105,7 +105,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.9f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.2f, 0.45f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.2f, 0.45f));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Weapon, null);
@@ -129,7 +129,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.6f, 0.5f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.6f, 0.5f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 41 });
     }
 
@@ -149,10 +149,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster != null) caster.SetMotion(new MotionDash(0.4f, 10f)); // 冲锋位移（速度积分，不瞬移）
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, GetCasterId(context)); // BF28
     }
 
     /// <summary>旋风斩（id 4）：环形八道剑气 · B40。</summary>
@@ -171,7 +171,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.8f, 0.5f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.8f, 0.5f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 40 });
     }
 
@@ -192,7 +192,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 2.2f, 0.5f, breakEndure: true,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -218,7 +218,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.3f, 0.45f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.3f, 0.45f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 40, 41 });
     }
 
@@ -239,9 +239,9 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 1.5f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
-            StrikeSphere(caster, Dest(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
+            StrikeSphere(caster, GetShotDestination(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
                 addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
         public override void PlayVFX(SkillContext context)
@@ -268,7 +268,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[1], 20f)); // 位移到目标点
         }
         public override void PlayVFX(SkillContext context)
@@ -296,7 +296,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, context.vectors[1], 1.2f, BuildAttack(caster, 2f, 1.2f));
         }
         public override void PlayVFX(SkillContext context)
@@ -320,10 +320,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster), 0.6f, BuildAttack(caster, 1.4f, 0.6f));
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Bullet, 40, CasterId(context));
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Bullet, 40, GetCasterId(context));
     }
     #endregion
 
@@ -343,7 +343,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 1f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.2f, 0.45f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.2f, 0.45f));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Weapon, null);
@@ -366,7 +366,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.6f, 0.5f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.6f, 0.5f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 51 });
     }
 
@@ -385,7 +385,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.9f, 0.8f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.9f, 0.8f));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Weapon, null);
@@ -410,9 +410,9 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 1.5f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
-            StrikeSphere(caster, Dest(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
+            StrikeSphere(caster, GetShotDestination(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
                 addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
@@ -434,10 +434,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster != null) caster.SetMotion(new MotionDash(0.3f, 12f)); // 突进位移
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, GetCasterId(context)); // BF28
     }
 
     /// <summary>横扫千军（id 16）：大范围近战球判定 + 纯物理击退（清单约定无特效）。</summary>
@@ -457,7 +457,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster), 0.9f, BuildAttack(caster, 1.5f, 0.9f, knockback: 3f));
         }
         public override void PlayVFX(SkillContext context) { } // 无特效
@@ -479,10 +479,10 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(Dest(context, 0), 3f, caster.camp, TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 GiveEffect(TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
@@ -508,7 +508,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 2.4f, 0.7f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 2.4f, 0.7f));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 47 });
@@ -533,7 +533,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1f, 0.4f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1f, 0.4f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42 });
     }
 
@@ -553,7 +553,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.2f, 0.4f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.2f, 0.4f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42, 43, 44 });
     }
 
@@ -572,7 +572,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.5f, 0.4f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.5f, 0.4f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
@@ -591,7 +591,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 2f, 1f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 2f, 1f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }
 
@@ -616,7 +616,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ShootAll(caster, context,
                 BuildAttack(caster, 1.2f, 0.4f, addEffect: Burn(caster != null ? caster.id : (ushort)0)));
         }
@@ -645,7 +645,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -670,7 +670,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -695,7 +695,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 1f,
                 addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
@@ -721,7 +721,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.6f, 0.45f,
                 addEffect: ApplyEffect(EffectType.AnimSlowDown, 1, Config.buff_duration_debuff, negative: true, sourceId: casterId)));
@@ -742,19 +742,19 @@ namespace Ros.Skill
             context.AddInts(entity.id);
             var ally = GetNearestAlly(entity);
             context.AddInts(ally != null ? ally.id : entity.id); // 目标（无友方时指向自己）
-            context.AddVectors(ShootPos(entity), ally != null ? ally.transform.position : entity.transform.position);
+            context.AddVectors(GetWeaponFloatPosition(entity), ally != null ? ally.transform.position : entity.transform.position);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             GiveEffect(caster, EffectType.AnimSpeedUp, 1, Config.buff_duration_buff, sourceId: casterId);
             for (int i = 0; i < TargetCount(context); i++)
             {
-                var ally = BattleManager.GetEntity(TargetId(context, i));
+                var ally = BattleManager.GetEntity(GetTargetId(context, i));
                 if (ally != null && ally.id != casterId)
                 {
                     GiveEffect(ally, EffectType.AnimSpeedUp, 1, Config.buff_duration_buff, sourceId: casterId);
@@ -765,7 +765,7 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 57 }); // B57 蓝泡泡球
-            PlayFollow(SkillVfxKind.Buff, 27, CasterId(context));  // BF28 环绕风（自身）
+            PlayFollow(SkillVfxKind.Buff, 27, GetCasterId(context));  // BF28 环绕风（自身）
         }
     }
 
@@ -786,7 +786,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.1f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ShootAll(caster, context, BuildAttack(caster, 0.4f, 1.2f, knockback: 5f));
         }
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
@@ -809,10 +809,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[0], 28f)); // 长距闪现
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, CasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, GetCasterId(context)); // BF28
     }
 
     /// <summary>狙击（id 31）：高伤细长直线 · B45。</summary>
@@ -830,7 +830,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 3f, 0.35f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 3f, 0.35f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
@@ -850,7 +850,7 @@ namespace Ros.Skill
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1f, 0.4f));
+        protected override void OnCast(SkillContext context) => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1f, 0.4f));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 44 });
     }
 
@@ -872,7 +872,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             // 不延时：动画攻击帧直接对标记落点结算轰炸
             StrikeSphere(caster, context.vectors[1], Config.airstrike_radius,
                 BuildAttack(caster, 2f, Config.airstrike_radius, useMagic: true));
@@ -902,7 +902,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1f, 0.4f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1f, 0.4f, useMagic: true));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 0 });
     }
 
@@ -922,7 +922,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.5f, 1f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.5f, 1f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 15 });
@@ -947,7 +947,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.4f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -971,7 +971,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.3f, 0.45f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.3f, 0.45f, useMagic: true));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 46 });
     }
 
@@ -992,7 +992,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
@@ -1017,7 +1017,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 1.6f, 0.9f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 1.6f, 0.9f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 25 });
@@ -1050,14 +1050,14 @@ namespace Ros.Skill
 
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
-            var trajectory = new ChainTrajectory(CasterId(context), (ushort)context.ints[1], (ushort)context.ints[2]);
+            var trajectory = new ChainTrajectory(GetCasterId(context), (ushort)context.ints[1], (ushort)context.ints[2]);
             trajectory.Duration = Config.chain_jump_duration;
             return trajectory;
         }
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             var attack = BuildAttack(caster, 1.4f, 0.45f, useMagic: true);
             if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
@@ -1080,7 +1080,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster == null) return;
             GiveEffect(caster, EffectType.Shield, 1, Config.buff_duration_buff,
                 shieldValue: Config.buff_shield_value, sourceId: caster.id);
@@ -1091,7 +1091,7 @@ namespace Ros.Skill
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Shield, 5, CasterId(context)); // S6
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Shield, 5, GetCasterId(context)); // S6
     }
 
     /// <summary>净化波动（id 42）：移除自身负面 Buff · MC2。</summary>
@@ -1111,7 +1111,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster != null && caster.effectController != null) caster.effectController.RemoveAllNegative(); // 净化：移除自身全部负面 Buff
         }
         public override void PlayVFX(SkillContext context)
@@ -1134,9 +1134,9 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster == null) return;
-            BattleManager.EntityContainer.GetAllInCamp(Dest(context, 0), 3f, caster.camp, TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 GiveEffect(TargetBuffer[i], EffectType.AttrStrength, 1, Config.buff_duration_buff,
@@ -1164,7 +1164,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.5f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -1189,7 +1189,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 2f, 1f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
@@ -1213,7 +1213,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 2f, 1.5f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 2f, 1.5f, useMagic: true));
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 1 }); // RM2
     }
 
@@ -1234,7 +1234,7 @@ namespace Ros.Skill
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.6f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(Caster(context), context, BuildAttack(Caster(context), 2.2f, 0.9f, useMagic: true));
+            => ShootAll(GetCasterById(context), context, BuildAttack(GetCasterById(context), 2.2f, 0.9f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 31 });
@@ -1259,7 +1259,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             Vector3 casterPos = caster != null ? caster.transform.position : Vector3.zero;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.6f, useMagic: true,
                 onHit: PullTo(casterPos)));
@@ -1283,10 +1283,10 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(Dest(context, 0), 3f, caster.camp, TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
             for (int i = 0; i < TargetBuffer.Count; i++)
             {
                 GiveEffect(TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,

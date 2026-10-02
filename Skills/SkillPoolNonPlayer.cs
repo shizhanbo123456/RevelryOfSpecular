@@ -47,7 +47,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -76,7 +76,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster, leftHand: true), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -104,7 +104,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -136,7 +136,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -165,7 +165,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             StrikeSphere(caster, HandPos(caster, leftHand: true), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -193,7 +193,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -230,7 +230,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             bool blaze = context.ints != null && context.ints.Count > BlazeFlagIndex && context.ints[BlazeFlagIndex] != 0;
             ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
                 onHit: blaze ? BlazeHit(caster) : null));
@@ -248,9 +248,9 @@ namespace Ros.Skill
         {
             PlayAlong(context, SkillVfxKind.Bullet, new[] { 22 });
             if (context.ints == null || context.ints.Count <= BlazeFlagIndex || context.ints[BlazeFlagIndex] == 0) return;
-            for (int i = 0; i < ShotCount(context); i++)
+            for (int i = 0; i < GetShotCount(context); i++)
             {
-                PlayAt(SkillVfxKind.RangeMagic, 7, Dest(context, i), 1f); // RM8 岩浆连环爆炸
+                PlayAt(SkillVfxKind.RangeMagic, 7, GetShotDestination(context, i), 1f); // RM8 岩浆连环爆炸
             }
         }
     }
@@ -281,7 +281,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = Caster(context);
+            var caster = GetCasterById(context);
             ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
                 addEffect: Poison(caster != null ? caster.id : (ushort)0)));
         }
