@@ -387,7 +387,7 @@ namespace Ros.Skill
             for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
             {
                 var trajectory = CreateTrajectory(context, i);
-                if (trajectory != null) PlayOne(kind, Pick(vfx, i), trajectory);
+                if (trajectory != null) PlayOne(kind, vfx[Mathf.Min(i, vfx.Length - 1)], trajectory);
             }
         }
 
@@ -447,13 +447,6 @@ namespace Ros.Skill
                     Tool.VfxManager.PlayMagicCircleVFX(index, trajectory.Lerp(1f), life);
                     break;
             }
-        }
-
-        /// <summary>发数多于特效数时复用最后一个。</summary>
-        private static int Pick(int[] list, int index)
-        {
-            if (list == null || list.Length == 0) return -1;
-            return list[Mathf.Min(index, list.Length - 1)];
         }
         #endregion
         #endregion
