@@ -10,6 +10,11 @@ public class CameraController : MonoBehaviour
     public float slowSmooth = 2f;
     public float fastSmooth = 10f;
 
+    // 俯仰角（度，向下为正）；相机看向与角色水平对齐、抬高 (y - z*tan(pitch)) 的点，而非脚底
+    public float pitch = 15f;
+    // 越界缓冲带半宽：带内线性插值快慢平滑，超出带才用快速，避免速率阶跃震颤
+    public float smoothDistance = 1.5f;
+
     private float yaw;
 
     private void Awake()
@@ -21,6 +26,22 @@ public class CameraController : MonoBehaviour
     {
         lookTarget = target;
         if (target != null) yaw = target.eulerAngles.y;
+    }
+
+    // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
+    private float AxisRate(float v, Vector2 range, float d, float slow, float fast)
+    {
+        if (v < range.x)
+        {
+            if (d <= 0f || v <= range.x - d) return fast;
+            return Mathf.Lerp(fast, slow, (v - (range.x - d)) / d);
+        }
+        if (v > range.y)
+        {
+            if (d <= 0f || v >= range.y + d) return fast;
+            return Mathf.Lerp(slow, fast, (v - range.y) / d);
+        }
+        return slow;
     }
 
     private void LateUpdate()
@@ -38,14 +59,14 @@ public class CameraController : MonoBehaviour
         float yCur = toCam.y;
         float zCur = Vector3.Dot(toCam, back);
 
-        // y/z 各自按是否越界独立选慢速/快速平滑，目标均为区间中心
-        float yRate = (yCur >= yRange.x && yCur <= yRange.y) ? slowSmooth : fastSmooth;
-        float zRate = (zCur >= zRange.x && zCur <= zRange.y) ? slowSmooth : fastSmooth;
+        float yRate = AxisRate(yCur, yRange, smoothDistance, slowSmooth, fastSmooth);
+        float zRate = AxisRate(zCur, zRange, smoothDistance, slowSmooth, fastSmooth);
 
         float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
         float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * Time.deltaTime));
 
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
-        transform.LookAt(lookTarget.position);
+        float lookUp = yNew - zNew * Mathf.Tan(pitch * Mathf.Deg2Rad);
+        transform.LookAt(lookTarget.position + Vector3.up * lookUp);
     }
 }
