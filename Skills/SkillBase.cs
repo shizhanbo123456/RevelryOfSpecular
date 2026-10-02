@@ -346,6 +346,7 @@ namespace Ros.Skill
                 if (attack.onHit != null) attack.onHit.Invoke(target);
             }
         }
+        #endregion
 
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
@@ -448,7 +449,6 @@ namespace Ros.Skill
                     break;
             }
         }
-        #endregion
         #endregion
 
         /// <summary>
