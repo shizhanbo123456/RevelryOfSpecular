@@ -35,20 +35,33 @@ namespace Ros.Transport
             if (value == null) return true;
             if (!BoolSerializer.Serialize(value.minimapLost, result, ref indexStart)) return false;
 
+            // count 先占位（循环前无法预知容量）；循环结束后回填真实写入数，
+            // 避免缓冲写满导致发出"count 全量、数据残缺"的包（客户端按 count 读会越界）
+            int countPos = indexStart;
             int count = value.entities != null ? value.entities.Count : 0;
             if (!IntSerializer.Serialize(count, result, ref indexStart)) return false;
             if (value.entities == null) return true;
+
+            int written = 0;
             foreach (var entity in value.entities)
             {
-                if (!BoolSerializer.Serialize(entity != null, result, ref indexStart)) return false;
-                if (entity == null) continue;
-                if (!UshortSerializer.Serialize(entity.entityId, result, ref indexStart)) return false;
-                if (!EntityTypeSerializer.Serialize(entity.type, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize((int)entity.camp, result, ref indexStart)) return false;
-                if (!FloatSerializer.Serialize(entity.posX, result, ref indexStart)) return false;
-                if (!FloatSerializer.Serialize(entity.posZ, result, ref indexStart)) return false;
-                if (!BoolSerializer.Serialize(entity.marked, result, ref indexStart)) return false;
+                int entityStart = indexStart;
+                if (!BoolSerializer.Serialize(entity != null, result, ref indexStart)) break;
+                if (entity == null) { written++; continue; }
+                if (!UshortSerializer.Serialize(entity.entityId, result, ref indexStart)) { indexStart = entityStart; break; }
+                if (!EntityTypeSerializer.Serialize(entity.type, result, ref indexStart)) { indexStart = entityStart; break; }
+                if (!IntSerializer.Serialize((int)entity.camp, result, ref indexStart)) { indexStart = entityStart; break; }
+                if (!FloatSerializer.Serialize(entity.posX, result, ref indexStart)) { indexStart = entityStart; break; }
+                if (!FloatSerializer.Serialize(entity.posZ, result, ref indexStart)) { indexStart = entityStart; break; }
+                if (!BoolSerializer.Serialize(entity.marked, result, ref indexStart)) { indexStart = entityStart; break; }
+                written++;
             }
+
+            // 回填实际写入的实体数（written <= count），保证发出的包自洽
+            int endPos = indexStart;
+            indexStart = countPos;
+            IntSerializer.Serialize(written, result, ref indexStart);
+            indexStart = endPos;
             return true;
         }
 
