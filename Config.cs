@@ -193,6 +193,9 @@ public static class Config
 
     public const float default_skill_auto_target_radius = 20f;
 
+    // 技能自动索敌前方扇形半角（度）；敌人在朝向左右各该角度内才索敌
+    public const float default_skill_auto_target_sector_half_angle = 30f;
+
     public const float default_forward_aim_distance = 10f;
 
     public const float buff_vfx_life_time = 3600f;

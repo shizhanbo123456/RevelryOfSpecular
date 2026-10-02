@@ -91,6 +91,39 @@ public partial class BattleManager : EnsBehaviour
             return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.camp), entity.id);
         }
 
+        // 仅索敌前方扇形内的敌人（水平夹角 <= halfAngleDeg）：用于技能自动索敌，避免锁到背后目标
+        public static EntityData GetNearestEnemyInFront(EntityData entity, float radius, float halfAngleDeg)
+        {
+            if (entity == null) return null;
+            Vector3 pos = entity.transform.position;
+            Vector3 fwd = entity.transform.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude < 1e-6f) return null;
+            fwd.Normalize();
+            float cosLimit = Mathf.Cos(halfAngleDeg * Mathf.Deg2Rad);
+            EntityCamp hostile = EntityCampUtil.HostileOf(entity.camp);
+            Entities.GetIdsInRange(pos, radius, s_buffer);
+            EntityData target = null;
+            float bestSqr = float.MaxValue;
+            foreach (var id in s_buffer)
+            {
+                if (!Entities.TryGetObject(id, out var e) || e == null) continue;
+                if (e.id == entity.id || (hostile & e.camp) == 0 || !e.Alive) continue;
+                Vector3 to = e.transform.position - pos;
+                to.y = 0f;
+                float dsqr = to.sqrMagnitude;
+                if (dsqr > radius * radius || dsqr < 1e-6f) continue;
+                if (Vector3.Dot(fwd, to.normalized) < cosLimit) continue;
+                if (dsqr < bestSqr)
+                {
+                    bestSqr = dsqr;
+                    target = e;
+                }
+            }
+            s_buffer.Clear();
+            return target;
+        }
+
         public static EntityData GetNearestInCamp(Vector3 pos, float radius, EntityCamp camp, ushort excludeId = 0)
         {
             Entities.GetIdsInRange(pos, radius, s_buffer);

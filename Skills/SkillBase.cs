@@ -68,8 +68,11 @@ namespace Ros.Skill
             return pos + dir * Vector3.Distance(pos, dest);
         }
 
-        protected static EntityData GetNearestEnemy(EntityData entity, float radius = 10f)
+        protected static EntityData GetNearestEnemy(EntityData entity, float radius = 10f, bool frontSector = true)
         {
+            if (entity == null) return null;
+            if (frontSector)
+                return BattleManager.EntityContainer.GetNearestEnemyInFront(entity, radius, Config.default_skill_auto_target_sector_half_angle);
             return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
         }
 
