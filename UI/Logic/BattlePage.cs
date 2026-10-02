@@ -213,7 +213,6 @@ public class BattlePage : PageBase
         if (empty) ClearSkillSlot(slot);
         else
         {
-            slot.m_loader_icon.fillMethod = FillMethod.Horizontal; // CD 用图标填充比例
             RefreshSkillSlot(slot, data);
         }
     }
@@ -704,6 +703,11 @@ public class BattlePage : PageBase
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
                 Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(targetId, out anchor);
         }
+
+        // [调试] 在飘字世界锚点处放直径0.1的原生球，便于核对飘字实际落点（不销毁）
+        var hitMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        hitMarker.transform.position = anchor;
+        hitMarker.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
         // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示
         var cam = Camera.main;
