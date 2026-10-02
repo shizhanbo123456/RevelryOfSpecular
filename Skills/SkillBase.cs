@@ -68,9 +68,12 @@ namespace Ros.Skill
             return pos + dir * Vector3.Distance(pos, dest);
         }
 
+        // 测试用：置 true 阻断技能自动索敌，强制所有技能向默认正前方发射（验证无敌人弹道）
+        public static bool BlockSkillTargeting = true;
+
         protected static EntityData GetNearestEnemy(EntityData entity, float radius = 10f, bool frontSector = true)
         {
-            if (entity == null) return null;
+            if (entity == null || BlockSkillTargeting) return null;
             if (frontSector)
                 return BattleManager.EntityContainer.GetNearestEnemyInFront(entity, radius, Config.default_skill_auto_target_sector_half_angle);
             return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
@@ -78,7 +81,7 @@ namespace Ros.Skill
 
         protected static EntityData GetNearestAlly(EntityData entity, float radius = Config.default_skill_auto_target_radius)
         {
-            if (entity == null) return null;
+            if (entity == null || BlockSkillTargeting) return null;
             return BattleManager.EntityContainer.GetNearestInCamp(
                 entity.transform.position, radius, entity.camp, entity.id);
         }
