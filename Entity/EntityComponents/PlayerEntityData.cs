@@ -23,13 +23,17 @@ public class PlayerEntityData : EntityData
         return k;
     }
 
-    // 操作屏蔽 → 动作键位（跳跃=K，滑铲=LShift，攻击=J；单一位、边沿触发，只需抹去自身）
+    // 操作屏蔽 → 动作键位（跳跃=K，滑铲=LShift，攻击=J+技能槽；单一位、边沿触发，只需抹去自身）
     private PlayerKey BlockActionKeys(InputBlockOp ops)
     {
         PlayerKey k = PlayerKey.None;
         if ((ops & InputBlockOp.Jump) != 0) k |= PlayerKey.K;
         if ((ops & InputBlockOp.Slide) != 0) k |= PlayerKey.LShift;
-        if ((ops & InputBlockOp.Attack) != 0) k |= PlayerKey.J;
+        if ((ops & InputBlockOp.Attack) != 0)
+        {
+            k |= PlayerKey.J;
+            foreach (var slotKey in Config.skill_slot_player_keys) k |= slotKey;
+        }
         return k;
     }
 

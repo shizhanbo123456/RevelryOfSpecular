@@ -15,7 +15,7 @@ public enum InputBlockOp : byte
     Rotation = 1 << 1, // 旋转（A/D）
     Jump = 1 << 2,     // 跳跃（K）
     Slide = 1 << 3,    // 滑铲（LShift）
-    Attack = 1 << 4,   // 攻击（J，空手近战）
+    Attack = 1 << 4,   // 攻击与技能（J + 技能槽 U/I/O/L/H/Y）
 }
 
 public abstract class EntityData : MonoBehaviour
