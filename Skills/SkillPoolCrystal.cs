@@ -4,11 +4,6 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    /// <summary>
-    /// 水晶掉落技能池（id 0~49）。拥有者：摧毁水晶/蘑菇可获得的武器技能，攻防双方通用。
-    /// 数值与特效下标依据策划案 21.1~21.4（B* = BulletVFX 下标；S*/RM*/MC*/BF* = 编号 − 1）。
-    /// 倍率 / 判定半径 / 弹道时长策划案未给出，暂用占位初值（集中在 Config 或各技能常量）。
-    /// </summary>
     public static class SkillPoolCrystal
     {
         public static void RegisterAll()
@@ -71,7 +66,6 @@ namespace Ros.Skill
     }
 
     #region 近战刀 0~10
-    /// <summary>疾风斩（id 0）：单发直线剑气 · B39。</summary>
     public class SkillGaleSlash : SkillBase
     {
         public override int Id => 0;
@@ -90,7 +84,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39 });
     }
 
-    /// <summary>飞刀投掷（id 1）：刀模型作弹体飞行 + B45 拖尾。</summary>
     public class SkillFlyingKnife : SkillBase
     {
         public override int Id => 1;
@@ -113,7 +106,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>十字斩（id 2）：两道交叉剑气 · B39 + B41。</summary>
     public class SkillCrossSlash : SkillBase
     {
         public override int Id => 2;
@@ -133,7 +125,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 41 });
     }
 
-    /// <summary>冲锋斩（id 3）：冲锋位移 + 输出 · BF28 环绕风。</summary>
     public class SkillChargeSlash : SkillBase
     {
         public override int Id => 3;
@@ -155,7 +146,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
     }
 
-    /// <summary>旋风斩（id 4）：环形八道剑气 · B40。</summary>
     public class SkillWhirlSlash : SkillBase
     {
         public override int Id => 4;
@@ -175,7 +165,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 40 });
     }
 
-    /// <summary>破霸重斩（id 5）：破霸体直线剑气 · B41。</summary>
     public class SkillBreakEndureSlash : SkillBase
     {
         public override int Id => 5;
@@ -202,7 +191,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 41 });
     }
 
-    /// <summary>剑气纵横（id 6）：三道扇形剑气 · B39/B40/B41。</summary>
     public class SkillFanSwordQi : SkillBase
     {
         public override int Id => 6;
@@ -222,7 +210,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 40, 41 });
     }
 
-    /// <summary>捕获投掷（id 7）：刀模型 + 落点禁锢法阵 MC3。</summary>
     public class SkillCaptureThrow : SkillBase
     {
         public override int Id => 7;
@@ -251,7 +238,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>影袭（id 8）：起止法阵 · MC7。</summary>
     public class SkillShadowStrike : SkillBase
     {
         public override int Id => 8;
@@ -278,7 +264,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>崩山击（id 9）：跃起砸地，落点小型爆炸 RM5。</summary>
     public class SkillMountainCrash : SkillBase
     {
         public override int Id => 9;
@@ -303,7 +288,6 @@ namespace Ros.Skill
             => PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[1], 1.2f); // RM5
     }
 
-    /// <summary>刃舞连斩（id 10）：近战三段球判定 · B40。</summary>
     public class SkillBladeDance : SkillBase
     {
         public override int Id => 10;
@@ -328,7 +312,6 @@ namespace Ros.Skill
     #endregion
 
     #region 长枪 11~18
-    /// <summary>投枪（id 11）：枪模型作弹体 + B48 拖尾。</summary>
     public class SkillJavelinThrow : SkillBase
     {
         public override int Id => 11;
@@ -351,7 +334,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>贯穿之枪（id 12）：细长直刺穿透 · B51。</summary>
     public class SkillPierceSpear : SkillBase
     {
         public override int Id => 12;
@@ -370,7 +352,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 51 });
     }
 
-    /// <summary>落雷枪（id 13）：枪模型升空天降 + 落点小型爆炸 RM5。</summary>
     public class SkillThunderSpear : SkillBase
     {
         public override int Id => 13;
@@ -393,7 +374,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>束缚钉（id 14）：落点禁锢法阵 MC3。</summary>
     public class SkillBindNail : SkillBase
     {
         public override int Id => 14;
@@ -418,7 +398,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
     }
 
-    /// <summary>突进刺（id 15）：突进位移 + 输出 · BF28 环绕风。</summary>
     public class SkillThrustDash : SkillBase
     {
         public override int Id => 15;
@@ -440,7 +419,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
     }
 
-    /// <summary>横扫千军（id 16）：大范围近战球判定 + 纯物理击退（清单约定无特效）。</summary>
     public class SkillSweepPole : SkillBase
     {
         public override int Id => 16;
@@ -463,7 +441,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 无特效
     }
 
-    /// <summary>枪阵屏障（id 17）：落点力场 · MC1。</summary>
     public class SkillSpearWall : SkillBase
     {
         public override int Id => 17;
@@ -492,7 +469,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 0 }); // MC1
     }
 
-    /// <summary>枪雨（id 18）：五发升空天降 + 落点小型爆炸 RM5。</summary>
     public class SkillSpearRain : SkillBase
     {
         public override int Id => 18;
@@ -518,7 +494,6 @@ namespace Ros.Skill
     #endregion
 
     #region 枪械 19~33
-    /// <summary>快速射击（id 19）：单发直线 · B42。</summary>
     public class SkillQuickShot : SkillBase
     {
         public override int Id => 19;
@@ -537,7 +512,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42 });
     }
 
-    /// <summary>扇形散射（id 20）：三发扇形 · B42/B43/B44。</summary>
     public class SkillFanShotgun : SkillBase
     {
         public override int Id => 20;
@@ -557,7 +531,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42, 43, 44 });
     }
 
-    /// <summary>穿甲弹（id 21）：直穿 · B45。</summary>
     public class SkillArmorPiercer : SkillBase
     {
         public override int Id => 21;
@@ -576,7 +549,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
-    /// <summary>榴弹（id 22）：抛物线 + 落点小型爆炸 RM5。</summary>
     public class SkillGrenade : SkillBase
     {
         public override int Id => 22;
@@ -595,7 +567,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }
 
-    /// <summary>燃烧弹（id 23）：B15 + 命中 DoT BF12。</summary>
     public class SkillIncendiary : SkillBase
     {
         // 策划案只规定「1s/跳、固定数值」，每跳伤害与持续时长待策划定稿
@@ -621,14 +592,12 @@ namespace Ros.Skill
                 BuildAttack(caster, 1.2f, 0.4f, addEffect: Burn(caster != null ? caster.id : (ushort)0)));
         }
 
-        /// <summary>命中给目标挂燃烧（负面 DoT，1s 一跳）。</summary>
         private static Action<EntityEffectController> Burn(ushort casterId) => effect => effect.AddEffect(
             EffectType.Burning, 1, BurnDuration, negative: true,
             payload: new EntityEffectController.EffectPayload { damage = BurnDamagePerTick, sourceId = casterId });
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 15 });
     }
 
-    /// <summary>冻结弹（id 24）：B18 + 命中冻结 BF13。</summary>
     public class SkillFreezeRound : SkillBase
     {
         public override int Id => 24;
@@ -653,7 +622,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 18 });
     }
 
-    /// <summary>麻痹弹（id 25）：B5 + 命中麻痹 BF21。</summary>
     public class SkillParalysisRound : SkillBase
     {
         public override int Id => 25;
@@ -678,7 +646,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 5 });
     }
 
-    /// <summary>毒气弹（id 26）：抛物线 + 落点毒场 RM1。</summary>
     public class SkillToxicRound : SkillBase
     {
         public override int Id => 26;
@@ -704,7 +671,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 0 }); // RM1
     }
 
-    /// <summary>破甲重弹（id 27）：B49 + 减速 BF27。</summary>
     public class SkillHeavyBreaker : SkillBase
     {
         public override int Id => 27;
@@ -729,7 +695,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 49 });
     }
 
-    /// <summary>激励弹（id 28）：B57 + 友方加速 BF28。</summary>
     public class SkillInspireRound : SkillBase
     {
         public override int Id => 28;
@@ -769,7 +734,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>冲击弹（id 29）：抛物线低伤强击退，落点 RM5。</summary>
     public class SkillImpactRound : SkillBase
     {
         public override int Id => 29;
@@ -792,7 +756,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }
 
-    /// <summary>闪现突进（id 30）：长距位移 · BF28 环绕风。</summary>
     public class SkillBlinkDash : SkillBase
     {
         public override int Id => 30;
@@ -815,7 +778,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
     }
 
-    /// <summary>狙击（id 31）：高伤细长直线 · B45。</summary>
     public class SkillSnipe : SkillBase
     {
         public override int Id => 31;
@@ -834,7 +796,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
-    /// <summary>弹幕扫射（id 32）：八连发直线 · B44。</summary>
     public class SkillBulletSpray : SkillBase
     {
         public override int Id => 32;
@@ -854,7 +815,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 44 });
     }
 
-    /// <summary>空袭标记（id 33）：落点标记 MC8，随后橙色光柱轰炸 RM6。</summary>
     public class SkillAirstrikeMark : SkillBase
     {
         public override int Id => 33;
@@ -886,7 +846,6 @@ namespace Ros.Skill
     #endregion
 
     #region 魔法球 34~49
-    /// <summary>魔弹（id 34）：单发直线 · B0。</summary>
     public class SkillMagicBolt : SkillBase
     {
         public override int Id => 34;
@@ -906,7 +865,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 0 });
     }
 
-    /// <summary>火球（id 35）：抛物线 + 落点小型爆炸 RM5 · B15。</summary>
     public class SkillFireball : SkillBase
     {
         public override int Id => 35;
@@ -930,7 +888,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>冰锥术（id 36）：B18 + 命中冻结 BF13。</summary>
     public class SkillIceShard : SkillBase
     {
         public override int Id => 36;
@@ -955,7 +912,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 18 });
     }
 
-    /// <summary>风刃（id 37）：贯穿直线 · B46。</summary>
     public class SkillWindBlade : SkillBase
     {
         public override int Id => 37;
@@ -975,7 +931,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 46 });
     }
 
-    /// <summary>毒珠（id 38）：B10 + 命中中毒 DoT BF19。</summary>
     public class SkillPoisonOrb : SkillBase
     {
         public override int Id => 38;
@@ -1001,7 +956,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 10 });
     }
 
-    /// <summary>岩崩（id 39）：升空天降 + 落点小型爆炸 RM5 · B25。</summary>
     public class SkillRockfall : SkillBase
     {
         public override int Id => 39;
@@ -1025,7 +979,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>雷球（id 40）：直线 + 链式跳 2 次 · B3。</summary>
     public class SkillThunderOrb : SkillBase
     {
         public override int Id => 40;
@@ -1064,7 +1017,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 3 });
     }
 
-    /// <summary>光盾（id 41）：自身/友方护盾 · S6。</summary>
     public class SkillLightShield : SkillBase
     {
         public override int Id => 41;
@@ -1094,7 +1046,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Shield, 5, SkillBase.SkillContextConventions.GetCasterId(context)); // S6
     }
 
-    /// <summary>净化波动（id 42）：移除自身负面 Buff · MC2。</summary>
     public class SkillPurgeWave : SkillBase
     {
         public override int Id => 42;
@@ -1118,7 +1069,6 @@ namespace Ros.Skill
             => PlayAt(SkillVfxKind.MagicCircle, 1, context.vectors[0], 1.2f); // MC2
     }
 
-    /// <summary>激励法阵（id 43）：落点增伤法阵 · MC10。</summary>
     public class SkillInspireCircle : SkillBase
     {
         public override int Id => 43;
@@ -1146,7 +1096,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 9 }); // MC10
     }
 
-    /// <summary>冰霜新星（id 44）：环形八发 + 命中冻结 BF13 · B20。</summary>
     public class SkillFrostNova : SkillBase
     {
         public override int Id => 44;
@@ -1172,7 +1121,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 20 });
     }
 
-    /// <summary>落雷术（id 45）：升空天降 + 落点麻痹 BF20 · B3。</summary>
     public class SkillThunderFall : SkillBase
     {
         public override int Id => 45;
@@ -1197,7 +1145,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 3 });
     }
 
-    /// <summary>黑洞炸弹（id 46）：抛物线 + 落点黑洞爆炸 RM2。</summary>
     public class SkillBlackHoleBomb : SkillBase
     {
         public override int Id => 46;
@@ -1217,7 +1164,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 1 }); // RM2
     }
 
-    /// <summary>星辰坠落（id 47）：五发升空天降 + 落点小型爆炸 RM5 · B31。</summary>
     public class SkillStarfall : SkillBase
     {
         public override int Id => 47;
@@ -1242,7 +1188,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>虚空之握（id 48）：直线 + 拉拽 · B1。</summary>
     public class SkillVoidGrasp : SkillBase
     {
         public override int Id => 48;
@@ -1267,7 +1212,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 1 });
     }
 
-    /// <summary>奥术屏障（id 49）：落点屏障墙 · MC7。</summary>
     public class SkillArcaneBarrier : SkillBase
     {
         public override int Id => 49;

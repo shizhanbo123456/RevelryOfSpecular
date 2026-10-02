@@ -6,12 +6,6 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-/// <summary>
-/// 为实体预制体（Assets/Files/Prefabs/Entity 下全部）计算模型 bounds 并写入其 EntityModelInfo。
-/// 这些预制体基本都是 Prefab Variant，所以走「实例化 → 改值 → ApplyPrefabInstance 写回变体」；
-/// 不用 LoadPrefabContents/SaveAsPrefabAsset，后者会把 Variant 压成普通预制体。
-/// 记录的是预制体根节点本地空间的轴对齐包围盒，取网格自身的 bind-pose 盒（不用渲染器实时 bounds，避免蒙皮姿态干扰）。
-/// </summary>
 public static class EntityModelBoundsBaker
 {
     private const string PrefabFolder = "Assets/Files/Prefabs/Entity";
@@ -149,7 +143,6 @@ public static class EntityModelBoundsBaker
         return paths;
     }
 
-    /// <summary>汇总全部启用 Renderer 的网格盒到根节点本地空间；禁用的只记标志、不参与计算。</summary>
     private static bool TryGetLocalBounds(GameObject root, out Bounds bounds, out bool hasInactiveRenderer)
     {
         bounds = default;
@@ -185,7 +178,6 @@ public static class EntityModelBoundsBaker
         return any;
     }
 
-    /// <summary>逐级检查到根节点为止的启用状态，但不看根节点自身（预制体根被禁用时仍应算出包围盒）。</summary>
     private static bool IsActiveUnderRoot(Transform target, Transform root)
     {
         for (Transform t = target; t != null && t != root; t = t.parent)

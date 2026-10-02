@@ -2,40 +2,31 @@ using System.Collections.Generic;
 
 namespace Ros.Transport
 {
-    /// <summary>
-    /// 服务器 → 客户端：小地图可见单位（策划案第十五章）。
-    /// 小地图 = 己方（团队）**共享视野**：内容按阵营在服务器算好后下发，同一阵营各成员收到同一份
-    /// （己方单位恒显示；敌方 / 中立单位只要在本阵营任一成员视野内就显示）。
-    /// 夜间进攻方处于「小地图失联」时改为按客户端下发，只含自己与自身视野内的单位（minimapLost = true）。
-    /// 坐标只传世界 XZ，客户端按 Landscape.MapSize 归一化到小地图矩形（地图为俯视图，Z 向上）。
-    /// </summary>
+    // 服务器 → 客户端：小地图可见单位
     public class SCMinimapInfo
     {
-        /// <summary>本条消息包含的可见单位。</summary>
         public List<MinimapEntity> entities = new();
 
-        /// <summary>是否处于「小地图失联」（夜间进攻方）：本条只含自己与自身视野，不含队友提供的视野。</summary>
         public bool minimapLost;
 
-        /// <summary>小地图上的一个单位。</summary>
+        // 小地图上的一个单位
         public class MinimapEntity
         {
-            /// <summary>实体 id（客户端据此定位本地玩家自己）。</summary>
+            //实体 id（客户端据此定位本地玩家自己）
             public ushort entityId;
-            /// <summary>实体类型（UI 按类别取图标 / 尺寸）。</summary>
+            //实体类型（UI 按类别取图标 / 尺寸）
             public EntityType type;
-            /// <summary>阵营（UI 着色：己方 / 敌方 / 中立）。</summary>
+            //阵营（UI 着色：己方 / 敌方 / 中立）
             public EntityCamp camp;
-            /// <summary>世界坐标 X。</summary>
+            //世界坐标 X
             public float posX;
-            /// <summary>世界坐标 Z。</summary>
+            //世界坐标 Z
             public float posZ;
-            /// <summary>是否被「白眼标记」（UI 高亮）。</summary>
+            //是否被「白眼标记」（UI 高亮）
             public bool marked;
         }
     }
 
-    /// <summary>SCMinimapInfo 网络序列化器。</summary>
     public struct SCMinimapInfoSerializer
     {
         public static bool Serialize(SCMinimapInfo value, byte[] result, ref int indexStart)

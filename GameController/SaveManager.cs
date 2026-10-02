@@ -2,11 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-/// <summary>
-/// 存档管理器（局外养成，策划案 8.1：只保留角色解锁 + 角色升级；双等级制见 8.1）。
-/// 玩家等级（账号级，解锁角色）+ 角色等级（每角色独立，属性成长）。
-/// PlayerPrefs 存档（"|" 分隔）。修改即保存。
-/// </summary>
 public class SaveManager : MonoBehaviour
 {
     private const string SaveKey = "GameSaveDataV3";
@@ -19,22 +14,15 @@ public class SaveManager : MonoBehaviour
     }
 
     #region 数据
-    /// <summary>玩家等级（账号级）。</summary>
     public int playerLevel = 1;
-    /// <summary>玩家经验。</summary>
     public int playerExp;
 
-    /// <summary>玩家名（局外存档；空 = 无效存档，重建时随机六位数）。</summary>
     public string playerName = "";
 
-    /// <summary>角色等级（全局角色索引 0~23，进攻 0~17 / 防守 18~23）。</summary>
     public List<int> characterLevels = new();
-    /// <summary>角色经验。</summary>
     public List<int> characterExp = new();
-    /// <summary>角色解锁。</summary>
     public List<bool> characterUnlocked = new();
 
-    /// <summary>全局角色数量（进攻 + 防守）。</summary>
     public static int CharacterTotalCount => Config.attack_character_count + Config.defense_character_count;
     #endregion
 
@@ -45,14 +33,12 @@ public class SaveManager : MonoBehaviour
         return characterLevels[index];
     }
 
-    /// <summary>是否已解锁：解锁完全由角色 SO 的 unlockPlayerLevel 决定（存档标记仅作手动解锁的附加记录，当前无写入方）。</summary>
     public bool IsCharacterUnlocked(int index)
     {
         if (index < 0 || index >= characterUnlocked.Count) return IsUnlockedByPlayerLevel(index);
         return characterUnlocked[index] || IsUnlockedByPlayerLevel(index);
     }
 
-    /// <summary>按玩家等级是否解锁：读角色 SO 的 unlockPlayerLevel（策划案 10.2，达标自动解锁；SO 未配置视为已解锁）。</summary>
     public bool IsUnlockedByPlayerLevel(int characterIndex)
     {
         var info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(characterIndex) : null;
@@ -61,7 +47,6 @@ public class SaveManager : MonoBehaviour
     #endregion
 
     #region 修改
-    /// <summary>解锁角色。</summary>
     public void UnlockCharacter(int index)
     {
         EnsureListSize(index);
@@ -69,10 +54,6 @@ public class SaveManager : MonoBehaviour
         Save();
     }
 
-    /// <summary>
-    /// 给角色加经验（策划案 17.3：获得经验 = 对水晶造成的伤害量；
-    /// 升级所需经验表见 Config.level_up_exp，从 1→2 级起依次取用）。
-    /// </summary>
     public void AddCharacterExp(int index, int exp)
     {
         EnsureListSize(index);
@@ -89,7 +70,6 @@ public class SaveManager : MonoBehaviour
         Save();
     }
 
-    /// <summary>给玩家加经验（账号级；每级所需经验公式见 Config.GetPlayerLevelUpExp）。</summary>
     public void AddPlayerExp(int exp)
     {
         playerExp += exp;
@@ -163,13 +143,11 @@ public class SaveManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    /// <summary>随机六位数名字（100000-999999），用于新/无效存档。</summary>
     private string GenerateRandomName()
     {
         return UnityEngine.Random.Range(100000, 1000000).ToString();
     }
 
-    /// <summary>新建存档：进度清零 + 随机六位数名字（用于无数据/解析失败/名字为空三种情况）。</summary>
     private void CreateNewSave()
     {
         playerLevel = 1;

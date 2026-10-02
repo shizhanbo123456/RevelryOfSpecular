@@ -2,16 +2,11 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
-/// <summary>
-/// 全局工具/管理器引用（架构说明：通过 static 字段持有 GameController 中每一个 Mono 管理器的引用）。
-/// 所有管理器在 Awake 中注册到对应 static 字段。
-/// </summary>
 [ExecuteInEditMode]
 public class Tool : MonoBehaviour
 {
     [SerializeField][Range(0,100)] private int delay = 20;
 
-    /// <summary>场景角色：勾选 = 服务器场景（不校验仅客户端存在的管理器与资产）。</summary>
     [Header("启动自检")]
     public bool isServer;
 
@@ -38,7 +33,6 @@ public class Tool : MonoBehaviour
         }
     }
 
-    /// <summary>启动 1 秒后自检（等各管理器在 Awake 里注册完）。</summary>
     private void Start()
     {
         if (!Application.isPlaying) return; // 本类带 ExecuteInEditMode，编辑模式也会跑 Start
@@ -62,11 +56,6 @@ public class Tool : MonoBehaviour
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;
 
-    /// <summary>
-    /// 地形生成锚点（全项目唯一地图点位来源）。
-    /// 读取前提：地形预制体（挂 LandscapeSpawns 组件）已随场景加载——服务器场景同样必须加载。
-    /// 未注册时取用即报错，调用方不做事后兜底。
-    /// </summary>
     public static LandscapeSpawns LandscapeSpawns
     {
         get
@@ -125,7 +114,6 @@ public class Tool : MonoBehaviour
     #endregion
 
     #region 启动自检
-    /// <summary>自检：管理器是否齐全、配置数量是否与 Config 一致、资产是否被删（空项）。</summary>
     private void RunStartupCheck()
     {
         int errors = 0;
@@ -154,7 +142,6 @@ public class Tool : MonoBehaviour
         else Debug.LogError($"[启动自检] {mode}：共 {errors} 处问题，详见上方日志");
     }
 
-    /// <summary>InfoManager：属性配置与服务器实体模板（两端都需要）。</summary>
     private static int CheckInfoManager()
     {
         var m = InfoManager;
@@ -195,7 +182,6 @@ public class Tool : MonoBehaviour
         return e;
     }
 
-    /// <summary>技能配置：逐 id 核对 SkillInfoList 与 SkillManager 注册表，报告缺失 / 多余 / 重复 / 空条目。</summary>
     private static int CheckSkillInfos()
     {
         var list = InfoManager.SkillInfoList;
@@ -247,7 +233,6 @@ public class Tool : MonoBehaviour
         return e;
     }
 
-    /// <summary>AssetsManager：客户端图形、特效、武器与图标（仅客户端）。</summary>
     private static int CheckAssetsManager()
     {
         var m = AssetsManager;
@@ -301,7 +286,6 @@ public class Tool : MonoBehaviour
     private const int vfx_magic_circle_count = 10;
     private const int vfx_buff_count = 31;
 
-    /// <summary>单个引用是否为空（管理器未注册 / 资产被删都走这里）。</summary>
     private static int CheckObject(string label, UnityEngine.Object obj)
     {
         if (obj == null)
@@ -312,7 +296,6 @@ public class Tool : MonoBehaviour
         return 0;
     }
 
-    /// <summary>列表检查：空项 = 错误；数量少于期望 = 错误，多于期望 = 警告。expected = 0 表示数量未定稿，只查空项。</summary>
     private static int CheckList<T>(string label, List<T> list, int expected) where T : UnityEngine.Object
     {
         if (list == null)

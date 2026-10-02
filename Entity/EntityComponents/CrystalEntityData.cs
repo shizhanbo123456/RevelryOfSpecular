@@ -1,14 +1,7 @@
 using Ros.Transport;
 
-/// <summary>
-/// 可采集水晶：被摧毁时按「蘑菇感染 + 进攻方摧毁」判定产出。
-/// 生成由 BattleManager 的"玩家邻近"机制驱动（不再有固定重生计时）：
-/// 本类只负责摧毁时的产出判定，并通知 BattleManager 释放该刷新点占用（见 BattleManager.NotifyCrystalDestroyed）。
-/// 蘑菇感染是水晶上的 Buff（服务器不存在蘑菇实体），故判定写在这里。
-/// </summary>
 public class CrystalEntityData : EntityData
 {
-    /// <summary>本水晶所在的刷新点下标（生成时由 BattleManager 写入；-1 = 非刷新点生成）。</summary>
     public int spawnPointIndex = -1;
 
     public override void OnKilled()

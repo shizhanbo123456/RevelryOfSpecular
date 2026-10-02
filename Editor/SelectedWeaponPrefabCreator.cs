@@ -5,10 +5,6 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-/// <summary>
-/// 将当前在 Hierarchy 中选中的武器模型包装成便于编辑的预制体。
-/// 生成结构：PrefabRoot（仅 Transform） -> WeaponModel（唯一直接子物体）。
-/// </summary>
 public static class SelectedWeaponPrefabCreator
 {
     private const string OutputFolder = "Assets/Files/Prefabs/Weapons";
@@ -123,10 +119,6 @@ public static class SelectedWeaponPrefabCreator
         return false;
     }
 
-    /// <summary>
-    /// 在应用子物体 90 度旋转后计算所有可视 Renderer 的世界包围盒，
-    /// 再移动唯一子物体，使包围盒中心与预制体根节点原点重合。
-    /// </summary>
     private static bool CenterVisualBoundsOnRoot(Transform root, Transform weaponModel)
     {
         Renderer[] renderers = weaponModel.GetComponentsInChildren<Renderer>(true);

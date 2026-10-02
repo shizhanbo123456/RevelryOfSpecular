@@ -9,11 +9,6 @@ public static class EventManager
     private static readonly Dictionary<int, Delegate> _genericEventDict = new Dictionary<int, Delegate>();
 
     #region 订阅事件 AddEvent
-    /// <summary>
-    /// 订阅无参数事件
-    /// </summary>
-    /// <param name="eventId">事件唯一标识ID</param>
-    /// <param name="_event">回调委托</param>
     public static void AddEvent(int eventId, Action _event)
     {
 #if !RELEASE
@@ -33,12 +28,6 @@ public static class EventManager
         }
     }
 
-    /// <summary>
-    /// 订阅带单个参数的泛型事件
-    /// </summary>
-    /// <typeparam name="T">参数类型</typeparam>
-    /// <param name="eventId">事件唯一标识ID</param>
-    /// <param name="_event">带参回调委托</param>
     public static void AddEvent<T>(int eventId, Action<T> _event)
     {
 #if !RELEASE
@@ -66,10 +55,6 @@ public static class EventManager
     #endregion
 
     #region 取消订阅 RemoveEvent 重载
-    /// <summary>
-    /// 移除指定ID全部回调
-    /// </summary>
-    /// <param name="eventId">事件ID</param>
     public static void RemoveEvent(int eventId)
     {
         if (_eventDict.ContainsKey(eventId))
@@ -79,9 +64,6 @@ public static class EventManager
             _genericEventDict.Remove(eventId);
     }
 
-    /// <summary>
-    /// 移除无参事件指定回调（精准解绑单个委托）
-    /// </summary>
     public static void RemoveEvent(int eventId, Action _event)
     {
 #if !RELEASE
@@ -101,9 +83,6 @@ public static class EventManager
             _eventDict.Remove(eventId);
     }
 
-    /// <summary>
-    /// 移除泛型事件指定回调（精准解绑单个委托）
-    /// </summary>
     public static void RemoveEvent<T>(int eventId, Action<T> _event)
     {
 #if !RELEASE
@@ -131,10 +110,6 @@ public static class EventManager
     #endregion
 
     #region 触发事件 TrigEvent
-    /// <summary>
-    /// 触发无参数事件
-    /// </summary>
-    /// <param name="eventId">事件ID</param>
     public static void TrigEvent(int eventId)
     {
         if (_eventDict.TryGetValue(eventId, out Action action))
@@ -150,12 +125,6 @@ public static class EventManager
 #endif
     }
 
-    /// <summary>
-    /// 触发带单个参数的泛型事件
-    /// </summary>
-    /// <typeparam name="T">参数类型</typeparam>
-    /// <param name="eventId">事件ID</param>
-    /// <param name="param">传递参数</param>
     public static void TrigEvent<T>(int eventId, T param)
     {
         if (_genericEventDict.TryGetValue(eventId, out Delegate del))
@@ -182,18 +151,12 @@ public static class EventManager
     #endregion
 
     #region 辅助工具方法
-    /// <summary>
-    /// 清空所有事件（场景切换/销毁时调用）
-    /// </summary>
     public static void ClearAllEvents()
     {
         _eventDict.Clear();
         _genericEventDict.Clear();
     }
 
-    /// <summary>
-    /// 查询事件是否存在订阅者
-    /// </summary>
     public static bool HasEventSubscriber(int eventId)
     {
         bool hasNormal = _eventDict.TryGetValue(eventId, out Action act) && act != null;

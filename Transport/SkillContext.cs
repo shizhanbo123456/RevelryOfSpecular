@@ -5,25 +5,20 @@ namespace Ros.Transport
 {
     public class SkillContext
     {
-        /// <summary>整型参数（任意含义，由技能自定义）。</summary>
         public List<int> ints = new();
-        /// <summary>向量参数（任意含义，由技能自定义）。</summary>
         public List<Vector3> vectors = new();
 
-        /// <summary>追加多个整型参数。</summary>
         public void AddInts(params int[] values)
         {
             foreach (var v in values) ints.Add(v);
         }
 
-        /// <summary>追加多个向量参数。</summary>
         public void AddVectors(params Vector3[] values)
         {
             foreach (var v in values) vectors.Add(v);
         }
     }
 
-    /// <summary>TrajectoryContext 网络序列化器。</summary>
     public struct SkillContextSerializer
     {
         public static bool Serialize(SkillContext value, byte[] result, ref int indexStart)

@@ -4,12 +4,6 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    /// <summary>
-    /// 非玩家单位技能池（id 100~179）。拥有者：僵尸 / 精英僵尸 / 防御塔 / 瘟疫树。
-    /// 与玩家技能共用同一套 SkillBase 逻辑，差异仅在施法来源（非玩家 = AI 自动索敌触发）。
-    /// store 统一 -1（无限制）：非玩家单位没有水晶补充渠道，受限会让塔/僵尸打一会儿就哑掉。
-    /// 数值（倍率 / 判定半径 / 弹道时长 / 部分特效）为占位初值，待策划定稿。
-    /// </summary>
     public static class SkillPoolNonPlayer
     {
         public static void RegisterAll()
@@ -26,7 +20,6 @@ namespace Ros.Skill
     }
 
     #region 普通僵尸（101~119）
-    /// <summary>普通僵尸·爪击右（id 101）：动画攻击帧手部球判定。</summary>
     public class SkillZombieClawR : SkillBase
     {
         public override int Id => 101;
@@ -55,7 +48,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 近战无特效
     }
 
-    /// <summary>普通僵尸·爪击左（id 102）。</summary>
     public class SkillZombieClawL : SkillBase
     {
         public override int Id => 102;
@@ -84,7 +76,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 近战无特效
     }
 
-    /// <summary>普通僵尸·嘶吼（id 103）：提升自身攻击力类。</summary>
     public class SkillZombieScream : SkillBase
     {
         public override int Id => 103;
@@ -115,7 +106,6 @@ namespace Ros.Skill
     #endregion
 
     #region 精英僵尸（120~139）
-    /// <summary>精英僵尸·爪击右（id 120）。</summary>
     public class SkillEliteZombieClawR : SkillBase
     {
         public override int Id => 120;
@@ -144,7 +134,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 近战无特效
     }
 
-    /// <summary>精英僵尸·爪击左（id 121）。</summary>
     public class SkillEliteZombieClawL : SkillBase
     {
         public override int Id => 121;
@@ -173,7 +162,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 近战无特效
     }
 
-    /// <summary>精英僵尸·嘶吼（id 122）。</summary>
     public class SkillEliteZombieScream : SkillBase
     {
         public override int Id => 122;
@@ -204,8 +192,6 @@ namespace Ros.Skill
     #endregion
 
     #region 防御塔（瘟疫孢子，140~159）
-    /// <summary>防御塔·孢子喷射（id 140）：非人形无动画，释放即生效；从碰撞体上部通用发射点直线射出。
-    /// 塔身上有「灵火」（PC104 大招）时，本发子弹命中处附加一次范围爆炸（策划案 21.5）。</summary>
     public class SkillTowerSporeShot : SkillBase
     {
         public override int Id => 140;
@@ -213,7 +199,6 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.tower_attack_range;
 
-        /// <summary>上下文 ints[2] = 灵火标记（客户端据此额外播落点爆炸表现）。</summary>
         private const int BlazeFlagIndex = 2;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -236,7 +221,6 @@ namespace Ros.Skill
                 onHit: blaze ? BlazeHit(caster) : null));
         }
 
-        /// <summary>构造"命中补一次范围爆炸"的回调（爆炸自身不再带 onHit，避免递归）。</summary>
         private Action<EntityData> BlazeHit(EntityData caster) => target =>
         {
             if (caster == null || target == null) return;
@@ -257,8 +241,6 @@ namespace Ros.Skill
     #endregion
 
     #region 瘟疫树（160~179）
-    /// <summary>孢子喷发（id 160）：瘟疫树主动攻击，对进入攻击范围的任何单位（中立无友方）自动索敌；
-    /// 直线孢子弹 + 命中中毒（弹体 B13 绿能量球）。</summary>
     public class SkillPlagueTreeSpore : SkillBase
     {
         // 中毒数值待策划定稿（策划案 21.6 只记「中立主动攻击」，未给数值）
@@ -286,7 +268,6 @@ namespace Ros.Skill
                 addEffect: Poison(caster != null ? caster.id : (ushort)0)));
         }
 
-        /// <summary>命中给目标挂中毒（负面 DoT，1s 一跳）。</summary>
         private static Action<EntityEffectController> Poison(ushort casterId) => effect => effect.AddEffect(
             EffectType.Poison, 1, PoisonDuration, negative: true,
             payload: new EntityEffectController.EffectPayload { damage = PoisonDamagePerTick, sourceId = casterId });

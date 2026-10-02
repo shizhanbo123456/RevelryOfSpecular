@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// 标准三次贝塞尔轨迹（4控制点，BulletTrajectory 的实现）。
-/// 曲线经过起点(point1)和终点(point4)，不经过中间控制点(point2, point3)。
-/// 直线/定点弹道请使用 LineTrajectory / PointTrajectory（勿再用贝塞尔模拟）。
-/// </summary>
 public class BezierTrajectory : BulletTrajectory
 {
     private readonly Vector3 point1; // P0 起点
@@ -44,13 +39,11 @@ public class BezierTrajectory : BulletTrajectory
     public override Vector3 Start => point1;
     public override Vector3 End => point4;
 
-    /// <summary>抛物线弹道（默认弧高 = 距离一半，roll 为绕弹道轴的滚转角）。</summary>
     public static BezierTrajectory GetProjection(Vector3 center, Vector3 offset, float roll)
     {
         return GetProjection(center, offset, offset.magnitude * 0.5f, roll);
     }
 
-    /// <summary>抛物线弹道（自定义弧高 radius，roll 为绕弹道轴的滚转角）。</summary>
     public static BezierTrajectory GetProjection(Vector3 center, Vector3 offset, float radius, float roll)
     {
         var t = Tool.GetTemporaryTransform();

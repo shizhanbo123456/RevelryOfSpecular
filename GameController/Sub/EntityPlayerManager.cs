@@ -3,13 +3,8 @@ using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 实体表现子管理器（客户端逻辑）：按服务器摘要创建 / 更新 / 移除实体表现视图。
-/// 客户端不实例化 EntityData（架构说明：客户端实体只含具体贴图模型表现），移动通过实体 id 获取 transform。
-/// </summary>
 public class EntityPlayerManager : ClientSubManager
 {
-    /// <summary>客户端实体表现视图（纯表现，无战斗逻辑）。</summary>
     public class ClientEntityView : MonoBehaviour
     {
         public ushort id;
@@ -23,21 +18,14 @@ public class EntityPlayerManager : ClientSubManager
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
-        /// <summary>待打印的强制切换日志（Play 要到下一次 Animator 更新才生效，片段名与落地进度下一帧才读得到）。</summary>
         public string pendingForcedSwitch;
 
-        /// <summary>待执行的片段切换（0 = 无）：收到事件只写参数，切换延后一帧再判断是否需要硬切。</summary>
         public int pendingPlayHash;
-        /// <summary>该次切换要求的归一化进度。</summary>
         public float pendingPlayFrame;
-        /// <summary>收到请求时的帧号（下一帧才执行，先给状态机一帧时间按新参数自行转换）。</summary>
         public int pendingPlayTick;
 
-        /// <summary>手上临时握着的武器（服务器下发；近战类技能期间才有，用于变化检测）。</summary>
         public WeaponRef heldWeapon;
-        /// <summary>常驻悬浮武器实例（按槽位下标；null = 该槽无武器）。</summary>
         public GameObject[] weaponVisuals;
-        /// <summary>各槽当前显示的武器（变化检测用）。</summary>
         public WeaponRef[] weaponRefs;
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
@@ -46,10 +34,8 @@ public class EntityPlayerManager : ClientSubManager
         public GameObject mushroomVisual;   // 蘑菇模型（首次感染时懒实例化）
         private bool mushroomized;
 
-        /// <summary>按 Buff 类型挂载的持续特效（key = EffectType 的 int 值），随视图一起销毁。</summary>
         public readonly Dictionary<int, GameObject> buffVfx = new();
 
-        /// <summary>按「蘑菇感染」Buff 显隐切换：隐藏水晶模型、显示蘑菇模型（随机外观仅选一次，避免刷新跳变）。</summary>
         public void SetMushroomized(bool on)
         {
             if (mushroomized == on) return;
@@ -119,7 +105,6 @@ public class EntityPlayerManager : ClientSubManager
             }
         }
 
-        /// <summary>本地是否已经（或正在）处于目标状态：已到位或正在向它过渡时不必硬切。</summary>
         private bool IsHeadingTo(int targetHash)
         {
             if (animator == null) return false;
@@ -128,7 +113,6 @@ public class EntityPlayerManager : ClientSubManager
                 && animator.GetNextAnimatorStateInfo(0).fullPathHash == targetHash;
         }
 
-        /// <summary>当前正在播放的片段名（多个=混合中；拿不到返回 "?"）。</summary>
         private string ResolvePlayingClips()
         {
             if (animator == null) return "?";
@@ -145,22 +129,16 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>实体 id → 表现视图。</summary>
     private readonly Dictionary<ushort, ClientEntityView> views = new();
 
-    /// <summary>按实体 id 取表现视图（无则返回 null）。</summary>
     public ClientEntityView GetView(ushort id) => views.TryGetValue(id, out var v) ? v : null;
 
-    /// <summary>视图尚未创建时先到的动画事件（可靠通道可能快于姿态包），建好视图后补应用。</summary>
     private readonly Dictionary<ushort, SCEntityAnimInfo> pendingAnim = new();
 
-    /// <summary>动画调试日志开关（强制切换 + 本地状态变化/自转观察；确认后置 false）。静态：嵌套的 ClientEntityView 也要用。</summary>
     private static bool logForcedAnimSwitch = true;
 
-    /// <summary>表现超时移除时长（秒）：超过该时长未收到同步即移除，兜底防漏删。</summary>
     private const float ViewTimeoutSeconds = 3f;
 
-    /// <summary>客户端表现根节点（父物体）。</summary>
     private Transform displayRoot;
 
     public override void Init(ClientLogicManager owner)
@@ -171,7 +149,6 @@ public class EntityPlayerManager : ClientSubManager
         displayRoot = go.transform;
     }
 
-    /// <summary>超时兜底移除：超过 ViewTimeoutSeconds 未收到同步的表现自动移除（防服务器漏发移除消息）。</summary>
     public override void Tick(float deltaTime)
     {
         float now = Time.time;
@@ -191,7 +168,6 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>接收服务器实体表现摘要（创建或更新）。</summary>
     public void OnEntityDisplay(SCEntityDisplayInfo info)
     {
         if (info == null) return;
@@ -223,10 +199,6 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>
-    /// 接收动画事件（服务器在状态或播放速度变化时下发，低频；首次可见时也会补发一次）。
-    /// 顺序：还原持久参数 → 镜像播放速度（含强控暂停）→ 状态 hash 变化时按服务器进度切换。
-    /// </summary>
     public void OnEntityAnim(SCEntityAnimInfo info)
     {
         if (info == null) return;
@@ -239,10 +211,6 @@ public class EntityPlayerManager : ClientSubManager
         ApplyAnim(view, info);
     }
 
-    /// <summary>
-    /// 应用一条动画事件：**立即**还原参数、镜像播放速度（含强控暂停）；状态 hash 变化时只登记待切换，
-    /// 由 <see cref="ClientEntityView.Update"/> 在下一帧决定"状态机已自行切过去（不硬切）"还是"强制 Play"。
-    /// </summary>
     private void ApplyAnim(ClientEntityView view, SCEntityAnimInfo info)
     {
         if (view.anim != null) view.anim.ApplyParamPack(info.animParams);
@@ -259,7 +227,6 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>移除实体表现。</summary>
     public void OnRemoveEntity(int entityId)
     {
         pendingAnim.Remove((ushort)entityId);
@@ -271,13 +238,11 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>按实体 id 获取世界坐标。</summary>
     public bool TryGetEntityPosition(ushort id, out Vector3 pos)
     {
         return TryGetEntityTransform(id, out pos, out _);
     }
 
-    /// <summary>按实体 id 获取完整变换（位置 + 朝向）：复原依赖朝向的挂点位置（如悬浮武器发射点）需要朝向。</summary>
     public bool TryGetEntityTransform(ushort id, out Vector3 pos, out Quaternion rot)
     {
         pos = Vector3.zero;
@@ -289,7 +254,6 @@ public class EntityPlayerManager : ClientSubManager
         return true;
     }
 
-    /// <summary>清空全部表现（对局结束）。</summary>
     public void ClearAll()
     {
         foreach (var view in views.Values)
@@ -300,7 +264,6 @@ public class EntityPlayerManager : ClientSubManager
         pendingAnim.Clear();
     }
 
-    /// <summary>按实体 id 获取头顶锚点世界坐标（模型最高点，懒解析缓存；无烘焙信息回退 2m）。</summary>
     public bool TryGetEntityHeadPos(ushort id, out Vector3 pos)
     {
         if (!TryGetEntityTransform(id, out pos, out _)) return false;
@@ -356,7 +319,6 @@ public class EntityPlayerManager : ClientSubManager
         return view;
     }
 
-    /// <summary>手上武器：随动画事件包下发，仅武器类攻击动画期间有值（其余状态 = None 空手）</summary>
     private void ApplyHeldWeapon(ClientEntityView view, int weaponCategory, int weaponIndex)
     {
         var weapon = new WeaponRef((WeaponCategory)weaponCategory, weaponIndex);
@@ -372,7 +334,6 @@ public class EntityPlayerManager : ClientSubManager
         view.anim.SetHeldObject(prefab); // 挂点未配置时自动取 Humanoid 手部骨骼，无需手工配置
     }
 
-    /// <summary>常驻悬浮武器：每个技能槽一把（武器 = 该槽技能对应的武器），按槽位下标取挂点</summary>
     private void ApplyFloatingWeapons(ClientEntityView view, SCEntityDisplayInfo info)
     {
         int count = Config.weapon_float_offsets.Length;
@@ -406,7 +367,6 @@ public class EntityPlayerManager : ClientSubManager
     private static readonly HashSet<int> s_activeBuffs = new();
     private static readonly HashSet<int> s_expiredBuffs = new();
 
-    /// <summary>按同步 Buff 列表维持持续特效：新出现的挂载跟随特效、消失的销毁（分配表见 Config.buff_vfx）。</summary>
     private static void ApplyBuffVfx(ClientEntityView view, List<SCEntityDisplayInfo.BuffRuntime> buffs)
     {
         s_activeBuffs.Clear();
@@ -435,7 +395,6 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    /// <summary>按特效类别播放跟随轨迹特效（时长由轨迹自带）。</summary>
     private static GameObject PlayTrackedVfx(SkillVfxKind kind, int index, BulletTrajectory trajectory)
     {
         var vfx = Tool.VfxManager;
@@ -460,8 +419,7 @@ public class EntityPlayerManager : ClientSubManager
 
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
 
-        // 动画不在本（高频）包里：状态切换、参数、播放速度一律由动画事件驱动（见 OnEntityAnim）。
-        // 这里的代价要知道：客户端一旦自己转离了服务器的状态，只能等服务器下一次状态变化才被纠正。
+        // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正
         // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
         if (info.includeRuntime) ApplyBuffVfx(view, info.buffs);
 
@@ -480,9 +438,7 @@ public class EntityPlayerManager : ClientSubManager
             view.SetMushroomized(infected);
         }
 
-        // 迷雾表现（PC103 苍白舞者大招「为全体敌方添加」，策划案 125/322/474 行）：
-        // 本地玩家身上有「迷雾」Buff 时开启体积雾，Buff 消失后由 EnvironmentManager 按
-        // fogTransitionDuration 平滑关闭（「缩小视野」的机制由可见距离负责，这里只做画面表现）
+        // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
         if (info.includeRuntime && NetworkManager.battleInfo != null
             && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {

@@ -6,10 +6,8 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    /// <summary>轨迹形态（上下文 ints[1]，对应策划案 21 章的 L/P/B/S 缩写）。</summary>
     public enum ProjectilePattern { Line, Point, Bezier, SkyFall }
 
-    /// <summary>特效类别（Bullet~Buff 对应 AssetsManager 的五个特效列表；Weapon = 直接用武器模型作弹体）。</summary>
     public enum SkillVfxKind { None, Bullet, RangeMagic, MagicCircle, Shield, Buff, Weapon }
 
     public abstract class SkillBase
@@ -17,14 +15,7 @@ namespace Ros.Skill
         public abstract int Id { get; }
         public abstract float CD { get; }
         public abstract int Store { get; }
-
-        /// <summary>
-        /// 施法距离（米）：**已不再作为释放门闸**（原「索敌半径内没有敌人则不得释放」的限制已删除，
-        /// 任何实体在无目标时都能正常释放技能；无目标时瞄准点由 <see cref="AimPos"/> 回退到正前方）。
-        /// 现存用途：索敌参考量（AI 的接敌距离等）。
-        /// </summary>
         public virtual float CastRange => 0f;
-
         public virtual WeaponRef Weapon => WeaponRef.None;
 
         //服务器使用技能主入口，内部生成上下文，并根据上下文生成轨迹发射子弹，并传出Context给客户端
@@ -40,7 +31,6 @@ namespace Ros.Skill
 
         #region 通用工具（服务端/客户端共用，保证伤害与特效一致）
 
-        /// <summary>以 pos→dest 为基准方向生成扇形终点（水平展开 spreadDeg）。</summary>
         protected static Vector3[] FanDests(Vector3 pos, Vector3 dest, int count, float spreadDeg)
         {
             Vector3 forward = dest - pos;
@@ -58,7 +48,6 @@ namespace Ros.Skill
             return dests;
         }
 
-        /// <summary>围绕 center 生成圆周终点（XZ 平面）。</summary>
         protected static Vector3[] CircleDests(Vector3 center, float radius, int count, float startAngleDeg = 0f)
         {
             var dests = new Vector3[count];
@@ -70,7 +59,6 @@ namespace Ros.Skill
             return dests;
         }
 
-        /// <summary>以 pos→dest 为基准方向水平旋转 angleDeg（右正左负）得到新目标点。</summary>
         protected static Vector3 RotateTargetAroundDirection(Vector3 pos, Vector3 dest, float angleDeg)
         {
             Vector3 forward = dest - pos;
@@ -80,13 +68,11 @@ namespace Ros.Skill
             return pos + dir * Vector3.Distance(pos, dest);
         }
 
-        /// <summary>最近敌人（范围内）。</summary>
         protected static EntityData GetNearestEnemy(EntityData entity, float radius = 10f)
         {
             return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
         }
 
-        /// <summary>最近友方（范围内，不含自己）。</summary>
         protected static EntityData GetNearestAlly(EntityData entity, float radius = Config.default_skill_auto_target_radius)
         {
             if (entity == null) return null;
@@ -94,7 +80,6 @@ namespace Ros.Skill
                 entity.transform.position, radius, entity.camp, entity.id);
         }
 
-        /// <summary>全场指定阵营的存活实体（camp 可传掩码，命中掩码内任一位即算；不限距离，写 TargetBuffer）。</summary>
         protected static void SetEntitiesInCampToBuffer(EntityCamp camp)
         {
             TargetBuffer.Clear();
@@ -104,7 +89,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>全场指定类别的存活实体（如所有防御塔 / 守护点，写 TargetBuffer）。</summary>
         protected static void SetEntitiesOfCategoryToBuffer(EntityCategory category)
         {
             TargetBuffer.Clear();
@@ -114,10 +98,8 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>与给定阵营敌对的阵营掩码（统一走 EntityCampUtil，勿在此重写对立规则）。</summary>
         protected static EntityCamp HostileOf(EntityCamp camp) => EntityCampUtil.HostileOf(camp);
 
-        /// <summary>把实体分桶（Towers / Crystals / Beacons 等）里的存活实体全部写入 TargetBuffer。</summary>
         protected static void SetEntitiesToBuffer(IEnumerable<EntityData> bucket)
         {
             TargetBuffer.Clear();
@@ -127,7 +109,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>把实体分桶里范围内的存活实体写入 TargetBuffer（不限阵营）。</summary>
         protected static void SetEntitiesInRangeToBuffer(IEnumerable<EntityData> bucket, Vector3 pos, float radius)
         {
             TargetBuffer.Clear();
@@ -138,7 +119,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>从实体分桶里取范围内最近的一个（排除 excludeId）。</summary>
         protected static EntityData SelectNearest(IEnumerable<EntityData> bucket, Vector3 pos, float radius,
             ushort excludeId = 0)
         {
@@ -157,7 +137,6 @@ namespace Ros.Skill
             return best;
         }
 
-        /// <summary>范围内所有敌方实体写入 TargetBuffer（敌方 = ownCamp 的敌对阵营掩码）。</summary>
         protected static void SetEnemiesInRangeToBuffer(Vector3 center, float radius, EntityCamp ownCamp)
         {
             TargetBuffer.Clear();
@@ -170,17 +149,12 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>召唤位置偏移（环形散开，避免重叠落点）。</summary>
         protected static Vector3 SummonOffset(int index, float radius = 2f)
         {
             float angle = index * 72f * Mathf.Deg2Rad;
             return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
         }
 
-        /// <summary>
-        /// 默认瞄准点：攻击者视野内最近的敌人，没有则正前方 Config.default_forward_aim_distance 米。
-        /// 索敌半径 = 实体可见距离（未配置则用全局索敌半径）。要别的索敌逻辑的技能自行覆写。
-        /// </summary>
         protected virtual Vector3 AimPos(EntityData entity, bool normalizeDistance = true, bool forceHorizontal = true)
         {
             float view = entity.floatingAttribute.viewDistance;
@@ -210,13 +184,11 @@ namespace Ros.Skill
         }
         #endregion
 
-        #region 框架工具（攻击结算 / 特效播放，服务端与客户端共用；上下文约定见嵌套 SkillContextConventions）
+        #region 框架工具（攻击结算 / 特效播放）
         private static readonly EntityData[] s_hitBuffer = new EntityData[16];
 
-        /// <summary>多目标技能的目标缓存（服务器单线程顺序执行，用完即弃，勿跨帧持有）。</summary>
         protected static readonly List<EntityData> TargetBuffer = new();
 
-        /// <summary>客户端按 id 取发射者悬浮武器位置（攻击帧实时；复用 BulletTrajectory 双端 transform 解析，客户端取不到实体）。通用工具，不依赖任何上下文约定。</summary>
         protected static Vector3 GetWeaponFloatPositionById(ushort casterId, int slot)
         {
             if (BulletTrajectory.TryGetEntityTransform(casterId, out var pos, out var rot))
@@ -224,22 +196,18 @@ namespace Ros.Skill
             return pos;
         }
 
-        /// <summary>通用发射点（不依赖任何上下文约定）：取 entity 在 slot 槽位的悬浮武器位置；无飞行武器回退 BulletShootPos()。技能可显式传槽位，自行解析上下文下标。</summary>
         protected Vector3 GetWeaponFloatPosition(EntityData entity, int slot)
         {
             if (!Weapon.IsValid) return entity.BulletShootPos();
             return entity.GetWeaponFloatPos(slot);
         }
 
-        /// <summary>本技能发射点：用当前技能槽位取悬浮武器位置（BuildShotContext / 占位用）。</summary>
         protected Vector3 GetWeaponFloatPosition(EntityData entity)
         {
             int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
             return GetWeaponFloatPosition(entity, slot < 0 ? 0 : slot);
         }
 
-        /// <summary>把实际效果挂到动画攻击帧；返回 true 表示已在等待，调用方不要再立即执行。
-        /// 仅武器类攻击动画会拿起 HoldWeapon（未重写 = None 不持有），随动画事件包下发。</summary>
         protected bool WaitAttackFrame(EntityData entity, EntityAnim.AttackType castAnim, System.Action onFrame)
         {
             if (entity.anim == null) return false;
@@ -254,7 +222,6 @@ namespace Ros.Skill
             return true;
         }
 
-        /// <summary>本技能的伤害数据（武器经验按释放时的经验加成）。addEffect = 命中附加 Buff，onHit = 命中额外逻辑，knockback = 击飞力度。</summary>
         protected AttackData BuildAttack(EntityData entity, float rate, float radius,
             bool breakEndure = false, bool useMagic = false, Action<EntityEffectController> addEffect = null,
             Action<EntityData> onHit = null, float knockback = 0f)
@@ -264,10 +231,6 @@ namespace Ros.Skill
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
         }
 
-        /// <summary>
-        /// 构造"命中附加一个 Buff"的回调：DoT 传 damage、护盾传 shieldValue、属性类传 value。
-        /// negative = true 为负面（可被净化），控制与 DoT 类必须传。
-        /// </summary>
         protected static Action<EntityEffectController> ApplyEffect(EffectType type, int level, float duration,
             bool negative = false, float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
         {
@@ -281,7 +244,6 @@ namespace Ros.Skill
                 });
         }
 
-        /// <summary>服务器：直接给一个实体挂 Buff（无需命中判定，如护盾 / 增伤 / 净化）。</summary>
         protected static void GiveEffect(EntityData target, EffectType type, int level, float duration,
             bool negative = false, float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
         {
@@ -296,27 +258,23 @@ namespace Ros.Skill
                 });
         }
 
-        /// <summary>构造"命中拉拽"回调：把目标拉向 to（走 MotionToPoint 速度积分）。</summary>
         protected static Action<EntityData> PullTo(Vector3 to, float speed = 16f)
         {
             return target => { if (target != null) target.SetMotion(new MotionToPoint(to, speed)); };
         }
 
-        /// <summary>双端按实体 id 取位置 / 取完整变换（位置 + 朝向）。</summary>
         protected static bool TryGetPos(ushort entityId, out Vector3 pos) =>
             BulletTrajectory.TryGetEntityPosition(entityId, out pos);
 
         protected static bool TryGetTransform(ushort entityId, out Vector3 pos, out Quaternion rot) =>
             BulletTrajectory.TryGetEntityTransform(entityId, out pos, out rot);
 
-        /// <summary>手部骨骼位置；无手部骨骼（非人形）退化为实体位置。</summary>
         protected static Vector3 HandPos(EntityData entity, bool leftHand = false)
         {
             var mount = entity != null && entity.anim != null ? entity.anim.GetHandMount(leftHand) : null;
             return mount != null ? mount.position : entity.transform.position;
         }
 
-        /// <summary>服务器：按发数逐发建轨迹交给子弹容器（穿透与同目标去重由容器负责）。</summary>
         protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)
         {
             for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
@@ -325,7 +283,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>球判定结算：对球内敌方各结算一次（跳过自己与非敌对阵营），命中附加效果与命中回调同样生效。</summary>
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR
@@ -370,7 +327,6 @@ namespace Ros.Skill
             return t;
         }
 
-        /// <summary>抛物线（曲射类，如榴弹）：控制点按弧高抬升。</summary>
         protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotDestination(context, index);
@@ -381,7 +337,6 @@ namespace Ros.Skill
         #endregion
 
         #region 客户端特效播放（技能 PlayVFX 的默认实现，技能按需调用）
-        /// <summary>按发数逐个重建轨迹播特效（范围魔法/魔法阵播在轨迹终点）。</summary>
         protected void PlayAlong(SkillContext context, SkillVfxKind kind, int[] vfx)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
@@ -392,7 +347,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>跟随某个实体播一次（自身光环 / 护盾 / Buff）；lifeTime &gt; 0 时覆盖轨迹时长。</summary>
         protected void PlayFollow(SkillVfxKind kind, int index, ushort entityId, float lifeTime = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
@@ -401,14 +355,12 @@ namespace Ros.Skill
             PlayOne(kind, index, trajectory);
         }
 
-        /// <summary>给上下文里的每个目标各播一次跟随特效（多目标技能表现）。</summary>
         protected void PlayFollowAll(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
             for (int i = 0; i < SkillContextConventions.TargetCount(context); i++) PlayFollow(kind, index, SkillContextConventions.GetTargetId(context, i), lifeTime);
         }
 
-        /// <summary>定点播一次（范围魔法 / 魔法阵）。</summary>
         protected void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
@@ -423,7 +375,6 @@ namespace Ros.Skill
             }
         }
 
-        /// <summary>把特效类别映射到 VfxManager 对应接口；时长统一取轨迹自带的 Duration。</summary>
         private void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory)
         {
             float life = trajectory.Duration;

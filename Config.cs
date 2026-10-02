@@ -3,171 +3,100 @@ using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 全局静态配置常量（V0.9 非对称攻防）。
-/// 数值来源：策划案第二十章（战斗全局参数一览）与第二十一章（技能池）；后续可在玩法中调整。
-/// </summary>
 public static class Config
 {
     #region 匹配与人数
-    /// <summary>单局时长（秒）= 10 分钟。</summary>
     public const float battle_duration = 600f;
     #endregion
 
     #region 角色
-    /// <summary>进攻方角色池数量（18 人，具体角色池待定）。</summary>
     public const int attack_character_count = 18;
-    /// <summary>防守方角色池数量（6 人，基于实际模型资源）。</summary>
     public const int defense_character_count = 6;
-    /// <summary>角色等级上限（1~10）。</summary>
     public const int max_entity_level = 10;
-    /// <summary>玩家等级达到该值解锁全部角色。</summary>
     public const int player_max_level = 50;
-    /// <summary>
-    /// 角色升级所需经验（下标 0 = 1→2 级，依次到 9→10 级）。
-    /// 获得经验 = 对水晶造成的伤害量。
-    /// </summary>
     public static readonly int[] level_up_exp = { 50000, 60000, 90000, 120000, 160000, 200000, 250000, 300000, 360000 };
 
-    /// <summary>
-    /// 玩家（账号级）从当前等级升到下一级所需经验：700 + 300 × 当前等级。
-    /// 公式集中于此，SaveManager 不持有数值公式。
-    /// </summary>
     public static int GetPlayerLevelUpExp(int currentLevel) => 700 + 300 * Mathf.Max(1, currentLevel);
     #endregion
 
     #region 守护点（瘟疫信标）
-    /// <summary>外围守护点数量。</summary>
     public const int outer_beacon_count = 3;
-    /// <summary>中心守护点数量。</summary>
     public const int core_beacon_count = 1;
     #endregion
 
     #region 资源与中立单位
-    /// <summary>水晶类型数（策划案第七章：4 种类型对应 4 类武器刀/长枪/枪械/魔法球）。</summary>
     public const int crystal_type_count = 4;
-    /// <summary>每类水晶的外观变体数。</summary>
     public const int crystal_variant_count = 3;
-    /// <summary>
-    /// 水晶外观总数（= 类型数 × 变体数 = 12）：外观列表下标 0~11，
-    /// **类别 = 下标 % crystal_type_count**，即 k、k+4、k+8（k=0~3）属同一类。
-    /// </summary>
     public const int crystal_graphics_count = crystal_type_count * crystal_variant_count;
-    /// <summary>防御塔（瘟疫孢子）数量。</summary>
     public const int tower_count = 4;
-    /// <summary>防御塔施法距离（米）：靠近即被攻击、无预警（策划案 8.1）。</summary>
     public const float tower_attack_range = 20f;
-    /// <summary>水晶邻近生成：每秒检测次数（每次 = 随机玩家 → 环带内随机刷新点 → 视情况生成）。</summary>
     public const float crystal_spawn_checks_per_second = 10f;
-    /// <summary>水晶邻近生成：离所选玩家的最近距离（米）；此距离内视为"近处有玩家"，不生成。</summary>
     public const float crystal_spawn_min_dist = 40f;
-    /// <summary>水晶邻近生成：离所选玩家的最远距离（米），即生成环带的外边界。</summary>
     public const float crystal_spawn_max_dist = 80f;
-    /// <summary>摧毁水晶后获得技能的概率（15%，可调）。</summary>
     public const float crystal_skill_drop_chance = 0.15f;
 
     #region 瘟疫树（中立争抢单位）
-    /// <summary>第 1 棵树的刷新延迟（秒）：开战后开始计时。</summary>
     public const float plague_tree_first_spawn_delay = 30f;
-    /// <summary>瘟疫树施法距离（米）：对进入此范围的任何单位自动索敌（策划案 6.2）。</summary>
     public const float plague_tree_attack_range = 8f;
-    /// <summary>树被打死后的重生倒计时（秒）：倒计时结束在候选点随机刷新一棵。</summary>
     public const float plague_tree_respawn_delay = 60f;
-    /// <summary>攻占奖励「瘟疫祝福」：持续时长（秒）。</summary>
     public const float plague_bless_duration = 30f;
-    /// <summary>攻占奖励「瘟疫祝福」：出伤乘区增幅（+75%）。</summary>
     public const float plague_bless_damage_up = 0.75f;
-    /// <summary>攻占奖励「瘟疫祝福」：受伤乘区减免（−25%）。</summary>
     public const float plague_bless_damage_reduce = 0.25f;
     #endregion
     #endregion
 
     #region 僵尸
-    /// <summary>全场僵尸数量上限（普通 + 精英，达上限停止刷新）。</summary>
     public const int zombie_max = 30;
-    /// <summary>夜间刷新 cd 进度增速——僵尸数为 0 时（每秒进度，越少越快）。</summary>
     public const float zombie_refresh_rate_fast = 0.5f;
-    /// <summary>夜间刷新 cd 进度增速——僵尸数接近上限时（每秒进度）。</summary>
     public const float zombie_refresh_rate_slow = 0.05f;
-    /// <summary>夜间刷新 cd 进度上限（达到即刷新一只并清零；僵尸数量达上限时不刷新且进度清零）。</summary>
     public const float zombie_refresh_progress_max = 1f;
-    /// <summary>普通僵尸外观变体数（丰富特征 21 种，生成时随机赋 type.value）。</summary>
     public const int zombie_variant_count = 21;
-    /// <summary>精英僵尸素材/属性配置数量（14 种，type.value 0~13；技能召唤时按此范围随机种类）。</summary>
     public const int elite_zombie_variant_count = 14;
-    /// <summary>夜间刷新普通僵尸的默认等级。</summary>
     public const int zombie_spawn_level = 1;
-    /// <summary>PC106 被动「提升僵尸刷新时的等级」生效后，夜刷普通僵尸的等级。</summary>
     public const int zombie_spawn_level_boosted = 3;
 
     // —— AI 行为（策划案第九章只写了「无目标时游荡 / 发现目标后主动追击 / 设最大追击距离」，数值均为占位初值）——
-    /// <summary>AI 决策间隔（秒）：各实体按自身 id 错峰，避免 30 只僵尸在同一帧集中决策。</summary>
     public const float zombie_decide_interval = 0.15f;
-    /// <summary>索敌半径（米）：仅当实体未配 viewDistance 时的回退值。</summary>
     public const float zombie_acquire_range = 12f;
-    /// <summary>近战攻击距离（米）：与爪击技能的 SkillBase.CastRange 一致——那边是施法门闸，这里是 AI 的追击/攻击分档。</summary>
     public const float zombie_attack_range = 2f;
-    /// <summary>距离超过此值才尝试嘶吼（米）：距离较近时直接近战攻击更优。</summary>
     public const float zombie_roar_range = 10f;
-    /// <summary>最大追击距离（米）：目标拉开到此距离即放弃，回出生点游荡。</summary>
     public const float zombie_max_chase_distance = 16f;
-    /// <summary>无目标时的游荡半径（米，以出生点为圆心）。</summary>
     public const float zombie_wander_radius = 8f;
-    /// <summary>游荡到点后的停顿时长（秒）。</summary>
     public const float zombie_wander_pause = 2f;
     #endregion
 
     #region 昼夜
     // 昼夜时长已移至 EnvironmentManager 的 Inspector 字段（dayDuration / nightDuration），
     // 时间改为归一化周期值（[0,2)：0/2 = 午夜，1 = 正午）循环推演，此处不再保留"阶段时长"常量。
-    /// <summary>昼夜快照心跳间隔（秒）：服务器按此间隔补发完整快照，兜底两端的长期漂移。</summary>
     public const float daynight_sync_interval = 10f;
     #endregion
 
     #region 视野与小地图（策划案第十五章）
     // 可见范围只有一套数值：角色属性 EntityAttribute.viewDistance
     // （策划案 15 章：可见距离决定敌方模型可见性与小地图显示）。小地图不另设阈值。
-    /// <summary>小地图下发间隔（秒）。</summary>
     public const float minimap_sync_interval = 0.5f;
-    /// <summary>「小地图失联」的时长（秒）：取极大值，跨昼夜由进入白天的事件移除，不依赖到时。</summary>
     public const float minimap_lost_duration = 99999f;
-    /// <summary>
-    /// HUD 小地图的显示半径（米，客户端专用）：圆形小地图只画以自己为中心该半径内的单位。
-    /// 纯表现裁剪，不参与服务器可见性判定（实际能收到什么仍由 viewDistance 决定）。
-    /// </summary>
     public const float minimap_view_radius = 100f;
     #endregion
 
     #region 复活与愈战愈勇
-    /// <summary>进攻方白天复活进度速率（每秒积累 1/8，8s 攒满；速率制防昼夜状态切换问题）。</summary>
     public const float revive_day_progress_per_second = 1f / 8f;
-    /// <summary>进攻方夜晚复活进度速率（每秒积累 1/60，接近不可复活）。</summary>
     public const float revive_night_progress_per_second = 1f / 60f;
-    /// <summary>死亡次数 → 进度积累倍率（第 1 次 = 1，最低 0.2；下标 = 已死亡次数，超出取末位）。</summary>
     public static readonly float[] revive_progress_multiplier_by_death = { 1f, 0.8f, 0.6f, 0.4f, 0.3f, 0.2f, 0.2f };
-    /// <summary>防守方复活时长（秒，昼夜一样）。</summary>
     public const float defense_revive_duration = 25f;
-    /// <summary>愈战愈勇每条命层数序列（第 1 条命起；超出取末位 5，见策划案 11.3）。</summary>
     public static readonly int[] yz_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
-    /// <summary>移动渐转速率（度/秒）：前后 + 左右同按时角色按此速率逐渐转向（服务器权威推进）。</summary>
     public const float move_turn_rate = 120f;
-    /// <summary>技能槽触发键（按槽位顺序：U I O L H Y）。</summary>
     public static readonly KeyCode[] skill_slot_keys = { KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.L, KeyCode.H, KeyCode.Y };
-    /// <summary>技能槽对应的传输键位（顺序必须与 skill_slot_keys 一致）。</summary>
     public static readonly PlayerKey[] skill_slot_player_keys = { PlayerKey.U, PlayerKey.I, PlayerKey.O, PlayerKey.L, PlayerKey.H, PlayerKey.Y };
-    /// <summary>空手攻击键（静止 = 跃起砸地，移动 = 出拳）。</summary>
     public const KeyCode melee_key = KeyCode.J;
-    /// <summary>跳跃键。</summary>
     public const KeyCode jump_key = KeyCode.K;
-    /// <summary>滑铲键（左 Shift）。</summary>
     public const KeyCode slide_key = KeyCode.LeftShift;
     #endregion
 
     #region 武器与技能
-    /// <summary>技能经验伤害加成：每点经验 +10%（策划案 14 章：基础 × (1 + 10% × 经验)，未设上限）。</summary>
     public const float skill_exp_damage_bonus = 0.1f;
 
     #region 武器技能 id 区间（见策划案 21 章；水晶掉武器按水晶类型从对应区间随机）
@@ -180,10 +109,6 @@ public static class Config
     public const int weapon_id_magic_min = 34;  // 魔法球 34~49（16 个）
     public const int weapon_id_magic_max = 49;
 
-    /// <summary>
-    /// 按水晶外观下标随机取一把对应类别的武器技能 id。
-    /// 类别 = 下标 % crystal_type_count（k、k+4、k+8 属同一类）：0刀 1长枪 2枪械 3魔法球。
-    /// </summary>
     public static int GetRandomWeaponId(int crystalValue)
     {
         int k = crystalValue % crystal_type_count;
@@ -200,45 +125,24 @@ public static class Config
     #endregion
 
     #region 结算与得分
-    /// <summary>防守方得分中每次击杀的加成系数：分数 = 守护点剩余血量 × (1 + 0.1 × 击杀数)。</summary>
     public const float kill_score_factor = 0.1f;
     #endregion
 
     #region 同步
-    /// <summary>高频实体同步间隔（秒）：只同步位置/旋转/动画。</summary>
     public const float entity_sync_interval_fast = 0.02f;
-    /// <summary>完整同步间隔（秒）：额外同步血量/Buff/技能槽等运行时数据。</summary>
     public const float entity_sync_interval_details = 0.2f;
     #endregion
 
     #region 通用
-    /// <summary>实体 id 上限（每次开始战斗时 id 源置零，超过上限从 1 重新分配，跳过已占用）。</summary>
     public const int entity_id_max = 30000;
-    /// <summary>空手攻击判定球半径（米；球心为拳击手部骨骼 / 砸击用角色位置）。</summary>
     public const float melee_hit_radius = 0.7f;
-    /// <summary>空手攻击技能 CD（秒；取最小间隔，避免同帧连发与除零）。</summary>
     public const float unarmed_skill_cd = 0.1f;
-    /// <summary>空手攻击技能 id：左手拳击（移动中随机触发）。</summary>
     public const int unarmed_punch_left = 180;
-    /// <summary>空手攻击技能 id：右手拳击（移动中随机触发）。</summary>
     public const int unarmed_punch_right = 181;
-    /// <summary>空手攻击技能 id：原地砸击（静止时触发）。</summary>
     public const int unarmed_attack_smash = 182;
-    /// <summary>加速倍率（策划案 11.3）：作用于**动画**——动画播放速度与动画声明的速度（EntityAnim.PlaybackSpeed：既写 animator.speed，
-    /// 也在 SetVelocityForward/Horizontal 里缩放声明值）。其它速度来源（MotionBase 位移、重力、击飞）完全不吃这个倍率。</summary>
     public const float anim_move_speed_up = 1.3f;
-    /// <summary>减速倍率（作用范围同加速）。</summary>
     public const float anim_move_speed_down = 0.6f;
-    /// <summary>泥沼倍率（教皇主动2 全场敌方减速；作用范围同加速）。</summary>
     public const float anim_move_speed_mire = 0.5f;
-    /// <summary>
-    /// 角色初始技能表：实体类型 → 技能 id 列表（顺序 = 键盘槽位 U I O L H Y）。
-    /// 进攻方 = 1 个天生攻击技能；防守方 = 主动1/主动2/大招（被动不是技能，见策划案 21.5）。
-    /// 非玩家单位登记 value=0 即可，其它 value 走同类别回退（见 GetInitialSkills）。
-    /// <b>未登记的角色 = 空表（不持有任何技能）</b>，直接在下表补全即可，代码无需改动。
-    /// 技能 id 段（见策划案第二十一章）：武器 0~49 / 防守方 50~73（53/57/61/65/69/73 为被动空位）、
-    /// 非玩家与空手 100~199（空手 180~182 / 普通僵尸 101~119 / 精英僵尸 120~139 / 防御塔 140~159 / 瘟疫树 160~179）。
-    /// </summary>
     public static readonly Dictionary<EntityType, int[]> initial_skills = new()
     {
         // ===== 进攻方角色（18 人，每角色 1 个天生攻击技能）=====
@@ -277,7 +181,6 @@ public static class Config
         { EntityType.PlagueTree(0), new[] { 160 } },            // 瘟疫树：孢子喷发
     };
 
-    /// <summary>取角色初始技能表（精确匹配失败时按同一 EntityCategory 回退；未配置返回空表；返回副本）。</summary>
     public static List<int> GetInitialSkills(EntityType character)
     {
         if (initial_skills.TryGetValue(character, out var ids) && ids != null) return new List<int>(ids);
@@ -288,71 +191,43 @@ public static class Config
         return new List<int>();
     }
 
-    /// <summary>技能自动索敌半径。</summary>
     public const float default_skill_auto_target_radius = 20f;
 
-    /// <summary>索敌无目标时，瞄准点取正前方该距离（米）。</summary>
     public const float default_forward_aim_distance = 10f;
 
-    /// <summary>持续型 Buff 特效的挂载时长（秒/局内远大于单局时长，实际由 Buff 移除时销毁）。</summary>
     public const float buff_vfx_life_time = 3600f;
 
     #region 通用 Buff 数值（占位初值，待策划定稿后在此统一调整）
-    /// <summary>控制类时长（秒）：麻痹 / 冰冻 / 定身 / 沉默。</summary>
     public const float buff_duration_control = 3f;
-    /// <summary>减益类时长（秒）：减速 / 中毒 / 燃烧。</summary>
     public const float buff_duration_debuff = 5f;
-    /// <summary>增益类时长（秒）：护盾 / 加速 / 增伤。</summary>
     public const float buff_duration_buff = 8f;
-    /// <summary>DoT 每跳伤害（固定数值，1s 一跳）。</summary>
     public const float buff_dot_damage = 8f;
-    /// <summary>护盾值。</summary>
     public const float buff_shield_value = 120f;
-    /// <summary>属性增益量（激励法阵等）。</summary>
     public const float buff_attr_value = 15f;
     #endregion
 
     #region 防守方技能参数（占位初值，待策划定稿）
-    /// <summary>蘑菇感染在目标水晶上的存续时长（秒）。</summary>
     public const float mushroom_infect_duration = 60f;
-    /// <summary>无限视野的可见距离加成（等同全图）。</summary>
     public const float infinite_view_distance = 99999f;
-    /// <summary>死灵漫步的光环半径（米）。</summary>
     public const float death_stroll_radius = 4f;
-    /// <summary>死灵漫步的移速提升倍率（占位初值，待策划定稿）：载体 = 动画播放速度倍率，与加速/减速/泥沼同一通道。</summary>
     public const float death_stroll_speed_up = 1.3f;
-    /// <summary>召唤的一小波僵尸数量 / 等级。</summary>
     public const int summon_zombie_count = 5;
     public const int summon_zombie_level = 1;
-    /// <summary>召唤的精英僵尸数量 / 等级。</summary>
     public const int summon_elite_count = 3;
     public const int summon_elite_level = 3;
-    /// <summary>引爆瘟疫标记：每层造成的伤害。</summary>
     public const float plague_detonate_damage = 20f;
-    /// <summary>索敌半径：岩石护盾 / 蘑菇感染（附近防御塔 / 水晶）。</summary>
     public const float defense_ally_cast_radius = 15f;
-    /// <summary>沉默 / 瘟疫标记的作用半径（米）。</summary>
     public const float defense_nearby_radius = 8f;
     #endregion
 
     #region 技能参数补充（占位初值，待策划定稿）
-    /// <summary>雷球链式跳：第二目标索敌半径（米）。</summary>
     public const float chain_jump_radius = 6f;
-    /// <summary>雷球链式跳：整段飞行时长（秒）。</summary>
     public const float chain_jump_duration = 0.6f;
-    /// <summary>空袭标记：落点轰炸半径（米）。</summary>
     public const float airstrike_radius = 3f;
-    /// <summary>吸收水晶：作用半径（米）。</summary>
     public const float absorb_crystal_radius = 6f;
-    /// <summary>吸收水晶：造成的伤害量（等同击败水晶，走概率产出流程）。</summary>
     public const float absorb_crystal_damage = 999999f;
     #endregion
 
-    /// <summary>
-    /// Buff 持续特效：客户端按 SCEntityDisplayInfo.buffs 增删（分配表见《特效清单与分配表》「三.2 Buff 与状态」）。
-    /// 表内下标 = 清单编号 − 1；未列出的 Buff 无持续特效（属性修改类、纯逻辑类）。
-    /// 迷雾（Fog）不在此表：其表现已由 EnvironmentManager 的体积雾承担，避免重复叠加。
-    /// </summary>
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
     {
         { EffectType.BeaconReduce, (SkillVfxKind.Shield, 0) },      // S1 红（守护点减伤叠层）
@@ -378,8 +253,6 @@ public static class Config
         { EffectType.PlagueBless, (SkillVfxKind.Buff, 28) },        // BF29 绿色祝福（攻占瘟疫树）
     };
 
-    /// <summary>悬浮武器挂点表（本地坐标，相对实体根物体）：槽位 i 用第 i 个，左右交替分布。
-    /// 客户端显示与服务器远程发射点共用本表，任何实体通用（不依赖 EntityAnim）。</summary>
     public static readonly Vector3[] weapon_float_offsets =
     {
         new Vector3( 0.55f, 1.15f,  0.35f),  // 槽 1 右前
@@ -392,7 +265,6 @@ public static class Config
         new Vector3(-0.45f, 0.75f,  0.20f),  // 槽 8 左下
     };
 
-    /// <summary>取槽位对应的悬浮武器本地偏移（越界取末位）。</summary>
     public static Vector3 GetWeaponFloatOffset(int slotIndex)
     {
         if (weapon_float_offsets.Length == 0) return Vector3.zero;
@@ -401,19 +273,10 @@ public static class Config
     #endregion
 
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）
-    /// <summary>
-    /// 刚体线性阻力：**必须为 0**。速度完全由 EntityData.TickVelocity 决定（动画的每帧声明 + 地面停步衰减）——
-    /// 阻力不为 0 会让"空中保持速度"失效，并在地面上叠加出第二条衰减曲线，与停步衰减打架。
-    /// </summary>
     public const float rb_drag = 0f;
 
-    /// <summary>
-    /// 【已废弃】地面停步衰减曾按此值（米/秒²）朝 0 衰减；现改为 TickVelocity 内按帧乘算
-    /// （`Min(0.9f, Time.deltaTime * 500)`，约 0.2 秒停住，空中不衰减）。当前工程内已无任何引用，保留仅为不破坏历史引用。
-    /// </summary>
     public const float move_ground_friction = 2f;
 
-    /// <summary>刚体角阻力（旋转只锁 X/Z、**Y 轴不锁**；朝向由角色控制直接赋 rotation）。</summary>
     public const float rb_angular_drag = 1f;
     #endregion
 
@@ -427,24 +290,16 @@ public static class Config
     #endregion
 
     #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）
-    /// <summary>PC104 被动「暴击麻痹」：暴击命中时施加的麻痹时长（秒）。</summary>
     public const float crit_paralysis_duration = 1.5f;
-    /// <summary>NP114 被动「夜间时间延长」：夜晚时长倍率（白天按同量压缩，一个昼夜周期总长不变）。</summary>
     public const float night_extend_factor = 1.5f;
-    /// <summary>NP134 被动「教皇守护」：入夜时给守护点的减伤比例。</summary>
     public const float pope_guard_reduce_rate = 0.3f;
-    /// <summary>PC102 被动「进攻方复活速度减慢」：进攻方复活进度倍率（仅进攻方，防守方不受影响）。</summary>
     public const float attack_revive_slow_factor = 0.6f;
-    /// <summary>PC103 被动「光暗转化」：单一标记叠到此层数即转化为苍白之冰 / 苍白之雷。</summary>
     public const int pale_full_stacks = 10;
-    /// <summary>PC103 被动「光暗转化」：光暗均达此层数且都未满时，双标记转化为苍白之火。</summary>
     public const int pale_mixed_stacks = 8;
     #endregion
 
     #region 灵火（TowerBlaze）：塔攻击附加爆炸
-    /// <summary>附加爆炸的判定半径（米）。</summary>
     public const float tower_blaze_radius = 2.5f;
-    /// <summary>附加爆炸的伤害倍率（相对塔的魔法伤害）。</summary>
     public const float tower_blaze_rate = 0.5f;
     #endregion
 }

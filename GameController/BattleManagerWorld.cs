@@ -2,26 +2,14 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 战斗世界生成（partial BattleManager）：
-/// 守护点/防御塔开局生成、瘟疫树延时刷新与攻占后重生、夜间僵尸刷新落地、
-/// **水晶按玩家邻近动态生成**（不再开局全量生成、被摧毁后也不再有固定重生计时，见 TickCrystalSpawn）。
-/// 位置唯一来源：地形组件 LandscapeSpawns（策划案 6.1/7/8.1），不再回退其它组件。
-/// 各实体的行为见其 EntityData 子类：僵尸 ZombieEntityData（游荡/追击/攻击）、防御塔与瘟疫树 AutoCastEntityData（周期施法）。
-/// </summary>
 public partial class BattleManager
 {
-    /// <summary>各水晶刷新点当前的水晶实体 id（下标 = 刷新点下标；0 = 该点没有水晶）。</summary>
     private ushort[] crystalAtPoint = System.Array.Empty<ushort>();
-    /// <summary>水晶生成检测累计器（按 Config.crystal_spawn_checks_per_second 每秒消耗若干次）。</summary>
     private float crystalSpawnAccumulator;
-    /// <summary>一次检测内复用的存活玩家位置（避免对每个候选点重复查表）。</summary>
     private static readonly List<Vector3> s_playerPosScratch = new();
 
-    /// <summary>瘟疫树重生时刻（&lt; 0 = 无计划；场上有树时同样为 -1，保证同时只有一棵）。</summary>
     private float plagueTreeRespawnTime = -1f;
 
-    /// <summary>开局生成对局世界（守护点×4 / 防御塔；水晶改由 TickCrystalSpawn 动态生成、瘟疫树延时刷新）。</summary>
     private void SpawnBattleWorld()
     {
         var spawns = Tool.LandscapeSpawns;
@@ -51,7 +39,6 @@ public partial class BattleManager
         plagueTreeRespawnTime = Time.time + Config.plague_tree_first_spawn_delay;
     }
 
-    /// <summary>夜间刷新一只普通僵尸：出生点从地形组件随机取，外观变体随机；等级取全局参数（PC106 被动可提升）。</summary>
     private void SpawnZombie()
     {
         var list = Tool.LandscapeSpawns.zombieSpawnPositions;
@@ -60,7 +47,6 @@ public partial class BattleManager
         SpawnEntity(EntityType.Zombie(variant), ZombieSpawnLevel, LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
     }
 
-    /// <summary>刷新一棵瘟疫树：候选点随机取一。</summary>
     private void SpawnPlagueTree()
     {
         var list = Tool.LandscapeSpawns.plagueTreeSpawnPositions;
@@ -68,20 +54,17 @@ public partial class BattleManager
         SpawnEntity(EntityType.PlagueTree0, 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
     }
 
-    /// <summary>瘟疫树被打死：排下一次刷新倒计时。</summary>
     public void SchedulePlagueTreeRespawn()
     {
         plagueTreeRespawnTime = Time.time + Config.plague_tree_respawn_delay;
     }
 
-    /// <summary>瘟疫树被攻占（树被打死时由 PlagueTreeEntityData 调用）：广播攻占事件供客户端做表现。</summary>
     public void NotifyPlagueTreeCaptured(ushort treeId)
     {
         Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.PlagueTreeCaptured);
     }
 
     #region 水晶（按玩家邻近动态生成）
-    /// <summary>开战重置水晶生成状态：按当前刷新点数量重建占用记录、清零累计器。</summary>
     private void ResetCrystalSpawnState(int pointCount)
     {
         if (crystalAtPoint == null || crystalAtPoint.Length != pointCount)
@@ -91,7 +74,6 @@ public partial class BattleManager
         crystalSpawnAccumulator = 0f;
     }
 
-    /// <summary>水晶被摧毁（CrystalEntityData.OnKilled 调用）：清空其刷新点的占用记录，使其可被再次生成。</summary>
     public void NotifyCrystalDestroyed(CrystalEntityData crystal)
     {
         if (crystal == null || crystalAtPoint == null) return;
@@ -99,12 +81,6 @@ public partial class BattleManager
         if (idx >= 0 && idx < crystalAtPoint.Length && crystalAtPoint[idx] == crystal.id) crystalAtPoint[idx] = 0;
     }
 
-    /// <summary>
-    /// 水晶邻近生成（每帧调用）：按 Config.crystal_spawn_checks_per_second 累计检测次数（每秒若干次）。
-    /// 每次检测：随机取一个存活玩家 → 在其 [minDist, maxDist] 距离环带内随机取一个刷新点 →
-    /// 全局确认该点 minDist 内没有任何存活玩家 → 该点没有水晶则生成一个（已有则跳过）。
-    /// 注意：不销毁水晶——已生成的水晶只会在被玩家打碎时消失（见 NotifyCrystalDestroyed）。
-    /// </summary>
     private void TickCrystalSpawn(float dt)
     {
         int count = crystalAtPoint != null ? crystalAtPoint.Length : 0;
@@ -120,7 +96,6 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>一次生成检测（详见 TickCrystalSpawn）。</summary>
     private void TrySpawnOneCrystal(int count)
     {
         // 收集全部存活玩家位置（玩家数很少，一次收集供本次检测复用；阵亡/复活等待中返回 null）
@@ -167,7 +142,6 @@ public partial class BattleManager
         if (GetEntity(id) is CrystalEntityData crystal) crystal.spawnPointIndex = picked;
     }
 
-    /// <summary>该位置 minDist 内是否有任何存活玩家（用本次检测收集到的玩家位置）。</summary>
     private static bool IsAnyPlayerWithin(Vector3 pos, float radius)
     {
         float rSq = radius * radius;
@@ -182,7 +156,6 @@ public partial class BattleManager
     }
     #endregion
 
-    /// <summary>世界重生推进（时间戳到期检查，无每帧状态计算）。</summary>
     private void TickWorldRespawn()
     {
         // 瘟疫树：倒计时到期刷新一棵（同时只有一棵，故用单值时刻而不进列表）

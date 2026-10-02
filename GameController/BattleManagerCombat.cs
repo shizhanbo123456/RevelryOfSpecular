@@ -2,19 +2,9 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 战斗核心（partial BattleManager）：服务器权威移动、子弹容器、近战、死亡复活与愈战愈勇。
-/// 时间戳原则：CD/重生/子弹等尽量由时间戳外推；
-/// 移动为角色相对移动 + 渐转（路径为曲线），按帧增量积分；仅动态项（渐转/位移速度、DoT tick）做必要的推进。
-/// </summary>
 public partial class BattleManager
 {
     #region 服务器权威移动（双手键盘：角色相对移动 + 渐转，朝向服务器权威）
-    /// <summary>
-    /// 移动推进（服务器权威）：只做空检查并逐实体调用 TickVelocity——
-    /// MotionBase 更新、朝向与输入推进、动画/位移/击飞的混合、区块索引同步全部在 EntityData.TickVelocity 内部完成。
-    /// **玩家主动操控的速度只能来自动画模块**通过 EntityAnim.SetVelocity* 的声明（来源 Animation）。
-    /// </summary>
     private void TickMovement()
     {
         float dt = Time.deltaTime;
@@ -31,7 +21,6 @@ public partial class BattleManager
     private readonly List<Bullet> activeBullets = new();
     private static readonly EntityData[] s_bulletBuffer = new EntityData[16];
 
-    /// <summary>登记子弹（ShootBullet 调用）。</summary>
     private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime)
     {
         if (attack == null || trajectory == null) return;
@@ -45,7 +34,6 @@ public partial class BattleManager
         });
     }
 
-    /// <summary>子弹推进：按时间戳算位置 → 命中检测 → 伤害结算；命中不消失，只在生命到期时移除。</summary>
     private void TickBullets()
     {
         float now = Time.time;
@@ -62,7 +50,6 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>命中检测：以「上一帧位置 → 当前位置」的胶囊覆盖整段路径（防高速穿模），路径上的敌方各结算一次后继续飞。</summary>
     private void TryHitBullet(Bullet b, Vector3 pos)
     {
         var attack = b.attack;
@@ -90,7 +77,6 @@ public partial class BattleManager
     #endregion
 
     #region 死亡 / 复活 / 愈战愈勇
-    /// <summary>玩家复活状态（死亡即摧毁单位，复活时重建并回满；Buff 随摧毁消失不回添）。</summary>
     private class ReviveState
     {
         public int deathCount;
@@ -99,13 +85,8 @@ public partial class BattleManager
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
-    /// <summary>
-    /// 各玩家击杀数（按客户端 id）。只统计击杀**敌对阵营的玩家角色**（含 AI 玩家）—— 僵尸/防御塔/水晶/守护点不计。
-    /// 每人死亡数见 <see cref="ReviveState.deathCount"/>（复活叠层用）。暂不下发客户端。
-    /// </summary>
     public readonly Dictionary<short, int> KillCountByClient = new();
 
-    /// <summary>死亡统一处理：进入复活流程并下发进度；水晶排重生/掉武器并广播采集事件（被「蘑菇感染」的水晶被进攻方摧毁时无产出，走 CrystalBroken）；守护点重算分层减伤；销毁时机交给 BeginDying（等死亡动画播完）。</summary>
     private void HandleDeath(EntityData entity)
     {
         // 击杀归属：击杀者由 lastAttacker 反查（归属已随死亡移除时算不出，例如同归于尽 → 不计）
@@ -156,13 +137,8 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>正在等死亡动画播完的实体（尚未物理销毁；见 BeginDying）。</summary>
     private readonly List<EntityData> dyingEntities = new();
 
-    /// <summary>
-    /// 死亡销毁入口：有动画 → 等死亡动画播完再销毁；无动画（水晶/守护点/防御塔等）→ 立即销毁。
-    /// 延后销毁期间实体仍在容器里，但 Alive 已为 false，索敌/受击/移动都会跳过它（见各处 Alive 过滤）。
-    /// </summary>
     private void BeginDying(EntityData entity)
     {
         if (entity == null) return;
@@ -174,7 +150,6 @@ public partial class BattleManager
         if (!dyingEntities.Contains(entity)) dyingEntities.Add(entity);
     }
 
-    /// <summary>死亡动画推进：AnimDieEvent 播完（deathAnimDone）后真正销毁实体。</summary>
     private void TickDying()
     {
         for (int i = dyingEntities.Count - 1; i >= 0; i--)
@@ -191,7 +166,6 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>进攻方角色全部阵亡 → 立即按当前分数结算（拆除量过半则可能判胜）。</summary>
     private void CheckAttackWiped()
     {
         foreach (var e in EntityContainer.Entities)
@@ -201,11 +175,6 @@ public partial class BattleManager
         EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
     }
 
-    /// <summary>
-    /// 水晶掉武器（策划案第七章：摧毁水晶 15% 概率获得该类型中的一把）。
-    /// 已持有 → 该武器经验 +1；未持有且槽未满 → 入槽；未持有但槽满 → 转经验随机分配（策划案 5.2）。
-    /// 仅真人玩家（有归属客户端的攻击者）可拾取。
-    /// </summary>
     public void TryDropCrystalWeapon(EntityData crystal)
     {
         var killer = crystal.lastAttacker;
@@ -235,7 +204,6 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>给指定玩家发文字提示（飘字，走 NoticeMessageMap）。</summary>
     private void NotifyPlayer(short clientId, int messageId)
     {
         Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
@@ -245,10 +213,6 @@ public partial class BattleManager
         });
     }
 
-    /// <summary>
-    /// 复活推进：进攻方进度 = 昼夜速率 × 死亡倍率（1/0.8/0.6/0.4/0.3/0.2...，最低 0.2）；
-    /// 防守方固定 25s（昼夜一样）。攒满即复活（速率制，无黎明等待）。
-    /// </summary>
     private void TickRevive()
     {
         float dt = UnityEngine.Time.deltaTime;
@@ -284,7 +248,6 @@ public partial class BattleManager
         }
     }
 
-    /// <summary>复活玩家：重建实体（属性自然回满）、叠愈战愈勇、重新绑定 id 并下发开局信息。</summary>
     private void RespawnPlayer(short clientId, ReviveState rs)
     {
         if (!PlayerCamp.TryGetValue(clientId, out var camp)) return;
@@ -342,7 +305,6 @@ public partial class BattleManager
         });
     }
 
-    /// <summary>开战清空战斗运行状态（id 源、子弹、移动、复活、世界重生、经验统计）。</summary>
     private void ClearBattleState()
     {
         activeBullets.Clear();

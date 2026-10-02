@@ -1,12 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 简单资产引用管理器（客户端专用，服务器场景不含本组件）。
-/// 持有各类大体积资产引用（模型/特效/图标），非特殊内容全部通过它实现。
-/// 高复用内容通过 GameController/Utils/AssetsObjectPool 复用。
-/// 各列表下标与策划案 V0.9 /《特效清单与分配表》一致（下标 0 起）。
-/// </summary>
 public class AssetsManager : MonoBehaviour
 {
     private void Awake()
@@ -15,58 +9,37 @@ public class AssetsManager : MonoBehaviour
     }
 
     #region 实体图形（客户端表现用；服务器不加载本组件）
-    /// <summary>进攻方角色（18 人，下标 = 角色编号）。</summary>
     public List<GameObject> AttackCharacterGraphics = new();
-    /// <summary>防守方角色（6 人，下标 = 角色编号）。</summary>
     public List<GameObject> DefenseCharacterGraphics = new();
-    /// <summary>普通僵尸（丰富特征 21 种；场上多样性由服务器生成时随机赋 type.value，按 value 取模选用）。</summary>
     public List<GameObject> ZombieGraphics = new();
-    /// <summary>精英僵尸（14 种，同上按 value 取模选用）。</summary>
     public List<GameObject> EliteZombieGraphics = new();
-    /// <summary>守护点（瘟疫信标）：[0] = 外围矮信标，[1] = 中心高信标。</summary>
     public List<GameObject> BeaconGraphics = new();
-    /// <summary>水晶图形：4 种颜色 × 3 种外形 = 12 项（Config.crystal_graphics_count，下标 = 外观下标 0~11）。
-    /// 颜色决定掉落的武器类型（同色掉同类武器，见策划案第七章）；类别 = 下标 % crystal_type_count。</summary>
     public List<GameObject> CrystalGraphics = new();
-    /// <summary>防御塔（瘟疫孢子）图形：4 种外观，按塔实例编号 value 选用（4 座塔各配一种）。</summary>
     public List<GameObject> TowerGraphics = new();
     public GameObject PlagueTreeGraphic;
-    /// <summary>蘑菇图形（客户端「蘑菇感染」Buff 表现：水晶模型隐藏、蘑菇模型显示，见 ClientLogicManager.EntityPlayers；多种外观，感染时随机选用一种并缓存）。</summary>
     public List<GameObject> MushroomGraphics = new();
     #endregion
 
     #region 特效（编号与《特效清单与分配表.md》对应）
-    /// <summary>子弹特效（60 个：20 类 × 3 颜色变体，下标 0~59 与特效清单一致）。</summary>
     public List<GameObject> BulletVFX = new();
-    /// <summary>护盾特效（13 个）。</summary>
     public List<GameObject> ShieldVFX = new();
-    /// <summary>范围魔法（10 个）。</summary>
     public List<GameObject> RangeMagicVFX = new();
-    /// <summary>魔法阵（10 个）。</summary>
     public List<GameObject> MagicCircleVFX = new();
-    /// <summary>Buff 特效（31 个）。</summary>
     public List<GameObject> BuffVFX = new();
     #endregion
 
     #region 武器（悬浮武器模型，SelectedWeaponPrefabCreator 生成到 Assets/Files/Prefabs/Weapons）
-    /// <summary>近战武器（刀，11 把）。</summary>
     public List<GameObject> MeleeWeaponPrefabs = new();
-    /// <summary>长枪（8 把）。</summary>
     public List<GameObject> SpearWeaponPrefabs = new();
-    /// <summary>枪械（15 把）。</summary>
     public List<GameObject> GunWeaponPrefabs = new();
-    /// <summary>魔法球（16 个）。</summary>
     public List<GameObject> MagicOrbPrefabs = new();
     #endregion
 
     #region UI 图标
-    /// <summary>进攻方角色图标（下标 = 进攻角色序号）。</summary>
     public List<Sprite> AttackCharacterIcons = new();
-    /// <summary>防守方角色图标（下标 = 防守角色序号）。</summary>
     public List<Sprite> DefenseCharacterIcons = new();
     #endregion
 
-    /// <summary>按实体类型取客户端图形。</summary>
     public bool TryGetGraphic(EntityType type, out GameObject graphic)
     {
         graphic = null;
@@ -100,10 +73,6 @@ public class AssetsManager : MonoBehaviour
         return graphic != null;
     }
 
-    /// <summary>
-    /// 按技能声明的武器引用取悬浮武器预制体（客户端表现）。
-    /// 类别 → 对应的武器列表，下标 → 列表内位置；越界或无效返回 false。
-    /// </summary>
     public bool TryGetWeaponPrefab(WeaponRef weapon, out GameObject prefab)
     {
         prefab = null;

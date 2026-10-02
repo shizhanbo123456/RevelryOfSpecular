@@ -2,11 +2,6 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 效果类型 V2（按策划案 11.3 总表重构，旧枚举作废）。
-/// 类别决定处理轨道：属性重算类走 Add/Remove 重算；控制类施加时动画速度置 0；
-/// DoT 固定数值 1s 间隔；标记类无自身效果供读取层数；其余按战斗管线查询。
-/// </summary>
 public enum EffectType
 {
     // ---- 属性修改（重算轨道，无特效；level 不用，value = 修改量）----
@@ -58,10 +53,8 @@ public enum EffectType
     PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
 }
 
-/// <summary>EffectType 分类扩展。</summary>
 public static class EffectTypeExt
 {
-    /// <summary>属性修改类（重算轨道白名单，唯一允许改属性的 Buff）。</summary>
     public static bool IsAttribute(this EffectType type) => type switch
     {
         EffectType.AttrStrength or EffectType.AttrMagic or
@@ -70,25 +63,13 @@ public static class EffectTypeExt
         _ => false,
     };
 
-    /// <summary>强控类（动画速度 0、霸体失效、打断位移与攻击）。</summary>
     public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root;
 
-    /// <summary>DoT 类（固定数值，1s 间隔 tick）。</summary>
     public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison;
 }
 
-/// <summary>
-/// 实体效果（Buff）控制器 V2（对应策划案 11.3 总表，三条铁律）：
-/// 1. 双轨属性，事件驱动：属性修改类 Buff（Attr* 白名单）只在 Add/Remove 时统一重算
-///    运行时属性（base + Σ修改量），其它 Buff 不允许触碰属性；
-/// 2. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口
-///    （护盾吸收/减伤/增减伤乘区/反伤/行动限制/霸体）；
-/// 3. OnUpdate 只做两件事：到期移除（记录结束时间戳，不每帧刷新剩余时间）、DoT/光环 tick。
-/// Buff 数据一律使用 struct；强控施加时直接将动画播放速度置 0（当前攻击随之被打断）。
-/// </summary>
 public class EntityEffectController
 {
-    /// <summary>附加数据（按 Buff 类别取用）。</summary>
     public struct EffectPayload
     {
         public float value;        // 属性修改量（Attr* 类）/ 死灵漫步光环半径
@@ -100,7 +81,6 @@ public class EntityEffectController
         public static EffectPayload Default => new EffectPayload() { tickInterval = 1f };
     }
 
-    /// <summary>单个 Buff 的运行时数据（struct：整体写回）。</summary>
     public struct EffectRuntime
     {
         public EffectType type;
@@ -117,7 +97,6 @@ public class EntityEffectController
 
     public EntityData owner;
 
-    /// <summary>清空全部效果（实体销毁时调用）。</summary>
     public void Clear() => effects.Clear();
 
     private readonly Dictionary<EffectType, EffectRuntime> effects = new();
@@ -131,11 +110,6 @@ public class EntityEffectController
     }
 
     #region//增删查（简易统一入口）
-    /// <summary>
-    /// 添加 Buff（统一入口，按类别自动分发：属性重算 / 强控施加 / DoT / 护盾 / 标记）。
-    /// level：层数或强度；duration：秒（&lt;0 = 永久）；negative：负面标记（净化用）；
-    /// payload：按类别填充（属性量/每跳伤害/护盾值/来源/间隔）。
-    /// </summary>
     public void AddEffect(EffectType type, int level = 1, float duration = -1f, bool negative = false, EffectPayload payload = default)
     {
         float endTime = duration < 0f ? float.MaxValue : Time.time + duration;
@@ -180,7 +154,6 @@ public class EntityEffectController
         }
     }
 
-    /// <summary>移除 Buff（属性类触发重算；强控类在全部移除后恢复动画速度；移速类重算动画播放速度）。</summary>
     public void RemoveEffect(EffectType type)
     {
         if (!effects.Remove(type)) return;
@@ -189,7 +162,6 @@ public class EntityEffectController
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
     }
 
-    /// <summary>移除全部负面 Buff（净化波动）。</summary>
     public void RemoveAllNegative()
     {
         s_expired.Clear();
@@ -206,7 +178,6 @@ public class EntityEffectController
     #endregion
 
     #region//战斗管线查询（由战斗代码在明确时机调用，非每帧计算）
-    /// <summary>护盾吸收总量（护盾/岩石护盾），OnDamaged 先扣盾。</summary>
     public float GetShieldAbsorb()
     {
         float sum = 0f;
@@ -215,7 +186,6 @@ public class EntityEffectController
         return sum;
     }
 
-    /// <summary>扣减护盾值（OnDamaged 内调用；扣完自动移除）。</summary>
     public void ConsumeShield(float amount)
     {
         foreach (var type in new[] { EffectType.Shield, EffectType.TowerShield })
@@ -230,7 +200,6 @@ public class EntityEffectController
         }
     }
 
-    /// <summary>总减伤比例 0~1（副守护点减伤每层 25% + 教皇守护）。</summary>
     public float GetDamageReduceRate()
     {
         float rate = 0f;
@@ -239,7 +208,6 @@ public class EntityEffectController
         return Mathf.Clamp01(rate);
     }
 
-    /// <summary>出伤乘区（愈战愈勇：每层 +10% 增伤；瘟疫祝福：+75%）。</summary>
     public float GetOutDamageMultiplier()
     {
         float m = 1f + GetLevel(EffectType.YzCy) * 0.1f;
@@ -247,7 +215,6 @@ public class EntityEffectController
         return m;
     }
 
-    /// <summary>受伤乘区（愈战愈勇：每层 +10% 减伤，1/(1+0.1×层) 递减不归零；瘟疫祝福：−25%）。</summary>
     public float GetInDamageMultiplier()
     {
         float m = 1f / (1f + GetLevel(EffectType.YzCy) * 0.1f);
@@ -255,32 +222,21 @@ public class EntityEffectController
         return m;
     }
 
-    /// <summary>反弹伤害（Reflect 的固定数值，0 = 无）。</summary>
     public float GetReflectDamage()
     {
         return effects.TryGetValue(EffectType.Reflect, out var rt) ? rt.damage : 0f;
     }
 
-    /// <summary>是否被强控（麻痹/冰冻/定身）：不可移动、不可攻击、动画停止、霸体失效。</summary>
     public bool IsActionBlocked() => HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) || HasEffect(EffectType.Root);
 
-    /// <summary>是否被沉默（无法使用技能，可移动/普攻）。</summary>
     public bool IsSilenced() => HasEffect(EffectType.Silence);
 
-    /// <summary>是否可释放技能。</summary>
     public bool CanCastSkill() => !IsActionBlocked() && !IsSilenced();
 
-    /// <summary>是否可移动。</summary>
     public bool CanMove() => !IsActionBlocked();
 
-    /// <summary>是否处于强制霸体（绝对霸体，如「死灵漫步」期间）。</summary>
     public bool HasSuperArmor() => HasEffect(EffectType.DeathStroll);
 
-    /// <summary>
-    /// 移速类 Buff 的倍率（加速/减速/泥沼，多个并存时连乘）。**只作用于动画播放速度**
-    /// （EntityAnim.SetMoveSpeedScale → animator.speed），不参与位移速度：对位移速度的影响由动画模块
-    /// 在声明速度时自行接入。其它速度来源（输入退化移速、MotionBase 位移、重力）完全不吃本参数。
-    /// </summary>
     public float GetMoveAnimSpeedMultiplier()
     {
         float m = 1f;
@@ -316,7 +272,6 @@ public class EntityEffectController
         for (int i = 0; i < s_expired.Count; i++) RemoveEffect(s_expired[i]);
     }
 
-    /// <summary>DoT/光环每跳结算（固定数值：吃护盾/减伤，不吃增减伤）。</summary>
     private void TickDamage(EffectRuntime rt)
     {
         switch (rt.type)
@@ -346,20 +301,15 @@ public class EntityEffectController
     #endregion
 
     #region//Local
-    /// <summary>移速类 Buff：只有它们会改动画播放速度（策划案 11.3：这些效果的载体就是动画移动状态的播放速度倍率）。</summary>
     private static bool IsMoveSpeedEffect(EffectType type) =>
         type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll;
 
-    /// <summary>把移速倍率应用到动画播放速度（策划案 11.3 的载体；位移速度不受本倍率影响）。</summary>
     private void ApplyAnimSpeedScale()
     {
         if (owner == null || owner.anim == null) return;
         owner.anim.SetMoveSpeedScale(GetMoveAnimSpeedMultiplier());
     }
 
-    /// <summary>属性重算：运行时属性 = 基础属性 + Σ属性修改 Buff。
-    /// **当前生命值也住在 floating 里**（`health` 这个字段：base 侧是生命值上限、floating 侧是当前生命值），
-    /// 所以先把它取出来，重算完再夹回上限 —— 夹取是"只夹不平移"，即不自动回血。</summary>
     private void RecomputeAttributes()
     {
         if (owner == null || owner.baseAttribute == null) return;
@@ -383,7 +333,6 @@ public class EntityEffectController
         owner.SetAnimPaused(true);
     }
 
-    /// <summary>强控全部移除后恢复动画播放速度。</summary>
     private void RefreshControlPause()
     {
         foreach (var type in effects.Keys)
@@ -410,7 +359,6 @@ public class EntityEffectController
         }
     }
 
-    /// <summary>组装服务器→客户端的 Buff 摘要（type/level/剩余时间，客户端按映射表挂特效与判断表现）。</summary>
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;

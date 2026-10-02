@@ -3,10 +3,6 @@ using FairyGUI;
 using Ros.UI.Main;
 using UnityEngine;
 
-/// <summary>
-/// UI 总控（FGUI 版）：加载 Main 包并注册 binder，持有三个页面（Logic 层，不直接操作生成组件），
-/// 统一切页（OnConnect/OnBattleStart/OnRestartGame 事件驱动）、驱动当前页 Tick、分辨率适配与全局飘字。
-/// </summary>
 public class UIManager : MonoBehaviour
 {
     private HomePage home;
@@ -86,7 +82,6 @@ public class UIManager : MonoBehaviour
         TickFloating();
     }
 
-    /// <summary>分辨率适配：按当前宽高比算出 1080 高对应的宽度，通知所有页面。</summary>
     private void ApplyResize()
     {
         lastScreenWidth = Screen.width;
@@ -163,13 +158,11 @@ public class UIManager : MonoBehaviour
         ReturnToHome();
     }
 
-    /// <summary>主动退出世界（组队/战斗页退出按钮）：清空残留并切回主界面。</summary>
     private void OnExitWorld()
     {
         ReturnToHome();
     }
 
-    /// <summary>断开/超时/主动退出统一返回主界面，并清空上一局实体表现残留。</summary>
     private void ReturnToHome()
     {
         if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();

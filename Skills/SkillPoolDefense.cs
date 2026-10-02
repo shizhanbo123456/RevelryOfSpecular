@@ -3,13 +3,6 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    /// <summary>
-    /// 防守方角色专属技能池（id 50~73）。拥有者：防守方 6 角色，每角色「主动1 / 主动2 / 大招」各 1。
-    /// 被动不占 id、不属技能系统（其效果直接插在战斗逻辑里，见《代码架构说明》）。
-    /// 施法动作按策划案 12 章「小技能短施法、越大的技能越长」：主动用 Mega_Short，大招（CD ≥ 40）用 Mega_Long（待策划确认）。
-    /// 特效下标换算：B* = BulletVFX 下标；S* / RM* / MC* / BF* = 编号 − 1（见《特效清单与分配表》）。
-    /// 效果参数（Buff 类型/层数/时长、索敌半径）为占位初值，集中在 Config 的通用 Buff 数值段。
-    /// </summary>
     public static class SkillPoolDefense
     {
         public static void RegisterAll()
@@ -36,7 +29,6 @@ namespace Ros.Skill
     }
 
     #region PC104 鹿铠怪人（50~52）
-    /// <summary>岩石护盾（id 50）：为附近防御塔附加护盾。特效 S2 橙构筑。</summary>
     public class SkillRockShield : SkillBase
     {
         public override int Id => 50;
@@ -74,7 +66,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>蘑菇感染（id 51）：为附近水晶附加蘑菇感染，被进攻方摧毁时无产出。特效为模型替换（非特效）。</summary>
     public class SkillMushroomInfect : SkillBase
     {
         public override int Id => 51;
@@ -109,7 +100,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 表现 = 模型替换，不走特效
     }
 
-    /// <summary>灵火（id 52·大招）：为全场防御塔附加灵火，使其攻击附带爆炸。特效 BF12 塔身附着 + RM8 岩浆连环爆炸。</summary>
     public class SkillTowerBlazeCast : SkillBase
     {
         public override int Id => 52;
@@ -145,7 +135,6 @@ namespace Ros.Skill
     #endregion
 
     #region NP114 白眼伯爵（54~56）
-    /// <summary>白眼标记（id 54）：为进攻方采集量最高者附加标记，己方小地图持续可见。特效 BF16 黄色周身泛光。</summary>
     public class SkillEyeMark : SkillBase
     {
         public override int Id => 54;
@@ -183,7 +172,6 @@ namespace Ros.Skill
         }
     }
 
-    /// <summary>无限视野（id 55）：己方视野短暂扩大到全图。无特效（属性修改：可见距离 +99999）。</summary>
     public class SkillInfiniteVision : SkillBase
     {
         public override int Id => 55;
@@ -216,7 +204,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 无特效
     }
 
-    /// <summary>立即进入夜晚（id 56·大招）：直接把昼夜推到夜晚起点，不改阶段时长。</summary>
     public class SkillForceNight : SkillBase
     {
         public override int Id => 56;
@@ -244,7 +231,6 @@ namespace Ros.Skill
     #endregion
 
     #region PC106 死灵漫步者（58~60）
-    /// <summary>召唤一小波僵尸（id 58）：在施放者附近召唤。特效 MC7 深紫召唤法阵。</summary>
     public class SkillSummonZombies : SkillBase
     {
         public override int Id => 58;
@@ -278,7 +264,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.5f); // MC7
     }
 
-    /// <summary>死灵漫步（id 59）：自身获得强位移/绝对霸体 + 周围周期伤害。特效 BF4 血色缠绕。</summary>
     public class SkillDeathStrollCast : SkillBase
     {
         public override int Id => 59;
@@ -307,7 +292,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 3, SkillBase.SkillContextConventions.GetCasterId(context)); // BF4
     }
 
-    /// <summary>召唤多个精英僵尸（id 60·大招）：大型召唤法阵（复用 MC7）。</summary>
     public class SkillSummonElites : SkillBase
     {
         public override int Id => 60;
@@ -344,7 +328,6 @@ namespace Ros.Skill
     #endregion
 
     #region NP134 蒙面教皇（62~64）
-    /// <summary>沉默（id 62）：为附近敌人附加沉默。特效 BF5 黑色缠绕。</summary>
     public class SkillSilenceCast : SkillBase
     {
         public override int Id => 62;
@@ -379,7 +362,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollowAll(context, SkillVfxKind.Buff, 4); // BF5
     }
 
-    /// <summary>泥沼（id 63）：为全场敌方附加一层泥沼减速。特效 BF26 水花。</summary>
     public class SkillMireCast : SkillBase
     {
         public override int Id => 63;
@@ -413,7 +395,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollowAll(context, SkillVfxKind.Buff, 25); // BF26 水花
     }
 
-    /// <summary>反伤（id 64·大招）：为所有守护点附加反伤。特效 MC9 红色防御增益。</summary>
     public class SkillReflectCast : SkillBase
     {
         public override int Id => 64;
@@ -449,7 +430,6 @@ namespace Ros.Skill
     #endregion
 
     #region PC102 瘟疫使者（66~68）
-    /// <summary>瘟疫标记（id 66）：为附近敌人及带标记敌人附近者附加瘟疫标记。特效 BF19 自然（叠层标记）。</summary>
     public class SkillPlagueMarkCast : SkillBase
     {
         public override int Id => 66;
@@ -484,7 +464,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) => PlayFollowAll(context, SkillVfxKind.Buff, 18); // BF19
     }
 
-    /// <summary>吸收矿石（id 67）：立即摧毁并吸收周围矿石。特效 RM2 黑洞爆炸。</summary>
     public class SkillAbsorbOre : SkillBase
     {
         public override int Id => 67;
@@ -520,7 +499,6 @@ namespace Ros.Skill
             => PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], 1f); // RM2
     }
 
-    /// <summary>引爆瘟疫标记（id 68·大招）：按层数造成中毒。特效 BF18 黑绿喷发。</summary>
     public class SkillDetonatePlague : SkillBase
     {
         public override int Id => 68;
@@ -571,7 +549,6 @@ namespace Ros.Skill
     #endregion
 
     #region PC103 苍白舞者（70~72）
-    /// <summary>苍白之光（id 70）：多发直线飞弹，命中附加苍白之光标记。特效 B2 红黑能量球 + BF16 黄色泛光。</summary>
     public class SkillPaleLightCast : SkillBase
     {
         public override int Id => 70;
@@ -609,7 +586,6 @@ namespace Ros.Skill
         private const float duration = 1.2f;
     }
 
-    /// <summary>苍白之暗（id 71）：多发曲射飞弹，命中附加苍白之暗标记。特效 B1 紫黑能量球 + BF1 紫雾。</summary>
     public class SkillPaleDarkCast : SkillBase
     {
         public override int Id => 71;
@@ -647,7 +623,6 @@ namespace Ros.Skill
         private const float duration = 1.4f;
     }
 
-    /// <summary>迷雾（id 72·大招）：为全体敌方附加迷雾（压缩视野）。特效 BF7 紫雾喷发。</summary>
     public class SkillFogCast : SkillBase
     {
         public override int Id => 72;

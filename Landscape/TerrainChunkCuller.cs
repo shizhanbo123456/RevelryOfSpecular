@@ -1,22 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 地形块显隐跟随器（挂在相机上）：
-/// 运行时以相机 XZ 坐标为中心、按**方形**可见距离（轴对齐，边长 = 2 × 可见距离）做剔除——
-/// 与方形区域相交的地形块显示，其余整块隐藏（SetActive(false)）。
-/// 块列表来源：**Tool.LandscapeSpawns.terrainChunks**（在 LandscapeSpawns 的 Inspector 填 64 个子地形物体），
-/// 本组件不持有块引用；LandscapeSpawns 尚未注册（Awake 顺序）时静默等待，注册后自动生效。
-/// 判定用块的 XZ 包围盒与方形区域**相交**而非块中心：块中心在方形外但边缘已进入时仍显示，
-/// 避免视野边缘的地形块突然消失/出现。
-/// 性能：每帧只做 64 次数值比较，状态无变化时不碰 GameObject（SetActive 有引擎侧开销，绝不空调）。
-/// </summary>
 public class TerrainChunkCuller : MonoBehaviour
 {
     [Tooltip("方形可见距离（米）：相机 XZ ± 该值范围内的地形块可见")]
     public float visibleDistance = 250f;
 
-    /// <summary>单块的剔除信息（列表变化时缓存一次）。</summary>
     private struct ChunkInfo
     {
         public GameObject go;
@@ -86,7 +75,6 @@ public class TerrainChunkCuller : MonoBehaviour
         cachedChunkCount = source.Count;
     }
 
-    /// <summary>缓存有效性：任意条目被销毁即失效重建。</summary>
     private bool CachesValid()
     {
         for (int i = 0; i < chunkInfos.Count; i++)
@@ -97,7 +85,6 @@ public class TerrainChunkCuller : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    /// <summary>编辑器可视化：选中时画出方形可见区，方便调 visibleDistance。</summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(0.3f, 0.9f, 1f, 0.6f);

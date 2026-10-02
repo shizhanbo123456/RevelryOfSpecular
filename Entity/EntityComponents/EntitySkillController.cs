@@ -2,32 +2,20 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 实体技能控制器 API。
-/// 技能统一模型见策划案 11.1：武器与角色技能是同一实体（武器显示可选 / 释放动作可配置 / 释放效果必须）。
-/// 外部只向 SkillManager 传入技能 id 和上下文即可（技能实现见 Skills/SkillPool*，本类负责列表 / 库存 / CD 框架）。
-/// 触发方式：键盘技能槽（U I O L H Y）直接触发对应槽位技能，无滚轮/鼠标选择。
-/// </summary>
 public class EntitySkillController
 {
     public EntityData owner;
 
-    /// <summary>技能列表（顺序 = 键盘槽位顺序 U I O L H）：初始武器/局内武器/角色主动技能/大招。</summary>
     private readonly List<int> skillIds = new();
 
-    /// <summary>最近触发的槽位下标（-1 无；键盘槽位直触时更新，供 UI 高亮）。</summary>
     public int SelectedIndex { get; private set; } = -1;
 
-    /// <summary>本次释放的技能所在槽位下标（-1 = 不在槽位，如空手攻击）；远程技能据此取悬浮武器发射点。</summary>
     public int CastingSlotIndex { get; private set; } = -1;
 
-    /// <summary>CD 结束时间戳（技能 id → Time.time 时刻；时间戳惰性计算，不每帧推进）。</summary>
     private readonly Dictionary<int, float> cdEndTimes = new();
 
-    /// <summary>技能库存（技能 id → 剩余次数，-1 无限制）。</summary>
     private readonly Dictionary<int, int> stores = new();
 
-    /// <summary>武器经验（技能 id → 本局累计经验；无等级，经验直接加成武器伤害，见策划案 11.4）。</summary>
     private readonly Dictionary<int, int> weaponExp = new();
 
     public void Init(EntityData data)
@@ -42,7 +30,6 @@ public class EntitySkillController
     }
 
     #region 技能列表管理
-    /// <summary>设置完整技能列表（服务器权威下发，顺序即键盘槽位顺序）。</summary>
     public void SetSkillList(List<int> ids)
     {
         skillIds.Clear();
@@ -50,29 +37,23 @@ public class EntitySkillController
         if (SelectedIndex >= skillIds.Count) SelectedIndex = -1;
     }
 
-    /// <summary>追加技能到列表尾部（受武器槽位数量限制，由服务器校验）。</summary>
     public void AddSkill(int skillId)
     {
         if (skillId < 0 || skillIds.Contains(skillId)) return;
         skillIds.Add(skillId);
     }
 
-    /// <summary>移除技能。</summary>
     public void RemoveSkill(int skillId)
     {
         skillIds.Remove(skillId);
     }
 
-    /// <summary>技能列表拷贝。</summary>
     public List<int> GetSkillIds() => new(skillIds);
 
-    /// <summary>技能表槽位数量。</summary>
     public int SkillCount => skillIds.Count;
 
-    /// <summary>槽位对应的技能 id（越界返回 -1）。与 GetSkillIds 的区别是不产生拷贝，供逐帧取用。</summary>
     public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
 
-    /// <summary>直接选中某槽位（键盘槽位触发时由服务器更新，供 UI 高亮）。</summary>
     public void SelectIndex(int index)
     {
         SelectedIndex = index;
@@ -80,7 +61,6 @@ public class EntitySkillController
     #endregion
 
     #region CD 与库存
-    /// <summary>技能剩余 CD（秒，按结束时间戳惰性计算，过期条目顺带清理）。</summary>
     public float GetCdRemain(int skillId)
     {
         if (cdEndTimes.TryGetValue(skillId, out var end))
@@ -95,32 +75,27 @@ public class EntitySkillController
         return 0f;
     }
 
-    /// <summary>技能总 CD（来自 SkillManager 配置）。</summary>
     public float GetCdTotal(int skillId)
     {
         return SkillManager.GetSkillCD(skillId);
     }
 
-    /// <summary>技能剩余库存（-1 无限制）。</summary>
     public int GetStore(int skillId)
     {
         return stores.TryGetValue(skillId, out var store) ? store : -1;
     }
 
-    /// <summary>武器经验（无等级，经验直接加成该武器伤害，见策划案 11.4）。</summary>
     public int GetWeaponExp(int skillId)
     {
         return weaponExp.TryGetValue(skillId, out var exp) ? exp : 0;
     }
 
-    /// <summary>给指定武器加经验（重复获得已持有武器 = 该武器 +1；槽满随机分配请用 AddWeaponExpToRandom）。</summary>
     public void AddWeaponExp(int skillId, int amount = 1)
     {
         if (skillId < 0) return;
         weaponExp[skillId] = GetWeaponExp(skillId) + amount;
     }
 
-    /// <summary>给随机一件已持有武器加经验（武器槽满获得新武器时转经验随机分配，见策划案 5.2）。</summary>
     public void AddWeaponExpToRandom(int amount = 1)
     {
         if (skillIds.Count == 0) return;
@@ -128,13 +103,11 @@ public class EntitySkillController
         AddWeaponExp(skillIds[index], amount);
     }
 
-    /// <summary>开始 CD（技能释放后由 SkillManager 回写；记录结束时间戳，不每帧推进）。</summary>
     public void StartCd(int skillId)
     {
         cdEndTimes[skillId] = Time.time + GetCdTotal(skillId);
     }
 
-    /// <summary>减少库存。</summary>
     public void ConsumeStore(int skillId)
     {
         if (stores.TryGetValue(skillId, out var store) && store > 0)
@@ -146,11 +119,6 @@ public class EntitySkillController
     #endregion
 
     #region 释放
-    /// <summary>
-    /// 尝试释放技能（所有释放路径的唯一收口：技能槽 / 空手攻击 / AI / 非玩家）。
-    /// 服务器权威：技能内部执行伤害逻辑并返回轨迹上下文，这里在释放瞬间同步给客户端，
-    /// 客户端收到后用同一构建函数重建轨迹播放表现。瞄准点由技能自己算。沉默/强控期间无法释放。
-    /// </summary>
     public bool TryUseSkill(int skillId)
     {
         if (skillId < 0) return false;
@@ -167,11 +135,6 @@ public class EntitySkillController
         return true;
     }
 
-    /// <summary>
-    /// 诊断用：描述"此刻释放该技能会卡在哪一步"——只做只读校验，**不消耗 CD/库存、不执行技能逻辑**
-    /// （校验顺序与 TryUseSkill 严格一致）。返回 "通过" 即此刻可释放。
-    /// 仅供玩家输入等低频路径打日志用——AI / 僵尸等高频路径不要调用，否则会刷屏。
-    /// </summary>
     public string DescribeUseFailure(int skillId)
     {
         if (skillId < 0) return "槽位没有技能（id 无效）";
@@ -184,7 +147,6 @@ public class EntitySkillController
         return "通过";
     }
 
-    /// <summary>填充实体表现摘要的技能槽列表与最近触发槽位下标。</summary>
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;

@@ -3,11 +3,6 @@ using FairyGUI;
 using Ros.Info;
 using UnityEngine;
 
-/// <summary>
-/// 首页逻辑（FGUI）：m_page 控制器切换「玩家信息页(0)/角色列表页(1)」；
-/// 角色列表按页签显示攻/守阵营（UI_RoleHead：锁定/等级/头像/名字）；
-/// 属性列表 UBB 三段式（当前值+绿累计增益+橙下级增益）；连接服务器；场景预览联动。
-/// </summary>
 public class HomePage : PageBase
 {
     private readonly UI_HomePanel panel;
@@ -81,7 +76,6 @@ public class HomePage : PageBase
         if (panel.m_attributePanel.visible) RefreshAttrList(); // 阵营切换时若属性列表已显示则同步刷新
     }
 
-    /// <summary>集中设置子面板标题与各按钮标题（UI 编辑器已精简，标题文字改由代码设定）。</summary>
     private void SetTitles()
     {
         // 子面板标题（UI_Panel_1.m_title）
@@ -95,7 +89,6 @@ public class HomePage : PageBase
         panel.m_connectPanel.m_btn_connect.title = "连接";
     }
 
-    /// <summary>刷新两页签对应阵营的角色列表（GList 虚拟渲染）。</summary>
     private void RefreshLists()
     {
         var charPanel = panel.m_characterPanel;
@@ -142,7 +135,6 @@ public class HomePage : PageBase
         });
     }
 
-    /// <summary>玩家信息页：仅保留玩家名与等级（角色头像已移至角色选择面板，故不再渲染）。</summary>
     private void RefreshPlayerInfo()
     {
         var info = panel.m_playerInfo;
@@ -150,7 +142,6 @@ public class HomePage : PageBase
             info.m_label_level.text = $"玩家等级 Lv{(Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1)}";
     }
 
-    /// <summary>属性列表：UBB 三段式（当前值白 + 绿累计增益 + 橙下级增益）。</summary>
     private void RefreshAttrList()
     {
         int selectedIndex = defenseTab ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
@@ -197,7 +188,6 @@ public class HomePage : PageBase
         attrList.numItems = StatKeys.Length;
     }
 
-    /// <summary>组装单个属性的 UBB 显示串。</summary>
     private static string StatPart(float current, float baseVal, float? nextVal, string suffix = "")
     {
         string s = Num(current) + suffix;
@@ -215,7 +205,6 @@ public class HomePage : PageBase
 
     private static string Num(float v) => v.ToString("0.#");
 
-    /// <summary>连接服务器（成功后由 UIManager 的 OnConnect 事件统一切页）。</summary>
     private async void OnConnectClicked()
     {
         // 连接前校验玩家名字长度，不合法则飘字提示并拦截连接

@@ -1,9 +1,5 @@
 using System.Collections.Generic;
 
-/// <summary>
-/// 消息 ID → 文案映射表。
-/// 消息 ID 不硬编码在逻辑中，新增消息在此追加。
-/// </summary>
 public static class NoticeMessageMap
 {
     private static readonly Dictionary<int, string> Map = new()

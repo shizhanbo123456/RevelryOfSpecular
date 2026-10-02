@@ -1,8 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// 直线弹道轨迹：从起点匀速直线运动到终点。
-/// </summary>
 public class LineTrajectory : BulletTrajectory
 {
     private readonly Vector3 start;

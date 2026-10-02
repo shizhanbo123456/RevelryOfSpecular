@@ -1,9 +1,3 @@
-/// <summary>
-/// EntityAnim 的 Animator 持久参数打包（CharacterType / AttackId / InAir / Moving / Slide）。
-/// **trigger 不参与网络传输**：trigger 的作用是驱动状态切换，而状态切换本身已由
-/// "状态 hash 变化 → 动画事件" 同步（见《代码架构说明》动画同步节），再单独传 trigger 只会重复且时序不可靠。
-/// 因此本包只在**动画事件**（SCEntityAnimInfo）里下发，客户端 ApplyParamPack 还原参数供自身 Controller 使用。
-/// </summary>
 public struct AnimParamPack
 {
     public int characterType;   // CharacterType（动作集分支：Female/Male/Zombie）
@@ -15,7 +9,6 @@ public struct AnimParamPack
     public static AnimParamPack Default => default;
 }
 
-/// <summary>AnimParamPack 网络序列化器。</summary>
 public struct AnimParamPackSerializer
 {
     public static bool Serialize(AnimParamPack value, byte[] result, ref int indexStart)

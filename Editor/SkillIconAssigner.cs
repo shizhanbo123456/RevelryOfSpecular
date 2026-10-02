@@ -4,17 +4,12 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// 按《特效清单与分配表.md》第五章的分配表，为 Assets/Files/Info/Skill 下的 SkillInfo 批量录入图标。
-/// 图标资产：Assets/Packages/UI/Magic Skill Icons Vol 2/icon_N.png。
-/// </summary>
 public static class SkillIconAssigner
 {
     private const string MenuPath = "Tools/技能/按分配表为 SkillInfo 录入图标";
     private const string SkillInfoRoot = "Assets/Files/Info/Skill";
     private const string IconFolder = "Assets/Packages/UI/Magic Skill Icons Vol 2";
 
-    /// <summary>技能 id → icon_N 的 N。来源：特效清单与分配表.md 第五章，改动分配表时同步这里。</summary>
     private static readonly Dictionary<int, int> IconMap = new()
     {
         // Common 0~49

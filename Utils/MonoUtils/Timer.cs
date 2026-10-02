@@ -39,7 +39,6 @@ public static class Timer
             }
         }
     }
-    /// <summary>过渡任务句柄：可随时取消；任务自然结束后再调用 Cancel 无副作用。</summary>
     public sealed class TransitionHandle
     {
         internal Action cancel;
@@ -101,7 +100,6 @@ public static class Timer
         _tasks.Add(new TimerTask<T>(value,act,invokeInterval,invokeTime,invokeInstantly));
     }
 
-    /// <summary>过渡任务：持续 duration 秒，每帧调用 onTick(value, t01)（t01 = 归一化时间 0~1，最后一帧保证传 1），返回句柄可随时取消。</summary>
     public static TransitionHandle AddTransition<T>(T value, float duration, Action<T, float> onTick)
     {
         var handle = new TransitionHandle();

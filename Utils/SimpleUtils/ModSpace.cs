@@ -1,6 +1,5 @@
 using System;
 
-/// <summary>1维模空间</summary>
 public readonly struct ModSpace1
 {
     private readonly int _m1;
@@ -34,7 +33,6 @@ public readonly struct ModSpace1
     }
 }
 
-/// <summary>2维模空间</summary>
 public readonly struct ModSpace2
 {
     private readonly int _m1;
@@ -77,7 +75,6 @@ public readonly struct ModSpace2
     }
 }
 
-/// <summary>3维模空间</summary>
 public readonly struct ModSpace3
 {
     private readonly int _m1;
@@ -129,7 +126,6 @@ public readonly struct ModSpace3
     }
 }
 
-/// <summary>4维模空间</summary>
 public readonly struct ModSpace4
 {
     private readonly int _m1, _m2, _m3, _m4;
@@ -178,7 +174,6 @@ public readonly struct ModSpace4
     }
 }
 
-/// <summary>5维模空间</summary>
 public readonly struct ModSpace5
 {
     private readonly int _m1, _m2, _m3, _m4, _m5;
@@ -230,7 +225,6 @@ public readonly struct ModSpace5
     }
 }
 
-/// <summary>6维模空间</summary>
 public readonly struct ModSpace6
 {
     private readonly int _m1, _m2, _m3, _m4, _m5, _m6;

@@ -4,11 +4,6 @@ using Ros.Transport;
 using UnityEngine;
 using UnityEngine.Profiling;
 
-/// <summary>
-/// 战斗管理器（服务器权威，客户端仅接收信息摘要做表现）。
-/// 核心移动/战斗内容都在服务器完成计算（架构说明总体原则）。
-/// 战斗核心已就绪：权威移动/子弹容器/近战/对局实体生成/死亡复活/计分/僵尸刷新；各实体的 AI 见其 EntityData 子类的 TickAI。
-/// </summary>
 public partial class BattleManager : EnsBehaviour
 {
     private void Awake()
@@ -16,58 +11,36 @@ public partial class BattleManager : EnsBehaviour
         Tool.BattleManager = this;
     }
 
-    /// <summary>是否服务器（房主）。</summary>
     public static bool AtServer => EnsInstance.HasAuthority;
 
-    /// <summary>本局进行中。</summary>
     public bool BattleStarted { get; private set; }
 
-    /// <summary>本局剩余时间（秒）。</summary>
     public float BattleRemainTime { get; private set; }
 
-    /// <summary>进攻方得分 = 对守护点造成的总伤害（策划案 17.2）。</summary>
     public float AttackScore { get; private set; }
-    /// <summary>防守方击杀数（击杀进攻方单位）。</summary>
     public int DefenseKills { get; private set; }
 
     private float syncTimer;
     private float detailsTimer;
     private float dayNightSyncTimer;
-    /// <summary>夜间僵尸刷新 cd 进度（满 1 刷新一只并清零，见 Config.zombie_refresh_*）。</summary>
     private float zombieRefreshProgress;
-    /// <summary>场上僵尸数量（普通 + 精英，对应 Config.zombie_max 的"全场僵尸数量上限"）。
-    /// 与实体增删同一处维护，开战时归零；夜刷的上限判定与速率插值都读它。</summary>
     private int zombieCount;
 
     #region 玩家进出与组队大厅
-    /// <summary>客户端进场选角信息。</summary>
     public readonly Dictionary<short, CSPlayerInfo> PlayerInfoList = new();
-    /// <summary>客户端分配阵营（组队大厅中选择）。</summary>
     public readonly Dictionary<short, EntityCamp> PlayerCamp = new();
-    /// <summary>客户端 → 玩家实体 id（对局开始后才有值）。</summary>
     public readonly Dictionary<short, ushort> PlayerEntityId = new();
-    /// <summary>实体 id → 所属客户端（真人与 AI 共用；不在表中 = 非玩家实体，如僵尸/防御塔/瘟疫树）。</summary>
     public readonly Dictionary<ushort, short> EntityOwnerClient = new();
 
-    /// <summary>AI 玩家的虚拟客户端 id 起始值（向负方向分配；真实客户端 id ≥ 0，房主为 0）。</summary>
     private const short AIClientIdStart = -1000;
-    /// <summary>AI 虚拟客户端 id 分配游标。</summary>
     private short nextAIClientId = AIClientIdStart;
-    /// <summary>AI 玩家的虚拟客户端 id：AI 与真人共用玩家容器与创建/复活路径，唯一差异是输入来源。</summary>
     public readonly HashSet<short> AIClients = new();
 
-    /// <summary>进攻方 AI 玩家数量（组队大厅中任意玩家可编辑，房间共享）。</summary>
     public int AttackAICount { get; private set; }
-    /// <summary>防守方 AI 玩家数量。</summary>
     public int DefenseAICount { get; private set; }
 
-    /// <summary>
-    /// 各客户端累计采集量 = 对守护点造成的伤害量（进攻方总分 AttackScore 的按人拆分，策划案 17.2/17.3）。
-    /// 用途：被动「白眼标记」取采集量最高者；对局结算经验。
-    /// </summary>
     public readonly Dictionary<short, float> HarvestByClient = new();
 
-    /// <summary>累计采集量（对守护点造成伤害时由 EntityData.OnDamaged 调用）。</summary>
     public void AddHarvest(short clientId, float damage)
     {
         if (damage <= 0f) return;
@@ -75,7 +48,6 @@ public partial class BattleManager : EnsBehaviour
         HarvestByClient[clientId] = sum + damage;
     }
 
-    /// <summary>采集量最高的进攻方成员实体（无记录或该玩家当前不在场返回 null）。</summary>
     public EntityData GetTopHarvester()
     {
         short bestClient = -1;
@@ -96,21 +68,11 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 实体容器（按分类，ChunkSearcher 区块加速）
-    /// <summary>
-    /// 实体容器（按类别分桶）。
-    /// **只给会移动的实体所在的桶同步区块位置**（`TickMovement`）：目前只有 `Entities` 装会移动的实体；
-    /// `Beacons` / `Crystals` / `Towers` 三桶装的是**静止实体（出生后永不移动）**，故只在增删时定位，不需要逐帧同步。
-    /// 新增会移动的实体类别时，必须补上它所在桶的 `UpdateObjectPosition`。
-    /// </summary>
     public static class EntityContainer
     {
-        /// <summary>全部实体。</summary>
         public static readonly ChunkSearcher<EntityData> Entities = new(d => d.transform.position);
-        /// <summary>守护点。</summary>
         public static readonly ChunkSearcher<EntityData> Beacons = new(d => d.transform.position);
-        /// <summary>可采集水晶。</summary>
         public static readonly ChunkSearcher<EntityData> Crystals = new(d => d.transform.position);
-        /// <summary>防御塔。</summary>
         public static readonly ChunkSearcher<EntityData> Towers = new(d => d.transform.position);
 
         public static void Clear()
@@ -123,14 +85,12 @@ public partial class BattleManager : EnsBehaviour
 
         private static readonly HashSet<int> s_buffer = new();
 
-        /// <summary>范围内最近敌方实体（敌方 = 本阵营的敌对阵营掩码，见 EntityCampUtil.HostileOf）。</summary>
         public static EntityData GetNearestEnemy(EntityData entity, float radius = Config.default_skill_auto_target_radius)
         {
             if (entity == null) return null;
             return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.camp), entity.id);
         }
 
-        /// <summary>范围内最近指定阵营实体（camp 可传掩码，命中掩码内任一位即算；排除 excludeId）。</summary>
         public static EntityData GetNearestInCamp(Vector3 pos, float radius, EntityCamp camp, ushort excludeId = 0)
         {
             Entities.GetIdsInRange(pos, radius, s_buffer);
@@ -151,7 +111,6 @@ public partial class BattleManager : EnsBehaviour
             return target;
         }
 
-        /// <summary>范围内所有指定阵营实体（camp 可传掩码，写外部集合）。</summary>
         public static void GetAllInCamp(Vector3 pos, float radius, EntityCamp camp, List<EntityData> outList)
         {
             outList.Clear();
@@ -169,7 +128,6 @@ public partial class BattleManager : EnsBehaviour
     #region 实体生命周期
     private ushort nextEntityId = 1;
 
-    /// <summary>生成实体（服务器），返回实体 id。</summary>
     public ushort SpawnEntity(EntityType type, int level, Vector3 pos, EntityCamp camp)
     {
         if (!Tool.InfoManager.TryGetTemplate(type, out var template) || template == null)
@@ -197,7 +155,6 @@ public partial class BattleManager : EnsBehaviour
         return id;
     }
 
-    /// <summary>开始战斗时重置 id 源（每次开战从 1 重新分配）。</summary>
     private void ResetEntityIdSource() => nextEntityId = 1;
 
     private ushort AllocEntityId()
@@ -211,11 +168,9 @@ public partial class BattleManager : EnsBehaviour
         return nextEntityId;
     }
 
-    /// <summary>按 id 取实体（不存在返回 null）。</summary>
     public static EntityData GetEntity(ushort id) =>
         EntityContainer.Entities.TryGetObject(id, out var e) ? e : null;
 
-    /// <summary>销毁实体（服务器）：统一在此通知所有客户端移除表现。</summary>
     public bool DestroyEntity(ushort id)
     {
         if (!EntityContainer.Entities.TryGetObject(id, out var data)) return false;
@@ -242,7 +197,6 @@ public partial class BattleManager : EnsBehaviour
         return true;
     }
 
-    /// <summary>该类别是否计入僵尸数量（普通 + 精英，见 Config.zombie_max）。</summary>
     private static bool IsZombieCategory(EntityCategory category) =>
         category == EntityCategory.Zombie || category == EntityCategory.EliteZombie;
 
@@ -275,7 +229,6 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 玩家进出
-    /// <summary>玩家进场（服务器，由 NetworkManager RPC 回调）：组队阶段只登记信息，不创建实体。</summary>
     public void AddPlayer(short clientId, CSPlayerInfo info)
     {
         if (PlayerInfoList.ContainsKey(clientId)) return;
@@ -284,7 +237,6 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"玩家 {clientId} 进入组队大厅");
     }
 
-    /// <summary>玩家退场（服务器）。</summary>
     public void RemovePlayer(short clientId)
     {
         if (PlayerEntityId.TryGetValue(clientId, out var entityId))
@@ -298,10 +250,6 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"玩家 {clientId} 退场");
     }
 
-    /// <summary>
-    /// 重建 AI 玩家（组队大厅 AI 数量变化时调用）。
-    /// AI 与真人使用同一套容器与创建/复活路径，唯一差异是 clientId 为负数虚拟 id、输入由 UpdateAI 提供。
-    /// </summary>
     private void RebuildAIPlayers()
     {
         foreach (var aiClientId in AIClients)
@@ -316,7 +264,6 @@ public partial class BattleManager : EnsBehaviour
         for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(EntityCamp.Defense);
     }
 
-    /// <summary>加入一个 AI 玩家：随机选取该阵营的一个角色（策划案 17.1：AI 与真人判定完全一致）。</summary>
     private void AddAIPlayer(EntityCamp camp)
     {
         short aiClientId = nextAIClientId--;
@@ -338,7 +285,6 @@ public partial class BattleManager : EnsBehaviour
         AIClients.Add(aiClientId);
     }
 
-    /// <summary>接收组队大厅状态更新（服务器，由 NetworkManager RPC 回调）。</summary>
     public void ReceiveRoomUpdate(short clientId, CSRoomUpdate update)
     {
         if (update == null || BattleStarted || !PlayerInfoList.ContainsKey(clientId)) return;
@@ -361,7 +307,6 @@ public partial class BattleManager : EnsBehaviour
         BroadcastRoomInfo();
     }
 
-    /// <summary>接收开始对局请求（服务器，由 NetworkManager RPC 回调）。</summary>
     public void ReceiveStartRequest(short clientId, CSStartRequest request)
     {
         if (request == null || BattleStarted) return;
@@ -395,7 +340,6 @@ public partial class BattleManager : EnsBehaviour
         StartBattle();
     }
 
-    /// <summary>组装并广播当前房间状态。</summary>
     private void BroadcastRoomInfo()
     {
         var info = new SCRoomInfo()
@@ -425,22 +369,16 @@ public partial class BattleManager : EnsBehaviour
         Tool.NetworkManager.SendRoomInfo(info);
     }
 
-    /// <summary>进攻方开局出生点（从「出生/复活位置列表」随机取，与复活共用同一列表，不去重）。</summary>
     private Vector3 GetAttackSpawnPos()
     {
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.attackPositions);
     }
 
-    /// <summary>防守方开局出生点（从「出生/复活位置列表」随机取，与复活共用同一列表，不去重）。</summary>
     private Vector3 GetDefenseSpawnPos()
     {
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.defensePositions);
     }
 
-    /// <summary>
-    /// AI 行为入口：每帧遍历全部实体，交由各自的 TickAI 实现（是否需要 AI 由实体自己决定，不在此按类别分支）。
-    /// 决策频率不做全局节流——各实体在 TickAI 内部按自身 id 错峰，避免同类实体同帧集中决策。
-    /// </summary>
     private void UpdateAI()
     {
         foreach (var entity in EntityContainer.Entities)
@@ -449,16 +387,11 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>守护点受到伤害（服务器，由 EntityData.OnDamaged 调用）：进攻方得分 = 对守护点造成的总伤害。</summary>
     public void AddBeaconDamage(float damage)
     {
         AttackScore += damage;
     }
 
-    /// <summary>
-    /// 重算中心守护点的分层减伤（策划案 9.2：每个存活外围守护点提供 25% 减伤）。
-    /// 统一走 effectController 的 BeaconReduce 通道（Add/Remove 内部重算），外部不做 Buff 遍历。
-    /// </summary>
     public void UpdateCoreBeaconReduce()
     {
         int aliveOuter = 0;
@@ -475,7 +408,6 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>守护点剩余血量合计（服务器，终局随 SCScoreInfo 下发）。</summary>
     public float BeaconRemainingHealth()
     {
         float remaining = 0f;
@@ -486,7 +418,6 @@ public partial class BattleManager : EnsBehaviour
         return remaining;
     }
 
-    /// <summary>防守方得分 = 守护点剩余血量 × (1 + 0.1 × 击杀数)（策划案 17.2）。</summary>
     public float DefenseScore()
     {
         return BeaconRemainingHealth() * (1f + Config.kill_score_factor * DefenseKills);
@@ -495,7 +426,6 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 输入与技能接收（服务器）
-    /// <summary>接收输入（服务器，由 NetworkManager RPC 回调）：权威移动见 BattleManagerCombat。</summary>
     public void ReceiveInput(short clientId, CSPlayerInput input)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
@@ -505,12 +435,6 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 子弹（统一攻击实体）
-    /// <summary>
-    /// 发射子弹（服务器伤害侧；客户端经表现侧同步）。
-    /// attack 为攻击数据（近战与子弹共用，含破霸体等，见策划案 12.1）；
-    /// trajectory 为弹道轨迹（BulletTrajectory 基类，各实现见 Bullet 文件夹）。
-    /// 实现见 BattleManagerCombat（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)）。
-    /// </summary>
     public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime = 0f)
     {
         AddBullet(attack, trajectory, lifeTime);
@@ -518,7 +442,6 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 战斗规则
-    /// <summary>开局（服务器）：生成全部玩家/AI 实体，下发开局信息。</summary>
     public void StartBattle()
     {
         if (BattleStarted) return;
@@ -552,9 +475,7 @@ public partial class BattleManager : EnsBehaviour
         zombieCount = 0; // 上局僵尸已在上面的清场里逐个减过，这里再显式归零（与计分同一口径）
         ClearBattleState();
 
-        // 玩家实体：真人与 AI 完全同一条路径（AI 也在此处，clientId 为负数虚拟 id），
-        // 按组队大厅中选择的阵营取 CSPlayerInfo 对应一侧角色；初始技能表与所选角色强制绑定。
-        // 唯一差异是输入来源：真人来自网络 CSPlayerInput，AI 来自 UpdateAI。
+        // 玩家实体重与 AI 同路径（AI clientId 为负虚拟 id），仅输入来源不同：真人 CSPlayerInput、AI UpdateAI
         foreach (var pair in PlayerInfoList)
         {
             short clientId = pair.Key;
@@ -603,7 +524,6 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"战斗开始：人类 {PlayerInfoList.Count - AIClients.Count}，AI {AIClients.Count}");
     }
 
-    /// <summary>结束对局（服务器，gameState 见 SCScoreInfo）：玩家回到组队状态，房间状态广播以便下一轮准备。</summary>
     public void EndBattle(int gameState)
     {
         if (!BattleStarted) return;
@@ -785,12 +705,6 @@ public partial class BattleManager : EnsBehaviour
         Profiler.EndSample(); // kManagedUpdateProfilerTag
     }
 
-    /// <summary>
-    /// 按视野把实体表现同步给各客户端（策划案第十五章）：
-    /// 己方单位恒同步；敌方 / 中立单位仅当在观察者可见距离内才同步；差集（离开视野）主动下发移除。
-    /// 姿态信息（位置/朝向/速度/角速度，**不含任何动画信息**）按节流周期发送；
-    /// 动画**只有事件通道**：实体动画脏（状态或播放速度变化）时对可见客户端补发一条动画事件（见 SendEntityAnim）。
-    /// </summary>
     private void SyncEntitiesToClients(bool includeRuntime)
     {
         foreach (var clientId in PlayerInfoList.Keys)
@@ -828,10 +742,6 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    /// <summary>
-    /// 下发一条动画事件（状态 hash + 进度 + 持久参数 + 播放速度/暂停；trigger 不参与传输）。
-    /// 触发时机：实体动画脏（状态或播放速度变化），以及**该客户端首次看到该实体**（客户端需要初始状态与参数才能摆对）。
-    /// </summary>
     private void SendEntityAnim(short clientId, EntityData entity)
     {
         entity.anim.GetDisplayAnim(out int animId, out float frame);
@@ -849,7 +759,6 @@ public partial class BattleManager : EnsBehaviour
         });
     }
 
-    /// <summary>填充表现推演数据：真实速度（刚体实际速度的水平分量）与绕 Y 角速度（客户端包间推演用）。</summary>
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
         // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移；无刚体（不可移动单位）即无速度

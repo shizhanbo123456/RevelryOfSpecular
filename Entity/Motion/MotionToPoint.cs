@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// 朝目标点位移（影袭 / 闪现等）：Enter 时朝目标点方向以恒定速度前进，走完距离即结束。
-/// 用速度驱动（不改 position），保证与服务器权威移动同一条积分路径、不穿模。
-/// 用法：entity.SetMotion(new MotionToPoint(dest, 12f));
-/// </summary>
 public class MotionToPoint : MotionBase
 {
     private readonly Vector3 dest;

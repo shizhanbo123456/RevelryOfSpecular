@@ -5,11 +5,6 @@ using Ros.UI.Main;
 using Ros.Transport;
 using UnityEngine;
 
-/// <summary>
-/// 组队大厅逻辑（FGUI）：选队（joinAttacker/joinDefenser）、AI 数量编辑（± 按钮）、
-/// 成员列表（RoleHead：玩家名+所选角色头像）、开始对局、断开返回。
-/// 房间状态由服务器 SCRoomInfo 权威广播，本页只做表现与上报。
-/// </summary>
 public class LobbyPage : PageBase
 {
     private readonly UI_LobbyPanel panel;
@@ -61,7 +56,6 @@ public class LobbyPage : PageBase
         SendRoomState();
     }
 
-    /// <summary>AI 数量 ±：本地立即显示，随后整体上报（服务器回显为准，最小 0）。</summary>
     private void ChangeAICount(bool defense, int delta)
     {
         if (syncingFromServer) return;
@@ -78,7 +72,6 @@ public class LobbyPage : PageBase
         if (view.m_label_defenserAI_count != null) view.m_label_defenserAI_count.text = $"x{defenseAICount}";
     }
 
-    /// <summary>上报本客户端的大厅选择（选队 + AI 数量，服务器取最新值）。</summary>
     private void SendRoomState()
     {
         if (Tool.NetworkManager == null) return;
@@ -90,7 +83,6 @@ public class LobbyPage : PageBase
         });
     }
 
-    /// <summary>服务器广播的房间状态 → 刷新成员列表/AI 数量/选队回显/开始按钮。</summary>
     private void OnRoomInfoUpdate(SCRoomInfo info)
     {
         if (info == null) return;
@@ -115,7 +107,6 @@ public class LobbyPage : PageBase
         syncingFromServer = false;
     }
 
-    /// <summary>渲染指定阵营的成员列表（条目 = RoleHead：玩家名+所选角色头像；AI 只计数量不进列表）。</summary>
     private void RenderMemberList(GList list, List<SCRoomInfo.RoomMemberInfo> members, int camp)
     {
         var memberList = members.Where(m => m != null && m.camp == camp).ToList();
@@ -143,7 +134,6 @@ public class LobbyPage : PageBase
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendStartRequest();
     }
 
-    /// <summary>断开并返回初始界面（页面切换由 NetworkManager 的 OnRestartGame 事件统一处理）。</summary>
     private void OnExitClicked()
     {
         if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld();

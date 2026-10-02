@@ -1,13 +1,7 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
-/*
-Tool.TransitionManager来访问
-执行过渡：（action的float为(0,1]，返回false可提前停止过渡）
-int Execute(Func<float, bool> action, float time, Action onFinish = null)
-取消过渡：（参数值为Execute返回的handle）
-void Cancel(int taskId)
-*/
+// 通过 Tool.TransitionManager 访问；Execute(action, time, onFinish) 返回 handle，Cancel(handle) 可提前停止（action 返回 false 也停）
 public class TransitionManager : MonoBehaviour
 {
     // 单例
@@ -20,10 +14,6 @@ public class TransitionManager : MonoBehaviour
     private Dictionary<int, TransitionTask> _taskDict = new Dictionary<int, TransitionTask>();
     private int _nextTaskId = 1; // 唯一自增ID
 
-    /// <summary>
-    /// 执行过渡动画，返回任务ID
-    /// Func<float, bool> ：参数是进度(0~1)，返回 false 表示立即终止过渡
-    /// </summary>
     public int Execute(Func<float, bool> action, float time, Action onFinish = null)
     {
         if (action == null || time <= 0)
@@ -39,9 +29,6 @@ public class TransitionManager : MonoBehaviour
         return taskId;
     }
 
-    /// <summary>
-    /// 根据ID取消任务（字典查找，O(1) 效率）
-    /// </summary>
     public void Cancel(int taskId)
     {
         if (_taskDict.ContainsKey(taskId))
@@ -50,9 +37,6 @@ public class TransitionManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 取消所有任务
-    /// </summary>
     public void CancelAll()
     {
         _taskDict.Clear();
@@ -84,9 +68,6 @@ public class TransitionManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 任务类
-    /// </summary>
     private class TransitionTask
     {
         public int TaskId { get; }

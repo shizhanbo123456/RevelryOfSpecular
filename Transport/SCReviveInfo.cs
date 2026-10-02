@@ -1,22 +1,13 @@
 namespace Ros.Transport
 {
-    /// <summary>
-    /// 服务器 → 客户端：复活进度信息（复活进度系统，见策划案 13/14 章）。
-    /// 白天积累快、夜晚极慢；死亡次数越多越慢；愈战愈勇按死亡次数叠层。
-    /// </summary>
     public class SCReviveInfo
     {
-        /// <summary>死亡实体 id。</summary>
         public ushort entityId;
-        /// <summary>复活进度（0~1，攒满即可复活）。</summary>
         public float progress;
-        /// <summary>是否已可复活（攒满，等待黎明统一复活时为 false）。</summary>
         public bool ready;
-        /// <summary>愈战愈勇当前叠层（0~max）。</summary>
         public int yzStack;
     }
 
-    /// <summary>SCReviveInfo 网络序列化器。</summary>
     public struct SCReviveInfoSerializer
     {
         public static bool Serialize(SCReviveInfo value, byte[] result, ref int indexStart)

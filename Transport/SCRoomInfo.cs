@@ -2,36 +2,22 @@ using System.Collections.Generic;
 
 namespace Ros.Transport
 {
-    /// <summary>
-    /// 服务器 → 客户端：组队大厅房间状态（成员广播，任何变化时全房间同步）。
-    /// 客户端据此显示双方队伍人数与 AI 数量，判断是否满足开局条件（双方人数均 &gt; 0）。
-    /// </summary>
     public class SCRoomInfo
     {
-        /// <summary>房间成员。</summary>
         public List<RoomMemberInfo> members = new();
-        /// <summary>进攻方 AI 玩家数量。</summary>
         public int attackAICount;
-        /// <summary>防守方 AI 玩家数量。</summary>
         public int defenseAICount;
-        /// <summary>对局是否已开始（开始后大厅只读）。</summary>
         public bool battleStarted;
 
-        /// <summary>单个房间成员。</summary>
         public class RoomMemberInfo
         {
-            /// <summary>客户端 id。</summary>
             public short clientId;
-            /// <summary>所在队伍（0 进攻 / 1 防守 / -1 未选择）。</summary>
             public int camp = -1;
-            /// <summary>当前所选角色下标（进/守各自序号，大厅头像用；-1 = 未选/未知）。</summary>
             public int characterIndex = -1;
-            /// <summary>玩家名（玩家信息页可编辑；空 = 未设置，显示"玩家{id}"）。</summary>
             public string name = "";
         }
     }
 
-    /// <summary>SCRoomInfo 网络序列化器。</summary>
     public struct SCRoomInfoSerializer
     {
         public static bool Serialize(SCRoomInfo value, byte[] result, ref int indexStart)

@@ -3,12 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 通用区块空间搜索器（带地图外边界处理）
-/// 基于Landscape的区块划分系统，提供快速的区块查询和范围查询
-/// 所有超出地图范围的物体都会被自动归类到特殊的OutOfMapChunk区块
-/// </summary>
-/// <typeparam name="T">要管理的物体类型</typeparam>
 public class ChunkSearcher<T> : IEnumerable<T>
 {
     // 特殊区块：所有不在地图范围内的物体都归于此区块
@@ -22,25 +16,14 @@ public class ChunkSearcher<T> : IEnumerable<T>
     // 获取物体位置的委托
     private readonly Func<T, Vector3> _getPosition;
 
-    /// <summary>当前管理的物体总数。</summary>
     public int Count => _allObjects.Count;
 
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="getPosition">获取物体世界坐标的方法</param>
     public ChunkSearcher(Func<T, Vector3> getPosition)
     {
         _getPosition = getPosition ?? throw new ArgumentNullException(nameof(getPosition));
     }
 
     #region 基础增删查操作
-    /// <summary>
-    /// 添加物体到搜索器
-    /// 自动判断物体是否在地图内，并分配到正确的区块
-    /// </summary>
-    /// <param name="id">物体唯一id（与Landscape字典的id保持一致）</param>
-    /// <param name="obj">物体实例</param>
     public void Add(int id, T obj)
     {
         if (_allObjects.ContainsKey(id))
@@ -55,11 +38,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
         _chunkOf[id] = chunkIndex;
     }
 
-    /// <summary>
-    /// 从搜索器中移除物体
-    /// </summary>
-    /// <param name="id">物体唯一id</param>
-    /// <returns>是否成功移除</returns>
     public bool Remove(int id)
     {
         if (!_allObjects.TryGetValue(id, out T obj))
@@ -73,30 +51,16 @@ public class ChunkSearcher<T> : IEnumerable<T>
         return _allObjects.Remove(id);
     }
 
-    /// <summary>
-    /// 检查搜索器中是否包含指定id的物体
-    /// </summary>
-    /// <param name="id">物体唯一id</param>
-    /// <returns>是否存在</returns>
     public bool Contains(int id)
     {
         return _allObjects.ContainsKey(id);
     }
 
-    /// <summary>
-    /// 根据id获取物体
-    /// </summary>
-    /// <param name="id">物体唯一id</param>
-    /// <param name="obj">输出物体</param>
-    /// <returns>是否成功获取</returns>
     public bool TryGetObject(int id, out T obj)
     {
         return _allObjects.TryGetValue(id, out obj);
     }
 
-    /// <summary>
-    /// 清空所有数据
-    /// </summary>
     public void Clear()
     {
         _allObjects.Clear();
@@ -106,12 +70,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 区块查询（含特殊区块支持）
-    /// <summary>
-    /// 获取指定区块内的所有物体，写入外部传入List
-    /// </summary>
-    /// <param name="chunkIndex">区块索引</param>
-    /// <param name="outList">外部传入存储结果的List</param>
-    /// <param name="append">false=先清空再写入，true=追加</param>
     public void GetObjectsInChunk(Vector2Int chunkIndex, HashSet<T> outList, bool append = false)
     {
         ValidateChunkIndex(chunkIndex);
@@ -128,20 +86,11 @@ public class ChunkSearcher<T> : IEnumerable<T>
         }
     }
 
-    /// <summary>
-    /// 重载：按区块XY索引获取物体写入外部List
-    /// </summary>
     public void GetObjectsInChunk(int chunkX, int chunkY, HashSet<T> outList, bool append = false)
     {
         GetObjectsInChunk(new Vector2Int(chunkX, chunkY), outList, append);
     }
 
-    /// <summary>
-    /// 获取指定区块内所有物体ID，写入外部HashSet（自动去重）
-    /// </summary>
-    /// <param name="chunkIndex">区块索引</param>
-    /// <param name="outIdSet">外部传入存储ID的HashSet</param>
-    /// <param name="append">false=先清空再写入，true=追加</param>
     public void GetObjectIdsInChunk(Vector2Int chunkIndex, HashSet<int> outIdSet, bool append = false)
     {
         ValidateChunkIndex(chunkIndex);
@@ -155,25 +104,16 @@ public class ChunkSearcher<T> : IEnumerable<T>
         }
     }
 
-    /// <summary>
-    /// 重载：按区块XY索引获取物体写入外部List
-    /// </summary>
     public void GetObjectIdsInChunk(int chunkX, int chunkY, HashSet<int> outIdSet, bool append = false)
     {
         GetObjectIdsInChunk(new Vector2Int(chunkX, chunkY), outIdSet, append);
     }
 
-    /// <summary>
-    /// 获取所有地图外物体，写入外部List
-    /// </summary>
     public void GetOutOfMapObjects(HashSet<T> outList, bool append = false)
     {
         GetObjectsInChunk(OutOfMapChunk, outList, append);
     }
 
-    /// <summary>
-    /// 获取所有地图外物体ID，写入外部HashSet
-    /// </summary>
     public void GetOutOfMapObjectIds(HashSet<int> outIdSet, bool append = false)
     {
         GetObjectIdsInChunk(OutOfMapChunk, outIdSet, append);
@@ -181,9 +121,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 范围查询（自动排除地图外物体）
-    /// <summary>
-    /// 圆形范围查询物体ID，写入外部HashSet
-    /// </summary>
     public void GetIdsInRange(Vector3 center, float radius, HashSet<int> outIdSet, bool append = false)
     {
         if (!append) outIdSet.Clear();
@@ -222,9 +159,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
         }
     }
 
-    /// <summary>
-    /// 获取半径覆盖区块内所有物体ID（不做距离过滤）写入外部HashSet
-    /// </summary>
     public void GetIdsInRelativeBlocks(Vector3 center, float radius, HashSet<int> outIdSet, bool append = false)
     {
         if (!append) outIdSet.Clear();
@@ -253,9 +187,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
         }
     }
 
-    /// <summary>
-    /// 获取半径覆盖的所有区块索引，写入外部HashSet
-    /// </summary>
     public static void GetAllRelativeBlocks(Vector3 center, float radius, HashSet<Vector2Int> outChunkSet, bool append = false)
     {
         if (!append) outChunkSet.Clear();
@@ -280,10 +211,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 物体移动更新
-    /// <summary>
-    /// 更新物体所在区块（物体移动后调用，否则范围查询会一直按出生区块找它）
-    /// </summary>
-    /// <returns>物体不存在时返回 false</returns>
     public bool UpdateObjectPosition(int id)
     {
         if (!_allObjects.TryGetValue(id, out T obj))
@@ -300,9 +227,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
         return true;
     }
 
-    /// <summary>
-    /// 全量刷新所有区块映射
-    /// </summary>
     public void RefreshAll()
     {
         _chunkObjects.Clear();
@@ -320,18 +244,12 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 边界检查工具方法
-    /// <summary>
-    /// 判断区块索引是否有效地图区块
-    /// </summary>
     public bool IsValidChunk(Vector2Int chunkIndex)
     {
         return chunkIndex.x >= 0 && chunkIndex.x < Landscape.chunkCount &&
                chunkIndex.y >= 0 && chunkIndex.y < Landscape.chunkCount;
     }
 
-    /// <summary>
-    /// 判断世界坐标是否在地图范围内
-    /// </summary>
     public bool IsPositionInMap(Vector3 worldPos)
     {
         float mapMaxRange = Landscape.chunkCount * Landscape.chunkSize;
@@ -339,10 +257,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
                worldPos.z >= 0 && worldPos.z < mapMaxRange;
     }
 
-    /// <summary>
-    /// 【开发校验】校验区块索引合法性，非RELEASE模式越界直接抛异常
-    /// </summary>
-    /// <param name="chunkIndex">待校验区块索引</param>
     private void ValidateChunkIndex(Vector2Int chunkIndex)
     {
 #if !RELEASE
@@ -361,9 +275,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
 #endif
     }
 
-    /// <summary>
-    /// 世界坐标转区块索引，超出地图返回OutOfMapChunk
-    /// </summary>
     public static Vector2Int GetChunkIndex(Vector3 worldPos)
     {
         float mapMaxRange = Landscape.chunkCount * Landscape.chunkSize;
@@ -379,9 +290,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 内部工具方法
-    /// <summary>
-    /// 将物体ID加入区块HashSet
-    /// </summary>
     private void AddToChunk(Vector2Int chunkIndex, int id)
     {
         if (!_chunkObjects.TryGetValue(chunkIndex, out HashSet<int> idSet))
@@ -392,9 +300,6 @@ public class ChunkSearcher<T> : IEnumerable<T>
         idSet.Add(id);
     }
 
-    /// <summary>
-    /// 从区块移除物体ID，空区块自动删除Key
-    /// </summary>
     private void RemoveFromChunk(Vector2Int chunkIndex, int id)
     {
         if (_chunkObjects.TryGetValue(chunkIndex, out HashSet<int> idSet))

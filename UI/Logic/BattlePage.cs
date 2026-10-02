@@ -5,12 +5,6 @@ using Ros.Transport;
 using FairyGUI;
 using UnityEngine;
 
-/// <summary>
-/// 战斗 HUD 逻辑（FGUI）：顶栏时间/昼夜图标、本地玩家大血条（左上角固定）、
-/// 技能栏（格数 = 角色技能槽位数、空槽用 m_empty 控制器、边框 m_randomOutline 进战斗随机一次；已入槽的显示图标/CD 填充比例/库存/经验星星/键位）、
-/// 守护点血量面板 ×4（中心 + 外围 3）、小地图（10 档位点位）、事件列表、伤害飘字、
-/// 名牌（UI_PlayerName + UI_EntityBar 屏幕跟随）、复活进度、结算面板（显示 SettleAutoClose 秒后自动关闭回大厅）。
-/// </summary>
 public class BattlePage : PageBase
 {
     private readonly UI_BattlePanel panel;
@@ -46,7 +40,6 @@ public class BattlePage : PageBase
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
 
-    /// <summary>事件列表条目数据：列表本体是 FGUI 里的 GList（UI_EventList.m_EventItemContainer），代码只维护这份数据，位置/排布由界面决定。</summary>
     private struct EventEntry
     {
         public int type;     // UI_EventItem 的 type 控制器：0 纯文字 / 1 图标+文字 / 2 文字+图标+文字
@@ -125,7 +118,6 @@ public class BattlePage : PageBase
     }
 
     #region 事件处理
-    /// <summary>实体表现摘要：守护点 → 血量面板；玩家角色 → EntityBar 名牌血条；本地玩家 → 大血条 + 技能栏。</summary>
     private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
         if (info == null) return;
@@ -147,7 +139,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>实体移除 → 清理名牌/血条/小地图点位。</summary>
     private void OnEntityDisplayRemove(int entityId)
     {
         RemoveEntityBar((ushort)entityId);
@@ -165,8 +156,6 @@ public class BattlePage : PageBase
         list.numItems = skillSlotCount;
     }
 
-    /// <summary>进入战斗时一次性搭好技能栏骨架：条目数 = 本地角色的技能槽位数属性、每个槽位随机一种边框样式、列表宽度 = 全部条目宽度之和。
-    /// 之后技能摘要只刷新条目内容，不再改数量、不再重掷边框。</summary>
     private void BuildSkillSlots(EntityCamp camp)
     {
         var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
@@ -182,8 +171,6 @@ public class BattlePage : PageBase
         skillSlotsBuilt = true;
     }
 
-    /// <summary>技能列表宽度 = 所有条目宽度之和。该列表在界面里是横向单行、溢出可见且没有滚动面板（FGUI 不会自己撑开），
-    /// 故由代码设宽度；**位置、高度、条目尺寸一律仍由界面决定**。</summary>
     private static void RefreshSkillListWidth(GList list)
     {
         float width = 0f;
@@ -195,7 +182,6 @@ public class BattlePage : PageBase
         list.width = width;
     }
 
-    /// <summary>技能槽渲染：先定"一次性"的部分（边框样式、键位、空槽态），再按数据填内容。</summary>
     private void RenderSkillSlot(int index, GObject obj)
     {
         if (obj is not UI_SkillListItem slot) return;
@@ -217,7 +203,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>空槽：清掉可能残留的图标/库存/星星（列表条目会被复用，不清会留下上一次的内容）。</summary>
     private static void ClearSkillSlot(UI_SkillListItem slot)
     {
         if (slot.m_loader_icon != null)
@@ -239,7 +224,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>守护点摘要 → 中心守护点走 m_progressMain，外围守护点按 value 对号 m_progressSub1~3。</summary>
     private void OnBeaconDisplay(SCEntityDisplayInfo info)
     {
         UI_DefensivePointBar bar;
@@ -274,7 +258,6 @@ public class BattlePage : PageBase
         bar.m_fill.fillAmount = 0f;
     }
 
-    /// <summary>本地玩家大血条（左上角固定）：等级 + 血量数字 + 血条宽度（按初始满血宽度比例缩放）。</summary>
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
     {
         var bar = panel.m_PlayerBar;
@@ -292,7 +275,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>本地玩家所选角色在存档/配置里的全局下标（进攻方 = 选角下标；防守方 = 攻击方角色数 + 选角下标；阵营未知返回 -1）。</summary>
     private static int GetLocalSaveIndex(EntityCamp camp)
     {
         if (camp == EntityCamp.Attack) return ClientSelection.selectedAttackIndex;
@@ -300,8 +282,6 @@ public class BattlePage : PageBase
         return -1;
     }
 
-    /// <summary>本地角色的技能槽位数属性（EntityAttribute.weaponSlotCount，默认 3、可被升级路线抬高；
-    /// 服务器加武器时就是用它卡"槽满"）——技能栏按它决定显示几格。取不到返回 0。</summary>
     private static int ResolveSkillSlotCapacity(EntityCamp camp)
     {
         int saveIndex = GetLocalSaveIndex(camp);
@@ -317,7 +297,6 @@ public class BattlePage : PageBase
         if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
     }
 
-    /// <summary>结算面板：显示 + 转场动画，SettleAutoClose 秒后自动关闭回组队大厅。</summary>
     private void OnSettlementResult(SettlementResult r)
     {
         if (resultPanel == null)
@@ -346,7 +325,6 @@ public class BattlePage : PageBase
         settleCloseAt = Time.time + SettleAutoClose;
     }
 
-    /// <summary>把结算明细组织为行文本，交给 BattleResultDetail 的 GList 渲染（代码不手动创建行组件）；条目渲染为初始透明，由动画序列逐条显现。</summary>
     private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
     {
         settleRows.Clear();
@@ -378,7 +356,6 @@ public class BattlePage : PageBase
         if (!settleItems.Contains(item)) settleItems.Add(item); // 动画序列按此顺序逐条播放
     }
 
-    /// <summary>结算动画序列：面板转场后逐条播放细节动画（播放前透明），全部出现后同步淡出至消失。单个过渡任务按归一化时间驱动整个序列。</summary>
     private void ScheduleDetailAnimations()
     {
         CancelDetailAnimations();
@@ -407,7 +384,6 @@ public class BattlePage : PageBase
         });
     }
 
-    /// <summary>取消未完成的结算动画序列（面板关闭/隐藏时调用，防止对已释放组件操作）。</summary>
     private void CancelDetailAnimations()
     {
         if (settleTransition != null) settleTransition.Cancel();
@@ -483,7 +459,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>小地图档位映射：0 自己 / 1 队友 / 2 敌人 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点。</summary>
     private int GetMinimapType(SCMinimapInfo.MinimapEntity entity)
     {
         switch (entity.type.category)
@@ -587,7 +562,6 @@ public class BattlePage : PageBase
     #endregion
 
     #region//Local
-    /// <summary>创建/刷新玩家名牌：UI_PlayerName（名字，头顶）+ UI_EntityBar（血条，名字下方），阵营配色。</summary>
     private void UpdateEntityBar(SCEntityDisplayInfo info)
     {
         bool isAttack = info.camp == EntityCamp.Attack;
@@ -619,9 +593,6 @@ public class BattlePage : PageBase
         barOwners[info.entityId] = info.ownerClientId;
     }
 
-    /// <summary>逐帧：名牌/血条跟随实体头顶（世界 → 屏幕 → 面板局部；相机背面隐藏；名字在血条上方）。
-    /// 注意：这几个组件的轴心是左上角且未勾"作为锚点"（FGUI 里 xy 即左上角），所以设置位置时要减去半个宽度，
-    /// 让元素的**正中**落在头顶正上方。</summary>
     private void UpdateEntityBarPositions()
     {
         var cam = Camera.main;
@@ -687,7 +658,6 @@ public class BattlePage : PageBase
         barOwners.Clear();
     }
 
-    /// <summary>伤害飘字：value 0=无效，>0=普通，<0=暴击；命中位置有效时显示在命中处（含 1m 水平随机散布），否则回退受击实体头顶。上浮+渐隐+到期销毁。相机背后的点不显示（投影会镜像）。</summary>
     private void ShowDamage(int encoded, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
         Vector3 anchor;
@@ -752,7 +722,6 @@ public class BattlePage : PageBase
         }
     }
 
-    /// <summary>事件列表数据：追加一条并按 GList 渲染器模式刷新（代码不创建条目、不设位置）。</summary>
     private void AddEventEntry(EventEntry entry)
     {
         entry.time = Time.time;
@@ -760,7 +729,6 @@ public class BattlePage : PageBase
         RefreshEventItems();
     }
 
-    /// <summary>把数据交给事件列表：只设 itemRenderer + numItems，条目组件与排布由 FGUI 的 GList 负责。</summary>
     private void RefreshEventItems()
     {
         var list = panel.m_EventList != null ? panel.m_EventList.m_EventItemContainer : null;
@@ -797,7 +765,6 @@ public class BattlePage : PageBase
         AddEventEntry(new EventEntry { type = 0, text = text, color = color });
     }
 
-    /// <summary>到期条目从数据头部移除（条目按时间先后入列，最老的必在表头）。</summary>
     private void TickEventItems()
     {
         int expired = 0;
@@ -807,14 +774,12 @@ public class BattlePage : PageBase
         RefreshEventItems();
     }
 
-    /// <summary>清空事件列表数据并同步列表。</summary>
     private void ClearEventItems()
     {
         eventEntries.Clear();
         RefreshEventItems();
     }
 
-    /// <summary>昼夜图标：Time01（1=正午，0=午夜）线性映射到绕 Z 的 0°~180°。</summary>
     private void RefreshTimeIcon()
     {
         if (panel.m_icon_day_night == null) return;
@@ -839,7 +804,6 @@ public class BattlePage : PageBase
         return $"{s / 60:D2}:{s % 60:D2}";
     }
 
-    /// <summary>标题文字：本地玩家阵营获胜显示"胜利"，其余（败北/平局）显示"结束"。</summary>
     private static string GetEndText(int gameState, EntityCamp camp)
     {
         bool win = (gameState == 1 && camp == EntityCamp.Attack)
@@ -847,8 +811,6 @@ public class BattlePage : PageBase
         return win ? "胜利" : "结束";
     }
 
-    /// <summary>技能槽内容刷新（仅已被填充的槽位）：图标（SkillInfo.icon，底图与图标一并设置）、CD=图标填充比例（0→100 一轮冷却）、库存、经验星星（exp 与星星 1:1）。
-    /// 键位与边框样式属于"进战斗时定一次"的部分，由 RenderSkillSlot 设置。</summary>
     private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
     {
         var info = slot.skillId >= 0 && Tool.InfoManager != null ? Tool.InfoManager.GetSkillInfo(slot.skillId) : null;

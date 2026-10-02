@@ -2,12 +2,6 @@ using System.Collections.Generic;
 using Ros.Info;
 using UnityEngine;
 
-/// <summary>
-/// 简易配置信息管理器。
-/// 持有各类 ScriptableObject 配置（Info）与服务器实体模板引用；简易数据可直接在 Inspector 配置。
-/// 服务器模板 = 只含组件没有图形的预制体（架构说明）；客户端图形另见 AssetsManager。
-/// 注：**地图点位不在此配置**，统一由地形组件 LandscapeSpawns 承载（全项目唯一点位来源）。
-/// </summary>
 public class InfoManager : MonoBehaviour
 {
     private void Awake()
@@ -15,38 +9,25 @@ public class InfoManager : MonoBehaviour
         Tool.InfoManager = this;
     }
 
-    /// <summary>实体所在 Layer 的层号（服务器物理判定按此层筛选；须填专用层，填 0 会与地形等 Default 层混在一起）。</summary>
     public int entity_layer;
 
-    /// <summary>地面所在 Layer 的层号（仅落地检测按此层筛选）。地形与可站立的平台/物件都要挂到这一层，否则会被判成悬空。</summary>
     public int ground_layer;
 
     #region 角色属性配置（Info）
-    /// <summary>进攻方角色（18 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
-    /// <summary>防守方角色（6 人，玩家角色信息含解锁等级）。</summary>
     public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
-    /// <summary>普通僵尸属性（全场共用 1 份；21 种只是外观变体，强弱由「僵尸刷新等级」驱动，见策划案 10.3/二十章）。</summary>
     public EntityAttributeInfo ZombieInfo;
-    /// <summary>精英僵尸属性（14 份，对应 14 个素材模型，按 type.value 索引，由技能召唤产生）。</summary>
     public List<EntityAttributeInfo> EliteZombieInfoList = new();
-    /// <summary>守护点属性（外围信标）。</summary>
     public EntityAttributeInfo BeaconInfo;
-    /// <summary>中心守护点属性。</summary>
     public EntityAttributeInfo CoreBeaconInfo;
-    /// <summary>可采集水晶属性。</summary>
     public EntityAttributeInfo CrystalInfo;
-    /// <summary>防御塔（瘟疫孢子）属性（4 种，按 type.value 索引）。</summary>
     public List<EntityAttributeInfo> TowerInfoList = new();
-    /// <summary>瘟疫树属性。</summary>
     public EntityAttributeInfo PlagueTreeInfo;
     #endregion
 
     #region 技能配置
-    /// <summary>技能配置列表（下标=技能 id 的辅助映射，具体以 SkillManager 注册表为准）。</summary>
     public List<SkillInfo> SkillInfoList = new();
 
-    /// <summary>按技能 id 查找配置。</summary>
     public SkillInfo GetSkillInfo(int id)
     {
         if (SkillInfoList == null) return null;
@@ -64,14 +45,10 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> ZombieTemplates = new();
     public List<GameObject> EliteZombieTemplates = new();
     public List<GameObject> BeaconTemplates = new();
-    /// <summary>水晶模板：4 种颜色 × 3 种外形 = 12 项（Config.crystal_graphics_count）。
-    /// 颜色决定掉落的武器类型（同色掉同类武器）；下标 = 外观下标，类别 = 下标 % crystal_type_count（与 AssetsManager.CrystalGraphics 一致）。</summary>
     public List<GameObject> CrystalTemplates = new();
-    /// <summary>防御塔模板（瘟疫孢子）：4 种外观，按塔实例编号取模选用（与 AssetsManager.TowerGraphics 一致）。</summary>
     public List<GameObject> TowerTemplates = new();
     public GameObject PlagueTreeTemplate;
 
-    /// <summary>按实体类型取服务器模板。</summary>
     public bool TryGetTemplate(EntityType type, out GameObject template)
     {
         template = null;
@@ -106,14 +83,12 @@ public class InfoManager : MonoBehaviour
     #endregion
 
     #region 属性获取
-    /// <summary>按实体类型与等级取属性配置（运行时属性见 EntityData.OnCreate）。</summary>
     public EntityAttribute GetAttribute(EntityType type, int level)
     {
         var info = GetAttributeInfo(type);
         return info != null ? info.GetAttribute(level) : new EntityAttribute();
     }
 
-    /// <summary>按全局角色索引取玩家角色信息（进攻 0~17 / 防守 18~23；无配置返回 null）。</summary>
     public PlayerCharacterInfo GetPlayerCharacterInfo(int globalIndex)
     {
         if (globalIndex < 0) return null;
@@ -125,7 +100,6 @@ public class InfoManager : MonoBehaviour
         return defIndex < DefenseCharacterInfoList.Count ? DefenseCharacterInfoList[defIndex] : null;
     }
 
-    /// <summary>按实体类型取属性配置资产。</summary>
     public EntityAttributeInfo GetAttributeInfo(EntityType type)
     {
         switch (type.category)

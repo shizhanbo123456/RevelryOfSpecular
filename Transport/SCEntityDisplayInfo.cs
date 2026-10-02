@@ -3,71 +3,39 @@ using UnityEngine;
 
 namespace Ros.Transport
 {
-    /// <summary>
-    /// 服务器 → 客户端：实体表现同步信息（高频姿态包）。
-    /// 客户端不持有完整实体逻辑，仅根据该摘要更新表现。
-    /// 包含：位姿 / 速度 / 角速度 / 血量 / Buff 列表 / 技能槽列表。**不含任何动画信息**——
-    /// 动画（状态切换、参数、播放速度）全部走事件通道（SCEntityAnimInfo，见《代码架构说明》动画同步节），
-    /// 否则这个 0.02s 的包会持续替事件通道做切换，把切换时机拖到轮询粒度上。
-    /// 守护点等所有实体共用本结构，不再有独立 DTO。
-    /// </summary>
     public class SCEntityDisplayInfo
     {
-        /// <summary>实体 id。</summary>
         public ushort entityId;
-        /// <summary>实体类型。</summary>
         public EntityType type;
-        /// <summary>阵营。</summary>
         public EntityCamp camp;
-        /// <summary>世界坐标。</summary>
         public Vector3 position;
-        /// <summary>朝向（欧拉角 Y，度）。</summary>
         public float yaw;
-        /// <summary>速度（米/秒，客户端包间推演用；= 权威移动方向×速度 + 位移效果速度，静止为零）。</summary>
         public Vector3 velocity;
-        /// <summary>绕 Y 轴角速度（度/秒，客户端推演朝向用；静止为零）。</summary>
         public float yawSpeed;
-        /// <summary>是否包含运行时数据（血量/Buff/技能槽）：高频同步(0.02s)=false 只含位姿，完整同步(0.2s)=true；客户端 false 时保留上一次运行时数据。</summary>
         public bool includeRuntime;
-        /// <summary>当前生命（守护点 HUD 等直接读取；&lt;=0 视为已摧毁/死亡）。</summary>
         public int health;
-        /// <summary>最大生命。</summary>
         public int maxHealth;
-        /// <summary>最近触发槽位下标（键盘槽位直触）（-1 无；仅对玩家实体有意义，服务器权威）。</summary>
         public int selectedIndex = -1;
-        /// <summary>所属客户端 id（非玩家实体 = -1；客户端据此显示玩家名字）。</summary>
         public int ownerClientId = -1;
-        /// <summary>当前 Buff 列表（部分表现需按 Buff 判断，如守护点减伤叠层/迷雾）。</summary>
         public List<BuffRuntime> buffs = new();
-        /// <summary>技能槽列表（顺序即键盘槽位顺序；含装载技能与 CD 情况）。</summary>
         public List<SkillSlotRuntime> skills = new();
 
-        /// <summary>单个 Buff 的同步数据。</summary>
         public class BuffRuntime
         {
-            /// <summary>Buff 类型（EntityEffectController.EffectType 的 int 值）。</summary>
             public int type;
-            /// <summary>等级/叠层。</summary>
             public int level = 1;
         }
 
-        /// <summary>单个技能槽的同步数据。</summary>
         public class SkillSlotRuntime
         {
-            /// <summary>技能 id（-1 空槽）。</summary>
             public int skillId = -1;
-            /// <summary>武器经验（仅对局内，经验直接加成伤害）。</summary>
             public int exp;
-            /// <summary>剩余 CD（秒）。</summary>
             public float cdRemain;
-            /// <summary>总 CD（秒）。</summary>
             public float cdTotal;
-            /// <summary>剩余库存（-1=无库存限制）。</summary>
             public int store = -1;
         }
     }
 
-    /// <summary>SCEntityDisplayInfo 网络序列化器。</summary>
     public struct SCEntityDisplayInfoSerializer
     {
         public static bool Serialize(SCEntityDisplayInfo value, byte[] result, ref int indexStart)

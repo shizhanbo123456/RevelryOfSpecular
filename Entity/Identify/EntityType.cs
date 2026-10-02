@@ -1,8 +1,5 @@
 using System;
 
-/// <summary>
-/// 实体类型：类别 + 编号。（值语义，可网络传输，配套 EntityTypeSerializer 同文件）
-/// </summary>
 [Serializable]
 public struct EntityType : IEquatable<EntityType>
 {
@@ -103,9 +100,6 @@ public struct EntityType : IEquatable<EntityType>
     #endregion
 }
 
-/// <summary>
-/// EntityType 网络序列化器（EnsNetcode 要求，同文件）。
-/// </summary>
 public struct EntityTypeSerializer
 {
     public static bool Serialize(EntityType value, byte[] result, ref int indexStart)

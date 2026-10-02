@@ -1,28 +1,16 @@
 namespace Ros.Transport
 {
-    /// <summary>
-    /// 服务器 → 客户端：对局分数信息（分数制胜负，见策划案 17.2）。
-    /// 进攻方分数 = 守护点拆除量；防守方分数 = 守护点剩余血量 + 击杀小分。
-    /// </summary>
     public class SCScoreInfo
     {
-        /// <summary>对局状态：0 进行中 / 1 进攻方胜 / 2 防守方胜 / 3 平局。</summary>
         public int gameState;
-        /// <summary>进攻方分数（守护点拆除量）。</summary>
         public float attackScore;
-        /// <summary>防守方分数（守护点剩余血量+击杀小分）。</summary>
         public float defenseScore;
-        /// <summary>击杀小分（防守方）。</summary>
         public int killScore;
-        /// <summary>剩余时间（秒）。</summary>
         public float remainTime;
-        /// <summary>本局获得经验（= 采集量 = 对守护点造成的伤害量，策划案 17.3；客户端结算写入存档）。</summary>
         public int expGain;
-        /// <summary>守护点剩余血量合计（终局时刻，服务器统计）。</summary>
         public float beaconHealth;
     }
 
-    /// <summary>SCScoreInfo 网络序列化器。</summary>
     public struct SCScoreInfoSerializer
     {
         public static bool Serialize(SCScoreInfo value, byte[] result, ref int indexStart)
