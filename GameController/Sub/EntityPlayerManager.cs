@@ -17,9 +17,9 @@ public class EntityPlayerManager : ClientSubManager
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public Rigidbody rb;       // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
-        private Vector3 predictedPos;  // dead-reckoning 基准，避免读 transform 造成 velocity 重复叠加偏移
-        private float predictedYaw;
-        private bool predictedInit;
+        public Vector3 predictedPos;  // dead-reckoning 基准，避免读 transform 造成 velocity 重复叠加偏移
+        public float predictedYaw;
+        public bool predictedInit;
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
         public string pendingForcedSwitch;
