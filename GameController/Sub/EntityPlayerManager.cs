@@ -16,6 +16,7 @@ public class EntityPlayerManager : ClientSubManager
         public int animHash = int.MinValue; // 当前动画片段 hash（判断是否需要切换）
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
+        public Rigidbody rb;       // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
         public string pendingForcedSwitch;
@@ -67,9 +68,9 @@ public class EntityPlayerManager : ClientSubManager
         private void Update()
         {
             // 包间推演：位置 + 速度 / 朝向 + 角速度（收到同步包时已重置为权威值）
-            if (velocity.sqrMagnitude > 0f)
+            if (velocity.sqrMagnitude > 0f && rb != null)
             {
-                transform.position += velocity * Time.deltaTime;
+                rb.MovePosition(transform.position + velocity * Time.deltaTime);
             }
             if (!Mathf.Approximately(yawSpeed, 0f))
             {
@@ -315,6 +316,16 @@ public class EntityPlayerManager : ClientSubManager
             view.anim = go.GetComponentInChildren<EntityAnim>();
             // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传（伤害只由服务器算）
             if (view.anim != null) view.anim.Init(null, null);
+
+            // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
+            var modelInfo = go.GetComponentInChildren<EntityModelInfo>();
+            if (modelInfo != null) modelInfo.BuildCapsuleCollider();
+            view.rb = go.GetComponent<Rigidbody>();
+            if (view.rb == null) view.rb = go.AddComponent<Rigidbody>();
+            view.rb.isKinematic = true;
+            view.rb.interpolation = RigidbodyInterpolation.Interpolate;
+            view.rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            view.rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
         return view;
     }
@@ -414,7 +425,7 @@ public class EntityPlayerManager : ClientSubManager
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
     {
-        view.transform.position = info.position;
+        if (rb != null) rb.MovePosition(info.position); else view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
