@@ -33,6 +33,9 @@ public abstract class EntityData : MonoBehaviour
 
     [HideInInspector] public Vector3 moveInput;
 
+    // 按键输入屏蔽掩码：置位期间对应按键在 RecordInput 入口被抹除，实现输入阻断（外部直接置位/清位）
+    [HideInInspector] public PlayerKey inputBlockMask;
+
     public virtual float YawSpeed => 0f;
 
     [HideInInspector] public WeaponRef heldWeapon = WeaponRef.None;
@@ -202,7 +205,16 @@ public abstract class EntityData : MonoBehaviour
     }
     #endregion
 
-    public virtual void RecordInput(Ros.Transport.CSPlayerInput input) { }
+    public virtual void RecordInput(CSPlayerInput input) { }
+
+    // 设置按键输入屏蔽掩码（None = 解除）；PlayerEntityData 在设置瞬间立即抬起对应键
+    public virtual void SetInputBlock(PlayerKey mask)
+    {
+        inputBlockMask = mask;
+    }
+
+    // 立即让指定键在服务器处于抬起状态（模拟服务器收到抬起边沿），不持续屏蔽
+    public virtual void SetInputReleased(PlayerKey mask) { }
 
     public void SetMotion(MotionBase motion)
     {

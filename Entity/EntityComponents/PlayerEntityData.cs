@@ -14,11 +14,22 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
+    // 参与输入阻断的移动键（仅 W/A/D；S 弃用不参与方向计算）
+    private const PlayerKey BlockableMoveKeys = PlayerKey.WPress | PlayerKey.APress | PlayerKey.DPress;
+
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
     public override void RecordInput(CSPlayerInput input)
     {
         EnsureMoveState();
+
+        // 输入阻断（仅 W/A/D）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
+        var block = inputBlockMask & BlockableMoveKeys;
+        if (block != PlayerKey.None)
+        {
+            input.pressed = (PlayerKey)((uint)input.pressed & ~((uint)block | ((uint)block << 1)));
+            if (moveState != null) { moveState.held &= ~block; ApplyMoveState(); }
+        }
 
         // 移动（坦克式）：W = 前进；A/D = 转向（W 按住 = 边走边转，未按 = 原地转）；S 弃用不参与方向计算。
         // 按下位并入按住掩码，抬起位清除对应按住位（右移一位，位布局刻意相邻），随即重算方向
@@ -27,17 +38,7 @@ public class PlayerEntityData : EntityData
         if (press != 0 || release != 0)
         {
             moveState.held = (moveState.held | press) & ~release;
-
-            float x = ((moveState.held & PlayerKey.DPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.APress) != 0 ? 1f : 0f);
-            float z = (moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f; // S 弃用：前后方向只认 W
-            moveState.dir = new Vector2(x, z);
-            moveState.moving = z != 0f; // 只有 W 算移动；单独 A/D = 原地转向，不位移
-
-            // 位移只走本地正前方，转向由 OnTickMove 每帧推进；A/D 单独按住时输入归零（原地转）
-            SetMoveInput(moveState.moving ? Vector3.forward : Vector3.zero);
-
-            // Run/Idle 随表现摘要同步给客户端（原地转向播 Idle）
-            if (anim != null) anim.Move(moveState.moving);
+            ApplyMoveState();
         }
 
         bool moving = moveState.moving;
@@ -60,15 +61,7 @@ public class PlayerEntityData : EntityData
             int meleeSkill = moving
                 ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
                 : Config.unarmed_attack_smash;
-            if (skillController == null)
-            {
-                Debug.Log($"[输入处理] id={id} 攻击键(J) 下沿 → 技能控制器缺失，无法释放");
-            }
-            else
-            {
-                bool ok = skillController.TryUseSkill(meleeSkill);
-                Debug.Log($"[输入处理] id={id} 攻击键(J) 下沿 → 空手技能 {meleeSkill}（{(moving ? "移动出拳" : "原地砸击")}），结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(meleeSkill))}");
-            }
+            skillController.TryUseSkill(meleeSkill);
         }
 
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
@@ -78,6 +71,35 @@ public class PlayerEntityData : EntityData
             UseSkillSlot(i);
             break;
         }
+    }
+
+    // 设置屏蔽的瞬间立即抬起对应键：存掩码 + 复用抬起逻辑（不等下一帧读掩码）
+    public override void SetInputBlock(PlayerKey mask)
+    {
+        base.SetInputBlock(mask);
+        SetInputReleased(mask);
+    }
+
+    // 立即抬起指定键（仅 W/A/D）：清掉服务器按住态并重算，不写屏蔽掩码
+    public override void SetInputReleased(PlayerKey mask)
+    {
+        var released = mask & BlockableMoveKeys;
+        if (released != PlayerKey.None && moveState != null)
+        {
+            moveState.held &= ~released;
+            ApplyMoveState();
+        }
+    }
+
+    // 按住态 → 方向/位移/表现，屏蔽抬起或清空按住态后重算都用同一份逻辑
+    private void ApplyMoveState()
+    {
+        float x = ((moveState.held & PlayerKey.DPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.APress) != 0 ? 1f : 0f);
+        float z = (moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f; // S 弃用：前后方向只认 W
+        moveState.dir = new Vector2(x, z);
+        moveState.moving = z != 0f; // 只有 W 算移动；单独 A/D = 原地转向，不位移
+        SetMoveInput(moveState.moving ? Vector3.forward : Vector3.zero);
+        if (anim != null) anim.Move(moveState.moving);
     }
 
     private void Jump()
