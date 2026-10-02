@@ -1,3 +1,4 @@
+using Ros.Transport;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -167,6 +168,33 @@ public class EntityAnim : MonoBehaviour
                 or (int)AttackType.Attack_Weapon_L
                 or (int)AttackType.Attack_Weapon_R_And_L;
         return weaponAttack && serverHeld.IsValid ? serverHeld : WeaponRef.None;
+    }
+
+    private bool forwardBlocked = false;
+    private bool rotateBlocked = false;
+    public void SetForwardBlock()
+    {
+        if (forwardBlocked) return;
+        forwardBlocked = true;
+        data.SetInputBlock(InputBlockOp.Forward);
+    }
+    public void SetForwardReleased()
+    {
+        if (!forwardBlocked) return;
+        forwardBlocked = false;
+        data.SetInputReleased(InputBlockOp.Forward);
+    }
+    public void SetRotateBlock()
+    {
+        if (rotateBlocked) return;
+        rotateBlocked = true;
+        data.SetInputBlock(InputBlockOp.Rotation);
+    }
+    public void SetRotateReleased()
+    {
+        if (!rotateBlocked) return;
+        rotateBlocked = false;
+        data.SetInputReleased(InputBlockOp.Rotation);
     }
 
     #region//设置速度

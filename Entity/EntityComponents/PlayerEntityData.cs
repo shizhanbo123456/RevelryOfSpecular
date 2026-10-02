@@ -14,8 +14,14 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
-    // 参与输入阻断的移动键（仅 W/A/D；S 弃用不参与方向计算）
-    private const PlayerKey BlockableMoveKeys = PlayerKey.WPress | PlayerKey.APress | PlayerKey.DPress;
+    // 操作屏蔽 → 实际按键位（前后=W，旋转=A/D）
+    private PlayerKey BlockKeys(InputBlockOp ops)
+    {
+        PlayerKey k = PlayerKey.None;
+        if ((ops & InputBlockOp.Forward) != 0) k |= PlayerKey.WPress;
+        if ((ops & InputBlockOp.Rotation) != 0) k |= PlayerKey.APress | PlayerKey.DPress;
+        return k;
+    }
 
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
@@ -23,8 +29,8 @@ public class PlayerEntityData : EntityData
     {
         EnsureMoveState();
 
-        // 输入阻断（仅 W/A/D）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
-        var block = inputBlockMask & BlockableMoveKeys;
+        // 输入阻断（操作级：前后=W，旋转=A/D）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
+        var block = BlockKeys(inputBlockOperations);
         if (block != PlayerKey.None)
         {
             input.pressed = (PlayerKey)((uint)input.pressed & ~((uint)block | ((uint)block << 1)));
@@ -73,17 +79,17 @@ public class PlayerEntityData : EntityData
         }
     }
 
-    // 设置屏蔽的瞬间立即抬起对应键：存掩码 + 复用抬起逻辑（不等下一帧读掩码）
-    public override void SetInputBlock(PlayerKey mask)
+    // 设置屏蔽的瞬间立即抬起对应操作涉及的键：存操作 + 复用抬起逻辑（不等下一帧读掩码）
+    public override void SetInputBlock(InputBlockOp op)
     {
-        base.SetInputBlock(mask);
-        SetInputReleased(mask);
+        base.SetInputBlock(op);
+        SetInputReleased(op);
     }
 
-    // 立即抬起指定键（仅 W/A/D）：清掉服务器按住态并重算，不写屏蔽掩码
-    public override void SetInputReleased(PlayerKey mask)
+    // 立即抬起指定操作涉及的键（前后=W，旋转=A/D）：清掉服务器按住态并重算，不写操作掩码
+    public override void SetInputReleased(InputBlockOp op)
     {
-        var released = mask & BlockableMoveKeys;
+        var released = BlockKeys(op);
         if (released != PlayerKey.None && moveState != null)
         {
             moveState.held &= ~released;

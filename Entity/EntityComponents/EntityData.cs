@@ -5,6 +5,15 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.AI;
 
+// 输入操作屏蔽类别：屏蔽"前后"=屏蔽 W；屏蔽"旋转"=屏蔽 A/D（不再逐个按键屏蔽）
+[Flags]
+public enum InputBlockOp : byte
+{
+    None = 0,
+    Forward = 1 << 0,  // 前后移动（W）
+    Rotation = 1 << 1, // 旋转（A/D）
+}
+
 public abstract class EntityData : MonoBehaviour
 {
     [HideInInspector] public ushort id;
@@ -33,8 +42,8 @@ public abstract class EntityData : MonoBehaviour
 
     [HideInInspector] public Vector3 moveInput;
 
-    // 按键输入屏蔽掩码：置位期间对应按键在 RecordInput 入口被抹除，实现输入阻断（外部直接置位/清位）
-    [HideInInspector] public PlayerKey inputBlockMask;
+    // 输入操作屏蔽：置位期间对应操作（前后/旋转）在 RecordInput 入口被抹除，实现输入阻断（外部直接置位/清位）
+    [HideInInspector] public InputBlockOp inputBlockOperations;
 
     public virtual float YawSpeed => 0f;
 
@@ -207,14 +216,14 @@ public abstract class EntityData : MonoBehaviour
 
     public virtual void RecordInput(CSPlayerInput input) { }
 
-    // 设置按键输入屏蔽掩码（None = 解除）；PlayerEntityData 在设置瞬间立即抬起对应键
-    public virtual void SetInputBlock(PlayerKey mask)
+    // 设置输入操作屏蔽（None = 解除）；PlayerEntityData 在设置瞬间立即抬起对应操作涉及的键
+    public virtual void SetInputBlock(InputBlockOp op)
     {
-        inputBlockMask = mask;
+        inputBlockOperations = op;
     }
 
-    // 立即让指定键在服务器处于抬起状态（模拟服务器收到抬起边沿），不持续屏蔽
-    public virtual void SetInputReleased(PlayerKey mask) { }
+    // 立即让指定操作涉及的键在服务器处于抬起状态（模拟服务器收到抬起边沿），不持续屏蔽
+    public virtual void SetInputReleased(InputBlockOp op) { }
 
     public void SetMotion(MotionBase motion)
     {
