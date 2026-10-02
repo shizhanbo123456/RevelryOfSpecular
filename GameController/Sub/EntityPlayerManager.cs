@@ -425,7 +425,7 @@ public class EntityPlayerManager : ClientSubManager
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
     {
-        if (rb != null) rb.MovePosition(info.position); else view.transform.position = info.position;
+        if (view.rb != null) view.rb.MovePosition(info.position); else view.transform.position = info.position;
         view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
 
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
