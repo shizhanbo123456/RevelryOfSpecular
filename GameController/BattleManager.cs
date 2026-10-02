@@ -214,10 +214,15 @@ public partial class BattleManager : EnsBehaviour
         {
             Tool.NetworkManager.SendRemoveEntity(clientId, id);
         }
-        // 守护点被摧毁事件（UI 飘字/表现用）
+        // 守护点被摧毁事件（UI 飘字/表现用）：带上 beacon 标识（-1=中心守护点 main，0~2=外围 Sub1~3）
         if (BattleStarted && data.type.category == EntityCategory.Beacon)
         {
-            Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.BeaconDestroyed);
+            int beaconId = data.type == EntityType.CoreBeacon ? -1 : data.type.value;
+            Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
+            {
+                type = SCBattleEvent.Type.BeaconDestroyed,
+                value = beaconId,
+            });
         }
 
         data.OnDestroyed();

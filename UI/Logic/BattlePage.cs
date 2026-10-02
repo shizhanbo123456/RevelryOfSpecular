@@ -267,6 +267,18 @@ public class BattlePage : PageBase
         bar.m_fill.fillAmount = 0f;
     }
 
+    // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
+    // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
+    private void SetBeaconDestroyed(int beaconId)
+    {
+        UI_DefensivePointBar bar = beaconId < 0 ? panel.m_progressMain
+            : beaconId == 0 ? panel.m_progressSub1
+            : beaconId == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
+        if (bar == null) return;
+        bar.m_destroyed.selectedIndex = 1;
+        bar.m_fill.fillAmount = 0f;
+    }
+
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
     {
         var bar = panel.m_PlayerBar;
@@ -532,6 +544,7 @@ public class BattlePage : PageBase
             }
             case SCBattleEvent.Type.BeaconDestroyed:
                 AddTextEvent("守护点被摧毁！", CampAttackColor);
+                SetBeaconDestroyed(e.value);
                 break;
             case SCBattleEvent.Type.CrystalCollected:
                 AddTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
