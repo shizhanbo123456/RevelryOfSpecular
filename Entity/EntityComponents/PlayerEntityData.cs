@@ -14,12 +14,22 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
-    // 操作屏蔽 → 实际按键位（前后=W，旋转=A/D）
-    private PlayerKey BlockKeys(InputBlockOp ops)
+    // 操作屏蔽 → 移动键位（前后=W，旋转=A/D；带 Press/Release 对，抹除需同时清 Release 位）
+    private PlayerKey BlockMoveKeys(InputBlockOp ops)
     {
         PlayerKey k = PlayerKey.None;
         if ((ops & InputBlockOp.Forward) != 0) k |= PlayerKey.WPress;
         if ((ops & InputBlockOp.Rotation) != 0) k |= PlayerKey.APress | PlayerKey.DPress;
+        return k;
+    }
+
+    // 操作屏蔽 → 动作键位（跳跃=K，滑铲=LShift，攻击=J；单一位、边沿触发，只需抹去自身）
+    private PlayerKey BlockActionKeys(InputBlockOp ops)
+    {
+        PlayerKey k = PlayerKey.None;
+        if ((ops & InputBlockOp.Jump) != 0) k |= PlayerKey.K;
+        if ((ops & InputBlockOp.Slide) != 0) k |= PlayerKey.LShift;
+        if ((ops & InputBlockOp.Attack) != 0) k |= PlayerKey.J;
         return k;
     }
 
@@ -29,12 +39,15 @@ public class PlayerEntityData : EntityData
     {
         EnsureMoveState();
 
-        // 输入阻断（操作级：前后=W，旋转=A/D）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
-        var block = BlockKeys(inputBlockOperations);
-        if (block != PlayerKey.None)
+        // 输入阻断（操作级）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
+        // 移动键带 Press/Release 对，需同时抹掉 Release 位；动作键单一位，仅抹自身
+        var blockMove = BlockMoveKeys(inputBlockOperations);
+        var blockAction = BlockActionKeys(inputBlockOperations);
+        if (blockMove != PlayerKey.None || blockAction != PlayerKey.None)
         {
-            input.pressed = (PlayerKey)((uint)input.pressed & ~((uint)block | ((uint)block << 1)));
-            if (moveState != null) { moveState.held &= ~block; ApplyMoveState(); }
+            uint clear = (uint)blockMove | ((uint)blockMove << 1) | (uint)blockAction;
+            input.pressed = (PlayerKey)((uint)input.pressed & ~clear);
+            if (moveState != null) { moveState.held &= ~blockMove; ApplyMoveState(); }
         }
 
         // 移动（坦克式）：W = 前进；A/D = 转向（W 按住 = 边走边转，未按 = 原地转）；S 弃用不参与方向计算。
@@ -86,10 +99,10 @@ public class PlayerEntityData : EntityData
         SetInputReleased(op);
     }
 
-    // 立即抬起指定操作涉及的键（前后=W，旋转=A/D）：清掉服务器按住态并重算，不写操作掩码
+    // 立刻抬起对应移动键（前后=W，旋转=A/D）：清掉服务器按住态并重算；动作键无按住态，屏蔽期间由 RecordInput 入口抹除
     public override void SetInputReleased(InputBlockOp op)
     {
-        var released = BlockKeys(op);
+        var released = BlockMoveKeys(op);
         if (released != PlayerKey.None && moveState != null)
         {
             moveState.held &= ~released;
