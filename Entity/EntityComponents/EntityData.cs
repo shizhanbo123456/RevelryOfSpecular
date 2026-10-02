@@ -229,6 +229,9 @@ public abstract class EntityData : MonoBehaviour
     // 立即让指定操作涉及的键在服务器处于抬起状态（模拟服务器收到抬起边沿），不持续屏蔽
     public virtual void SetInputReleased(InputBlockOp op) { }
 
+    // 查询某操作是否处于屏蔽状态（玩家与 AI 共用）
+    public bool InputBlocked(InputBlockOp op) => (inputBlockOperations & op) != 0;
+
     public void SetMotion(MotionBase motion)
     {
         if (rb == null || anim == null) return;

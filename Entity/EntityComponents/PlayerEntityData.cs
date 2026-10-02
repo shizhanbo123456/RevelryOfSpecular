@@ -212,19 +212,22 @@ public class PlayerEntityData : EntityData
             return;
         }
 
+        bool blockForward = InputBlocked(InputBlockOp.Forward);
+        bool blockRotation = InputBlocked(InputBlockOp.Rotation);
+
         Vector3 dir = ResolveNavDirection();
         if (dir.sqrMagnitude > 0.0001f)
         {
-            SteerTo(transform.position + dir, deltaTime); // 朝行进方向渐转
-            SetMoveInput(Vector3.forward);
-            if (anim != null) anim.Move(true);
+            if (!blockRotation) SteerTo(transform.position + dir, deltaTime); // 朝行进方向渐转
+            SetMoveInput(blockForward ? Vector3.zero : Vector3.forward);
+            if (anim != null) anim.Move(!blockForward);
             return;
         }
 
         // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
         SetMoveInput(Vector3.zero);
         if (anim != null) anim.Move(false);
-        if (aiFaceSet) SteerTo(aiFacePoint, deltaTime);
+        if (aiFaceSet && !blockRotation) SteerTo(aiFacePoint, deltaTime);
         else moveState.yawSpeed = 0f;
     }
 

@@ -76,10 +76,13 @@ public class ZombieEntityData : EntityData
 
     public override void OnTickMove(float deltaTime, bool canInput)
     {
+        bool blockForward = InputBlocked(InputBlockOp.Forward);
+        bool blockRotation = InputBlocked(InputBlockOp.Rotation);
+
         // 无目的地（攻击档或游荡停顿中）：只转向目标，不移动
         if (!HasNavDestination)
         {
-            if (canInput) FaceTarget(deltaTime);
+            if (canInput && !blockRotation) FaceTarget(deltaTime);
             else yawSpeed = 0f;
             return;
         }
@@ -110,14 +113,15 @@ public class ZombieEntityData : EntityData
 
         // 服务器权威渐转（客户端按 YawSpeed 推演）
         float prevYaw = yaw;
-        yaw = Mathf.MoveTowardsAngle(yaw, Quaternion.LookRotation(dir).eulerAngles.y, Config.move_turn_rate * deltaTime);
+        if (!blockRotation)
+            yaw = Mathf.MoveTowardsAngle(yaw, Quaternion.LookRotation(dir).eulerAngles.y, Config.move_turn_rate * deltaTime);
         yawSpeed = deltaTime > 0f ? Mathf.DeltaAngle(prevYaw, yaw) / deltaTime : 0f;
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
         // 只喂"前进"：朝向已由上面的渐转负责。喂实际方向会在目标位于背后时触发"后退"语义
         // （前后声明的负号是给玩家输入的，见 TickVelocity），表现为僵尸倒着走
-        SetMoveInput(Vector3.forward);
-        if (anim != null) anim.Move(true);
+        SetMoveInput(blockForward ? Vector3.zero : Vector3.forward);
+        if (anim != null) anim.Move(!blockForward);
     }
 
     #region AI 行为
@@ -175,6 +179,7 @@ public class ZombieEntityData : EntityData
 
     private bool TryUseSlot(int slot)
     {
+        if (InputBlocked(InputBlockOp.Attack)) return false; // 攻击屏蔽：爪击/嘶吼均不放
         if (skillController == null) return false;
         return skillController.TryUseSkill(skillController.GetSkillIdAt(slot));
     }

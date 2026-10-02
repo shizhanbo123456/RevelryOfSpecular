@@ -133,6 +133,7 @@ public class PlayerAiController
 
     private void TryCast()
     {
+        if (entity.InputBlocked(InputBlockOp.Attack)) return; // 攻击屏蔽：不尝试释放任何技能
         var sc = entity.skillController;
         if (sc == null) return;
         for (int slot = sc.SkillCount - 1; slot >= 0; slot--)
