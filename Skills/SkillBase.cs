@@ -239,7 +239,7 @@ namespace Ros.Skill
             context != null && context.ints.Count > 1 ? (ProjectilePattern)context.ints[1] : ProjectilePattern.Line;
 
         /// <summary>第 index 发的起点 / 终点。起点不写死在上下文：服务器用实时实体、客户端按 casterId 取攻击帧真实位置，攻击动画位移自然生效。</summary>
-        protected static Vector3 Origin(SkillContext context, int index)
+        protected Vector3 Origin(SkillContext context, int index)
         {
             var caster = Caster(context);
             if (caster != null) return ShootPos(caster);
@@ -405,7 +405,7 @@ namespace Ros.Skill
         }
 
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
-        protected static BulletTrajectory Line(SkillContext context, int index, float duration)
+        protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
             var t = new LineTrajectory(Origin(context, index), Dest(context, index));
             t.Duration = duration;
@@ -419,7 +419,7 @@ namespace Ros.Skill
             return t;
         }
 
-        protected static BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
+        protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
         {
             var t = new SkyFallTrajectory(Origin(context, index), Dest(context, index), skyHeight);
             t.Duration = duration;
@@ -427,7 +427,7 @@ namespace Ros.Skill
         }
 
         /// <summary>抛物线（曲射类，如榴弹）：控制点按弧高抬升。</summary>
-        protected static BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
+        protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
             Vector3 from = Origin(context, index), to = Dest(context, index);
             var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
