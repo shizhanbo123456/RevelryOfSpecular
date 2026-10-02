@@ -222,12 +222,29 @@ namespace Ros.Skill
         protected static ushort CasterId(SkillContext context) =>
             context != null && context.ints.Count > 0 ? (ushort)context.ints[0] : (ushort)0;
 
+        /// <summary>发射槽位（上下文 ints[2]；BuildShotContext 写入，未写时回退 0）。</summary>
+        protected static int Slot(SkillContext context) =>
+            context != null && context.ints.Count > 2 ? context.ints[2] : 0;
+
+        /// <summary>客户端按 id 取发射者悬浮武器位置（攻击帧实时；复用 BulletTrajectory 双端 transform 解析，客户端取不到实体）。</summary>
+        protected static Vector3 ShootPosById(ushort casterId, int slot)
+        {
+            if (BulletTrajectory.TryGetEntityTransform(casterId, out var pos, out var rot))
+                return pos + rot * Config.GetWeaponFloatOffset(slot < 0 ? 0 : slot);
+            return pos;
+        }
+
         /// <summary>轨迹形态（上下文 ints[1]）。</summary>
         protected static ProjectilePattern Pattern(SkillContext context) =>
             context != null && context.ints.Count > 1 ? (ProjectilePattern)context.ints[1] : ProjectilePattern.Line;
 
-        /// <summary>第 index 发的起点 / 终点。</summary>
-        protected static Vector3 Origin(SkillContext context, int index) => context.vectors[index * 2];
+        /// <summary>第 index 发的起点 / 终点。起点不写死在上下文：服务器用实时实体、客户端按 casterId 取攻击帧真实位置，攻击动画位移自然生效。</summary>
+        protected static Vector3 Origin(SkillContext context, int index)
+        {
+            var caster = Caster(context);
+            if (caster != null) return ShootPos(caster);
+            return ShootPosById(CasterId(context), Slot(context));
+        }
         protected static Vector3 Dest(SkillContext context, int index) => context.vectors[index * 2 + 1];
 
         /// <summary>发数（上下文 vectors 的成对数）。</summary>
@@ -260,11 +277,12 @@ namespace Ros.Skill
             return entity.GetWeaponFloatPos(slot < 0 ? 0 : slot);
         }
 
-        /// <summary>按约定建标准上下文（施放者 id + 形态 + 各发 [起点, 终点]）。</summary>
+        /// <summary>按约定建标准上下文（施放者 id + 形态 + 发射槽位 + 各发 [起点, 终点]）。起点仅占位，攻击帧由 Origin 按 casterId 实时取。</summary>
         protected SkillContext BuildShotContext(EntityData entity, ProjectilePattern pattern, params Vector3[] dests)
         {
             var context = new SkillContext();
-            context.AddInts(entity.id, (int)pattern);
+            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+            context.AddInts(entity.id, (int)pattern, slot < 0 ? 0 : slot);
             Vector3 origin = ShootPos(entity);
             foreach (var dest in dests) context.AddVectors(origin, dest);
             return context;
