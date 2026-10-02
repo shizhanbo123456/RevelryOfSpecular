@@ -529,7 +529,7 @@ public abstract class EntityData : MonoBehaviour
 
     #region//Local
     private const float ground_probe_up = 0.1f;
-    private const float ground_probe_length = 0.4f;
+    private const float ground_probe_length = 0.6f;
     private const float GroundMaxRiseSpeed = 1f;
     private static readonly RaycastHit[] s_groundHits = new RaycastHit[4];
 
