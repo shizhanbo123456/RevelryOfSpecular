@@ -332,7 +332,7 @@ public abstract class EntityData : MonoBehaviour
         return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 
-    public void ProcessHit(AttackData attack, int damage, bool isCrit, Vector3 hitOrigin)
+    public void ProcessHit(AttackData attack, int damage, bool isCrit, Vector3 hitOrigin, Vector3? floatPos = null)
     {
         EndureType endure = GetEndureLevel();
         bool enterHit = anim!=null && (attack.breakEndure ? (endure == EndureType.None || endure == EndureType.Common) : endure == EndureType.None);
@@ -345,7 +345,7 @@ public abstract class EntityData : MonoBehaviour
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
-        OnDamaged(damage, attacker, isCrit: isCrit, hitPos: hitOrigin);
+        OnDamaged(damage, attacker, isCrit: isCrit, hitPos: floatPos ?? hitOrigin);
         Tool.BattleManager.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
     }
 

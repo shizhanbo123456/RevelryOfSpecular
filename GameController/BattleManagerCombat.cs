@@ -66,7 +66,8 @@ public partial class BattleManager
 
             int damage = attack.GetDamage(out bool isCrit);
             // 击飞方向取子弹上一帧位置：高速弹一帧穿过目标时，用当前位置算方向会反转
-            e.ProcessHit(attack, damage, isCrit, b.LastPosition);
+            Vector3 floatPos = new Vector3(e.transform.position.x, b.LastPosition.y, e.transform.position.z);
+            e.ProcessHit(attack, damage, isCrit, b.LastPosition, floatPos);
             if (attack.addEffectEvent != null && e.effectController != null)
             {
                 attack.addEffectEvent.Invoke(e.effectController);
