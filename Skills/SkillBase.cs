@@ -210,21 +210,11 @@ namespace Ros.Skill
         }
         #endregion
 
-        #region 框架工具（弹道上下文约定 / 攻击结算 / 特效播放，服务端与客户端共用）
-        // 上下文约定：ints[0] = 施放者 id；ints[1] = 轨迹形态；vectors 成对存每发的 (起点, 终点)，发数 = vectors.Count / 2。
-        // 起点由服务器算好写进上下文（悬浮武器发射点依赖位置+朝向+槽位，客户端无法复原，故不放客户端算）。
+        #region 框架工具（攻击结算 / 特效播放，服务端与客户端共用；上下文约定见嵌套 SkillContextConventions）
         private static readonly EntityData[] s_hitBuffer = new EntityData[16];
 
         /// <summary>多目标技能的目标缓存（服务器单线程顺序执行，用完即弃，勿跨帧持有）。</summary>
         protected static readonly List<EntityData> TargetBuffer = new();
-
-        /// <summary>便捷读取器（可选常用布局）：BuildShotContext 布局下取施放者 id（ints[0]）。非强制——技能可自行定义上下文含义后改用 GetCasterById / BattleManager.GetEntity。</summary>
-        protected static ushort GetCasterId(SkillContext context) =>
-            context != null && context.ints.Count > 0 ? (ushort)context.ints[0] : (ushort)0;
-
-        /// <summary>便捷读取器（可选常用布局）：BuildShotContext 布局下取发射槽位（ints[2]，未写时回退 0）。</summary>
-        protected static int GetCastingSlotIndex(SkillContext context) =>
-            context != null && context.ints.Count > 2 ? context.ints[2] : 0;
 
         /// <summary>客户端按 id 取发射者悬浮武器位置（攻击帧实时；复用 BulletTrajectory 双端 transform 解析，客户端取不到实体）。通用工具，不依赖任何上下文约定。</summary>
         protected static Vector3 GetWeaponFloatPositionById(ushort casterId, int slot)
@@ -233,41 +223,6 @@ namespace Ros.Skill
                 return pos + rot * Config.GetWeaponFloatOffset(slot < 0 ? 0 : slot);
             return pos;
         }
-
-        /// <summary>便捷读取器（可选常用布局）：按 BuildShotContext 布局取第 index 发的起点 = 实时发射者悬浮武器位（服务器用实体、客户端按 casterId 取攻击帧位置，攻击动画位移自然生效）。自定义布局请在技能内自行解析下标后调用 GetWeaponFloatPosition(entity, slot)。</summary>
-        protected Vector3 GetShotOrigin(SkillContext context, int index)
-        {
-            ushort casterId = GetCasterId(context);
-            int slot = GetCastingSlotIndex(context);
-            EntityData caster = GetCasterById(context);
-            if (caster != null) return GetWeaponFloatPosition(caster, slot);
-            return GetWeaponFloatPositionById(casterId, slot);
-        }
-
-        /// <summary>便捷读取器（可选常用布局）：第 index 发的终点 = vectors[index * 2 + 1]（前摇瞬间冻结的攻击目标位置，供敌人前摇闪避）。</summary>
-        protected static Vector3 GetShotDestination(SkillContext context, int index) => context.vectors[index * 2 + 1];
-
-        /// <summary>发数（上下文 vectors 的成对数）。</summary>
-        protected static int GetShotCount(SkillContext context) =>
-            context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
-
-        // 多目标常用布局（可选）：ints[0] = 施放者 id，ints[1..] = 目标 id 列表（与弹道技能的 vectors 各管各的）。技能可自行定义上下文含义。
-        /// <summary>服务器：把目标 id 依次追加进上下文。</summary>
-        protected static void AddTargets(SkillContext context, List<EntityData> targets)
-        {
-            if (context == null || targets == null) return;
-            for (int i = 0; i < targets.Count; i++)
-            {
-                if (targets[i] != null) context.AddInts(targets[i].id);
-            }
-        }
-
-        /// <summary>上下文里的目标数量。</summary>
-        protected static int TargetCount(SkillContext context) =>
-            context != null && context.ints != null && context.ints.Count > 1 ? context.ints.Count - 1 : 0;
-
-        /// <summary>第 index 个目标 id。</summary>
-        protected static ushort GetTargetId(SkillContext context, int index) => (ushort)context.ints[index + 1];
 
         /// <summary>通用发射点（不依赖任何上下文约定）：取 entity 在 slot 槽位的悬浮武器位置；无飞行武器回退 BulletShootPos()。技能可显式传槽位，自行解析上下文下标。</summary>
         protected Vector3 GetWeaponFloatPosition(EntityData entity, int slot)
@@ -281,17 +236,6 @@ namespace Ros.Skill
         {
             int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
             return GetWeaponFloatPosition(entity, slot < 0 ? 0 : slot);
-        }
-
-        /// <summary>常用布局构建器（可选）：写入施放者 id + 轨迹形态 + 发射槽位 + 各发 [起点, 终点]；起点仅占位，攻击帧由 GetShotOrigin 按 casterId 实时取。技能不强制使用本布局，可自由编辑上下文内容。</summary>
-        protected SkillContext BuildShotContext(EntityData entity, ProjectilePattern pattern, params Vector3[] dests)
-        {
-            var context = new SkillContext();
-            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-            context.AddInts(entity.id, (int)pattern, slot < 0 ? 0 : slot);
-            Vector3 origin = GetWeaponFloatPosition(entity);
-            foreach (var dest in dests) context.AddVectors(origin, dest);
-            return context;
         }
 
         /// <summary>把实际效果挂到动画攻击帧；返回 true 表示已在等待，调用方不要再立即执行。
@@ -318,13 +262,6 @@ namespace Ros.Skill
             int exp = entity != null && entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0;
             return AttackData.Create(entity, rate, radius, breakEndure, useMagic,
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
-        }
-
-        /// <summary>服务器：按上下文里的 id 反查实体（客户端没有实体，只走 PlayVFX）。</summary>
-        protected static EntityData GetCasterById(SkillContext context, int idIndex = 0)
-        {
-            if (context == null || idIndex < 0 || idIndex >= context.ints.Count) return null;
-            return BattleManager.GetEntity((ushort)context.ints[idIndex]);
         }
 
         /// <summary>
@@ -382,7 +319,7 @@ namespace Ros.Skill
         /// <summary>服务器：按发数逐发建轨迹交给子弹容器（穿透与同目标去重由容器负责）。</summary>
         protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)
         {
-            for (int i = 0; i < GetShotCount(context); i++)
+            for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
             {
                 if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(entity, attack, CreateTrajectory(context, i));
             }
@@ -413,21 +350,21 @@ namespace Ros.Skill
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
-            var t = new LineTrajectory(GetShotOrigin(context, index), GetShotDestination(context, index));
+            var t = new LineTrajectory(SkillContextConventions.GetShotOrigin(this, context, index), SkillContextConventions.GetShotDestination(context, index));
             t.Duration = duration;
             return t;
         }
 
         protected static BulletTrajectory Point(SkillContext context, int index, float duration)
         {
-            var t = new PointTrajectory(GetShotDestination(context, index));
+            var t = new PointTrajectory(SkillContextConventions.GetShotDestination(context, index));
             t.Duration = duration;
             return t;
         }
 
         protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
         {
-            var t = new SkyFallTrajectory(GetShotOrigin(context, index), GetShotDestination(context, index), skyHeight);
+            var t = new SkyFallTrajectory(SkillContextConventions.GetShotOrigin(this, context, index), SkillContextConventions.GetShotDestination(context, index), skyHeight);
             t.Duration = duration;
             return t;
         }
@@ -435,7 +372,7 @@ namespace Ros.Skill
         /// <summary>抛物线（曲射类，如榴弹）：控制点按弧高抬升。</summary>
         protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
-            Vector3 from = GetShotOrigin(context, index), to = GetShotDestination(context, index);
+            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotDestination(context, index);
             var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
             t.Duration = duration;
             return t;
@@ -447,7 +384,7 @@ namespace Ros.Skill
         protected void PlayAlong(SkillContext context, SkillVfxKind kind, int[] vfx)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
-            for (int i = 0; i < GetShotCount(context); i++)
+            for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
             {
                 var trajectory = CreateTrajectory(context, i);
                 if (trajectory != null) PlayOne(kind, Pick(vfx, i), trajectory);
@@ -467,7 +404,7 @@ namespace Ros.Skill
         protected void PlayFollowAll(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
-            for (int i = 0; i < TargetCount(context); i++) PlayFollow(kind, index, GetTargetId(context, i), lifeTime);
+            for (int i = 0; i < SkillContextConventions.TargetCount(context); i++) PlayFollow(kind, index, SkillContextConventions.GetTargetId(context, i), lifeTime);
         }
 
         /// <summary>定点播一次（范围魔法 / 魔法阵）。</summary>
@@ -520,5 +457,76 @@ namespace Ros.Skill
         }
         #endregion
         #endregion
+
+        /// <summary>
+        /// 技能上下文的常用布局约定（开发便利用，非强制）：集中放这里，不让下标约定散落进通用代码。
+        /// 弹道布局：ints[0]=施放者id, ints[1]=轨迹形态, ints[2]=槽位; vectors 成对存每发(起点,终点)，发数=vectors.Count/2。
+        /// 多目标布局：ints[0]=施放者id, ints[1..]=目标id 列表（与弹道布局各管各的，按技能自选）。
+        /// 技能可自行定义上下文含义，用显式参数工具（GetWeaponFloatPosition / BulletTrajectory 双端解析）替代本类读取器。
+        /// </summary>
+        internal static class SkillContextConventions
+        {
+            public const int CasterIdIndex = 0;
+            public const int PatternIndex = 1;
+            public const int SlotIndex = 2;
+
+            /// <summary>写弹道常用布局：施放者 id + 轨迹形态 + 槽位 + 各发 [起点占位, 终点]；起点仅占位，攻击帧由 GetShotOrigin 按 casterId 实时取。</summary>
+            public static SkillContext BuildShotContext(SkillBase skill, EntityData entity, ProjectilePattern pattern, params Vector3[] dests)
+            {
+                var context = new SkillContext();
+                int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+                context.AddInts(entity.id, (int)pattern, slot < 0 ? 0 : slot);
+                Vector3 origin = skill.GetWeaponFloatPosition(entity);
+                foreach (var dest in dests) context.AddVectors(origin, dest);
+                return context;
+            }
+
+            /// <summary>弹道布局下取施放者 id（ints[CasterIdIndex]）。</summary>
+            public static ushort GetCasterId(SkillContext context) =>
+                context != null && context.ints.Count > CasterIdIndex ? (ushort)context.ints[CasterIdIndex] : (ushort)0;
+
+            /// <summary>弹道布局下取发射槽位（ints[SlotIndex]，未写回退 0）。</summary>
+            public static int GetCastingSlotIndex(SkillContext context) =>
+                context != null && context.ints.Count > SlotIndex ? context.ints[SlotIndex] : 0;
+
+            /// <summary>第 index 发的终点 = vectors[index * 2 + 1]（前摇冻结的攻击目标位置，供敌人前摇闪避）。</summary>
+            public static Vector3 GetShotDestination(SkillContext context, int index) => context.vectors[index * 2 + 1];
+
+            /// <summary>发数（vectors 的成对数）。</summary>
+            public static int GetShotCount(SkillContext context) =>
+                context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
+
+            /// <summary>第 index 发的起点 = 实时发射者悬浮武器位（服务器用实体、客户端按 casterId 取攻击帧位置，攻击动画位移自然生效）。</summary>
+            public static Vector3 GetShotOrigin(SkillBase skill, SkillContext context, int index)
+            {
+                ushort casterId = GetCasterId(context);
+                int slot = GetCastingSlotIndex(context);
+                EntityData caster = GetCasterById(context);
+                if (caster != null) return skill.GetWeaponFloatPosition(caster, slot);
+                return GetWeaponFloatPositionById(casterId, slot);
+            }
+
+            /// <summary>把目标 id 依次追加进上下文（多目标布局）。</summary>
+            public static void AddTargets(SkillContext context, List<EntityData> targets)
+            {
+                if (context == null || targets == null) return;
+                for (int i = 0; i < targets.Count; i++)
+                    if (targets[i] != null) context.AddInts(targets[i].id);
+            }
+
+            /// <summary>多目标布局下的目标数量（ints.Count - 1）。</summary>
+            public static int TargetCount(SkillContext context) =>
+                context != null && context.ints != null && context.ints.Count > 1 ? context.ints.Count - 1 : 0;
+
+            /// <summary>第 index 个目标 id（ints[index + 1]）。</summary>
+            public static ushort GetTargetId(SkillContext context, int index) => (ushort)context.ints[index + 1];
+
+            /// <summary>按上下文里的 id 反查实体（客户端没有实体，只走 PlayVFX）。</summary>
+            public static EntityData GetCasterById(SkillContext context, int idIndex = CasterIdIndex)
+            {
+                if (context == null || idIndex < 0 || idIndex >= context.ints.Count) return null;
+                return BattleManager.GetEntity((ushort)context.ints[idIndex]);
+            }
+        }
     }
 }

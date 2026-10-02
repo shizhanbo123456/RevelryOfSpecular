@@ -1,3 +1,4 @@
+using Ros.Skill;
 using Ros.Transport;
 
 /// <summary>
@@ -12,7 +13,7 @@ public class ClientSkillManager : ClientSubManager
     public void OnSkillCast(int skillId, SkillContext context)
     {
         if (context == null || context.ints.Count == 0) return;
-        ushort casterId = (ushort)context.ints[0];
+        ushort casterId = SkillBase.SkillContextConventions.GetCasterId(context);
         var view = Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null
             ? Tool.ClientLogicManager.EntityPlayers.GetView(casterId) : null;
         if (view != null && view.anim != null)

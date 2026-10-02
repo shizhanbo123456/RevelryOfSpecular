@@ -39,7 +39,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             StrikeSphere(caster, HandPos(caster, leftHand: true), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -68,7 +68,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             StrikeSphere(caster, HandPos(caster), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -97,7 +97,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             StrikeSphere(caster, caster.transform.position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }

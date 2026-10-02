@@ -59,18 +59,18 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.TowerShield, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.TowerShield, 1,
                     Config.buff_duration_buff, shieldValue: Config.buff_shield_value, sourceId: cid);
             }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            if (context.ints.Count > 1) PlayFollow(SkillVfxKind.Shield, 1, (ushort)context.ints[1]); // S2
+            if (context.ints.Count > 1) PlayFollow(SkillVfxKind.Shield, 1, SkillBase.SkillContextConventions.GetTargetId(context, 0)); // S2
         }
     }
 
@@ -97,11 +97,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.MushroomInfect, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.MushroomInfect, 1,
                     Config.mushroom_infect_duration, negative: true, sourceId: cid);
             }
         }
@@ -121,7 +121,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);
@@ -131,11 +131,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.TowerBlaze, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.TowerBlaze, 1,
                     Config.buff_duration_debuff, sourceId: cid);
             }
         }
@@ -168,18 +168,18 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.EyeMark, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.EyeMark, 1,
                     Config.buff_duration_buff, negative: true, sourceId: cid);
             }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            if (context.ints.Count > 1) PlayFollow(SkillVfxKind.Buff, 15, (ushort)context.ints[1]); // BF16
+            if (context.ints.Count > 1) PlayFollow(SkillVfxKind.Buff, 15, SkillBase.SkillContextConventions.GetTargetId(context, 0)); // BF16
         }
     }
 
@@ -203,7 +203,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
             SetEntitiesInCampToBuffer(caster.camp); // 己方全体
             for (int i = 0; i < TargetBuffer.Count; i++)
@@ -265,7 +265,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
             for (int i = 0; i < Config.summon_zombie_count; i++)
             {
@@ -298,13 +298,13 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             GiveEffect(caster, EffectType.DeathStroll, 1, Config.buff_duration_buff,
                 value: Config.death_stroll_radius, damage: Config.buff_dot_damage,
                 sourceId: caster != null ? caster.id : (ushort)0);
         }
 
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 3, (ushort)context.ints[0]); // BF4
+        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 3, SkillBase.SkillContextConventions.GetCasterId(context)); // BF4
     }
 
     /// <summary>召唤多个精英僵尸（id 60·大招）：大型召唤法阵（复用 MC7）。</summary>
@@ -328,7 +328,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
             for (int i = 0; i < Config.summon_elite_count; i++)
             {
@@ -357,7 +357,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -367,11 +367,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.Silence, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.Silence, 1,
                     Config.buff_duration_control, negative: true, sourceId: cid);
             }
         }
@@ -391,7 +391,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全场敌方
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -401,11 +401,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.Mire, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.Mire, 1,
                     Config.buff_duration_debuff, negative: true, sourceId: cid);
             }
         }
@@ -425,7 +425,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);
@@ -435,11 +435,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.Reflect, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.Reflect, 1,
                     Config.buff_duration_buff, damage: Config.buff_dot_damage, sourceId: cid);
             }
         }
@@ -462,7 +462,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -472,11 +472,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.PlagueMark, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.PlagueMark, 1,
                     Config.buff_duration_buff, negative: true, sourceId: cid);
             }
         }
@@ -506,7 +506,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             // 「矿石」即可采集水晶：直接造成巨量伤害 = 击败水晶，走概率产出流程
             SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
                 caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
@@ -551,11 +551,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                var target = BattleManager.GetEntity(GetTargetId(context, i));
+                var target = BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i));
                 if (target == null || target.effectController == null) continue;
                 int level = target.effectController.GetLevel(EffectType.PlagueMark);
                 if (level <= 0) continue;
@@ -581,7 +581,7 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = BuildShotContext(entity, ProjectilePattern.Line,
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
                 FanDests(entity.transform.position, AimPos(entity), shots, spreadDeg));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
             {
@@ -594,7 +594,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
             var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
                 addEffect: ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, negative: true, sourceId: cid));
@@ -619,7 +619,7 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = BuildShotContext(entity, ProjectilePattern.Bezier,
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier,
                 FanDests(entity.transform.position, AimPos(entity), shots, spreadDeg));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
             {
@@ -632,7 +632,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
             var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
                 addEffect: ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, negative: true, sourceId: cid));
@@ -659,7 +659,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全体敌方
-            AddTargets(context, TargetBuffer);
+            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);
@@ -669,11 +669,11 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCasterById(context);
+            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < TargetCount(context); i++)
+            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
             {
-                GiveEffect(BattleManager.GetEntity(GetTargetId(context, i)), EffectType.Fog, 1,
+                GiveEffect(BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i)), EffectType.Fog, 1,
                     Config.buff_duration_buff, negative: true, sourceId: cid);
             }
         }
