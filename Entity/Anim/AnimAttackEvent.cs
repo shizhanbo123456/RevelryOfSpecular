@@ -4,6 +4,8 @@ public class AnimAttackEvent : AnimEvent
 {
     protected override EntityAnim.AnimState State => EntityAnim.AnimState.Attack;
     [SerializeField] private EntityAnim.AttackType type;
+    [SerializeField] private AnimationCurve speedForward;
+    [SerializeField] private AnimationCurve speedUpward;
     [Header("Hit1")]
     [SerializeField][Range(0,1)] private float threshold;
     private bool canTrigAttack;
@@ -24,6 +26,12 @@ public class AnimAttackEvent : AnimEvent
         base.OnStateUpdate(animator, stateInfo, layerIndex);
         if (data == null) return;
         if (!main) return;
+
+        float forward = speedForward.Evaluate(stateInfo.normalizedTime);
+        float upward = speedUpward.Evaluate(stateInfo.normalizedTime);
+        anim.SetVelocityForward(forward * anim.animData.RunSpeed);
+        anim.SetVelocityVertical(upward * anim.animData.JumpSpeed);
+
         if (canTrigAttack && stateInfo.normalizedTime > threshold)
         {
             canTrigAttack = false;

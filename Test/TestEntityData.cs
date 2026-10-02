@@ -71,7 +71,7 @@ public class TestEntityData : EntityData
     {
         Vector3 v = rb != null ? rb.velocity : Vector3.zero;
         return $"state={(anim != null ? anim.CurrentState.ToString() : "无anim")} grounded={grounded} " +
-               $"moveInput={moveInput} v={v:F2} src={LastVelocitySource}";
+               $"moveInput={moveInput} v={v:F2}";
     }
     #endregion
 }

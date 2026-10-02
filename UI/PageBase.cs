@@ -64,7 +64,8 @@ public abstract class PageBase
         var cam = camera != null ? camera : Camera.main;
         if (cam == null) return Vector2.zero;
         var screen = cam.WorldToScreenPoint(worldPos);
-        return new Vector2(screen.x / UiScale, screen.y / UiScale);
+        // Unity 屏幕 y 轴向上（原点左下），FGUI 局部 y 轴向下（原点左上），需翻转
+        return new Vector2(screen.x / UiScale, (Screen.height - screen.y) / UiScale);
     }
 }
 

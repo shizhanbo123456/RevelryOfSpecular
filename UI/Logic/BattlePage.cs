@@ -640,7 +640,8 @@ public class BattlePage : PageBase
             {
                 var screen = cam.WorldToScreenPoint(headPos);
                 visible = screen.z > 0f;
-                if (visible) local = new Vector2(screen.x / UiScale, screen.y / UiScale);
+                // Unity 屏幕 y 轴向上、FGUI 局部 y 轴向下，需翻转；UiScale 把屏幕像素换算成本页面板设计像素
+                if (visible) local = new Vector2(screen.x / UiScale, (Screen.height - screen.y) / UiScale);
             }
             bar.visible = visible;
             if (visible) bar.xy = local - new Vector2(bar.width * 0.5f, 0f); // 血条正中在头顶正上方
@@ -702,9 +703,6 @@ public class BattlePage : PageBase
             anchor = Vector3.zero;
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
                 Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(targetId, out anchor);
-        }
-        {
-            anchor = Vector3.zero;
         }
 
         // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示

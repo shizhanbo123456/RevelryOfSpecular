@@ -46,9 +46,6 @@ public abstract class EntityData : MonoBehaviour
     /// <summary>当前位移效果（null = 无）；SetMotion 设置并调用 Enter，时间到由 OnUpdate 调用 Exit。</summary>
     [HideInInspector] public MotionBase motion;
 
-    /// <summary>最后一次速度写入的来源。动画声明是内部唯一记录的速度值；位移每帧向 MotionBase 取、击飞一次性写刚体，均不留存。</summary>
-    public VelocitySource LastVelocitySource { get; private set; } = VelocitySource.Animation;
-
     /// <summary>
     /// 刚体（可移动类别的权威速度载体，见 SetupBody 与 BattleManagerCombat.TickMovement）。
     /// 位移效果与输入移动都只产出速度、由它积分位置；非可移动类别为 null。
@@ -304,7 +301,6 @@ public abstract class EntityData : MonoBehaviour
         if (rb == null) return;
         declaredForward = true;
         declaredForwardSpeed = speed;
-        LastVelocitySource = source;
     }
 
     //设置水平速度
@@ -313,16 +309,14 @@ public abstract class EntityData : MonoBehaviour
         if (rb == null) return;
         declaredHorizontal = true;
         declaredHorizontalSpeed = speed;
-        LastVelocitySource = source;
     }
 
     //设置垂直速度
     public void SetVelocityVertical(float speed, VelocitySource source)
     {
         if (rb == null) return;
-        LastVelocitySource = source;
-        declaredVerticalSpeed = speed;
         declaredVertical = true;
+        declaredVerticalSpeed = speed;
     }
 
     //水平方向速度混合
@@ -330,8 +324,8 @@ public abstract class EntityData : MonoBehaviour
     {
         Vector3 v = Vector3.zero;
         if (declaredHorizontal) v = new Vector3(declaredHorizontalSpeed.x, 0f, declaredHorizontalSpeed.y);
-        if (declaredForward) v = declaredForwardSpeed * transform.forward;
-        if (declaredVertical) v = Vector3.up * declaredVerticalSpeed;
+        if (declaredForward) v += declaredForwardSpeed * transform.forward;
+        if (declaredVertical) v.y=declaredVerticalSpeed;
         return v;
     }
 
@@ -376,12 +370,9 @@ public abstract class EntityData : MonoBehaviour
             }
             rb.velocity = declared;
         }
-        else
+        else if (grounded)
         {
-            if (grounded)
-            {
-                rb.velocity=rb.velocity*Mathf.Min(0.9f,Time.deltaTime*500);
-            }
+            rb.velocity = rb.velocity * Mathf.Min(0.9f, Time.deltaTime * 500);
         }
 
         //区块索引刷新

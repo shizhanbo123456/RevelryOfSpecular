@@ -50,10 +50,6 @@ public class PlayerEntityData : EntityData
 
             // Run/Idle 随表现摘要同步给客户端（原地转向播 Idle）
             if (anim != null) anim.Move(moveState.moving);
-
-            // 诊断：确认服务器上 WASD 的下沿（按下）与上沿（抬起）都被处理到
-            // 注：上沿打印原始位（WRelease 等），release 是右移后的"按住位语义"，直接打印会显示成 WPress 造成误读
-            Debug.Log($"[输入处理] id={id} {gameObject.name} 按键位={input.pressed}（下沿 {press} / 上沿 {input.pressed & PlayerKey.MoveReleaseMask}）→ 按住掩码={moveState.held} 移动={moveState.moving} 方向={moveState.dir}");
         }
 
         bool moving = moveState.moving;
