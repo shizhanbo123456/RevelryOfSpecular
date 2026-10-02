@@ -21,6 +21,8 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, int> barOwners = new();
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
+    private readonly Dictionary<ushort, float> minimapLastReceived = new();
+    private readonly List<ushort> s_expiredMinimapIds = new();
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
@@ -122,6 +124,7 @@ public class BattlePage : PageBase
         RefreshTimeIcon();
         TickDamageLabels(deltaTime);
         TickEventItems();
+        TickMinimapTimeout();
         //结算面板自动关闭
         if (settleCloseAt > 0f && Time.time >= settleCloseAt) CloseSettlement();
     }
@@ -441,19 +444,9 @@ public class BattlePage : PageBase
 
     private void OnMinimapUpdate(SCMinimapEntity e)
     {
-        if (e == null) return;
-        if (e.minimapLost)
-        {
-            ClearMinimap();
-            return;
-        }
-        if (e.clear)
-        {
-            // 本 tick 起始：清空上一 tick 的全部点位，随后逐个实体包独立累积（不拼回）
-            ClearMinimap();
-            return;
-        }
-        if (e.entity == null) return;
+        if (e == null || e.entity == null) return;
+        // 分帧累积：仅记录收到时间并按需显示，不再每帧清空（离屏/夜间停传由超时剔除处理）
+        minimapLastReceived[e.entity.entityId] = Time.time;
         UpsertMinimapEntity(e.entity);
     }
 
@@ -474,7 +467,13 @@ public class BattlePage : PageBase
         {
             float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
             float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
-            if (dx * dx + dz * dz > cullRadiusSq) return; // 超出显示半径：不显示
+            if (dx * dx + dz * dz > cullRadiusSq)
+            {
+                // 超出显示半径：隐藏该点位（再次进入范围时重建）；离屏残留由半径裁剪直接消除
+                RemoveMinimapItem(entity.entityId);
+                minimapLastReceived.Remove(entity.entityId);
+                return;
+            }
         }
 
         if (!minimapItems.TryGetValue(entity.entityId, out var item))
@@ -525,6 +524,24 @@ public class BattlePage : PageBase
             if (item != null) item.Dispose();
         }
         minimapItems.Clear();
+        minimapLastReceived.Clear();
+    }
+
+    // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
+    private void TickMinimapTimeout()
+    {
+        if (minimapLastReceived.Count == 0) return;
+        float now = Time.time;
+        s_expiredMinimapIds.Clear();
+        foreach (var kv in minimapLastReceived)
+        {
+            if (now - kv.Value > Config.minimap_entity_timeout) s_expiredMinimapIds.Add(kv.Key);
+        }
+        foreach (var id in s_expiredMinimapIds)
+        {
+            RemoveMinimapItem(id);
+            minimapLastReceived.Remove(id);
+        }
     }
 
     private void OnBattleEvent(SCBattleEvent e)

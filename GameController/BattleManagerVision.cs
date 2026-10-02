@@ -138,14 +138,9 @@ public partial class BattleManager
             foreach (var pair in PlayerInfoList)
             {
                 if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
-                if (lost)
-                {
-                    // 阵营小地图失效：仅发一个清空标记（entity 为 null）
-                    Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { minimapLost = true });
-                    continue;
-                }
-                // 每 tick 起始标记：客户端清空上一 tick 点位后逐个累积；随后每个实体独立成包（无片段号、不拼回）
-                Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { clear = true });
+                // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
+                if (lost) continue;
+                // 每个实体独立成包（无片段号、不拼回）；客户端分帧累积，并对超时未更新的点位做隐藏
                 foreach (var entry in s_minimapEntries)
                 {
                     Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { entity = entry });

@@ -77,6 +77,8 @@ public static class Config
     public const float minimap_sync_interval = 0.5f;
     public const float minimap_lost_duration = 99999f;
     public const float minimap_view_radius = 100f;
+    // 客户端小地图点位超时：超过此时间未收到该实体点位包则隐藏（覆盖「离屏残留」与「夜间/致盲停传」两类情况）
+    public const float minimap_entity_timeout = 1.5f;
     #endregion
 
     #region 复活与愈战愈勇

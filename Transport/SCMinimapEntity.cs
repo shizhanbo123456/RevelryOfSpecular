@@ -1,15 +1,9 @@
 namespace Ros.Transport
 {
-    // 服务器 → 客户端：小地图上单个单位（每个实体一个独立数据包，不拼装、不编号）
+    // 服务器 → 客户端：小地图上单个单位（每个实体一个独立数据包，不拼装、不编号、无标志位）
     public class SCMinimapEntity
     {
-        // 阵营小地图失效（致盲/干扰等）：客户端清空整个小地图；entity 应为 null
-        public bool minimapLost;
-
-        // 本 tick 起始标记：客户端清空上一 tick 全部点位后逐个累积（仅每 tick 首包带，minimapLost 时不带）
-        public bool clear;
-
-        // 单个单位信息；minimapLost/clear 为真时可为 null
+        // 单个单位信息；分帧累积，客户端对长时间未更新的点位做超时隐藏
         public MinimapEntity entity;
 
         public class MinimapEntity
@@ -29,8 +23,6 @@ namespace Ros.Transport
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
-            if (!BoolSerializer.Serialize(value.minimapLost, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.clear, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.entity != null, result, ref indexStart)) return false;
             if (value.entity == null) return true;
             var e = value.entity;
@@ -47,8 +39,6 @@ namespace Ros.Transport
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             var v = new SCMinimapEntity();
-            v.minimapLost = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
-            v.clear = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
             if (BoolSerializer.Deserialize(data, ref indexStart, invalidIndex))
             {
                 v.entity = new SCMinimapEntity.MinimapEntity()
