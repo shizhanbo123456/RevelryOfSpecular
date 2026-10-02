@@ -249,7 +249,8 @@ public class BattlePage : PageBase
         if (bar == null) return;
         bool destroyed = info.health <= 0;
         bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
-        bar.m_fill.fillAmount = destroyed ? 0f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f);
+        bar.m_fill.fillAmount = destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f);
+        LogDefensiveBarSize(destroyed ? "OnBeaconDisplay(destroyed)" : "OnBeaconDisplay", bar);
     }
 
     private void ResetBeacons()
@@ -267,6 +268,16 @@ public class BattlePage : PageBase
         bar.m_fill.fillAmount = 0f;
     }
 
+    // 临时调试：打印防御点血条尺寸信息，排查进度条与背景尺寸不匹配（确认后删除）
+    private static void LogDefensiveBarSize(string tag, UI_DefensivePointBar bar)
+    {
+        if (bar == null) return;
+        GObject bg = bar.GetChildAt(0);
+        Debug.Log($"[DefensivePointBar] {tag}: bar={bar.width}x{bar.height} bg={bg.width}x{bg.height} " +
+                  $"fill={bar.m_fill.width}x{bar.m_fill.height} source={bar.m_fill.sourceWidth}x{bar.m_fill.sourceHeight} " +
+                  $"fillAmount={bar.m_fill.fillAmount} fillMethod={bar.m_fill.fillMethod}");
+    }
+
     // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
     // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
     private void SetBeaconDestroyed(int beaconId)
@@ -276,7 +287,8 @@ public class BattlePage : PageBase
             : beaconId == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 1;
-        bar.m_fill.fillAmount = 0f;
+        bar.m_fill.fillAmount = 1f;
+        LogDefensiveBarSize("SetBeaconDestroyed", bar);
     }
 
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
