@@ -15,6 +15,8 @@ public class CameraController : MonoBehaviour
 
     public float slowSmooth = 2f;
     public float fastSmooth = 10f;
+    // 旋转(绕角色水平角)平滑速率：独立配置，快转回后方时手感与位置平滑解耦
+    public float yawSmooth = 10f;
 
     // 俯仰角（度，向下为正）；相机看向与角色水平对齐、抬高 (y - z*tan(pitch)) 的点，而非脚底
     public float pitch = 15f;
@@ -56,7 +58,7 @@ public class CameraController : MonoBehaviour
         if (lookTarget == null) return;
 
         float targetYaw = lookTarget.eulerAngles.y;
-        yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-fastSmooth * Time.deltaTime));
+        yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-yawSmooth * Time.deltaTime));
 
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
         float zCenter = (zRange.x + zRange.y) * 0.5f;
