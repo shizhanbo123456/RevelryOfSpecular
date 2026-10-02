@@ -17,6 +17,9 @@ public class EntityPlayerManager : ClientSubManager
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
         public Rigidbody rb;       // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
+        private Vector3 predictedPos;  // dead-reckoning 基准，避免读 transform 造成 velocity 重复叠加偏移
+        private float predictedYaw;
+        private bool predictedInit;
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
         public string pendingForcedSwitch;
@@ -67,14 +70,21 @@ public class EntityPlayerManager : ClientSubManager
 
         private void Update()
         {
-            // 包间推演：位置 + 速度 / 朝向 + 角速度（收到同步包时已重置为权威值）
-            if (velocity.sqrMagnitude > 0f && rb != null)
+            // 包间推演：用预测位置/朝向积分速度，绝不再读 transform（否则上一物理步已含 velocity 会重复叠加偏移）
+            if (predictedInit)
             {
-                rb.MovePosition(transform.position + velocity * Time.deltaTime);
-            }
-            if (!Mathf.Approximately(yawSpeed, 0f))
-            {
-                transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y + yawSpeed * Time.deltaTime, 0f);
+                if (velocity.sqrMagnitude > 0f) predictedPos += velocity * Time.deltaTime;
+                if (!Mathf.Approximately(yawSpeed, 0f)) predictedYaw += yawSpeed * Time.deltaTime;
+                if (rb != null)
+                {
+                    rb.MovePosition(predictedPos);
+                    rb.MoveRotation(Quaternion.Euler(0f, predictedYaw, 0f));
+                }
+                else
+                {
+                    transform.position = predictedPos;
+                    transform.rotation = Quaternion.Euler(0f, predictedYaw, 0f);
+                }
             }
 
             // 强制切换日志（延后一帧：Play 生效后片段名与落地进度才读得到）
@@ -425,8 +435,19 @@ public class EntityPlayerManager : ClientSubManager
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
     {
-        if (view.rb != null) view.rb.MovePosition(info.position); else view.transform.position = info.position;
-        view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
+        view.predictedPos = info.position;
+        view.predictedYaw = info.yaw;
+        view.predictedInit = true;
+        if (view.rb != null)
+        {
+            view.rb.MovePosition(info.position);
+            view.rb.MoveRotation(Quaternion.Euler(0f, info.yaw, 0f));
+        }
+        else
+        {
+            view.transform.position = info.position;
+            view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
+        }
 
         ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
 
