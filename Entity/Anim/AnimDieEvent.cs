@@ -3,7 +3,7 @@ using UnityEngine;
 public class AnimDieEvent : AnimEvent
 {
     protected override EntityAnim.AnimState State => EntityAnim.AnimState.Die;
-
+    protected override InputBlockOp blockOp => InputBlockOp.Forward | InputBlockOp.Rotation | InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
     private const float threshold=0.8f;
     private bool canTrigEvent;
 

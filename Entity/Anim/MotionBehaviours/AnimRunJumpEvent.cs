@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class AnimRunJumpEvent : AnimMotionEvent
 {
+    protected override InputBlockOp blockOp => InputBlockOp.Forward | InputBlockOp.Rotation | InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
     [SerializeField] private AnimationCurve speedCurve;
 
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)

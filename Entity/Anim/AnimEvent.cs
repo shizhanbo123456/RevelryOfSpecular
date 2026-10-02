@@ -3,6 +3,7 @@ using UnityEngine;
 public class AnimEvent : StateMachineBehaviour
 {
     protected virtual EntityAnim.AnimState State { get; }
+    protected virtual InputBlockOp blockOp { get; } = InputBlockOp.None;
     //用于传递给客户端识别动画片段
     public int AnimId { get; private set; } = -1;
 
@@ -29,5 +30,7 @@ public class AnimEvent : StateMachineBehaviour
         AnimId = stateInfo.fullPathHash;
         if (!main) return;
         anim.NotifyStateEnter(AnimId, State);
+
+        data.SetInputBlock(blockOp);
     }
 }

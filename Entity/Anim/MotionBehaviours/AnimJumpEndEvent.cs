@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class AnimJumpEndEvent : AnimMotionEvent
 {
+    protected override InputBlockOp blockOp => InputBlockOp.Forward | InputBlockOp.Rotation | InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
     private const float thresholdLand = 0.25f;
     private bool canTrig = false;
 
