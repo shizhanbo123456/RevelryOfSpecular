@@ -602,9 +602,15 @@ public class BattlePage : PageBase
         barOwners[info.entityId] = info.ownerClientId;
     }
 
+    private Camera GetProjectionCamera()
+    {
+        return (Tool.CameraController != null && Tool.CameraController.WorldCamera != null)
+            ? Tool.CameraController.WorldCamera : Camera.main;
+    }
+
     private void UpdateEntityBarPositions()
     {
-        var cam = Camera.main;
+        var cam = GetProjectionCamera();
         if (cam == null) return;
         foreach (var pair in entityBars)
         {
@@ -684,7 +690,7 @@ public class BattlePage : PageBase
         }
 
         // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示
-        var cam = Camera.main;
+        var cam = GetProjectionCamera();
         if (cam != null && cam.WorldToScreenPoint(anchor).z <= 0f) return;
 
         var label = UI_DamageLabel.CreateInstance();
@@ -704,7 +710,7 @@ public class BattlePage : PageBase
         }
         Root.AddChild(label);
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
-        label.xy = WorldToPanel(anchor) - new Vector2(label.width * 0.5f, 0f);
+        label.xy = WorldToPanel(anchor, cam) - new Vector2(label.width * 0.5f, 0f);
         damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, risePx = 0f });
     }
 
@@ -718,7 +724,7 @@ public class BattlePage : PageBase
     // 飘字按世界锚点重投影（上升量仍走屏幕像素），使出生点与相机同步、不再滞后一帧
     private void ReprojectDamageLabels()
     {
-        var cam = Camera.main;
+        var cam = GetProjectionCamera();
         if (cam == null) return;
         for (int i = 0; i < damageLabels.Count; i++)
         {

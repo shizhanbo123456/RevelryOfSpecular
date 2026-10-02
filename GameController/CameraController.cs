@@ -4,6 +4,9 @@ public class CameraController : MonoBehaviour
 {
     public Transform lookTarget;
 
+    // 渲染用的相机组件（CameraController 挂在主相机 GameObject 上）
+    public Camera WorldCamera { get; private set; }
+
     // 相机插值收尾后回调：UI 在此用最终相机变换投影，避免与渲染差一帧导致震颤
     public event System.Action OnCameraUpdated;
 
@@ -23,6 +26,7 @@ public class CameraController : MonoBehaviour
     private void Awake()
     {
         Tool.CameraController = this;
+        WorldCamera = GetComponent<Camera>();
     }
 
     public void SetLookTarget(Transform target)
@@ -71,6 +75,10 @@ public class CameraController : MonoBehaviour
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
         float lookUp = yNew - zNew * Mathf.Tan(pitch * Mathf.Deg2Rad);
         transform.LookAt(lookTarget.position + Vector3.up * lookUp);
+        // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），
+        // 导致同帧 WorldToScreenPoint 仍用上一帧矩阵——平滑相机一直在动，血条/名字就会差一帧震颤。
+        // 强制刷新当前矩阵，让随后的投影回调拿到本帧相机，消除震颤。
+        if (WorldCamera != null) WorldCamera.ResetWorldToCameraMatrix();
         if (OnCameraUpdated != null) OnCameraUpdated();
     }
 }
