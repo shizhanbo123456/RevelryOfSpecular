@@ -16,15 +16,14 @@ public class AnimAttackEvent : AnimEvent
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateEnter(animator,stateInfo,layerIndex);
+        canTrigAttack = true;   // 客户端无 EntityData：仍允许攻击帧触发 onAttack（特效/表现用），不依赖 data
+        canTrigAttack2 = true;
         if (data == null) return;
         if (!main) return;
-        canTrigAttack = true;
-        canTrigAttack2 = true;
     }
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
-        if (data == null) return;
         if (!main) return;
 
         float forward = speedForward.Evaluate(stateInfo.normalizedTime);

@@ -148,6 +148,9 @@ public class EntityPlayerManager : ClientSubManager
     /// <summary>实体 id → 表现视图。</summary>
     private readonly Dictionary<ushort, ClientEntityView> views = new();
 
+    /// <summary>按实体 id 取表现视图（无则返回 null）。</summary>
+    public ClientEntityView GetView(ushort id) => views.TryGetValue(id, out var v) ? v : null;
+
     /// <summary>视图尚未创建时先到的动画事件（可靠通道可能快于姿态包），建好视图后补应用。</summary>
     private readonly Dictionary<ushort, SCEntityAnimInfo> pendingAnim = new();
 
