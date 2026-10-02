@@ -4,6 +4,9 @@ public class CameraController : MonoBehaviour
 {
     public Transform lookTarget;
 
+    // 相机插值收尾后回调：UI 在此用最终相机变换投影，避免与渲染差一帧导致震颤
+    public event System.Action OnCameraUpdated;
+
     public Vector2 zRange = new Vector2(3f, 8f);
     public Vector2 yRange = new Vector2(1f, 3f);
 
@@ -68,5 +71,6 @@ public class CameraController : MonoBehaviour
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
         float lookUp = yNew - zNew * Mathf.Tan(pitch * Mathf.Deg2Rad);
         transform.LookAt(lookTarget.position + Vector3.up * lookUp);
+        if (OnCameraUpdated != null) OnCameraUpdated();
     }
 }

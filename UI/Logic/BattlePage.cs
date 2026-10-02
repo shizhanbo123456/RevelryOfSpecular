@@ -21,7 +21,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, int> barOwners = new();
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
-    private readonly List<(UI_DamageLabel label, float time)> damageLabels = new();
+    private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
     private readonly List<string> settleRows = new(); // 渲染器按索引读取的明细行文本
@@ -51,6 +51,14 @@ public class BattlePage : PageBase
         public float time;   // 入列时间；超过 EventLife 的条目从列表头部移除
     }
 
+    private struct DamageLabelItem
+    {
+        public UI_DamageLabel label;
+        public float time;
+        public Vector3 anchor;  // 世界锚点（命中点 + 水平随机散布），每帧据此重投影
+        public float risePx;    // 屏幕上升累计像素
+    }
+
     public BattlePage(UI_BattlePanel panel) : base(panel)
     {
         this.panel = panel;
@@ -73,6 +81,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
+        if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
@@ -99,6 +108,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
+        if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
     }
 
     public override void Tick(float deltaTime)
@@ -110,7 +120,6 @@ public class BattlePage : PageBase
             panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
         }
         RefreshTimeIcon();
-        UpdateEntityBarPositions();
         TickDamageLabels(deltaTime);
         TickEventItems();
         //结算面板自动关闭
@@ -696,7 +705,30 @@ public class BattlePage : PageBase
         Root.AddChild(label);
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
         label.xy = WorldToPanel(anchor) - new Vector2(label.width * 0.5f, 0f);
-        damageLabels.Add((label, Time.time));
+        damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, risePx = 0f });
+    }
+
+    // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤
+    private void OnCameraUpdated()
+    {
+        UpdateEntityBarPositions();
+        ReprojectDamageLabels();
+    }
+
+    // 飘字按世界锚点重投影（上升量仍走屏幕像素），使出生点与相机同步、不再滞后一帧
+    private void ReprojectDamageLabels()
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+        for (int i = 0; i < damageLabels.Count; i++)
+        {
+            var item = damageLabels[i];
+            if (item.label == null) continue;
+            // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowDamage 的剔除一致）
+            if (cam.WorldToScreenPoint(item.anchor).z <= 0f) { item.label.visible = false; continue; }
+            item.label.visible = true;
+            item.label.xy = WorldToPanel(item.anchor) - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
+        }
     }
 
     private void TickDamageLabels(float deltaTime)
@@ -716,7 +748,8 @@ public class BattlePage : PageBase
                 damageLabels.RemoveAt(i);
                 continue;
             }
-            item.label.y -= 60f * deltaTime;
+            item.risePx += 60f * deltaTime;
+            damageLabels[i] = item;
             if (age > DamageLife * 0.5f)
                 item.label.alpha = Mathf.Clamp01(1f - (age - DamageLife * 0.5f) / (DamageLife * 0.5f));
         }
