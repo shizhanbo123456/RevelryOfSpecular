@@ -444,13 +444,13 @@ public class BattlePage : PageBase
 
     private void OnMinimapUpdate(SCMinimapEntity e)
     {
-        if (e == null || e.entity == null) return;
+        if (e == null) return;
         // 分帧累积：仅记录收到时间并按需显示，不再每帧清空（离屏/夜间停传由超时剔除处理）
-        minimapLastReceived[e.entity.entityId] = Time.time;
-        UpsertMinimapEntity(e.entity);
+        minimapLastReceived[e.entityId] = Time.time;
+        UpsertMinimapEntity(e);
     }
 
-    private void UpsertMinimapEntity(SCMinimapEntity.MinimapEntity entity)
+    private void UpsertMinimapEntity(SCMinimapEntity entity)
     {
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return;
@@ -488,7 +488,7 @@ public class BattlePage : PageBase
             mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
     }
 
-    private int GetMinimapType(SCMinimapEntity.MinimapEntity entity)
+    private int GetMinimapType(SCMinimapEntity entity)
     {
         switch (entity.type.category)
         {

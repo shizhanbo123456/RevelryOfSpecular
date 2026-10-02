@@ -23,7 +23,7 @@ public partial class BattleManager
     private readonly Dictionary<short, HashSet<ushort>> visibleByClient = new();
 
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };
-    private static readonly List<SCMinimapEntity.MinimapEntity> s_minimapEntries = new();
+    private static readonly List<SCMinimapEntity> s_minimapEntries = new();
     private static readonly HashSet<ushort> s_visibleScratch = new();
     private static readonly HashSet<ushort> s_removedScratch = new();
     private static readonly HashSet<short> s_clientScratch = new();
@@ -143,7 +143,7 @@ public partial class BattleManager
                 // 每个实体独立成包（无片段号、不拼回）；客户端分帧累积，并对超时未更新的点位做隐藏
                 foreach (var entry in s_minimapEntries)
                 {
-                    Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { entity = entry });
+                    Tool.NetworkManager.SendMinimapEntity(pair.Key, entry);
                 }
             }
             Profiler.EndSample();
@@ -205,7 +205,7 @@ public partial class BattleManager
     {
         Profiler.BeginSample(kMinimapAppendTag);
         var pos = entity.transform.position;
-        s_minimapEntries.Add(new SCMinimapEntity.MinimapEntity()
+        s_minimapEntries.Add(new SCMinimapEntity
         {
             entityId = entity.id,
             type = entity.type,
