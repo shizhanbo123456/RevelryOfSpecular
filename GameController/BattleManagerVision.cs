@@ -23,7 +23,7 @@ public partial class BattleManager
     private readonly Dictionary<short, HashSet<ushort>> visibleByClient = new();
 
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };
-    private static readonly List<SCMinimapInfo.MinimapEntity> s_minimapEntries = new();
+    private static readonly List<SCMinimapEntity.MinimapEntity> s_minimapEntries = new();
     private static readonly HashSet<ushort> s_visibleScratch = new();
     private static readonly HashSet<ushort> s_removedScratch = new();
     private static readonly HashSet<short> s_clientScratch = new();
@@ -131,15 +131,25 @@ public partial class BattleManager
             Profiler.EndSample();
 
             Profiler.BeginSample(kMinimapBuildCampTag);
-            SCMinimapInfo shared = lost ? null : BuildCampMinimap(camp);
+            if (!lost) BuildCampMinimapEntries(camp);
             Profiler.EndSample();
 
             Profiler.BeginSample(kMinimapSendTag);
             foreach (var pair in PlayerInfoList)
             {
                 if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
-                var info = lost ? BuildSelfMinimap(pair.Key) : shared;
-                if (info != null) Tool.NetworkManager.SendMinimapInfo(pair.Key, info);
+                if (lost)
+                {
+                    // 阵营小地图失效：仅发一个清空标记（entity 为 null）
+                    Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { minimapLost = true });
+                    continue;
+                }
+                // 每 tick 起始标记：客户端清空上一 tick 点位后逐个累积；随后每个实体独立成包（无片段号、不拼回）
+                Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { clear = true });
+                foreach (var entry in s_minimapEntries)
+                {
+                    Tool.NetworkManager.SendMinimapEntity(pair.Key, new SCMinimapEntity { entity = entry });
+                }
             }
             Profiler.EndSample();
         }
@@ -148,7 +158,7 @@ public partial class BattleManager
         Profiler.EndSample();
     }
 
-    private SCMinimapInfo BuildCampMinimap(EntityCamp camp)
+    private void BuildCampMinimapEntries(EntityCamp camp)
     {
         s_minimapEntries.Clear();
 
@@ -170,37 +180,6 @@ public partial class BattleManager
             if (IsMarkedOnMinimap(entity) || IsInCachedCampVision(entity.transform.position)) AppendMinimapEntry(entity);
         }
         Profiler.EndSample();
-
-        Profiler.BeginSample(kMinimapMessageTag);
-        var result = BuildMinimapMessage(false);
-        Profiler.EndSample();
-        return result;
-    }
-
-    private SCMinimapInfo BuildSelfMinimap(short clientId)
-    {
-        Profiler.BeginSample(kMinimapBuildSelfTag);
-        var viewer = GetEntityOfClient(clientId);
-        if (viewer == null) { Profiler.EndSample(); return null; }
-        s_minimapEntries.Clear();
-        float radius = VisionRadius(viewer);
-        foreach (var entity in EntityContainer.Entities)
-        {
-            if (entity == null) continue;
-            if (entity == viewer)
-            {
-                AppendMinimapEntry(entity);
-                continue;
-            }
-            if (entity.camp == viewer.camp) continue; // 失联：队友不提供视野
-            if (IsMarkedOnMinimap(entity) || IsInRadius(viewer.transform.position, entity.transform.position, radius))
-            {
-                AppendMinimapEntry(entity);
-            }
-        }
-        var result = BuildMinimapMessage(true);
-        Profiler.EndSample();
-        return result;
     }
 
     private static void CollectCampVisionSources(EntityCamp camp)
@@ -231,7 +210,7 @@ public partial class BattleManager
     {
         Profiler.BeginSample(kMinimapAppendTag);
         var pos = entity.transform.position;
-        s_minimapEntries.Add(new SCMinimapInfo.MinimapEntity()
+        s_minimapEntries.Add(new SCMinimapEntity.MinimapEntity()
         {
             entityId = entity.id,
             type = entity.type,
@@ -241,13 +220,6 @@ public partial class BattleManager
             marked = IsMarkedOnMinimap(entity),
         });
         Profiler.EndSample();
-    }
-
-    private static SCMinimapInfo BuildMinimapMessage(bool lost)
-    {
-        var info = new SCMinimapInfo() { minimapLost = lost };
-        info.entities.AddRange(s_minimapEntries);
-        return info;
     }
 
     private void PruneVisibilityCache()

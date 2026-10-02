@@ -212,10 +212,10 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientRemoveEntityLocal, SendTo.To(clientId), Delivery.Reliable, entityId);
     }
 
-    public void SendMinimapInfo(short clientId, SCMinimapInfo info)
+    public void SendMinimapEntity(short clientId, SCMinimapEntity e)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveMinimapInfoLocal, SendTo.To(clientId), Delivery.Unreliable, info);
+        CallFuncRpc(ClientReceiveMinimapEntityLocal, SendTo.To(clientId), Delivery.Unreliable, e);
     }
 
     public void SendBattleEvent(short clientId, SCBattleEvent e)
@@ -335,10 +335,10 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
-    private void ClientReceiveMinimapInfoLocal(SCMinimapInfo info)
+    private void ClientReceiveMinimapEntityLocal(SCMinimapEntity e)
     {
-        if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnMinimapUpdate, info);
+        if (e == null) return;
+        EventManager.TrigEvent(ClientEvent.OnMinimapUpdate, e);
     }
 
     [Rpc]

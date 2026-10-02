@@ -75,7 +75,7 @@ public class BattlePage : PageBase
         base.Enter(param);
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
-        EventManager.AddEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.AddEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
@@ -102,7 +102,7 @@ public class BattlePage : PageBase
         base.Exit();
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
-        EventManager.RemoveEvent<SCMinimapInfo>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.RemoveEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
@@ -439,17 +439,30 @@ public class BattlePage : PageBase
         if (resultPanel != null) resultPanel.visible = false;
     }
 
-    private void OnMinimapUpdate(SCMinimapInfo info)
+    private void OnMinimapUpdate(SCMinimapEntity e)
     {
-        if (info.minimapLost)
+        if (e == null) return;
+        if (e.minimapLost)
         {
             ClearMinimap();
             return;
         }
+        if (e.clear)
+        {
+            // 本 tick 起始：清空上一 tick 的全部点位，随后逐个实体包独立累积（不拼回）
+            ClearMinimap();
+            return;
+        }
+        if (e.entity == null) return;
+        UpsertMinimapEntity(e.entity);
+    }
+
+    private void UpsertMinimapEntity(SCMinimapEntity.MinimapEntity entity)
+    {
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return;
 
-        // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出即移除点位）
+        // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出则不显示）
         bool hasSelf = false;
         Vector3 myPos = Vector3.zero;
         if (NetworkManager.battleInfo != null && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
@@ -457,42 +470,26 @@ public class BattlePage : PageBase
             hasSelf = Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
                 (ushort)NetworkManager.battleInfo.playerEntityId, out myPos);
         }
-        float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
+        if (hasSelf)
+        {
+            float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
+            float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
+            if (dx * dx + dz * dz > cullRadiusSq) return; // 超出显示半径：不显示
+        }
 
-        var seen = new HashSet<ushort>();
-        foreach (var entity in info.entities)
+        if (!minimapItems.TryGetValue(entity.entityId, out var item))
         {
-            if (entity == null) continue;
-            if (hasSelf)
-            {
-                float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
-                if (dx * dx + dz * dz > cullRadiusSq) continue; // 超出显示半径：不显示（下方对照会移除已有点位）
-            }
-            seen.Add(entity.entityId);
-            if (!minimapItems.TryGetValue(entity.entityId, out var item))
-            {
-                item = UI_MinimapItem.CreateInstance();
-                panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
-                minimapItems[entity.entityId] = item;
-            }
-            item.m_type.selectedIndex = GetMinimapType(entity);
-            //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）；坐标含 mapBase 在面板内的偏移
-            item.SetXY(mapBase.x + entity.posX / Landscape.MapSize * mapBase.width,
-                mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
+            item = UI_MinimapItem.CreateInstance();
+            panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
+            minimapItems[entity.entityId] = item;
         }
-        //消失的实体移除点位
-        List<ushort> expired = null;
-        foreach (var pair in minimapItems)
-        {
-            if (!seen.Contains(pair.Key)) (expired ??= new List<ushort>()).Add(pair.Key);
-        }
-        if (expired != null)
-        {
-            foreach (var id in expired) RemoveMinimapItem(id);
-        }
+        item.m_type.selectedIndex = GetMinimapType(entity);
+        //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）；坐标含 mapBase 在面板内的偏移
+        item.SetXY(mapBase.x + entity.posX / Landscape.MapSize * mapBase.width,
+            mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
     }
 
-    private int GetMinimapType(SCMinimapInfo.MinimapEntity entity)
+    private int GetMinimapType(SCMinimapEntity.MinimapEntity entity)
     {
         switch (entity.type.category)
         {
