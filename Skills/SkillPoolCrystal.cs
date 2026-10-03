@@ -997,12 +997,17 @@ namespace Ros.Skill
                 : null;
             context.AddInts(first != null ? first.id : entity.id);
             context.AddInts(second != null ? second.id : (first != null ? first.id : entity.id));
+            // 无敌人：存正前方直射终点，避免回退自身把弹道冻结在施法者
+            if (first == null) context.AddVectors(GetWeaponFloatPosition(entity), AimPos(entity));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
 
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
+            // 首目标 id == 施法者 → 无敌人（见 SkillLogic）：改走正前方直射
+            if (SkillBase.SkillContextConventions.GetTargetId(context, 0) == SkillBase.SkillContextConventions.GetCasterId(context))
+                return Line(context, index, Config.chain_jump_duration);
             var trajectory = new ChainTrajectory(SkillBase.SkillContextConventions.GetCasterId(context), SkillBase.SkillContextConventions.GetTargetId(context, 0), SkillBase.SkillContextConventions.GetTargetId(context, 1));
             trajectory.Duration = Config.chain_jump_duration;
             return trajectory;

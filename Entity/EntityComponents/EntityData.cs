@@ -145,6 +145,18 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnUpdate()
     {
         if (effectController != null) effectController.OnUpdate();
+        TickWeaponFloat();
+    }
+
+    // 武器漂浮高度跟随根骨骼 Hips（无骨骼回退模型高度中心）；XY/旋转仍由实体根决定
+    private void TickWeaponFloat()
+    {
+        if (springWeapon == null) return;
+        var hips = anim != null && anim.MainAnimator != null ? anim.MainAnimator.GetBoneTransform(HumanBodyBones.Hips) : null;
+        float localY = hips != null
+            ? hips.position.y - transform.position.y
+            : (ModelInfo != null ? (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f : 0f);
+        springWeapon.transform.localPosition = new Vector3(0f, localY, 0f);
     }
 
     public virtual void OnTickMove(float deltaTime, bool canInput) { }
