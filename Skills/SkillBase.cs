@@ -160,11 +160,13 @@ namespace Ros.Skill
 
         protected virtual Vector3 AimPos(EntityData entity, bool normalizeDistance = true, bool forceHorizontal = true)
         {
+            // 索敌与终点距离统一用技能自身 CastRange（真实攻击距离），再不行才用视野
             float view = entity.floatingAttribute.viewDistance;
-            var target = GetNearestEnemy(entity, view);
+            float searchRadius = CastRange > 0f ? CastRange : view;
+            var target = GetNearestEnemy(entity, searchRadius);
             if (target == null)
             {
-                return entity.transform.position + entity.transform.forward * Config.default_forward_aim_distance;
+                return entity.transform.position + entity.transform.forward * searchRadius;
             }
             else
             {
@@ -174,7 +176,7 @@ namespace Ros.Skill
                     if(forceHorizontal)
                         offset.y = 0;
                     Vector3 dir = offset.normalized;
-                    return entity.transform.position + dir * Config.default_forward_aim_distance;
+                    return entity.transform.position + dir * searchRadius;
                 }
                 else
                 {

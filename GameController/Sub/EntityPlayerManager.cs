@@ -31,6 +31,7 @@ public class EntityPlayerManager : ClientSubManager
         public WeaponRef heldWeapon;
         public GameObject[] weaponVisuals;
         public WeaponRef[] weaponRefs;
+        public SpringWeapon springWeapon; // 武器漂浮弹簧实例（InfoManager.SpringWeapon 复制，挂表现体下自动跟随）
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -111,6 +112,21 @@ public class EntityPlayerManager : ClientSubManager
                     if (logForcedAnimSwitch)
                     {
                         pendingForcedSwitch = $"[动画强制切换] 实体{id}({type}) hash={target} 要求进度={progress:F2}";
+                    }
+                }
+            }
+
+            // 武器漂浮：弹簧实例在角色首次定位后初始化，再用平滑位姿驱动每个武器视觉
+            if (springWeapon != null && predictedInit)
+            {
+                springWeapon.Init();
+                if (weaponVisuals != null)
+                {
+                    for (int i = 0; i < weaponVisuals.Length; i++)
+                    {
+                        if (weaponVisuals[i] == null) continue;
+                        springWeapon.GetPos(i, out var p, out var q);
+                        weaponVisuals[i].transform.SetPositionAndRotation(p, q);
                     }
                 }
             }
@@ -291,6 +307,12 @@ public class EntityPlayerManager : ClientSubManager
     }
 
     #region//Local
+    private static float ModelHeight(GameObject go)
+    {
+        var col = go.GetComponentInChildren<Collider>();
+        return col != null ? col.bounds.size.y : 2f;
+    }
+
     private ClientEntityView CreateView(SCEntityDisplayInfo info)
     {
         // 客户端图形：优先 AssetsManager 配置；无配置时以空物体占位（保证 UI 可寻址）
@@ -314,6 +336,16 @@ public class EntityPlayerManager : ClientSubManager
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
+        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂表现体下自动跟随角色；Scale=身高/2 让漂浮偏移随角色身高自适应
+        var swPrefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
+        if (swPrefab != null)
+        {
+            var sw = UnityEngine.Object.Instantiate(swPrefab, go.transform);
+            sw.transform.localPosition = Vector3.zero;
+            sw.transform.localRotation = Quaternion.identity;
+            sw.transform.localScale = Vector3.one * (ModelHeight(go) * 0.5f);
+            view.springWeapon = sw.GetComponent<SpringWeapon>();
+        }
         // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
         if (info.type.category == EntityCategory.Crystal)
         {
@@ -333,7 +365,7 @@ public class EntityPlayerManager : ClientSubManager
             view.rb = go.GetComponent<Rigidbody>();
             if (view.rb == null) view.rb = go.AddComponent<Rigidbody>();
             view.rb.isKinematic = true;
-            view.rb.interpolation = RigidbodyInterpolation.Interpolate;
+            view.rb.interpolation = RigidbodyInterpolation.None; // 关闭插值：Update 喂可变帧率目标会与物理步拍子打架产生 judder
             view.rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             view.rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
@@ -378,9 +410,8 @@ public class EntityPlayerManager : ClientSubManager
             if (!weapon.IsValid || Tool.AssetsManager == null
                 || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) continue;
 
-            var obj = UnityEngine.Object.Instantiate(prefab, view.transform); // 挂在实体根物体上，任何实体通用
-            obj.transform.localPosition = Config.GetWeaponFloatOffset(i);
-            obj.transform.localRotation = Quaternion.identity;
+            // 挂在表现体下，初始位姿由每帧弹簧位姿（ClientEntityView.Update）驱动，不再写死偏移
+            var obj = UnityEngine.Object.Instantiate(prefab, view.transform);
             view.weaponVisuals[i] = obj;
         }
     }

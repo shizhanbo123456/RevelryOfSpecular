@@ -991,7 +991,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             // 链式跳：记录「发射者 → 第一目标 → 第二目标」三个 id
-            var first = GetNearestEnemy(entity, Config.default_skill_auto_target_radius);
+            var first = GetNearestEnemy(entity, CastRange);
             var second = first != null
                 ? BattleManager.EntityContainer.GetNearestEnemy(first, Config.chain_jump_radius)
                 : null;

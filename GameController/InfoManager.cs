@@ -48,6 +48,8 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> CrystalTemplates = new();
     public List<GameObject> TowerTemplates = new();
     public GameObject PlagueTreeTemplate;
+    [Space]
+    public GameObject SpringWeapon;//挂载SpringWeapon组件
 
     public bool TryGetTemplate(EntityType type, out GameObject template)
     {
