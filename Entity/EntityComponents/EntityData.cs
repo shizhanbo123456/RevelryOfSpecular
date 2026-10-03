@@ -40,6 +40,8 @@ public abstract class EntityData : MonoBehaviour
 
     public EntityAnim anim;
 
+    public SpringWeapon springWeapon; // 双端共用：服务器发射点 / 客户端视觉都走它
+
     [HideInInspector] public MotionBase motion;
 
     [HideInInspector] public Rigidbody rb;
@@ -61,7 +63,6 @@ public abstract class EntityData : MonoBehaviour
 
     public EntityModelInfo ModelInfo { get; private set; }
 
-    public SpringWeapon springWeapon; // 武器漂浮弹簧实例（双端共用 SpringWeapon 预制体；服务器用于发射点，客户端用于视觉）
 
     protected static readonly List<EntityData> KilledEntities = new();
 
@@ -120,25 +121,22 @@ public abstract class EntityData : MonoBehaviour
         var animData = GetComponent<EntityAnimData>();
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
 
-        // 动画初始化（一切动画控制统一走 EntityAnim）：激活 animator 引用与 AnimEvent 状态推送，
-        // 服务器实体与客户端图形预制体都带 EntityAnim/Animator（差异只在图形），双端同资产同状态编号
+        // 动画初始化（一切动画控制统一走 EntityAnim）
         if (anim != null) anim.Init(this, OnAnimAttack);
         if (anim != null)
         {
-            // SetType 必须排在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集，早调等于没设
             if (animData != null) anim.SetType(animData.type);
-            anim.OnDeathEventEnd += OnDeathAnimEnd; // 死亡动画播完 → 允许销毁（销毁时机见 BattleManagerCombat）
-            anim.DoSpawn();                         // 出生动画：Spawn 子状态机按 CharacterType 选 spawn / zombie_spawn
+            anim.OnDeathEventEnd += OnDeathAnimEnd;
+            anim.DoSpawn();
         }
 
         SetupBody();
 
-        // 模型碰撞体：按烘焙的本地包围盒构造胶囊碰撞体（高度 = Y 范围，半径 = X/Z 范围平均的一半）。
-        // 服务器无图形模板时 ModelInfo 为 null，自动跳过。
+        // 模型碰撞体：服务器无图形模板时 ModelInfo 为 null，自动跳过
         if (ModelInfo != null) ModelInfo.BuildCapsuleCollider();
-        InitDynamicCapsule(); // 人形实体的动态受击体积：记录脚/头骨骼初始高度基准（见 TickDynamicCapsule）
+        InitDynamicCapsule();
 
-        // 武器漂浮弹簧：挂到根骨骼(Hips)，无骨骼回退角色高度中心；双端共用，服务器发射点/客户端视觉都走它
+        // 武器漂浮弹簧：双端共用，服务器发射点 / 客户端视觉都走它（挂载在实体根，不跟随 Hips）
         springWeapon = SpringWeapon.Attach(gameObject);
     }
 

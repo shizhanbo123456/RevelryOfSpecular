@@ -54,29 +54,17 @@ public class SpringWeapon : MonoBehaviour
 
     public const int slotCount = 8;
 
-    // 将 SpringWeapon 预制体挂到 host（服务器实体或客户端表现体）的根骨骼(Hips)下；无骨骼回退到角色高度中心；Scale=模型高度/2
+    // 将 SpringWeapon 预制体挂到 host（客户端表现体）根物体下：X/Z 与旋转跟随实体自身，Scale=模型高度/2。
+    // 高度（局部 Y）由调用方每帧抬到根骨骼(Hips)高度（无骨骼回退模型中心），见 EntityPlayerManager。
     public static SpringWeapon Attach(GameObject host)
     {
         var prefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
         if (prefab == null) return null;
-        var animator = host.GetComponentInChildren<Animator>();
         var modelInfo = host.GetComponentInChildren<EntityModelInfo>();
         float modelHeight = modelInfo != null ? (modelInfo.yRange.y - modelInfo.yRange.x) : 2f;
-        var rootBone = animator != null ? animator.GetBoneTransform(HumanBodyBones.Hips) : null;
-        SpringWeapon sw;
-        if (rootBone != null)
-        {
-            sw = Object.Instantiate(prefab, rootBone).GetComponent<SpringWeapon>();
-            sw.transform.localPosition = Vector3.zero;
-            sw.transform.localRotation = Quaternion.identity;
-        }
-        else
-        {
-            // 无骨骼实体：回退到角色高度中心而非脚部（host 根位于脚底时，中心 = 身高一半处）
-            sw = Object.Instantiate(prefab, host.transform).GetComponent<SpringWeapon>();
-            sw.transform.localPosition = new Vector3(0f, modelHeight * 0.5f, 0f);
-            sw.transform.localRotation = Quaternion.identity;
-        }
+        var sw = Object.Instantiate(prefab, host.transform).GetComponent<SpringWeapon>();
+        sw.transform.localPosition = Vector3.zero;
+        sw.transform.localRotation = Quaternion.identity;
         sw.transform.localScale = Vector3.one * (modelHeight * 0.5f);
         sw.Init();
         return sw;

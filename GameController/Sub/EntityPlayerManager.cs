@@ -32,6 +32,9 @@ public class EntityPlayerManager : ClientSubManager
         public GameObject[] weaponVisuals;
         public WeaponRef[] weaponRefs;
         public SpringWeapon springWeapon; // 武器漂浮弹簧实例（InfoManager.SpringWeapon 复制，挂表现体下自动跟随）
+        private bool springInited;        // 弹簧仅初始化一次，避免每帧重置把武器重新吸附到抖动位姿
+        public Transform cameraAnchor;    // 相机锚点：XY/旋转取实体、高度取 Hips（无骨骼回退实体根）
+        public Transform hipsBone;        // 缓存 Hips 骨骼引用（CreateView 赋值，武器/相机共用）
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -67,6 +70,13 @@ public class EntityPlayerManager : ClientSubManager
                 if (pair.Value != null) Destroy(pair.Value);
             }
             buffVfx.Clear();
+            if (cameraAnchor != null)
+            {
+                if (Tool.CameraController != null && Tool.CameraController.lookTarget == cameraAnchor)
+                    Tool.CameraController.SetLookTarget(null);
+                Destroy(cameraAnchor.gameObject);
+                cameraAnchor = null;
+            }
         }
 
         private void Update()
@@ -86,6 +96,15 @@ public class EntityPlayerManager : ClientSubManager
                     transform.position = predictedPos;
                     transform.rotation = Quaternion.Euler(0f, predictedYaw, 0f);
                 }
+            }
+
+            // 相机锚点：XY/旋转跟随实体自身，高度跟随 Hips（无骨骼回退实体根）；
+            // 每帧更新供 CameraController.LateUpdate 读取，从而仅高度跟 Hips、不继承 Hips 旋转
+            if (cameraAnchor != null)
+            {
+                float y = hipsBone != null ? hipsBone.position.y : transform.position.y;
+                cameraAnchor.position = new Vector3(transform.position.x, y, transform.position.z);
+                cameraAnchor.rotation = transform.rotation;
             }
 
             // 强制切换日志（延后一帧：Play 生效后片段名与落地进度才读得到）
@@ -116,10 +135,14 @@ public class EntityPlayerManager : ClientSubManager
                 }
             }
 
-            // 武器漂浮：弹簧实例在角色首次定位后初始化，再用平滑位姿驱动每个武器视觉
+            // 武器漂浮：弹簧只初始化一次（角色首次定位后），之后由弹簧自身 Update 平滑；
+            // 不再每帧 Init，否则会把武器重新吸附到随网络抖动的同步位姿上，造成抽搐
             if (springWeapon != null && predictedInit)
             {
-                springWeapon.Init();
+                if (!springInited) { springWeapon.Init(); springInited = true; }
+                // 高度跟随 Hips（局部 Y 抬到 Hips 相对实体根的高度），XY/旋转保持实体根（不继承 Hips 旋转）
+                float hipsLocalY = hipsBone != null ? (hipsBone.position.y - transform.position.y) : 0f;
+                springWeapon.transform.localPosition = new Vector3(0f, hipsLocalY, 0f);
                 if (weaponVisuals != null)
                 {
                     for (int i = 0; i < weaponVisuals.Length; i++)
@@ -219,13 +242,19 @@ public class EntityPlayerManager : ClientSubManager
         // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
         if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
-        // 本地玩家：绑定相机跟随（跟随根骨骼 Hips，无骨骼回退表现体根）
+        // 本地玩家：绑定相机跟随（仅高度跟随 Hips，XY/旋转跟随实体自身）
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
             if (Tool.CameraController != null)
             {
-                var hips = view.animator != null ? view.animator.GetBoneTransform(HumanBodyBones.Hips) : null;
-                Tool.CameraController.SetLookTarget(hips != null ? hips : view.transform);
+                if (view.cameraAnchor == null)
+                {
+                    view.cameraAnchor = new GameObject("CameraAnchor").transform;
+                    Tool.CameraController.SetLookTarget(view.cameraAnchor);
+                    float y = view.hipsBone != null ? view.hipsBone.position.y : view.transform.position.y;
+                    view.cameraAnchor.position = new Vector3(view.transform.position.x, y, view.transform.position.z);
+                    view.cameraAnchor.rotation = view.transform.rotation;
+                }
             }
         }
     }
@@ -343,6 +372,7 @@ public class EntityPlayerManager : ClientSubManager
             view.crystalRenderers = go.GetComponentsInChildren<Renderer>(true);
         }
         view.animator = go.GetComponentInChildren<Animator>();
+        view.hipsBone = view.animator != null ? view.animator.GetBoneTransform(HumanBodyBones.Hips) : null;
         if (view.animator != null)
         {
             // EntityAnim 挂在预制体根节点、Animator 在子物体（模型）上，故从根往下找，不能用 animator.GetComponent
