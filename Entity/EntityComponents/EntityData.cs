@@ -561,9 +561,24 @@ public abstract class EntityData : MonoBehaviour
     private const float GroundMaxRiseSpeed = 1f;
     private static readonly RaycastHit[] s_groundHits = new RaycastHit[4];
 
+    private bool TryGetFootWorldY(out float y)
+    {
+        y = 0f;
+        var animator = anim != null ? anim.MainAnimator : null;
+        if (animator == null) return false;
+        var footL = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+        var footR = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+        if (footL == null && footR == null) return false;
+        y = float.MaxValue;
+        if (footL != null) y = Mathf.Min(y, footL.position.y);
+        if (footR != null) y = Mathf.Min(y, footR.position.y);
+        return true;
+    }
+
     private void UpdateGrounded()
     {
-        if (anim == null || rb == null) return; // 只有会动且带动画的实体需要
+        if (anim == null) { grounded = true; return; } // 无动画实体永远在地面
+        if (rb == null) return;
         // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
         if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
 
@@ -578,7 +593,10 @@ public abstract class EntityData : MonoBehaviour
             return;
         }
 
-        Vector3 origin = transform.position + Vector3.up * ground_probe_up;
+        // 检测起点取脚部高度（约定），反映动画姿态；非人形无脚骨骼回退实体位置
+        Vector3 origin = TryGetFootWorldY(out float footY)
+            ? new Vector3(transform.position.x, footY, transform.position.z) + Vector3.up * ground_probe_up
+            : transform.position + Vector3.up * ground_probe_up;
         int count = Physics.RaycastNonAlloc(origin, Vector3.down, s_groundHits, ground_probe_length, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);
         bool onGround = false;
         for (int i = 0; i < count; i++)
