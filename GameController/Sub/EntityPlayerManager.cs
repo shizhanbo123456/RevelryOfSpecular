@@ -219,10 +219,14 @@ public class EntityPlayerManager : ClientSubManager
         // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
         if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
-        // 本地玩家：绑定相机跟随
+        // 本地玩家：绑定相机跟随（跟随根骨骼 Hips，无骨骼回退表现体根）
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
-            if (Tool.CameraController != null) Tool.CameraController.SetLookTarget(view.transform);
+            if (Tool.CameraController != null)
+            {
+                var hips = view.animator != null ? view.animator.GetBoneTransform(HumanBodyBones.Hips) : null;
+                Tool.CameraController.SetLookTarget(hips != null ? hips : view.transform);
+            }
         }
     }
 
@@ -331,11 +335,13 @@ public class EntityPlayerManager : ClientSubManager
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
-        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂表现体下；Scale=模型高度/2 让浮动偏移随角色身高自适应（尺寸取自 EntityModelInfo.yRange 烘焙值，非运行时动态 collider）
+        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂根骨骼(Hips)下跟随；无骨骼回退表现体根。Scale=模型高度/2（尺寸取自 EntityModelInfo.yRange 烘焙值）
         var swPrefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
         if (swPrefab != null)
         {
-            var sw = UnityEngine.Object.Instantiate(swPrefab, go.transform);
+            var animator = go.GetComponentInChildren<Animator>();
+            var rootBone = animator != null ? animator.GetBoneTransform(HumanBodyBones.Hips) : null;
+            var sw = UnityEngine.Object.Instantiate(swPrefab, rootBone != null ? rootBone : go.transform);
             sw.transform.localPosition = Vector3.zero;
             sw.transform.localRotation = Quaternion.identity;
             var modelInfo = go.GetComponentInChildren<EntityModelInfo>();
