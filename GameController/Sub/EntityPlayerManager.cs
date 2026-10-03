@@ -314,6 +314,30 @@ public class EntityPlayerManager : ClientSubManager
         return true;
     }
 
+    // 客户端技能弹道起点：与服务器 GetWeaponFloatPos 同规则镜像（弹簧槽位；无效武器→碰撞体75%高度）
+    public bool TryGetShotOrigin(ushort id, int slot, bool weaponValid, out Vector3 pos)
+    {
+        pos = Vector3.zero;
+        var view = GetView(id);
+        if (view == null) return false;
+        if (weaponValid && view.springWeapon != null)
+        {
+            view.springWeapon.GetPos(Mathf.Clamp(slot, 0, SpringWeapon.slotCount - 1), out pos, out _);
+            return true;
+        }
+        pos = ViewBulletShootPos(view);
+        return true;
+    }
+
+    // 与 EntityData.BulletShootPos 同公式（作用于客户端表现体）
+    private static Vector3 ViewBulletShootPos(ClientEntityView view)
+    {
+        var collider = view.GetComponentInChildren<Collider>();
+        if (collider == null) return view.transform.position;
+        Bounds bounds = collider.bounds;
+        return new Vector3(bounds.center.x, Mathf.Lerp(bounds.min.y, bounds.max.y, 0.75f), bounds.center.z);
+    }
+
     public void ClearAll()
     {
         foreach (var view in views.Values)

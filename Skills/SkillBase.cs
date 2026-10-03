@@ -194,14 +194,6 @@ namespace Ros.Skill
 
         protected static readonly List<EntityData> TargetBuffer = new();
 
-        protected static Vector3 GetWeaponFloatPositionById(ushort casterId, int slot)
-        {
-            var entity = BattleManager.GetEntity(casterId);
-            if (entity != null) return entity.GetWeaponFloatPos(slot < 0 ? 0 : slot);
-            if (BulletTrajectory.TryGetEntityTransform(casterId, out var pos, out _)) return pos;
-            return Vector3.zero;
-        }
-
         protected Vector3 GetWeaponFloatPosition(EntityData entity, int slot)
         {
             if (!Weapon.IsValid) return entity.BulletShootPos();
@@ -440,14 +432,16 @@ namespace Ros.Skill
             public static int GetShotCount(SkillContext context) =>
                 context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
 
-            // 起点在攻击帧实时取：服务器用实体、客户端按 casterId 取，攻击动画位移自然生效
+            // 起点在攻击帧实时取：服务器用实体，客户端按同规则镜像（自己的弹簧/碰撞体），保证弹道同源
             public static Vector3 GetShotOrigin(SkillBase skill, SkillContext context, int index)
             {
                 ushort casterId = GetCasterId(context);
                 int slot = GetCastingSlotIndex(context);
                 EntityData caster = GetCasterById(context);
                 if (caster != null) return skill.GetWeaponFloatPosition(caster, slot);
-                return GetWeaponFloatPositionById(casterId, slot);
+                var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+                if (players == null) return Vector3.zero;
+                return players.TryGetShotOrigin(casterId, slot, skill.Weapon.IsValid, out var pos) ? pos : Vector3.zero;
             }
 
             // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（偏移 Y 清零 → 水平）。
