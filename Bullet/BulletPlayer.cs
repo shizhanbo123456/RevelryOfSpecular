@@ -24,6 +24,8 @@ public class BulletPlayer : MonoBehaviour
         this.rotation = rotation;
         if (rotation == RotationMode.Identity) transform.rotation = Quaternion.identity;
         else if (rotation == RotationMode.CompleteTangent) transform.LookAt(trajectory.End);
+        else if (rotation == RotationMode.Tangent) transform.LookAt(trajectory.Lerp(0.02f)); // 立即应用初始切向，否则首帧是预制体默认朝向、下一帧才转正
+        else if (rotation == RotationMode.Camera && Camera.main != null) transform.rotation = Camera.main.transform.rotation;
     }
     private void Update()
     {
