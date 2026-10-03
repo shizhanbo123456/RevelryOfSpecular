@@ -314,10 +314,8 @@ namespace Ros.Skill
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
-            // 水平发射：终点高度对齐出生点（场景为平地，索敌到目标时同样水平）
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
-            Vector3 to = SkillContextConventions.GetShotDestination(context, index);
-            to.y = from.y;
+            Vector3 to = SkillContextConventions.GetShotAimPoint(this, context, index);
             var t = new LineTrajectory(from, to);
             t.Duration = duration;
             return t;
@@ -333,8 +331,7 @@ namespace Ros.Skill
         protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
-            Vector3 to = SkillContextConventions.GetShotDestination(context, index);
-            to.y = from.y; // 水平：终点高度对齐出生点
+            Vector3 to = SkillContextConventions.GetShotAimPoint(this, context, index);
             var t = new SkyFallTrajectory(from, to, skyHeight);
             t.Duration = duration;
             return t;
@@ -342,8 +339,7 @@ namespace Ros.Skill
 
         protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
-            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotDestination(context, index);
-            to.y = from.y; // 水平：终点高度对齐出生点
+            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotAimPoint(this, context, index);
             var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
             t.Duration = duration;
             return t;
@@ -452,6 +448,16 @@ namespace Ros.Skill
                 EntityData caster = GetCasterById(context);
                 if (caster != null) return skill.GetWeaponFloatPosition(caster, slot);
                 return GetWeaponFloatPositionById(casterId, slot);
+            }
+
+            // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（偏移 Y 清零 → 水平）。
+            // 起点随攻击动画位移实时取，弹道整体随位移前移；偏移（方向/距离）仍冻结，敌人仍可闪避。
+            public static Vector3 GetShotAimPoint(SkillBase skill, SkillContext context, int index)
+            {
+                Vector3 origin = GetShotOrigin(skill, context, index);
+                Vector3 offset = context.vectors[index * 2 + 1] - context.vectors[index * 2];
+                offset.y = 0f;
+                return origin + offset;
             }
 
             public static void AddTargets(SkillContext context, List<EntityData> targets)
