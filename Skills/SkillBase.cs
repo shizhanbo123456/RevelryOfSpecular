@@ -314,7 +314,11 @@ namespace Ros.Skill
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
-            var t = new LineTrajectory(SkillContextConventions.GetShotOrigin(this, context, index), SkillContextConventions.GetShotDestination(context, index));
+            // 水平发射：场景为平地，终点高度对齐出生点（武器弹簧高度），避免从武器高度斜射向实体脚部高度
+            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
+            Vector3 to = SkillContextConventions.GetShotDestination(context, index);
+            to.y = from.y;
+            var t = new LineTrajectory(from, to);
             t.Duration = duration;
             return t;
         }
