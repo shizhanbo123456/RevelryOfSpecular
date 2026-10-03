@@ -196,9 +196,10 @@ namespace Ros.Skill
 
         protected static Vector3 GetWeaponFloatPositionById(ushort casterId, int slot)
         {
-            if (BulletTrajectory.TryGetEntityTransform(casterId, out var pos, out var rot))
-                return pos + rot * Config.GetWeaponFloatOffset(slot < 0 ? 0 : slot);
-            return pos;
+            var entity = BattleManager.GetEntity(casterId);
+            if (entity != null) return entity.GetWeaponFloatPos(slot < 0 ? 0 : slot);
+            if (BulletTrajectory.TryGetEntityTransform(casterId, out var pos, out _)) return pos;
+            return Vector3.zero;
         }
 
         protected Vector3 GetWeaponFloatPosition(EntityData entity, int slot)

@@ -61,6 +61,8 @@ public abstract class EntityData : MonoBehaviour
 
     public EntityModelInfo ModelInfo { get; private set; }
 
+    public SpringWeapon springWeapon; // 武器漂浮弹簧实例（双端共用 SpringWeapon 预制体；服务器用于发射点，客户端用于视觉）
+
     protected static readonly List<EntityData> KilledEntities = new();
 
     public static IReadOnlyList<EntityData> KilledList => KilledEntities;
@@ -135,6 +137,9 @@ public abstract class EntityData : MonoBehaviour
         // 服务器无图形模板时 ModelInfo 为 null，自动跳过。
         if (ModelInfo != null) ModelInfo.BuildCapsuleCollider();
         InitDynamicCapsule(); // 人形实体的动态受击体积：记录脚/头骨骼初始高度基准（见 TickDynamicCapsule）
+
+        // 武器漂浮弹簧：挂到根骨骼(Hips)，无骨骼回退角色高度中心；双端共用，服务器发射点/客户端视觉都走它
+        springWeapon = SpringWeapon.Attach(gameObject);
     }
 
     protected virtual void OnAnimAttack(EntityAnim.AttackType type) { }
@@ -460,6 +465,11 @@ public abstract class EntityData : MonoBehaviour
             anim.OnDeathEventEnd -= OnDeathAnimEnd;
         }
         if (effectController != null) effectController.Clear();
+        if (springWeapon != null)
+        {
+            Destroy(springWeapon.gameObject);
+            springWeapon = null;
+        }
     }
 
     public virtual SCEntityDisplayInfo GetDisplayInfo()
@@ -479,7 +489,16 @@ public abstract class EntityData : MonoBehaviour
         return info;
     }
 
-    public Vector3 GetWeaponFloatPos(int slotIndex) => transform.TransformPoint(Config.GetWeaponFloatOffset(slotIndex));
+    public Vector3 GetWeaponFloatPos(int slotIndex)
+    {
+        if (springWeapon != null)
+        {
+            int i = Mathf.Clamp(slotIndex, 0, SpringWeapon.slotCount - 1);
+            springWeapon.GetPos(i, out var p, out var q);
+            return p;
+        }
+        return BulletShootPos();
+    }
 
     public Vector3 BulletShootPos()
     {

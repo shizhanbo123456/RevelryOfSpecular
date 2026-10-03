@@ -258,23 +258,6 @@ public static class Config
         { EffectType.PlagueBless, (SkillVfxKind.Buff, 28) },        // BF29 绿色祝福（攻占瘟疫树）
     };
 
-    public static readonly Vector3[] weapon_float_offsets =
-    {
-        new Vector3( 0.55f, 1.15f,  0.35f),  // 槽 1 右前
-        new Vector3(-0.55f, 1.15f,  0.35f),  // 槽 2 左前
-        new Vector3( 0.70f, 1.45f,  0.00f),  // 槽 3 右中
-        new Vector3(-0.70f, 1.45f,  0.00f),  // 槽 4 左中
-        new Vector3( 0.70f, 1.15f, -0.40f),  // 槽 5 右后
-        new Vector3(-0.70f, 1.15f, -0.40f),  // 槽 6 左后
-        new Vector3( 0.45f, 0.75f,  0.20f),  // 槽 7 右下
-        new Vector3(-0.45f, 0.75f,  0.20f),  // 槽 8 左下
-    };
-
-    public static Vector3 GetWeaponFloatOffset(int slotIndex)
-    {
-        if (weapon_float_offsets.Length == 0) return Vector3.zero;
-        return weapon_float_offsets[Mathf.Clamp(slotIndex, 0, weapon_float_offsets.Length - 1)];
-    }
     #endregion
 
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）

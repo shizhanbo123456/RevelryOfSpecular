@@ -335,20 +335,8 @@ public class EntityPlayerManager : ClientSubManager
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
-        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂根骨骼(Hips)下跟随；无骨骼回退表现体根。Scale=模型高度/2（尺寸取自 EntityModelInfo.yRange 烘焙值）
-        var swPrefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
-        if (swPrefab != null)
-        {
-            var animator = go.GetComponentInChildren<Animator>();
-            var rootBone = animator != null ? animator.GetBoneTransform(HumanBodyBones.Hips) : null;
-            var sw = UnityEngine.Object.Instantiate(swPrefab, rootBone != null ? rootBone : go.transform);
-            sw.transform.localPosition = Vector3.zero;
-            sw.transform.localRotation = Quaternion.identity;
-            var modelInfo = go.GetComponentInChildren<EntityModelInfo>();
-            float modelHeight = modelInfo != null ? (modelInfo.yRange.y - modelInfo.yRange.x) : 2f;
-            sw.transform.localScale = Vector3.one * (modelHeight * 0.5f);
-            view.springWeapon = sw.GetComponent<SpringWeapon>();
-        }
+        // 武器漂浮弹簧：复用共享挂载（挂根骨骼 Hips，无骨骼回退角色高度中心；Scale=模型高度/2）
+        view.springWeapon = SpringWeapon.Attach(go);
         // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
         if (info.type.category == EntityCategory.Crystal)
         {
@@ -392,7 +380,7 @@ public class EntityPlayerManager : ClientSubManager
 
     private void ApplyFloatingWeapons(ClientEntityView view, SCEntityDisplayInfo info)
     {
-        int count = Config.weapon_float_offsets.Length;
+        int count = SpringWeapon.slotCount;
         if (view.weaponVisuals == null || view.weaponVisuals.Length != count)
         {
             view.weaponVisuals = new GameObject[count];
