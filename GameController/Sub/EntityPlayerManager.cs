@@ -307,11 +307,6 @@ public class EntityPlayerManager : ClientSubManager
     }
 
     #region//Local
-    private static float ModelHeight(GameObject go)
-    {
-        var col = go.GetComponentInChildren<Collider>();
-        return col != null ? col.bounds.size.y : 2f;
-    }
 
     private ClientEntityView CreateView(SCEntityDisplayInfo info)
     {
@@ -336,14 +331,16 @@ public class EntityPlayerManager : ClientSubManager
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
-        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂表现体下自动跟随角色；Scale=身高/2 让漂浮偏移随角色身高自适应
+        // 武器漂浮弹簧：复制 InfoManager.SpringWeapon 预制体，挂表现体下；Scale=模型高度/2 让浮动偏移随角色身高自适应（尺寸取自 EntityModelInfo.yRange 烘焙值，非运行时动态 collider）
         var swPrefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
         if (swPrefab != null)
         {
             var sw = UnityEngine.Object.Instantiate(swPrefab, go.transform);
             sw.transform.localPosition = Vector3.zero;
             sw.transform.localRotation = Quaternion.identity;
-            sw.transform.localScale = Vector3.one * (ModelHeight(go) * 0.5f);
+            var modelInfo = go.GetComponentInChildren<EntityModelInfo>();
+            float modelHeight = modelInfo != null ? (modelInfo.yRange.y - modelInfo.yRange.x) : 2f;
+            sw.transform.localScale = Vector3.one * (modelHeight * 0.5f);
             view.springWeapon = sw.GetComponent<SpringWeapon>();
         }
         // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
