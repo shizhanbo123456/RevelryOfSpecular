@@ -3,7 +3,7 @@ using UnityEngine;
 public class AnimAttackEvent : AnimEvent
 {
     protected override EntityAnim.AnimState State => EntityAnim.AnimState.Attack;
-    protected override InputBlockOp blockOp => InputBlockOp.Forward|InputBlockOp.Rotation|InputBlockOp.Jump|InputBlockOp.Slide|InputBlockOp.Attack;
+    protected override InputBlockOp blockOp => InputBlockOp.Rotation|InputBlockOp.Jump|InputBlockOp.Slide|InputBlockOp.Attack;
     [SerializeField] private EntityAnim.AttackType type;
     [SerializeField] private AnimationCurve speedForward;
     [SerializeField] private AnimationCurve speedUpward;

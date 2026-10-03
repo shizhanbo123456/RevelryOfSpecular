@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AnimSlideStartEvent : AnimMotionEvent
 {
-    protected override InputBlockOp blockOp => InputBlockOp.Forward | InputBlockOp.Rotation | InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
+    protected override InputBlockOp blockOp => InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
     [SerializeField] private AnimationCurve speedCurve;
     private float slideTime;
     private bool canEnd;
