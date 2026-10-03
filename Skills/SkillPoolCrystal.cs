@@ -707,7 +707,11 @@ namespace Ros.Skill
             context.AddInts(entity.id);
             var ally = GetNearestAlly(entity);
             context.AddInts(ally != null ? ally.id : entity.id); // 目标（无友方时指向自己）
-            context.AddVectors(GetWeaponFloatPosition(entity), ally != null ? ally.transform.position : entity.transform.position);
+            // 无友方：正前方发射，避免终点=自身把泡泡冻结在施法者
+            Vector3 dest = ally != null
+                ? ally.transform.position
+                : entity.transform.position + entity.transform.forward * Config.default_skill_auto_target_radius;
+            context.AddVectors(GetWeaponFloatPosition(entity), dest);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
