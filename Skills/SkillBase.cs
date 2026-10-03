@@ -314,7 +314,7 @@ namespace Ros.Skill
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
-            // 水平发射：场景为平地，终点高度对齐出生点（武器弹簧高度），避免从武器高度斜射向实体脚部高度
+            // 水平发射：终点高度对齐出生点（场景为平地，索敌到目标时同样水平）
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
             Vector3 to = SkillContextConventions.GetShotDestination(context, index);
             to.y = from.y;
@@ -332,7 +332,10 @@ namespace Ros.Skill
 
         protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
         {
-            var t = new SkyFallTrajectory(SkillContextConventions.GetShotOrigin(this, context, index), SkillContextConventions.GetShotDestination(context, index), skyHeight);
+            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
+            Vector3 to = SkillContextConventions.GetShotDestination(context, index);
+            to.y = from.y; // 水平：终点高度对齐出生点
+            var t = new SkyFallTrajectory(from, to, skyHeight);
             t.Duration = duration;
             return t;
         }
@@ -340,6 +343,7 @@ namespace Ros.Skill
         protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotDestination(context, index);
+            to.y = from.y; // 水平：终点高度对齐出生点
             var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
             t.Duration = duration;
             return t;
