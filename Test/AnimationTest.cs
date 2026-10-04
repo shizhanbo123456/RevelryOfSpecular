@@ -14,6 +14,7 @@ public class AnimationTest : MonoBehaviour
 
     private TestEntityData current;
     private Vector2 attackScroll;
+    private GUIStyle bigStyle;
     private static readonly EntityAnim.AttackType[] AttackTypes =
         (EntityAnim.AttackType[])System.Enum.GetValues(typeof(EntityAnim.AttackType));
 
@@ -56,6 +57,16 @@ public class AnimationTest : MonoBehaviour
         if (current == null) return;
         GUI.Label(new Rect(10f, 10f, 1200f, 30f),
             "[AnimationTest] " + current.DescribeState() + "   按住T=直写3m/s W前进 A/D转向 Space跳 Shift滑铲 R换人");
+
+        // 当前速度大字显示（刚体实际速度 = 速度结算链路的最终输出）
+        if (bigStyle == null)
+        {
+            bigStyle = new GUIStyle(GUI.skin.label) { fontSize = 36, fontStyle = FontStyle.Bold };
+            bigStyle.normal.textColor = Color.white;
+        }
+        Vector3 v = current.rb != null ? current.rb.velocity : Vector3.zero;
+        GUI.Label(new Rect(10f, 48f, 900f, 60f),
+            $"速度 = ({v.x:F2}, {v.y:F2}, {v.z:F2})  |v| = {v.magnitude:F2} m/s", bigStyle);
 
         // 攻击动画按钮：逐个 AttackType 触发（与正式版同一入口 anim.DoAttack）
         GUILayout.BeginArea(new Rect(Screen.width - 230f, 40f, 220f, Screen.height - 50f));
