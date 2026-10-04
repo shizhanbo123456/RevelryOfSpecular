@@ -22,6 +22,8 @@ public class CameraController : MonoBehaviour
     public float pitch = 15f;
     // 越界缓冲带半宽：带内线性插值快慢平滑，超出带才用快速，避免速率阶跃震颤
     public float smoothDistance = 1.5f;
+    // 瞬移阈值：相机与理想机位的距离超过该值时直接吸附，不做平滑（覆盖从预览机位进战斗、复活换出生点）
+    public float snapDistance = 10f;
 
     private float yaw;
 
@@ -34,19 +36,7 @@ public class CameraController : MonoBehaviour
     public void SetLookTarget(Transform target)
     {
         lookTarget = target;
-        if (target != null) SnapToTarget(); // 换目标立即吸附到理想机位，否则从旧位置（预览机位/上局位置）平滑飞过去
-    }
-
-    // 按目标当前位姿直接摆放相机（Y/Z 取区间中心、yaw 取目标朝向），供初始化/换目标时跳过平滑
-    private void SnapToTarget()
-    {
-        yaw = lookTarget.eulerAngles.y;
-        Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
-        float yCenter = (yRange.x + yRange.y) * 0.5f;
-        float zCenter = (zRange.x + zRange.y) * 0.5f;
-        transform.position = lookTarget.position + Vector3.up * yCenter + back * zCenter;
-        float lookUp = yCenter - zCenter * Mathf.Tan(pitch * Mathf.Deg2Rad);
-        transform.LookAt(lookTarget.position + Vector3.up * lookUp);
+        if (target != null) yaw = target.eulerAngles.y;
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
@@ -70,11 +60,24 @@ public class CameraController : MonoBehaviour
         if (lookTarget == null) return;
 
         float targetYaw = lookTarget.eulerAngles.y;
+
+        // 理想机位（yaw 取目标当前朝向）：与当前位置超过瞬移阈值就直接吸附，跳过平滑
+        Vector3 idealBack = Quaternion.Euler(0f, targetYaw, 0f) * Vector3.back;
+        float zCenter = (zRange.x + zRange.y) * 0.5f;
+        float yCenter = (yRange.x + yRange.y) * 0.5f;
+        Vector3 idealPos = lookTarget.position + Vector3.up * yCenter + idealBack * zCenter;
+        if ((transform.position - idealPos).sqrMagnitude > snapDistance * snapDistance)
+        {
+            yaw = targetYaw;
+            transform.position = idealPos;
+            transform.LookAt(lookTarget.position + Vector3.up * (yCenter - zCenter * Mathf.Tan(pitch * Mathf.Deg2Rad)));
+            NotifyCameraUpdated();
+            return;
+        }
+
         yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-yawSmooth * Time.deltaTime));
 
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
-        float zCenter = (zRange.x + zRange.y) * 0.5f;
-        float yCenter = (yRange.x + yRange.y) * 0.5f;
 
         Vector3 toCam = transform.position - lookTarget.position;
         float yCur = toCam.y;
@@ -89,9 +92,14 @@ public class CameraController : MonoBehaviour
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
         float lookUp = yNew - zNew * Mathf.Tan(pitch * Mathf.Deg2Rad);
         transform.LookAt(lookTarget.position + Vector3.up * lookUp);
-        // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），
-        // 导致同帧 WorldToScreenPoint 仍用上一帧矩阵——平滑相机一直在动，血条/名字就会差一帧震颤。
-        // 强制刷新当前矩阵，让随后的投影回调拿到本帧相机，消除震颤。
+        NotifyCameraUpdated();
+    }
+
+    // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），
+    // 导致同帧 WorldToScreenPoint 仍用上一帧矩阵——平滑相机一直在动，血条/名字就会差一帧震颤。
+    // 强制刷新当前矩阵，让随后的投影回调拿到本帧相机，消除震颤。
+    private void NotifyCameraUpdated()
+    {
         if (WorldCamera != null) WorldCamera.ResetWorldToCameraMatrix();
         if (OnCameraUpdated != null) OnCameraUpdated();
     }
