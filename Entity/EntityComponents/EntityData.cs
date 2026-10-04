@@ -267,6 +267,9 @@ public abstract class EntityData : MonoBehaviour
     {
         if (rb == null) return; //不可移动单位无刚体，无重力可关
         rb.useGravity = enabled;
+        if (enabled || !grounded) return;
+        grounded = true; //关重力期间强制在地面
+        if (anim != null) anim.InAir(false);
     }
 
     #region//速度
@@ -621,6 +624,7 @@ public abstract class EntityData : MonoBehaviour
     {
         if (anim == null) { grounded = true; return; } // 无动画实体永远在地面
         if (rb == null) return;
+        if (!rb.useGravity) return; // 关重力期间强制在地面，不做地面检测
         // 出生动画期间状态机归 Spawn 子状态机接管，且出生点允许悬空 —— 此期间不写 InAir
         if (anim.CurrentState == EntityAnim.AnimState.Spawn) return;
 
