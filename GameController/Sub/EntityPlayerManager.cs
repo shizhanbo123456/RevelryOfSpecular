@@ -135,14 +135,14 @@ public class EntityPlayerManager : ClientSubManager
                 }
             }
 
-            // 武器漂浮：弹簧只初始化一次（角色首次定位后），之后由弹簧自身 Update 平滑；
-            // 不再每帧 Init，否则会把武器重新吸附到随网络抖动的同步位姿上，造成抽搐
+            // 武器漂浮：弹簧只在角色首次定位后初始化一次（锚点快照世界坐标，提前快照会从旧位置飞过来）；
+            // 之后由弹簧自身 Update 平滑，不再每帧 Init，否则会把武器重新吸附到随网络抖动的同步位姿上，造成抽搐
             if (springWeapon != null && predictedInit)
             {
-                if (!springInited) { springWeapon.Init(); springInited = true; }
                 // 高度跟随 Hips（局部 Y 抬到 Hips 相对实体根的高度），XY/旋转保持实体根（不继承 Hips 旋转）
                 float hipsLocalY = hipsBone != null ? (hipsBone.position.y - transform.position.y) : 0f;
                 springWeapon.transform.localPosition = new Vector3(0f, hipsLocalY, 0f);
+                if (!springInited) { springWeapon.Init(); springInited = true; }
                 if (weaponVisuals != null)
                 {
                     for (int i = 0; i < weaponVisuals.Length; i++)

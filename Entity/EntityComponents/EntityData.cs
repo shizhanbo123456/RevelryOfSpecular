@@ -137,7 +137,13 @@ public abstract class EntityData : MonoBehaviour
         InitDynamicCapsule();
 
         // 武器漂浮弹簧：双端共用，服务器发射点 / 客户端视觉都走它（挂载在实体根，不跟随 Hips）
+        // 服务器生成时位置已就位，先抬好高度再快照锚点
         springWeapon = SpringWeapon.Attach(gameObject);
+        if (springWeapon != null)
+        {
+            TickWeaponFloat();
+            springWeapon.Init();
+        }
     }
 
     protected virtual void OnAnimAttack(EntityAnim.AttackType type) { }

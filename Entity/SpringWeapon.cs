@@ -13,11 +13,8 @@ public class SpringWeapon : MonoBehaviour
     private Quaternion[] springRotation;
     private const int count = 8;
     private bool initialized = false;
-    public void Init()//代码中可以立即初始化，防止Start不及时
-    {
-        Start();
-    }
-    public void Start()
+    // 锚点快照的是世界坐标，必须等宿主定位后再调用；初始化只走此入口，不用 Unity Start 自动初始化（时机不可控）
+    public void Init()
     {
         if (initialized) return;
         springPos = Anchors.Select(t => t.position).ToArray();
@@ -56,6 +53,7 @@ public class SpringWeapon : MonoBehaviour
 
     // 将 SpringWeapon 预制体挂到 host（客户端表现体）根物体下：X/Z 与旋转跟随实体自身，Scale=模型高度/2。
     // 高度（局部 Y）由调用方每帧抬到根骨骼(Hips)高度（无骨骼回退模型中心），见 EntityPlayerManager。
+    // 不在此处 Init：锚点快照的是世界坐标，必须由调用方在宿主定位后自行调用 Init，否则弹簧从旧位置飞向角色
     public static SpringWeapon Attach(GameObject host)
     {
         var prefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
@@ -66,7 +64,6 @@ public class SpringWeapon : MonoBehaviour
         sw.transform.localPosition = Vector3.zero;
         sw.transform.localRotation = Quaternion.identity;
         sw.transform.localScale = Vector3.one * (modelHeight * 0.5f);
-        sw.Init();
         return sw;
     }
 }
