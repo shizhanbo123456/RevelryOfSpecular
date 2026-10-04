@@ -5,8 +5,8 @@ public class AnimAttackEvent : AnimEvent
     protected override EntityAnim.AnimState State => EntityAnim.AnimState.Attack;
     protected override InputBlockOp blockOp => InputBlockOp.Rotation|InputBlockOp.Jump|InputBlockOp.Slide|InputBlockOp.Attack;
     [SerializeField] private EntityAnim.AttackType type;
-    [SerializeField] private AnimationCurve speedForward;
-    [SerializeField] private AnimationCurve speedUpward;
+    [SerializeField] private AnimationCurve speedForward;//是位置，导数才是速度
+    [SerializeField] private AnimationCurve speedUpward;//是位置，导数才是速度
     [Header("Hit1")]
     [SerializeField][Range(0,1)] private float threshold;
     private bool canTrigAttack;
@@ -27,8 +27,9 @@ public class AnimAttackEvent : AnimEvent
         base.OnStateUpdate(animator, stateInfo, layerIndex);
         if (!main) return;
 
-        float forward = speedForward.Evaluate(stateInfo.normalizedTime);
-        float upward = speedUpward.Evaluate(stateInfo.normalizedTime);
+        float nt=stateInfo.normalizedTime;
+        float forward = (speedForward.Evaluate(nt+0.01f)- speedForward.Evaluate(nt - 0.01f))*50;
+        float upward = (speedUpward.Evaluate(nt+0.01f)- speedUpward.Evaluate(nt - 0.01f))*50;
         anim.SetVelocityForward(forward * anim.animData.RunSpeed);
         anim.SetVelocityVertical(upward * anim.animData.JumpSpeed);
 
