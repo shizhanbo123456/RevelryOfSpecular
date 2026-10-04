@@ -37,6 +37,10 @@ public class LobbyPage : PageBase
     {
         base.Enter(param);
         EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
+        // 有缓存立即渲染（服务器只在事件时广播，错过就没了）；无缓存清空展示，不留 FGUI 默认内容
+        var latest = NetworkManager.LatestRoomInfo;
+        if (latest != null) OnRoomInfoUpdate(latest);
+        else ClearRoomDisplay();
         // 大厅与首页一样展示所选攻/守角色的场景预览（战斗页 Enter 时会隐藏，故返回大厅需重建）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
@@ -104,6 +108,21 @@ public class LobbyPage : PageBase
         int defenseHumans = info.members.Count(m => m != null && m.camp == 1);
         canStartBattle = attackHumans + info.attackAICount > 0 && defenseHumans + info.defenseAICount > 0;
         battleStarted = info.battleStarted;
+        syncingFromServer = false;
+    }
+
+    private void ClearRoomDisplay()
+    {
+        syncingFromServer = true;
+        attackAICount = 0;
+        defenseAICount = 0;
+        myCamp = -1;
+        canStartBattle = false;
+        battleStarted = false;
+        RefreshAICountLabels();
+        var empty = new List<SCRoomInfo.RoomMemberInfo>();
+        RenderMemberList(panel.m_mainView.m_attackerPlayers, empty, 0);
+        RenderMemberList(panel.m_mainView.m_defenserPlayers, empty, 1);
         syncingFromServer = false;
     }
 

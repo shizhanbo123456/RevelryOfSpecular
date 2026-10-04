@@ -48,6 +48,7 @@ public partial class NetworkManager : EnsBehaviour
         hasRoomInfo = false;
         tryingEnterWorld = false;
         intentionalExitWorld = false;
+        LatestRoomInfo = null; // 跨连接清空，防止重连后大厅显示上一局成员
     }
 
     private void ClientBindEvents()
