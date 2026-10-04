@@ -309,6 +309,8 @@ public partial class BattleManager : EnsBehaviour
         {
             attackLevel = 1,
             defenseLevel = 1,
+            // 名字由虚拟 clientId 推导：重建时 id 源归位，编号稳定且不与真人（正数 id）冲突
+            name = $"AI玩家{AIClientIdStart - aiClientId + 1}",
         };
         if (camp == EntityCamp.Attack)
         {
