@@ -262,6 +262,13 @@ public abstract class EntityData : MonoBehaviour
 
     public bool MotionCanMove => motion == null || motion.canMove;
 
+    //设置是否开启重力
+    public void SetGravityEnabled(bool enabled)
+    {
+        if (rb == null) return; //不可移动单位无刚体，无重力可关
+        rb.useGravity = enabled;
+    }
+
     #region//速度
     private bool declaredForward;
     private float declaredForwardSpeed;
