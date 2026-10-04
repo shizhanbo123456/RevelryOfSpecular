@@ -13,10 +13,14 @@ public class AnimationTest : MonoBehaviour
     };
 
     private TestEntityData current;
+    private Vector2 attackScroll;
+    private static readonly EntityAnim.AttackType[] AttackTypes =
+        (EntityAnim.AttackType[])System.Enum.GetValues(typeof(EntityAnim.AttackType));
 
     private void Start()
     {
         EnsureInfoManager();
+        EnsureCamera();
         SpawnRandom();
     }
 
@@ -52,6 +56,24 @@ public class AnimationTest : MonoBehaviour
         if (current == null) return;
         GUI.Label(new Rect(10f, 10f, 1200f, 30f),
             "[AnimationTest] " + current.DescribeState() + "   按住T=直写3m/s W前进 A/D转向 Space跳 Shift滑铲 R换人");
+
+        // 攻击动画按钮：逐个 AttackType 触发（与正式版同一入口 anim.DoAttack）
+        GUILayout.BeginArea(new Rect(Screen.width - 230f, 40f, 220f, Screen.height - 50f));
+        GUILayout.Label("攻击动画");
+        attackScroll = GUILayout.BeginScrollView(attackScroll);
+        if (current.anim != null)
+        {
+            foreach (var type in AttackTypes)
+            {
+                if (GUILayout.Button(type.ToString())) current.anim.DoAttack(type);
+            }
+        }
+        else
+        {
+            GUILayout.Label("模型未挂 EntityAnim");
+        }
+        GUILayout.EndScrollView();
+        GUILayout.EndArea();
     }
 
     private void SpawnRandom()
@@ -69,6 +91,8 @@ public class AnimationTest : MonoBehaviour
         go.name = $"AnimationTest_{prefab.name}";
         current = go.AddComponent<TestEntityData>();
         current.SetupTest();
+        // 相机跟随目标换成新实体（CameraController 对远距离目标有瞬移阈值，不会飞过去）
+        if (Tool.CameraController != null) Tool.CameraController.SetLookTarget(current.transform);
         Debug.Log($"[AnimationTest] 已生成 {prefab.name} @ {transform.position}");
     }
 
@@ -98,6 +122,20 @@ public class AnimationTest : MonoBehaviour
         int ground = LayerMask.NameToLayer("Ground");
         manager.ground_layer = ground >= 0 ? ground : 0;
         Debug.Log($"[AnimationTest] 场景无 InfoManager，已补最小实例（ground_layer={manager.ground_layer}）");
+    }
+
+    // 测试场景无相机时补一个；已有多余 CameraController 的场景直接复用
+    private static void EnsureCamera()
+    {
+        if (Tool.CameraController != null) return;
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            var go = new GameObject("[AnimationTest] Camera");
+            cam = go.AddComponent<Camera>();
+            go.tag = "MainCamera";
+        }
+        cam.gameObject.AddComponent<CameraController>();
     }
 
     [Tooltip("可选：手动指定人物模型预制体（打包运行时的唯一来源；编辑器下扫描目录为空才生效）")]
