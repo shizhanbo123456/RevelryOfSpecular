@@ -347,7 +347,7 @@ public abstract class EntityData : MonoBehaviour
         else if (declaredForward || declaredHorizontal || declaredVertical)
         {
             var declared= DeclaredVelocity();
-            if (!grounded)
+            if (!grounded&&!declaredVertical)
             {
                 declared.y = rb.velocity.y;
             }
