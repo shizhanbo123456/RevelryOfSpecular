@@ -250,10 +250,11 @@ public class EntityPlayerManager : ClientSubManager
                 if (view.cameraAnchor == null)
                 {
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
-                    Tool.CameraController.SetLookTarget(view.cameraAnchor);
+                    // 先摆好锚点再绑定相机：SetLookTarget 会立即吸附到锚点位姿，空锚点（原点）会吸错位置
                     float y = view.hipsBone != null ? view.hipsBone.position.y : view.transform.position.y;
                     view.cameraAnchor.position = new Vector3(view.transform.position.x, y, view.transform.position.z);
                     view.cameraAnchor.rotation = view.transform.rotation;
+                    Tool.CameraController.SetLookTarget(view.cameraAnchor);
                 }
             }
         }

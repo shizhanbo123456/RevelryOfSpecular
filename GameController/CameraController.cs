@@ -34,7 +34,19 @@ public class CameraController : MonoBehaviour
     public void SetLookTarget(Transform target)
     {
         lookTarget = target;
-        if (target != null) yaw = target.eulerAngles.y;
+        if (target != null) SnapToTarget(); // 换目标立即吸附到理想机位，否则从旧位置（预览机位/上局位置）平滑飞过去
+    }
+
+    // 按目标当前位姿直接摆放相机（Y/Z 取区间中心、yaw 取目标朝向），供初始化/换目标时跳过平滑
+    private void SnapToTarget()
+    {
+        yaw = lookTarget.eulerAngles.y;
+        Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
+        float yCenter = (yRange.x + yRange.y) * 0.5f;
+        float zCenter = (zRange.x + zRange.y) * 0.5f;
+        transform.position = lookTarget.position + Vector3.up * yCenter + back * zCenter;
+        float lookUp = yCenter - zCenter * Mathf.Tan(pitch * Mathf.Deg2Rad);
+        transform.LookAt(lookTarget.position + Vector3.up * lookUp);
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
