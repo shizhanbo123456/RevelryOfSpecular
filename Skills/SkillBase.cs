@@ -208,6 +208,18 @@ namespace Ros.Skill
             if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
             switch (kind)
             {
+                case SkillVfxKind.Bullet:
+                    Tool.VfxManager.PlayBulletVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Shield:
+                    Tool.VfxManager.PlayShieldVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Buff:
+                    Tool.VfxManager.PlayBuffVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Weapon:
+                    Tool.VfxManager.PlayWeaponVFX(Weapon, pos, Quaternion.identity, duration);
+                    break;
                 case SkillVfxKind.RangeMagic:
                     Tool.VfxManager.PlayRangeMagicVFX(index, pos, Quaternion.identity, duration);
                     break;
@@ -235,10 +247,10 @@ namespace Ros.Skill
                     Tool.VfxManager.PlayBuffVFX(index, trajectory);
                     break;
                 case SkillVfxKind.RangeMagic:
-                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory.Lerp(1f), Quaternion.identity, life);
+                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory, life);
                     break;
                 case SkillVfxKind.MagicCircle:
-                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory.Lerp(1f), life);
+                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory, life);
                     break;
             }
         }

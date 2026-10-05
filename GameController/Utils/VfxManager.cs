@@ -77,15 +77,34 @@ public class VfxManager : MonoBehaviour
         return Play(prefab, trajectory, lifeTime, rotation);
     }
 
+    public GameObject PlayWeaponVFX(WeaponRef weapon, Vector3 pos, Quaternion rot, float lifeTime)
+    {
+        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return null;
+        return Play(prefab, pos, rot, lifeTime);
+    }
+
     public GameObject PlayShieldVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
         return Play(GetShieldVfx(index), trajectory, lifeTime, rotation);
     }
 
+    public GameObject PlayShieldVFX(int index, Vector3 pos, Quaternion rot, float lifeTime)
+    {
+        return Play(GetShieldVfx(index), pos, rot, lifeTime);
+    }
+
     public void PlayRangeMagicVFX(int index, Vector3 pos, Quaternion rot, float lifeTime)
     {
         Play(GetRangeMagicVfx(index), pos, rot, lifeTime);
+    }
+
+    // 轨迹版语义：取轨迹终点（Lerp(1)）落地定点播放，朝向固定 identity
+    public void PlayRangeMagicVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f)
+    {
+        if (trajectory == null) return;
+        float life = lifeTime > 0f ? lifeTime : trajectory.Duration;
+        PlayRangeMagicVFX(index, trajectory.End, Quaternion.identity, life);
     }
 
     public GameObject PlayMagicCircleVFX(int index, Vector3 pos, float duration)
@@ -97,10 +116,23 @@ public class VfxManager : MonoBehaviour
         return obj;
     }
 
+    // 轨迹版语义：取轨迹终点（Lerp(1)）落地定点播放，朝向固定 identity
+    public GameObject PlayMagicCircleVFX(int index, BulletTrajectory trajectory, float duration = 0f)
+    {
+        if (trajectory == null) return null;
+        float life = duration > 0f ? duration : trajectory.Duration;
+        return PlayMagicCircleVFX(index, trajectory.End, life);
+    }
+
     public GameObject PlayBuffVFX(int index, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Constant)
     {
         return Play(GetBuffVfx(index), trajectory, lifeTime, rotation);
+    }
+
+    public GameObject PlayBuffVFX(int index, Vector3 pos, Quaternion rot, float lifeTime)
+    {
+        return Play(GetBuffVfx(index), pos, rot, lifeTime);
     }
     #endregion
 
