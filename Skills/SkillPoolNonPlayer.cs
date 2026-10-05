@@ -40,7 +40,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -68,7 +68,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster, leftHand: true), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -95,7 +95,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -126,7 +126,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -154,7 +154,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster, leftHand: true), Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -181,7 +181,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -203,7 +203,7 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             // 灵火在攻击生成时查询一次：之后塔身上的 Buff 变化不影响这一发
             bool blaze = entity.effectController != null && entity.effectController.HasEffect(EffectType.TowerBlaze);
             context.AddInts(blaze ? 1 : 0);
@@ -211,11 +211,11 @@ namespace Ros.Skill
             return context;
         }
 
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             bool blaze = context.ints != null && context.ints.Count > BlazeFlagIndex && context.ints[BlazeFlagIndex] != 0;
             ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
                 onHit: blaze ? BlazeHit(caster) : null));
@@ -230,11 +230,11 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 22 });
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 22 });
             if (context.ints == null || context.ints.Count <= BlazeFlagIndex || context.ints[BlazeFlagIndex] == 0) return;
-            for (int i = 0; i < SkillBase.SkillContextConventions.GetShotCount(context); i++)
+            for (int i = 0; i < (context.vectors != null ? context.vectors.Count / 2 : 0); i++)
             {
-                PlayAt(SkillVfxKind.RangeMagic, 7, SkillBase.SkillContextConventions.GetShotDestination(context, i), 1f); // RM8 岩浆连环爆炸
+                VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 7, context.vectors[i * 2 + 1], 1f); // RM8 岩浆连环爆炸
             }
         }
     }
@@ -254,16 +254,16 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             OnCast(context); // 无动画组件：释放即生效
             return context;
         }
 
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
                 addEffect: Poison(caster != null ? caster.id : (ushort)0)));
         }
@@ -272,7 +272,7 @@ namespace Ros.Skill
             EffectType.Poison, 1, PoisonDuration, negative: true,
             payload: new EntityEffectController.EffectPayload { damage = PoisonDamagePerTick, sourceId = casterId });
 
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 13 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 13 });
     }
     #endregion
 }
