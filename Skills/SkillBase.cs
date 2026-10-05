@@ -179,6 +179,7 @@ namespace Ros.Skill
         #endregion
 
         #region 客户端特效播放（技能 PlayVFX 的默认实现，技能按需调用）
+        [Obsolete]
         protected void PlayAlong(SkillContext context, SkillVfxKind kind, int[] vfx)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
@@ -189,6 +190,7 @@ namespace Ros.Skill
             }
         }
 
+        [Obsolete]
         protected void PlayFollow(SkillVfxKind kind, int index, ushort entityId, float lifeTime = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
@@ -197,12 +199,14 @@ namespace Ros.Skill
             PlayOne(kind, index, trajectory);
         }
 
+        [Obsolete]
         protected void PlayFollowAll(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
             for (int i = 0; i < SkillContextConventions.TargetCount(context); i++) PlayFollow(kind, index, SkillContextConventions.GetTargetId(context, i), lifeTime);
         }
 
+        [Obsolete]
         protected void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
@@ -229,6 +233,7 @@ namespace Ros.Skill
             }
         }
 
+        [Obsolete]
         private void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory)
         {
             float life = trajectory.Duration;

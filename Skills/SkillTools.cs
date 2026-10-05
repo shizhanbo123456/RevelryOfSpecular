@@ -1,7 +1,7 @@
 using Ros.Transport;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static Ros.Skill.SkillBase;
 
 namespace Ros.Skill.Utils
 {
@@ -195,6 +195,94 @@ namespace Ros.Skill.Utils
             var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
             t.Duration = duration;
             return t;
+        }
+    }
+    public static class VfxHelper
+    {
+        public static void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration)
+        {
+            if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
+            switch (kind)
+            {
+                case SkillVfxKind.Bullet:
+                    Tool.VfxManager.PlayBulletVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Shield:
+                    Tool.VfxManager.PlayShieldVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Buff:
+                    Tool.VfxManager.PlayBuffVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.Weapon:
+                    Tool.VfxManager.PlayWeaponVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.RangeMagic:
+                    Tool.VfxManager.PlayRangeMagicVFX(index, pos, Quaternion.identity, duration);
+                    break;
+                case SkillVfxKind.MagicCircle:
+                    Tool.VfxManager.PlayMagicCircleVFX(index, pos, duration);
+                    break;
+            }
+        }
+
+        public static void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory)
+        {
+            float life = trajectory.Duration;
+            switch (kind)
+            {
+                case SkillVfxKind.Weapon:
+                    Tool.VfxManager.PlayWeaponVFX(index, trajectory);
+                    break;
+                case SkillVfxKind.Bullet when index >= 0:
+                    Tool.VfxManager.PlayBulletVFX(index, trajectory);
+                    break;
+                case SkillVfxKind.Shield when index >= 0:
+                    Tool.VfxManager.PlayShieldVFX(index, trajectory);
+                    break;
+                case SkillVfxKind.Buff when index >= 0:
+                    Tool.VfxManager.PlayBuffVFX(index, trajectory);
+                    break;
+                case SkillVfxKind.RangeMagic:
+                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory, life);
+                    break;
+                case SkillVfxKind.MagicCircle:
+                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory, life);
+                    break;
+            }
+        }
+
+        // —— 以下为不依赖 SkillContext 布局的通用版本：轨迹 / 目标 id 由调用方自备 ——
+        // 约定同上：index 在 Weapon 类下 = 全局武器 id，其余类 = 特效下标
+
+        // 逐发弹道播放：vfx 与 trajectories 顺序一一配对取 Current；
+        // Weapon 类下 vfx 元素 = 全局武器 id，其余类 = 特效下标
+        public static void PlayAlong(SkillVfxKind kind, IEnumerator<int> vfx, IEnumerator<BulletTrajectory> trajectories)
+        {
+            if (kind == SkillVfxKind.None || vfx == null || trajectories == null) return;
+            while (trajectories.MoveNext())
+            {
+                var trajectory = trajectories.Current;
+                if (trajectory == null) continue;
+                if (!vfx.MoveNext())
+                    throw new InvalidOperationException($"vfx 枚举耗尽但仍有轨迹未播放，两者必须一一配对");
+                PlayOne(kind, vfx.Current, trajectory);
+            }
+        }
+
+        // 单目标跟随特效（护盾/Buff/光环等）
+        public static void PlayFollow(SkillVfxKind kind, int index, ushort entityId, float lifeTime = 0f)
+        {
+            if (kind == SkillVfxKind.None) return;
+            var trajectory = new FollowTrajectory(entityId);
+            if (lifeTime > 0f) trajectory.Duration = lifeTime;
+            PlayOne(kind, index, trajectory);
+        }
+
+        // 多目标跟随：目标 id 与上下文布局解耦，由调用方逐个喂入（如 context.ints 目标段的枚举器）
+        public static void PlayFollowAll(SkillVfxKind kind, int index, IEnumerator<int> targetIds, float lifeTime = 0f)
+        {
+            if (kind == SkillVfxKind.None || targetIds == null) return;
+            while (targetIds.MoveNext()) PlayFollow(kind, index, (ushort)targetIds.Current, lifeTime);
         }
     }
 }

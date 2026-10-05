@@ -70,16 +70,18 @@ public class VfxManager : MonoBehaviour
         return Play(GetBulletVfx(index), trajectory, lifeTime, rotation);
     }
 
-    public GameObject PlayWeaponVFX(WeaponRef weapon, BulletTrajectory trajectory, float lifeTime = 0f,
+    // 传全局武器 id，内部经隐式转换还原 WeaponRef
+    public GameObject PlayWeaponVFX(int weaponId, BulletTrajectory trajectory, float lifeTime = 0f,
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
-        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return null;
+        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weaponId, out var prefab)) return null;
         return Play(prefab, trajectory, lifeTime, rotation);
     }
 
-    public GameObject PlayWeaponVFX(WeaponRef weapon, Vector3 pos, Quaternion rot, float lifeTime)
+    // 传全局武器 id，内部经隐式转换还原 WeaponRef
+    public GameObject PlayWeaponVFX(int weaponId, Vector3 pos, Quaternion rot, float lifeTime)
     {
-        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) return null;
+        if (Tool.AssetsManager == null || !Tool.AssetsManager.TryGetWeaponPrefab(weaponId, out var prefab)) return null;
         return Play(prefab, pos, rot, lifeTime);
     }
 
