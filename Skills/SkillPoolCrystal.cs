@@ -75,7 +75,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -93,7 +93,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -116,7 +116,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                FanDests(entity.transform.position, AimPos(entity), 2, 30f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 2, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -156,7 +156,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                CircleDests(entity.transform.position, 3f, 8));
+                Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R_And_L, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -174,7 +174,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -201,7 +201,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                FanDests(entity.transform.position, AimPos(entity), 3, 30f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -219,7 +219,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -248,7 +248,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position, AimPos(entity));
+            context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -275,7 +275,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position, AimPos(entity));
+            context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Jump_Mega, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -321,7 +321,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -343,7 +343,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -361,7 +361,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -383,7 +383,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -449,7 +449,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -459,10 +459,10 @@ namespace Ros.Skill
             var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }
@@ -479,7 +479,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall,
-                FanDests(entity.transform.position, AimPos(entity), 5, 30f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -503,7 +503,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -522,7 +522,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                FanDests(entity.transform.position, AimPos(entity), 3, 25f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 25f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -540,7 +540,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -558,7 +558,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -580,7 +580,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -607,7 +607,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -631,7 +631,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -655,7 +655,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -680,7 +680,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -705,7 +705,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var ally = GetNearestAlly(entity);
+            var ally = Utils.TargetSelect.GetNearestAlly(entity);
             context.AddInts(ally != null ? ally.id : entity.id); // 目标（无友方时指向自己）
             // 无友方：正前方发射，避免终点=自身把泡泡冻结在施法者
             Vector3 dest = ally != null
@@ -747,7 +747,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -770,7 +770,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(AimPos(entity));
+            context.AddVectors(Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -791,7 +791,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -810,7 +810,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                FanDests(entity.transform.position, AimPos(entity), 8, 30f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 8, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -830,7 +830,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position, AimPos(entity));
+            context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -859,7 +859,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -878,7 +878,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -901,7 +901,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -925,7 +925,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -944,7 +944,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -969,7 +969,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -995,14 +995,14 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             // 链式跳：记录「发射者 → 第一目标 → 第二目标」三个 id
-            var first = GetNearestEnemy(entity, CastRange);
+            var first = Utils.TargetSelect.GetNearestEnemy(entity, CastRange);
             var second = first != null
                 ? BattleManager.EntityContainer.GetNearestEnemy(first, Config.chain_jump_radius)
                 : null;
             context.AddInts(first != null ? first.id : entity.id);
             context.AddInts(second != null ? second.id : (first != null ? first.id : entity.id));
             // 无敌人：存正前方直射终点，避免回退自身把弹道冻结在施法者
-            if (first == null) context.AddVectors(GetWeaponFloatPosition(entity), AimPos(entity));
+            if (first == null) context.AddVectors(GetWeaponFloatPosition(entity), Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1045,7 +1045,7 @@ namespace Ros.Skill
             if (caster == null) return;
             GiveEffect(caster, EffectType.Shield, 1, Config.buff_duration_buff,
                 shieldValue: Config.buff_shield_value, sourceId: caster.id);
-            var ally = GetNearestAlly(caster);
+            var ally = Utils.TargetSelect.GetNearestAlly(caster);
             if (ally != null)
             {
                 GiveEffect(ally, EffectType.Shield, 1, Config.buff_duration_buff,
@@ -1086,7 +1086,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1095,10 +1095,10 @@ namespace Ros.Skill
         {
             var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(TargetBuffer[i], EffectType.AttrStrength, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrStrength, 1, Config.buff_duration_buff,
                     value: Config.buff_attr_value, sourceId: caster.id);
             }
         }
@@ -1115,7 +1115,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                CircleDests(entity.transform.position, 3f, 8));
+                Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1139,7 +1139,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1163,7 +1163,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1183,7 +1183,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall,
-                FanDests(entity.transform.position, AimPos(entity), 5, 30f));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1206,7 +1206,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 14);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1229,7 +1229,7 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
@@ -1239,10 +1239,10 @@ namespace Ros.Skill
             var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, TargetBuffer);
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }

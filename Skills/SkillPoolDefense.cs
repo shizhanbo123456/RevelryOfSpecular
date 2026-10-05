@@ -39,7 +39,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var tower = SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
+            var tower = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (tower != null) context.AddInts(tower.id);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
@@ -76,7 +76,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var crystal = SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
+            var crystal = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (crystal != null) context.AddInts(crystal.id);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
@@ -110,8 +110,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);
@@ -193,10 +193,10 @@ namespace Ros.Skill
         {
             var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             if (caster == null) return;
-            SetEntitiesInCampToBuffer(caster.camp); // 己方全体
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            Utils.TargetSelect.SetEntitiesInCampToBuffer(caster.camp); // 己方全体
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(TargetBuffer[i], EffectType.AttrViewDistance, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrViewDistance, 1, Config.buff_duration_buff,
                     value: Config.infinite_view_distance, sourceId: caster.id);
             }
         }
@@ -257,7 +257,7 @@ namespace Ros.Skill
             {
                 var type = EntityType.Zombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
                 if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_zombie_level,
-                    caster.transform.position + SummonOffset(i), EntityCamp.Zombie);
+                    caster.transform.position + Utils.TargetSelect.SummonOffset(i), EntityCamp.Zombie);
             }
         }
 
@@ -319,7 +319,7 @@ namespace Ros.Skill
                 // 种类范围是精英僵尸自己的 14 种，不是普通僵尸的 21 种外观变体
                 var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
                 if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_elite_level,
-                    caster.transform.position + SummonOffset(i, 3f), EntityCamp.Zombie);
+                    caster.transform.position + Utils.TargetSelect.SummonOffset(i, 3f), EntityCamp.Zombie);
             }
         }
 
@@ -339,8 +339,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -372,8 +372,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全场敌方
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全场敌方
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -405,8 +405,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);
@@ -441,8 +441,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
             {
                 OnCast(context);
@@ -487,11 +487,11 @@ namespace Ros.Skill
         {
             var caster = SkillBase.SkillContextConventions.GetCasterById(context);
             // 「矿石」即可采集水晶：直接造成巨量伤害 = 击败水晶，走概率产出流程
-            SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
+            Utils.TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
                 caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                if (TargetBuffer[i] != null) TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
+                if (Utils.TargetSelect.TargetBuffer[i] != null) Utils.TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
             }
         }
 
@@ -510,10 +510,10 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             // 目标 = 全场带「瘟疫标记」的敌人
-            SetEntitiesInCampToBuffer(HostileOf(entity.camp));
-            for (int i = 0; i < TargetBuffer.Count; i++)
+            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp));
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                var marked = TargetBuffer[i];
+                var marked = Utils.TargetSelect.TargetBuffer[i];
                 if (marked != null && marked.effectController != null
                     && marked.effectController.GetLevel(EffectType.PlagueMark) > 0)
                 {
@@ -559,7 +559,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
-                FanDests(entity.transform.position, AimPos(entity), shots, spreadDeg));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
             {
                 OnCast(context);
@@ -596,7 +596,7 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier,
-                FanDests(entity.transform.position, AimPos(entity), shots, spreadDeg));
+                Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
             {
                 OnCast(context);
@@ -633,8 +633,8 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            SetEntitiesInCampToBuffer(HostileOf(entity.camp)); // 全体敌方
-            SkillBase.SkillContextConventions.AddTargets(context, TargetBuffer);
+            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全体敌方
+            SkillBase.SkillContextConventions.AddTargets(context, Utils.TargetSelect.TargetBuffer);
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
             {
                 OnCast(context);

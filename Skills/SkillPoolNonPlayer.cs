@@ -203,7 +203,7 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             // 灵火在攻击生成时查询一次：之后塔身上的 Buff 变化不影响这一发
             bool blaze = entity.effectController != null && entity.effectController.HasEffect(EffectType.TowerBlaze);
             context.AddInts(blaze ? 1 : 0);
@@ -254,7 +254,7 @@ namespace Ros.Skill
 
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, AimPos(entity));
+            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
             OnCast(context); // 无动画组件：释放即生效
             return context;
         }
