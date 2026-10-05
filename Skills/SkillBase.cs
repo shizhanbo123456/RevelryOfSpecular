@@ -143,6 +143,7 @@ namespace Ros.Skill
         #endregion
 
         #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
+        [Obsolete]
         protected BulletTrajectory Line(SkillContext context, int index, float duration)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
@@ -151,14 +152,14 @@ namespace Ros.Skill
             t.Duration = duration;
             return t;
         }
-
+        [Obsolete]
         protected static BulletTrajectory Point(SkillContext context, int index, float duration)
         {
             var t = new PointTrajectory(SkillContextConventions.GetShotDestination(context, index));
             t.Duration = duration;
             return t;
         }
-
+        [Obsolete]
         protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
@@ -167,7 +168,7 @@ namespace Ros.Skill
             t.Duration = duration;
             return t;
         }
-
+        [Obsolete]
         protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
         {
             Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotAimPoint(this, context, index);
@@ -242,7 +243,7 @@ namespace Ros.Skill
             }
         }
         #endregion
-
+        [Obsolete]
         internal static class SkillContextConventions
         {
             public const int CasterIdIndex = 0;

@@ -1,5 +1,7 @@
+using Ros.Transport;
 using System.Collections.Generic;
 using UnityEngine;
+using static Ros.Skill.SkillBase;
 
 namespace Ros.Skill.Utils
 {
@@ -163,6 +165,36 @@ namespace Ros.Skill.Utils
                     return dest;
                 }
             }
+        }
+    }
+    public static class TrialConstructor
+    {
+        public static BulletTrajectory Line(Vector3 from,Vector3 to, float duration)
+        {
+            var t = new LineTrajectory(from, to);
+            t.Duration = duration;
+            return t;
+        }
+
+        public static BulletTrajectory Point(Vector3 point, float duration)
+        {
+            var t = new PointTrajectory(point);
+            t.Duration = duration;
+            return t;
+        }
+
+        public static BulletTrajectory SkyFall(Vector3 from, Vector3 to, float duration, float skyHeight = 30f)
+        {
+            var t = new SkyFallTrajectory(from, to, skyHeight);
+            t.Duration = duration;
+            return t;
+        }
+
+        public static BulletTrajectory Arc(Vector3 from,Vector3 to, float duration, float height = 8f)
+        {
+            var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
+            t.Duration = duration;
+            return t;
         }
     }
 }
