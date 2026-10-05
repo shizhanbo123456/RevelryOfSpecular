@@ -1,6 +1,7 @@
 using Ros.Transport;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -114,7 +115,8 @@ namespace Ros.Skill
 
         protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)
         {
-            for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
+            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
+            for (int i = 0; i < count; i++)
             {
                 if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(entity, attack, CreateTrajectory(context, i));
             }
@@ -142,193 +144,73 @@ namespace Ros.Skill
         }
         #endregion
 
-        #region 常用轨迹构建（CreateTrajectory 的默认实现，技能按需调用）
-        [Obsolete]
-        protected BulletTrajectory Line(SkillContext context, int index, float duration)
+        #region 上下文构建与双端解析（替代已弃用的 SkillContextConventions）
+        // 弹道技能标准布局：ints[0]=施放者id，ints[1]=武器槽位；vectors 每 2 个 = 一发的(冻结起点, 冻结终点)
+        protected SkillContext BuildShotContext(EntityData entity, params Vector3[] dests)
         {
-            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
-            Vector3 to = SkillContextConventions.GetShotAimPoint(this, context, index);
-            var t = new LineTrajectory(from, to);
-            t.Duration = duration;
-            return t;
-        }
-        [Obsolete]
-        protected static BulletTrajectory Point(SkillContext context, int index, float duration)
-        {
-            var t = new PointTrajectory(SkillContextConventions.GetShotDestination(context, index));
-            t.Duration = duration;
-            return t;
-        }
-        [Obsolete]
-        protected BulletTrajectory SkyFall(SkillContext context, int index, float duration, float skyHeight = 30f)
-        {
-            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index);
-            Vector3 to = SkillContextConventions.GetShotAimPoint(this, context, index);
-            var t = new SkyFallTrajectory(from, to, skyHeight);
-            t.Duration = duration;
-            return t;
-        }
-        [Obsolete]
-        protected BulletTrajectory Arc(SkillContext context, int index, float duration, float height = 8f)
-        {
-            Vector3 from = SkillContextConventions.GetShotOrigin(this, context, index), to = SkillContextConventions.GetShotAimPoint(this, context, index);
-            var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
-            t.Duration = duration;
-            return t;
-        }
-        #endregion
-
-        #region 客户端特效播放（技能 PlayVFX 的默认实现，技能按需调用）
-        [Obsolete]
-        protected void PlayAlong(SkillContext context, SkillVfxKind kind, int[] vfx)
-        {
-            if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
-            for (int i = 0; i < SkillContextConventions.GetShotCount(context); i++)
-            {
-                var trajectory = CreateTrajectory(context, i);
-                if (trajectory != null) PlayOne(kind, vfx[Mathf.Min(i, vfx.Length - 1)], trajectory);
-            }
+            var context = new SkillContext();
+            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+            if (slot < 0) slot = 0;
+            context.AddInts(entity.id, slot);
+            Vector3 origin = GetWeaponFloatPosition(entity, slot);
+            foreach (var dest in dests) context.AddVectors(origin, dest);
+            return context;
         }
 
-        [Obsolete]
-        protected void PlayFollow(SkillVfxKind kind, int index, ushort entityId, float lifeTime = 0f)
+        protected static EntityData GetCaster(SkillContext context)
+            => context != null && context.ints.Count > 0 ? BattleManager.GetEntity((ushort)context.ints[0]) : null;
+
+        // 双端实时起点：服务器取实体武器槽，客户端按同一规则镜像（弹簧/碰撞体）
+        protected Vector3 GetShotOrigin(SkillContext context, int index)
         {
-            if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
-            var trajectory = new FollowTrajectory(entityId);
-            if (lifeTime > 0f) trajectory.Duration = lifeTime;
-            PlayOne(kind, index, trajectory);
+            ushort casterId = context != null && context.ints.Count > 0 ? (ushort)context.ints[0] : (ushort)0;
+            int slot = context != null && context.ints.Count > 1 ? context.ints[1] : 0;
+            EntityData caster = BattleManager.GetEntity(casterId);
+            if (caster != null) return GetWeaponFloatPosition(caster, slot);
+            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+            return players != null && players.TryGetShotOrigin(casterId, slot, Weapon.IsValid, out var pos) ? pos : Vector3.zero;
         }
 
-        [Obsolete]
-        protected void PlayFollowAll(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
+        // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
+        protected Vector3 GetShotAim(SkillContext context, int index)
         {
-            if (Tool.VfxManager == null || kind == SkillVfxKind.None) return;
-            for (int i = 0; i < SkillContextConventions.TargetCount(context); i++) PlayFollow(kind, index, SkillContextConventions.GetTargetId(context, i), lifeTime);
+            Vector3 origin = GetShotOrigin(context, index);
+            if (context == null || context.vectors == null || index * 2 + 1 >= context.vectors.Count) return origin;
+            Vector3 offset = context.vectors[index * 2 + 1] - context.vectors[index * 2];
+            offset.y = 0f;
+            return origin + offset;
         }
 
-        [Obsolete]
-        protected void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration)
+        // 目标列表技能：把目标 id 逐个写入上下文（ints[1..]）
+        protected static void AddTargetIds(SkillContext context, List<EntityData> targets)
         {
-            if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
-            switch (kind)
-            {
-                case SkillVfxKind.Bullet:
-                    Tool.VfxManager.PlayBulletVFX(index, pos, Quaternion.identity, duration);
-                    break;
-                case SkillVfxKind.Shield:
-                    Tool.VfxManager.PlayShieldVFX(index, pos, Quaternion.identity, duration);
-                    break;
-                case SkillVfxKind.Buff:
-                    Tool.VfxManager.PlayBuffVFX(index, pos, Quaternion.identity, duration);
-                    break;
-                case SkillVfxKind.Weapon:
-                    Tool.VfxManager.PlayWeaponVFX(Weapon, pos, Quaternion.identity, duration);
-                    break;
-                case SkillVfxKind.RangeMagic:
-                    Tool.VfxManager.PlayRangeMagicVFX(index, pos, Quaternion.identity, duration);
-                    break;
-                case SkillVfxKind.MagicCircle:
-                    Tool.VfxManager.PlayMagicCircleVFX(index, pos, duration);
-                    break;
-            }
+            if (context == null || targets == null) return;
+            for (int i = 0; i < targets.Count; i++)
+                if (targets[i] != null) context.AddInts(targets[i].id);
         }
 
-        [Obsolete]
-        private void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory)
+        // 逐发轨迹枚举（服务器结算与客户端的 VfxHelper.PlayAlong 共用，保证双端一致）
+        protected IEnumerable<BulletTrajectory> ShotTrajectories(SkillContext context)
         {
-            float life = trajectory.Duration;
-            switch (kind)
-            {
-                case SkillVfxKind.Weapon:
-                    Tool.VfxManager.PlayWeaponVFX(Weapon, trajectory);
-                    break;
-                case SkillVfxKind.Bullet when index >= 0:
-                    Tool.VfxManager.PlayBulletVFX(index, trajectory);
-                    break;
-                case SkillVfxKind.Shield when index >= 0:
-                    Tool.VfxManager.PlayShieldVFX(index, trajectory);
-                    break;
-                case SkillVfxKind.Buff when index >= 0:
-                    Tool.VfxManager.PlayBuffVFX(index, trajectory);
-                    break;
-                case SkillVfxKind.RangeMagic:
-                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory, life);
-                    break;
-                case SkillVfxKind.MagicCircle:
-                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory, life);
-                    break;
-            }
+            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
+            for (int i = 0; i < count; i++) yield return CreateTrajectory(context, i);
+        }
+
+        // 弹道类 Vfx 便捷封装：直转 VfxHelper.PlayAlong（vfx 长度不足时循环复用首个下标）
+        protected void PlayShotVfx(SkillContext context, SkillVfxKind kind, params int[] vfx)
+        {
+            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
+            if (count <= 0 || vfx == null || vfx.Length == 0) return;
+            var vfxEnum = vfx.Length == 1 ? Enumerable.Repeat(vfx[0], count) : vfx.Take(count);
+            VfxHelper.PlayAlong(kind, vfxEnum.GetEnumerator(), ShotTrajectories(context).GetEnumerator());
+        }
+
+        // 群体跟随 Vfx 便捷封装：目标取自上下文 ints[1..]
+        protected void PlayTargetsVfx(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
+        {
+            if (context == null || context.ints.Count <= 1) return;
+            VfxHelper.PlayFollowAll(kind, index, context.ints.Skip(1).GetEnumerator(), lifeTime);
         }
         #endregion
-        [Obsolete]
-        internal static class SkillContextConventions
-        {
-            public const int CasterIdIndex = 0;
-            public const int PatternIndex = 1;
-            public const int SlotIndex = 2;
-
-            public static SkillContext BuildShotContext(SkillBase skill, EntityData entity, ProjectilePattern pattern, params Vector3[] dests)
-            {
-                var context = new SkillContext();
-                int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-                context.AddInts(entity.id, (int)pattern, slot < 0 ? 0 : slot);
-                Vector3 origin = skill.GetWeaponFloatPosition(entity);
-                foreach (var dest in dests) context.AddVectors(origin, dest);
-                return context;
-            }
-
-            public static ushort GetCasterId(SkillContext context) =>
-                context != null && context.ints.Count > CasterIdIndex ? (ushort)context.ints[CasterIdIndex] : (ushort)0;
-
-            public static int GetCastingSlotIndex(SkillContext context) =>
-                context != null && context.ints.Count > SlotIndex ? context.ints[SlotIndex] : 0;
-
-            // 每发 {起点, 终点} 成对存于 vectors；终点冻结于前摇瞬间，供敌人前摇闪避
-            public static Vector3 GetShotDestination(SkillContext context, int index) => context.vectors[index * 2 + 1];
-
-            public static int GetShotCount(SkillContext context) =>
-                context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
-
-            // 起点在攻击帧实时取：服务器用实体，客户端按同规则镜像（自己的弹簧/碰撞体），保证弹道同源
-            public static Vector3 GetShotOrigin(SkillBase skill, SkillContext context, int index)
-            {
-                ushort casterId = GetCasterId(context);
-                int slot = GetCastingSlotIndex(context);
-                EntityData caster = GetCasterById(context);
-                if (caster != null) return skill.GetWeaponFloatPosition(caster, slot);
-                var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
-                if (players == null) return Vector3.zero;
-                return players.TryGetShotOrigin(casterId, slot, skill.Weapon.IsValid, out var pos) ? pos : Vector3.zero;
-            }
-
-            // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（偏移 Y 清零 → 水平）。
-            // 起点随攻击动画位移实时取，弹道整体随位移前移；偏移（方向/距离）仍冻结，敌人仍可闪避。
-            public static Vector3 GetShotAimPoint(SkillBase skill, SkillContext context, int index)
-            {
-                Vector3 origin = GetShotOrigin(skill, context, index);
-                Vector3 offset = context.vectors[index * 2 + 1] - context.vectors[index * 2];
-                offset.y = 0f;
-                return origin + offset;
-            }
-
-            public static void AddTargets(SkillContext context, List<EntityData> targets)
-            {
-                if (context == null || targets == null) return;
-                for (int i = 0; i < targets.Count; i++)
-                    if (targets[i] != null) context.AddInts(targets[i].id);
-            }
-
-            // 多目标布局：ints[0]=施放者，目标从 ints[1] 起
-            public static int TargetCount(SkillContext context) =>
-                context != null && context.ints != null && context.ints.Count > 1 ? context.ints.Count - 1 : 0;
-
-            public static ushort GetTargetId(SkillContext context, int index) => (ushort)context.ints[index + 1];
-
-            public static EntityData GetCasterById(SkillContext context, int idIndex = CasterIdIndex)
-            {
-                if (context == null || idIndex < 0 || idIndex >= context.ints.Count) return null;
-                return BattleManager.GetEntity((ushort)context.ints[idIndex]);
-            }
-        }
     }
 }

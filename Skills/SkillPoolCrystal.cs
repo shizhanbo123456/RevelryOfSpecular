@@ -75,13 +75,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1f, 0.45f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1f, 0.45f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 39 });
     }
 
     public class SkillFlyingKnife : SkillBase
@@ -93,16 +93,16 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.9f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.2f, 0.45f));
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.9f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.2f, 0.45f));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Weapon, null);
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
+            PlayShotVfx(context, SkillVfxKind.Weapon, (int)Weapon);
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 45 });
         }
     }
 
@@ -115,14 +115,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 2, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.6f, 0.5f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 41 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.6f, 0.5f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 39, 41 });
     }
 
     public class SkillChargeSlash : SkillBase
@@ -140,10 +140,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster != null) caster.SetMotion(new MotionDash(0.4f, 10f)); // 冲锋位移（速度积分，不瞬移）
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]); // BF28
     }
 
     public class SkillWhirlSlash : SkillBase
@@ -155,14 +155,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R_And_L, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.8f, 0.5f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 40 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.5f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.8f, 0.5f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 40 });
     }
 
     public class SkillBreakEndureSlash : SkillBase
@@ -174,21 +174,21 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 2.2f, 0.5f, breakEndure: true,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
 
         // 命中目标身上的 BF21 麻痹黄由客户端 Buff 表驱动（Config.buff_vfx）
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 41 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 41 });
     }
 
     public class SkillFanSwordQi : SkillBase
@@ -200,14 +200,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.3f, 0.45f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 39, 40, 41 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.3f, 0.45f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 39, 40, 41 });
     }
 
     public class SkillCaptureThrow : SkillBase
@@ -219,22 +219,22 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 1.5f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 1.5f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
-            StrikeSphere(caster, SkillBase.SkillContextConventions.GetShotDestination(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
+            StrikeSphere(caster, context.vectors[1], 1.5f, BuildAttack(caster, 1f, 1.5f,
                 addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Weapon, null);
-            PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
+            PlayShotVfx(context, SkillVfxKind.Weapon, (int)Weapon);
+            PlayShotVfx(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
         }
     }
 
@@ -254,13 +254,13 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[1], 20f)); // 位移到目标点
         }
         public override void PlayVFX(SkillContext context)
         {
-            PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.2f); // MC7 起点
-            PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[1], 1.2f); // MC7 终点
+            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.2f); // MC7 起点
+            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[1], 1.2f); // MC7 终点
         }
     }
 
@@ -281,11 +281,11 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, context.vectors[1], 1.2f, BuildAttack(caster, 2f, 1.2f));
         }
         public override void PlayVFX(SkillContext context)
-            => PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[1], 1.2f); // RM5
+            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[1], 1.2f); // RM5
     }
 
     public class SkillBladeDance : SkillBase
@@ -304,10 +304,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster), 0.6f, BuildAttack(caster, 1.4f, 0.6f));
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Bullet, 40, SkillBase.SkillContextConventions.GetCasterId(context));
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Bullet, 40, (ushort)context.ints[0]);
     }
     #endregion
 
@@ -321,16 +321,16 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 1f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.2f, 0.45f));
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 1f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.2f, 0.45f));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Weapon, null);
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 48 });
+            PlayShotVfx(context, SkillVfxKind.Weapon, (int)Weapon);
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 48 });
         }
     }
 
@@ -343,13 +343,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.6f, 0.5f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 51 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.6f, 0.5f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 51 });
     }
 
     public class SkillThunderSpear : SkillBase
@@ -361,16 +361,16 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.9f, 0.8f));
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.9f, 0.8f));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Weapon, null);
-            PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5 落点
+            PlayShotVfx(context, SkillVfxKind.Weapon, (int)Weapon);
+            PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5 落点
         }
     }
 
@@ -383,19 +383,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 1.5f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 1.5f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
-            StrikeSphere(caster, SkillBase.SkillContextConventions.GetShotDestination(context, 0), 1.5f, BuildAttack(caster, 1f, 1.5f,
+            StrikeSphere(caster, context.vectors[1], 1.5f, BuildAttack(caster, 1f, 1.5f,
                 addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.MagicCircle, new[] { 2 }); // MC3
     }
 
     public class SkillThrustDash : SkillBase
@@ -413,10 +413,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster != null) caster.SetMotion(new MotionDash(0.3f, 12f)); // 突进位移
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]); // BF28
     }
 
     public class SkillSweepPole : SkillBase
@@ -435,7 +435,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             StrikeSphere(caster, HandPos(caster), 0.9f, BuildAttack(caster, 1.5f, 0.9f, knockback: 3f));
         }
         public override void PlayVFX(SkillContext context) { } // 无特效
@@ -449,24 +449,24 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(context.vectors[1], 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 0 }); // MC1
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.MagicCircle, new[] { 0 }); // MC1
     }
 
     public class SkillSpearRain : SkillBase
@@ -478,17 +478,17 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 2.4f, 0.7f));
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.5f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 2.4f, 0.7f));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 47 });
-            PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5 落点
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 47 });
+            PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5 落点
         }
     }
     #endregion
@@ -503,13 +503,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1f, 0.4f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1f, 0.4f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 42 });
     }
 
     public class SkillFanShotgun : SkillBase
@@ -521,14 +521,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 25f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.2f, 0.4f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 42, 43, 44 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.2f, 0.4f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 42, 43, 44 });
     }
 
     public class SkillArmorPiercer : SkillBase
@@ -540,13 +540,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.5f, 0.4f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.5f, 0.4f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
     public class SkillGrenade : SkillBase
@@ -558,13 +558,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.2f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 2f, 1f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 2f, 1f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }
 
     public class SkillIncendiary : SkillBase
@@ -580,14 +580,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ShootAll(caster, context,
                 BuildAttack(caster, 1.2f, 0.4f, addEffect: Burn(caster != null ? caster.id : (ushort)0)));
         }
@@ -595,7 +595,7 @@ namespace Ros.Skill
         private static Action<EntityEffectController> Burn(ushort casterId) => effect => effect.AddEffect(
             EffectType.Burning, 1, BurnDuration, negative: true,
             payload: new EntityEffectController.EffectPayload { damage = BurnDamagePerTick, sourceId = casterId });
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 15 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 15 });
     }
 
     public class SkillFreezeRound : SkillBase
@@ -607,19 +607,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 18 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 18 });
     }
 
     public class SkillParalysisRound : SkillBase
@@ -631,19 +631,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 5 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 5 });
     }
 
     public class SkillToxicRound : SkillBase
@@ -655,20 +655,20 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.2f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 1f,
                 addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
                     damage: Config.buff_dot_damage, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 0 }); // RM1
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 0 }); // RM1
     }
 
     public class SkillHeavyBreaker : SkillBase
@@ -680,19 +680,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.6f, 0.45f,
                 addEffect: ApplyEffect(EffectType.AnimSlowDown, 1, Config.buff_duration_debuff, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 49 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 49 });
     }
 
     public class SkillInspireRound : SkillBase
@@ -715,15 +715,15 @@ namespace Ros.Skill
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             GiveEffect(caster, EffectType.AnimSpeedUp, 1, Config.buff_duration_buff, sourceId: casterId);
-            for (int i = 0; i < SkillBase.SkillContextConventions.TargetCount(context); i++)
+            for (int i = 0; i < (context.ints.Count - 1); i++)
             {
-                var ally = BattleManager.GetEntity(SkillBase.SkillContextConventions.GetTargetId(context, i));
+                var ally = BattleManager.GetEntity((ushort)context.ints[i + 1]);
                 if (ally != null && ally.id != casterId)
                 {
                     GiveEffect(ally, EffectType.AnimSpeedUp, 1, Config.buff_duration_buff, sourceId: casterId);
@@ -733,8 +733,8 @@ namespace Ros.Skill
         // 泡泡球仅为表现：服务器不做子弹命中判定
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 57 }); // B57 蓝泡泡球
-            PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context));  // BF28 环绕风（自身）
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 57 }); // B57 蓝泡泡球
+            VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]);  // BF28 环绕风（自身）
         }
     }
 
@@ -747,17 +747,17 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.1f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ShootAll(caster, context, BuildAttack(caster, 0.4f, 1.2f, knockback: 5f));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
     }
 
     public class SkillBlinkDash : SkillBase
@@ -776,10 +776,10 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster != null) caster.SetMotion(new MotionToPoint(context.vectors[0], 28f)); // 长距闪现
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Buff, 27, SkillBase.SkillContextConventions.GetCasterId(context)); // BF28
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]); // BF28
     }
 
     public class SkillSnipe : SkillBase
@@ -791,13 +791,13 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.5f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 3f, 0.35f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 45 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.5f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 3f, 0.35f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 45 });
     }
 
     public class SkillBulletSpray : SkillBase
@@ -809,14 +809,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 13);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 8, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.6f);
-        protected override void OnCast(SkillContext context) => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1f, 0.4f));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 44 });
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
+        protected override void OnCast(SkillContext context) => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1f, 0.4f));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 44 });
     }
 
     public class SkillAirstrikeMark : SkillBase
@@ -836,15 +836,15 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             // 不延时：动画攻击帧直接对标记落点结算轰炸
             StrikeSphere(caster, context.vectors[1], Config.airstrike_radius,
                 BuildAttack(caster, 2f, Config.airstrike_radius, useMagic: true));
         }
         public override void PlayVFX(SkillContext context)
         {
-            PlayAt(SkillVfxKind.MagicCircle, 7, context.vectors[1], 2f);  // MC8 标记
-            PlayAt(SkillVfxKind.RangeMagic, 5, context.vectors[1], 1.5f); // RM6 光柱
+            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 7, context.vectors[1], 2f);  // MC8 标记
+            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 5, context.vectors[1], 1.5f); // RM6 光柱
         }
     }
     #endregion
@@ -859,14 +859,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1f, 0.4f, useMagic: true));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 0 });
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1f, 0.4f, useMagic: true));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 0 });
     }
 
     public class SkillFireball : SkillBase
@@ -878,17 +878,17 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.5f, 1f, useMagic: true));
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.5f, 1f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 15 });
-            PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 15 });
+            PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
         }
     }
 
@@ -901,19 +901,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.4f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 18 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 18 });
     }
 
     public class SkillWindBlade : SkillBase
@@ -925,14 +925,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.3f, 0.45f, useMagic: true));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 46 });
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.3f, 0.45f, useMagic: true));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 46 });
     }
 
     public class SkillPoisonOrb : SkillBase
@@ -944,20 +944,20 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1f, 0.4f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
                     damage: Config.buff_dot_damage, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 10 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 10 });
     }
 
     public class SkillRockfall : SkillBase
@@ -969,17 +969,17 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.1f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 1.6f, 0.9f, useMagic: true));
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 1.6f, 0.9f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 25 });
-            PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 25 });
+            PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
         }
     }
 
@@ -1010,20 +1010,20 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
             // 首目标 id == 施法者 → 无敌人（见 SkillLogic）：改走正前方直射
-            if (SkillBase.SkillContextConventions.GetTargetId(context, 0) == SkillBase.SkillContextConventions.GetCasterId(context))
-                return Line(context, index, Config.chain_jump_duration);
-            var trajectory = new ChainTrajectory(SkillBase.SkillContextConventions.GetCasterId(context), SkillBase.SkillContextConventions.GetTargetId(context, 0), SkillBase.SkillContextConventions.GetTargetId(context, 1));
+            if ((ushort)context.ints[1] == (ushort)context.ints[0])
+                return TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), Config.chain_jump_duration);
+            var trajectory = new ChainTrajectory((ushort)context.ints[0], (ushort)context.ints[1], (ushort)context.ints[2]);
             trajectory.Duration = Config.chain_jump_duration;
             return trajectory;
         }
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             var attack = BuildAttack(caster, 1.4f, 0.45f, useMagic: true);
             if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 3 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 3 });
     }
 
     public class SkillLightShield : SkillBase
@@ -1041,7 +1041,7 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster == null) return;
             GiveEffect(caster, EffectType.Shield, 1, Config.buff_duration_buff,
                 shieldValue: Config.buff_shield_value, sourceId: caster.id);
@@ -1052,7 +1052,7 @@ namespace Ros.Skill
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }
-        public override void PlayVFX(SkillContext context) => PlayFollow(SkillVfxKind.Shield, 5, SkillBase.SkillContextConventions.GetCasterId(context)); // S6
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Shield, 5, (ushort)context.ints[0]); // S6
     }
 
     public class SkillPurgeWave : SkillBase
@@ -1071,11 +1071,11 @@ namespace Ros.Skill
         }
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster != null && caster.effectController != null) caster.effectController.RemoveAllNegative(); // 净化：移除自身全部负面 Buff
         }
         public override void PlayVFX(SkillContext context)
-            => PlayAt(SkillVfxKind.MagicCircle, 1, context.vectors[0], 1.2f); // MC2
+            => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 1, context.vectors[0], 1.2f); // MC2
     }
 
     public class SkillInspireCircle : SkillBase
@@ -1086,23 +1086,23 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster == null) return;
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(context.vectors[1], 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrStrength, 1, Config.buff_duration_buff,
                     value: Config.buff_attr_value, sourceId: caster.id);
             }
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 9 }); // MC10
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.MagicCircle, new[] { 9 }); // MC10
     }
 
     public class SkillFrostNova : SkillBase
@@ -1114,20 +1114,20 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.7f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.5f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 20 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 20 });
     }
 
     public class SkillThunderFall : SkillBase
@@ -1139,19 +1139,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.2f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             ShootAll(caster, context, BuildAttack(caster, 2f, 1f, useMagic: true,
                 addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 3 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 3 });
     }
 
     public class SkillBlackHoleBomb : SkillBase
@@ -1163,14 +1163,14 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Bezier, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Arc(context, index, 1.1f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 2f, 1.5f, useMagic: true));
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 1 }); // RM2
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 2f, 1.5f, useMagic: true));
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 1 }); // RM2
     }
 
     public class SkillStarfall : SkillBase
@@ -1182,18 +1182,18 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 13);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.SkyFall,
+            var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => SkyFall(context, index, 1.6f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.6f);
         protected override void OnCast(SkillContext context)
-            => ShootAll(SkillBase.SkillContextConventions.GetCasterById(context), context, BuildAttack(SkillBase.SkillContextConventions.GetCasterById(context), 2.2f, 0.9f, useMagic: true));
+            => ShootAll(GetCaster(context), context, BuildAttack(GetCaster(context), 2.2f, 0.9f, useMagic: true));
         public override void PlayVFX(SkillContext context)
         {
-            PlayAlong(context, SkillVfxKind.Bullet, new[] { 31 });
-            PlayAlong(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
+            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 31 });
+            PlayShotVfx(context, SkillVfxKind.RangeMagic, new[] { 4 }); // RM5
         }
     }
 
@@ -1206,19 +1206,19 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 14);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Line, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Line(context, index, 0.8f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             Vector3 casterPos = caster != null ? caster.transform.position : Vector3.zero;
             ShootAll(caster, context, BuildAttack(caster, 1.2f, 0.6f, useMagic: true,
                 onHit: PullTo(casterPos)));
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.Bullet, new[] { 1 });
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 1 });
     }
 
     public class SkillArcaneBarrier : SkillBase
@@ -1229,24 +1229,24 @@ namespace Ros.Skill
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = SkillBase.SkillContextConventions.BuildShotContext(this, entity, ProjectilePattern.Point, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => Point(context, index, 2f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
         protected override void OnCast(SkillContext context)
         {
-            var caster = SkillBase.SkillContextConventions.GetCasterById(context);
+            var caster = GetCaster(context);
             if (caster == null) return;
             // 屏障不做阻挡：改为落点范围内的友方护盾
-            BattleManager.EntityContainer.GetAllInCamp(SkillBase.SkillContextConventions.GetShotDestination(context, 0), 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
+            BattleManager.EntityContainer.GetAllInCamp(context.vectors[1], 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.Shield, 1, Config.buff_duration_buff,
                     shieldValue: Config.buff_shield_value, sourceId: caster.id);
             }
         }
-        public override void PlayVFX(SkillContext context) => PlayAlong(context, SkillVfxKind.MagicCircle, new[] { 6 }); // MC7
+        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.MagicCircle, new[] { 6 }); // MC7
     }
     #endregion
 }
