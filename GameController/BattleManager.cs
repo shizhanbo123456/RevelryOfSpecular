@@ -453,7 +453,7 @@ public partial class BattleManager : EnsBehaviour
         float remaining = 0f;
         foreach (var beacon in EntityContainer.Beacons)
         {
-            if (beacon != null && beacon.floatingAttribute != null) remaining += beacon.floatingAttribute.health;
+            if (beacon != null) remaining += beacon.floatingAttribute.health;
         }
         return remaining;
     }

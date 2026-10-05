@@ -142,7 +142,7 @@ public class ZombieEntityData : EntityData
     {
         get
         {
-            float view = floatingAttribute != null && floatingAttribute.viewDistance > 0f
+            float view = floatingAttribute.viewDistance > 0f
                 ? floatingAttribute.viewDistance
                 : Config.zombie_acquire_range;
             return Mathf.Min(view, Config.zombie_max_chase_distance);

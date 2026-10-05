@@ -95,7 +95,7 @@ public partial class BattleManager
     #region 小地图（阵营共享视野）
     private static float VisionRadius(EntityData entity)
     {
-        if (entity == null || entity.floatingAttribute == null) return 0f;
+        if (entity == null) return 0f;
         return Mathf.Max(0f, entity.floatingAttribute.viewDistance);
     }
 

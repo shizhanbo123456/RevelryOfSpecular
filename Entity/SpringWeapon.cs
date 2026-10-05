@@ -59,7 +59,7 @@ public class SpringWeapon : MonoBehaviour
         var prefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;
         if (prefab == null) return null;
         var modelInfo = host.GetComponentInChildren<EntityModelInfo>();
-        float modelHeight = modelInfo != null ? (modelInfo.yRange.y - modelInfo.yRange.x) : 2f;
+        float modelHeight = modelInfo.yRange.y - modelInfo.yRange.x;
         var sw = Object.Instantiate(prefab, host.transform).GetComponent<SpringWeapon>();
         sw.transform.localPosition = Vector3.zero;
         sw.transform.localRotation = Quaternion.identity;

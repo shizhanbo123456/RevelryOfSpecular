@@ -32,6 +32,7 @@ public class EntityPlayerManager : ClientSubManager
         public GameObject[] weaponVisuals;
         public WeaponRef[] weaponRefs;
         public SpringWeapon springWeapon; // 武器漂浮弹簧实例（InfoManager.SpringWeapon 复制，挂表现体下自动跟随）
+        public EntityModelInfo modelInfo; // 烘焙包围盒（CreateView 时缓存，发射点/头顶锚点共用）
         private bool springInited;        // 弹簧仅初始化一次，避免每帧重置把武器重新吸附到抖动位姿
         public Transform cameraAnchor;    // 相机锚点：XY/旋转取实体、高度取 Head（回退 Hips，无骨骼回退实体根）
         public Transform hipsBone;        // 缓存 Hips 骨骼引用（CreateView 赋值，武器/相机共用）
@@ -319,7 +320,7 @@ public class EntityPlayerManager : ClientSubManager
         return true;
     }
 
-    // 客户端技能弹道起点：与服务器 GetWeaponFloatPos 同规则镜像（弹簧槽位；无效武器→碰撞体75%高度）
+    // 客户端技能弹道起点：与服务器 GetWeaponFloatPos 同规则镜像（弹簧槽位；无效武器→烘焙包围盒75%高度）
     public bool TryGetShotOrigin(ushort id, int slot, bool weaponValid, out Vector3 pos)
     {
         pos = Vector3.zero;
@@ -334,13 +335,15 @@ public class EntityPlayerManager : ClientSubManager
         return true;
     }
 
-    // 与 EntityData.BulletShootPos 同公式（作用于客户端表现体）
+    // 与 EntityData.BulletShootPos 同公式（作用于客户端表现体的烘焙包围盒）
     private static Vector3 ViewBulletShootPos(ClientEntityView view)
     {
-        var collider = view.GetComponentInChildren<Collider>();
-        if (collider == null) return view.transform.position;
-        Bounds bounds = collider.bounds;
-        return new Vector3(bounds.center.x, Mathf.Lerp(bounds.min.y, bounds.max.y, 0.75f), bounds.center.z);
+        var m = view.modelInfo;
+        Vector3 local = new Vector3(
+            (m.xRange.x + m.xRange.y) * 0.5f,
+            Mathf.Lerp(m.yRange.x, m.yRange.y, 0.75f),
+            (m.zRange.x + m.zRange.y) * 0.5f);
+        return m.transform.TransformPoint(local);
     }
 
     public void ClearAll()
@@ -358,11 +361,7 @@ public class EntityPlayerManager : ClientSubManager
         if (!TryGetEntityTransform(id, out pos, out _)) return false;
         if (views.TryGetValue(id, out var view) && view != null)
         {
-            if (float.IsNaN(view.modelTop))
-            {
-                var modelInfo = view.GetComponentInChildren<EntityModelInfo>();
-                view.modelTop = modelInfo != null ? modelInfo.yRange.y : 2f;
-            }
+            if (float.IsNaN(view.modelTop)) view.modelTop = view.modelInfo.yRange.y;
             pos += Vector3.up * view.modelTop;
         }
         return true;
@@ -394,6 +393,8 @@ public class EntityPlayerManager : ClientSubManager
         view.type = info.type;
         view.camp = info.camp;
         // 武器漂浮弹簧：复用共享挂载（挂根骨骼 Hips，无骨骼回退角色高度中心；Scale=模型高度/2）
+        view.modelInfo = go.GetComponentInChildren<EntityModelInfo>();
+        if (view.modelInfo == null) Debug.LogError($"客户端实体缺少 EntityModelInfo：{info.type}（id={info.entityId}）");
         view.springWeapon = SpringWeapon.Attach(go);
         // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
         if (info.type.category == EntityCategory.Crystal)
@@ -411,8 +412,7 @@ public class EntityPlayerManager : ClientSubManager
             if (view.anim != null) view.anim.Init(null, null);
 
             // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
-            var modelInfo = go.GetComponentInChildren<EntityModelInfo>();
-            if (modelInfo != null) modelInfo.BuildCapsuleCollider();
+            view.modelInfo.BuildCapsuleCollider();
             view.rb = go.GetComponent<Rigidbody>();
             if (view.rb == null) view.rb = go.AddComponent<Rigidbody>();
             view.rb.isKinematic = true;

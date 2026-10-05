@@ -70,7 +70,7 @@ public abstract class EntityData : MonoBehaviour
 
     public static void ClearKilled() => KilledEntities.Clear();
 
-    public bool Alive => floatingAttribute != null && floatingAttribute.health > 0f;
+    public bool Alive => floatingAttribute.health > 0f;
 
     protected virtual void OnDamageApplied(float finalDamage, EntityData attacker) { }
 
@@ -114,8 +114,9 @@ public abstract class EntityData : MonoBehaviour
 
         anim = GetComponentInChildren<EntityAnim>();
 
-        // 模型大小（预制体烘焙的本地包围盒）：血条/头顶等锚点计算依据；服务器模板无图形时为 null
+        // 模型大小（预制体烘焙的本地包围盒）：血条/头顶锚点与发射点计算依据，所有实体必须挂载
         ModelInfo = GetComponentInChildren<EntityModelInfo>();
+        if (ModelInfo == null) Debug.LogError($"实体缺少 EntityModelInfo：{name}（{type}，id={id}）");
 
         // 预制体/模板上的共用参数（动画类型）：服务端模板与客户端模型参数一致
         var animData = GetComponent<EntityAnimData>();
@@ -132,8 +133,7 @@ public abstract class EntityData : MonoBehaviour
 
         SetupBody();
 
-        // 模型碰撞体：服务器无图形模板时 ModelInfo 为 null，自动跳过
-        if (ModelInfo != null) ModelInfo.BuildCapsuleCollider();
+        ModelInfo.BuildCapsuleCollider();
         InitDynamicCapsule();
 
         // 武器漂浮弹簧：双端共用，服务器发射点 / 客户端视觉都走它（挂载在实体根，不跟随 Hips）
@@ -161,7 +161,7 @@ public abstract class EntityData : MonoBehaviour
         var hips = anim != null && anim.MainAnimator != null ? anim.MainAnimator.GetBoneTransform(HumanBodyBones.Hips) : null;
         float localY = hips != null
             ? hips.position.y - transform.position.y
-            : (ModelInfo != null ? (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f : 0f);
+            : (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
         springWeapon.transform.localPosition = new Vector3(0f, localY, 0f);
     }
 
@@ -411,7 +411,7 @@ public abstract class EntityData : MonoBehaviour
     //击飞
     private bool ApplyKnockback(AttackData attack, Vector3 hitOrigin)
     {
-        if (rb == null || floatingAttribute == null) return false;
+        if (rb == null) return false;
         float v = attack.knockbackPower - floatingAttribute.knockbackResistance;
         if (v <= 0.01f) return false;
 
@@ -437,7 +437,7 @@ public abstract class EntityData : MonoBehaviour
     // 受伤计算（hitPos = 命中位置，飘字优先显示在命中处；DoT/反伤等无范围伤害传 null 回退实体头顶）
     public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false, Vector3? hitPos = null)
     {
-        if (floatingAttribute == null || !Alive) return;
+        if (!Alive) return;
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
         if (effectController != null)
@@ -507,8 +507,8 @@ public abstract class EntityData : MonoBehaviour
             camp = camp,
             position = transform.position,
             yaw = transform.eulerAngles.y,
-            health = floatingAttribute != null ? (int)floatingAttribute.health : 0,   // 当前生命值
-            maxHealth = baseAttribute != null ? (int)baseAttribute.health : 0,        // 生命值上限
+            health = (int)floatingAttribute.health,   // 当前生命值
+            maxHealth = (int)baseAttribute.health,    // 生命值上限
         };
         if (effectController != null) effectController.FillDisplayInfo(info);
         if (skillController != null) skillController.FillDisplayInfo(info);
@@ -526,10 +526,15 @@ public abstract class EntityData : MonoBehaviour
         return BulletShootPos();
     }
 
+    // 从烘焙包围盒取中心 X/Z + 75% 高度（与客户端 ViewBulletShootPos 同公式）
     public Vector3 BulletShootPos()
     {
-        Bounds bounds = GetComponentInChildren<Collider>().bounds;
-        return new Vector3(bounds.center.x, Mathf.Lerp(bounds.min.y, bounds.max.y, 0.75f), bounds.center.z);
+        var m = ModelInfo.transform;
+        Vector3 local = new Vector3(
+            (ModelInfo.xRange.x + ModelInfo.xRange.y) * 0.5f,
+            Mathf.Lerp(ModelInfo.yRange.x, ModelInfo.yRange.y, 0.75f),
+            (ModelInfo.zRange.x + ModelInfo.zRange.y) * 0.5f);
+        return m.TransformPoint(local);
     }
 
     public void Kill()
@@ -561,7 +566,7 @@ public abstract class EntityData : MonoBehaviour
 
     private void InitDynamicCapsule()
     {
-        if (anim == null || ModelInfo == null) return;
+        if (anim == null) return;
         capsule = ModelInfo.GetComponent<CapsuleCollider>();
         if (capsule == null) return;
         if (!TrySampleBoneSpan(ModelInfo.transform, out float footY, out float headY)) return;

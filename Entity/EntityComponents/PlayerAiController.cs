@@ -160,7 +160,7 @@ public class PlayerAiController
     {
         get
         {
-            float view = entity.floatingAttribute != null && entity.floatingAttribute.viewDistance > 0f
+            float view = entity.floatingAttribute.viewDistance > 0f
                 ? entity.floatingAttribute.viewDistance
                 : Config.default_skill_auto_target_radius;
             return Mathf.Min(view, MaxChaseDistance);
@@ -172,8 +172,8 @@ public class PlayerAiController
         get
         {
             var attr = entity.floatingAttribute;
-            float cap = entity.baseAttribute != null ? entity.baseAttribute.health : 0f;
-            return attr == null || cap <= 0f ? 1f : attr.health / cap;
+            float cap = entity.baseAttribute.health;
+            return cap <= 0f ? 1f : attr.health / cap;
         }
     }
 

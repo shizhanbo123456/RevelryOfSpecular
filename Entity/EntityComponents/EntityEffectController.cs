@@ -312,10 +312,8 @@ public class EntityEffectController
 
     private void RecomputeAttributes()
     {
-        if (owner == null || owner.baseAttribute == null) return;
-        float currentHealth = owner.floatingAttribute != null
-            ? owner.floatingAttribute.health
-            : owner.baseAttribute.health;
+        if (owner == null) return;
+        float currentHealth = owner.floatingAttribute.health;
         var attr = owner.baseAttribute.Clone(); // 此刻 attr.health 是"生命值上限"
         foreach (var pair in effects)
         {

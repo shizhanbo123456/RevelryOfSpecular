@@ -31,8 +31,7 @@ public class TestEntityData : EntityData
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
         SetupTestBody();
-        var modelInfo = GetComponentInChildren<EntityModelInfo>();
-        if (modelInfo != null) modelInfo.BuildCapsuleCollider();
+        GetComponentInChildren<EntityModelInfo>().BuildCapsuleCollider();
     }
 
     public override void OnTickMove(float deltaTime, bool canInput)
