@@ -47,18 +47,38 @@ namespace Ros.Skill
             return GetWeaponFloatPosition(entity, slot < 0 ? 0 : slot);
         }
 
-        protected bool WaitAttackFrame(EntityData entity, EntityAnim.AttackType castAnim, System.Action onFrame)
+        // 技能是否带攻击动画：无动画技能（如固定炮台/瘟疫树）按下即施放，不等攻击帧
+        protected virtual bool HasCastAnim => true;
+        // 攻击动画类型（HasCastAnim 为真时生效）
+        protected virtual EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
+
+        // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
+        public void BeginCast(EntityData entity, int skillId)
         {
-            if (entity.anim == null) return false;
-            if (castAnim == EntityAnim.AttackType.Attack_Weapon_R
-                || castAnim == EntityAnim.AttackType.Attack_Weapon_L
-                || castAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
+            if (!HasCastAnim || entity.anim == null)
+            {
+                CastNow(entity, skillId);
+                return;
+            }
+            if (CastAnim == EntityAnim.AttackType.Attack_Weapon_R
+                || CastAnim == EntityAnim.AttackType.Attack_Weapon_L
+                || CastAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
             {
                 entity.heldWeapon = Weapon;
             }
-            entity.anim.onAttack = _ => onFrame();
-            entity.anim.DoAttack(castAnim);
-            return true;
+            entity.anim.onAttack = _ =>
+            {
+                entity.anim.onAttack = null; // 一次施放只在首个攻击帧结算，动画多段命中事件不重复施放
+                CastNow(entity, skillId);
+            };
+            entity.anim.DoAttack(CastAnim);
+        }
+
+        private void CastNow(EntityData entity, int skillId)
+        {
+            SkillContext context = SkillLogic(entity);
+            OnCast(context);
+            if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         }
 
         protected AttackData BuildAttack(EntityData entity, float rate, float radius,
