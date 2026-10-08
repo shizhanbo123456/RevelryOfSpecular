@@ -36,6 +36,7 @@ namespace Ros.Skill
         public override float CD => 15f;
         public override int Store => 8;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -43,10 +44,6 @@ namespace Ros.Skill
             var tower = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (tower != null) context.AddInts(tower.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -73,6 +70,7 @@ namespace Ros.Skill
         public override float CD => 12f;
         public override int Store => 5;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -80,10 +78,6 @@ namespace Ros.Skill
             var crystal = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (crystal != null) context.AddInts(crystal.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -107,16 +101,13 @@ namespace Ros.Skill
         public override float CD => 60f;
         public override int Store => 2;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -142,6 +133,7 @@ namespace Ros.Skill
         public override float CD => 18f;
         public override int Store => 6;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -149,10 +141,6 @@ namespace Ros.Skill
             EntityData markTarget = null;
             if (Tool.BattleManager != null) markTarget = Tool.BattleManager.GetTopHarvester(); // 进攻方采集量最高者
             if (markTarget != null) context.AddInts(markTarget.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -179,14 +167,11 @@ namespace Ros.Skill
         public override float CD => 45f;
         public override int Store => 3;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -211,14 +196,11 @@ namespace Ros.Skill
         public override float CD => 60f;
         public override int Store => 2;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -238,15 +220,12 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 5;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position); // 召唤点 = 施放者位置（客户端在法阵处播特效）
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -271,14 +250,11 @@ namespace Ros.Skill
         public override float CD => 40f;
         public override int Store => 3;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -299,15 +275,12 @@ namespace Ros.Skill
         public override float CD => 60f;
         public override int Store => 1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -336,16 +309,13 @@ namespace Ros.Skill
         public override float CD => 15f;
         public override int Store => 6;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -369,16 +339,13 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 5;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全场敌方
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -402,16 +369,13 @@ namespace Ros.Skill
         public override float CD => 60f;
         public override int Store => 2;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -438,16 +402,13 @@ namespace Ros.Skill
         public override float CD => 2f;
         public override int Store => 12;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -472,15 +433,12 @@ namespace Ros.Skill
         public override float CD => 30f;
         public override int Store => 2;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Short, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -506,6 +464,7 @@ namespace Ros.Skill
         public override float CD => 30f;
         public override int Store => 1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -520,10 +479,6 @@ namespace Ros.Skill
                 {
                     context.AddInts(marked.id);
                 }
-            }
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
             }
             return context;
         }
@@ -557,14 +512,11 @@ namespace Ros.Skill
         public override float CD => 1f;
         public override int Store => 12;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -594,14 +546,11 @@ namespace Ros.Skill
         public override float CD => 2f;
         public override int Store => 12;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -630,16 +579,13 @@ namespace Ros.Skill
         public override float CD => 50f;
         public override int Store => 2;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全体敌方
             AddTargetIds(context, Utils.TargetSelect.TargetBuffer);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Mega_Long, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 

@@ -28,14 +28,11 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Hand_Attack_R, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -56,14 +53,11 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Hand_Attack_L, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -83,14 +77,11 @@ namespace Ros.Skill
         public override float CD => 8f;
         public override int Store => -1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Scream;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Scream, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -114,14 +105,11 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Hand_Attack_R, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -142,14 +130,11 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Hand_Attack_L, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -169,14 +154,11 @@ namespace Ros.Skill
         public override float CD => 8f;
         public override int Store => -1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Scream;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Zombie_Scream, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -202,13 +184,13 @@ namespace Ros.Skill
 
         private const int BlazeFlagIndex = 2;
 
+        protected override bool HasCastAnim => false; // 塔无攻击动画：按下即施放
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
             // 灵火在攻击生成时查询一次：之后塔身上的 Buff 变化不影响这一发
             bool blaze = entity.effectController != null && entity.effectController.HasEffect(EffectType.TowerBlaze);
             context.AddInts(blaze ? 1 : 0);
-            OnCast(context);
             return context;
         }
 
@@ -253,10 +235,10 @@ namespace Ros.Skill
         public override int Store => -1;
         public override float CastRange => Config.plague_tree_attack_range;
 
+        protected override bool HasCastAnim => false; // 无动画组件：按下即施放
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            OnCast(context); // 无动画组件：释放即生效
             return context;
         }
 

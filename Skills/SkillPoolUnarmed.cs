@@ -20,14 +20,11 @@ namespace Ros.Skill
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_L;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_L, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -48,14 +45,11 @@ namespace Ros.Skill
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Hand_R, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 
@@ -76,14 +70,11 @@ namespace Ros.Skill
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
 
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Jump_Mega, () => OnCast(context)))
-            {
-                OnCast(context);
-            }
             return context;
         }
 

@@ -74,10 +74,10 @@ namespace Ros.Skill
         public override float CD => 1f;
         public override int Store => 15;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 0);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -92,10 +92,10 @@ namespace Ros.Skill
         public override float CD => 2f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 1);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.9f);
@@ -114,11 +114,11 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 2);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 2, 30f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -132,11 +132,11 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 3);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -154,11 +154,11 @@ namespace Ros.Skill
         public override float CD => 8f;
         public override int Store => 5;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 4);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R_And_L;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R_And_L, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.5f);
@@ -173,10 +173,10 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 5);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -199,11 +199,11 @@ namespace Ros.Skill
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 6);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 30f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -218,10 +218,10 @@ namespace Ros.Skill
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 7);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 1.5f);
@@ -245,12 +245,12 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 8);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -272,12 +272,12 @@ namespace Ros.Skill
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 9);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Jump_Mega, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -296,11 +296,11 @@ namespace Ros.Skill
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 10);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -320,10 +320,10 @@ namespace Ros.Skill
         public override float CD => 1.5f;
         public override int Store => 15;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 0);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 1f);
@@ -342,10 +342,10 @@ namespace Ros.Skill
         public override float CD => 4f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 1);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
@@ -360,10 +360,10 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 2);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
@@ -382,10 +382,10 @@ namespace Ros.Skill
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 3);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 1.5f);
@@ -405,11 +405,11 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 4);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -427,11 +427,11 @@ namespace Ros.Skill
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 5);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -448,10 +448,10 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 2;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 6);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
@@ -477,11 +477,11 @@ namespace Ros.Skill
         public override float CD => 15f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 7);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.5f);
@@ -502,10 +502,10 @@ namespace Ros.Skill
         public override float CD => 0.5f;
         public override int Store => 20;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 0);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
@@ -520,11 +520,11 @@ namespace Ros.Skill
         public override float CD => 2f;
         public override int Store => 15;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 1);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 3, 25f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
@@ -539,10 +539,10 @@ namespace Ros.Skill
         public override float CD => 2f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -557,10 +557,10 @@ namespace Ros.Skill
         public override float CD => 3.5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
@@ -579,10 +579,10 @@ namespace Ros.Skill
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -606,10 +606,10 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -630,10 +630,10 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -654,10 +654,10 @@ namespace Ros.Skill
         public override float CD => 6f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
@@ -679,10 +679,10 @@ namespace Ros.Skill
         public override float CD => 4f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -702,6 +702,7 @@ namespace Ros.Skill
         public override float CD => 8f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 9);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -713,7 +714,6 @@ namespace Ros.Skill
                 ? ally.transform.position
                 : entity.transform.position + entity.transform.forward * Config.default_skill_auto_target_radius;
             context.AddVectors(GetWeaponFloatPosition(entity), dest);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -746,10 +746,10 @@ namespace Ros.Skill
         public override float CD => 8f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
@@ -767,12 +767,12 @@ namespace Ros.Skill
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 11);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -790,10 +790,10 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 5;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.5f);
@@ -808,11 +808,11 @@ namespace Ros.Skill
         public override float CD => 15f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 13);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 8, 30f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
@@ -827,12 +827,12 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 1;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 14);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -858,10 +858,10 @@ namespace Ros.Skill
         public override float CD => 0.6f;
         public override int Store => 20;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 0);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -877,10 +877,10 @@ namespace Ros.Skill
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 1);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1f);
@@ -900,10 +900,10 @@ namespace Ros.Skill
         public override float CD => 3f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -924,10 +924,10 @@ namespace Ros.Skill
         public override float CD => 2.5f;
         public override int Store => 12;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 3);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -943,10 +943,10 @@ namespace Ros.Skill
         public override float CD => 4f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 4);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -968,10 +968,10 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 5);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
@@ -991,6 +991,7 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 6);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -1004,7 +1005,6 @@ namespace Ros.Skill
             context.AddInts(second != null ? second.id : (first != null ? first.id : entity.id));
             // 无敌人：存正前方直射终点，避免回退自身把弹道冻结在施法者
             if (first == null) context.AddVectors(GetWeaponFloatPosition(entity), Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
 
@@ -1033,11 +1033,11 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 7);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -1062,12 +1062,12 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 8);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
             context.AddVectors(entity.transform.position);
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         protected override void OnCast(SkillContext context)
@@ -1085,10 +1085,10 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
@@ -1113,11 +1113,11 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 6;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.CircleDests(entity.transform.position, 3f, 8));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -1138,10 +1138,10 @@ namespace Ros.Skill
         public override float CD => 10f;
         public override int Store => 5;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 11);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.2f);
@@ -1162,10 +1162,10 @@ namespace Ros.Skill
         public override float CD => 5f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 12);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Arc(GetShotOrigin(context, index), GetShotAim(context, index), 1.1f);
@@ -1181,11 +1181,11 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 13);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity,
                 Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), 5, 30f));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.SkyFall(GetShotOrigin(context, index), GetShotAim(context, index), 1.6f);
@@ -1205,10 +1205,10 @@ namespace Ros.Skill
         public override float CD => 15f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 14);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.8f);
@@ -1228,10 +1228,10 @@ namespace Ros.Skill
         public override float CD => 20f;
         public override int Store => 2;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
-            if (!WaitAttackFrame(entity, EntityAnim.AttackType.Attack_Weapon_R, () => OnCast(context))) OnCast(context);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Point(context.vectors[index * 2 + 1], 2f);
