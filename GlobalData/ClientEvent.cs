@@ -36,6 +36,5 @@ public static class ClientEvent
     public const int ShowLoading = 10301;
     public const int ShowConfirm = 10302;
     public const int ShowFloatingText = 10303;
-    public const int OnRightClickBlocked = 10304;
     #endregion
 }

@@ -85,7 +85,6 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
-        EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
@@ -114,7 +113,6 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
-        EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
     }
 
@@ -633,11 +631,6 @@ public class BattlePage : PageBase
         if (info.ready) return;
         if (panel.m_regeneration_progressbar != null)
             panel.m_regeneration_progressbar.fillAmount = Mathf.Clamp01(info.progress);
-    }
-
-    private void OnRightClickBlocked(string msg)
-    {
-        Tool.UIManager.ShowFlyText(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg);
     }
     #endregion
 

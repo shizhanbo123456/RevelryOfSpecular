@@ -51,7 +51,7 @@
 | Battle | OnScoreUpdate（仅终局一次） | BattleResult.Show + m_t0.Play + 5s 自动关闭 |
 | Battle | Tick 逐帧 | 时间推演 + 昼夜图标旋转 + EntityBar/名牌跟随 |
 | 全局 | OnConnect/OnBattleStart/OnRestartGame | UIManager 统一切页 |
-| 全局 | SCBattleEvent.ShowText / OnRightClickBlocked / OnScoreUpdate 终局 | 全局飘字（UIManager.ShowFloating） |
+| 全局 | SCBattleEvent.ShowText / OnScoreUpdate 终局 | 全局飘字（UIManager.ShowFloating） |
 
 ## 四、可选未做（默认不做，需要再说）
 
