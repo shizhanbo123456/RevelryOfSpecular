@@ -25,6 +25,7 @@ public class BattlePage : PageBase
     private readonly List<ushort> s_expiredMinimapIds = new();
     private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
     private float minimapViewRadius = Config.minimap_view_radius; //当前雷达显示半径（服务器权威，F 键切换）
+    private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
@@ -71,6 +72,18 @@ public class BattlePage : PageBase
     {
         panel.m_btn_exit.onClick.Add(() => { if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld(); }); // 主动退出：NetworkManager 触发 OnExitWorld，UIManager 切回主界面
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
+        ComputeMinimapItemScale();
+    }
+
+    //界面初始化时算：抵消 Minimap 等上层元素（不含页面根 UiScale 适配）的缩放，使图标最终按 FGUI 设计尺寸显示
+    private void ComputeMinimapItemScale()
+    {
+        float upper = 1f;
+        for (GObject o = panel.m_Minimap; o != null && o != Root; o = o.parent)
+        {
+            if (o.scale.x > 0.0001f) upper *= o.scale.x;
+        }
+        minimapItemScale = upper > 0.0001f ? 1f / upper : 1f;
     }
 
     public override void Enter(ShowParam param)
@@ -501,19 +514,36 @@ public class BattlePage : PageBase
         }
 
         bool isSelf = entity.entityId == NetworkManager.battleInfo.playerEntityId;
-        if (!minimapItems.TryGetValue(entity.entityId, out var item))
+        bool isNew = !minimapItems.TryGetValue(entity.entityId, out var item);
+        if (isNew)
         {
             item = UI_MinimapItem.CreateInstance();
+            item.scale = new Vector2(minimapItemScale, minimapItemScale); // 抵消上层缩放，恢复 FGUI 设计尺寸
             panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
             minimapItems[entity.entityId] = item;
             if (isSelf) selfMinimapItem = item;
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
+        if (isNew) LogMinimapSize(entity, item, mapBase); // [临时排查] 打印尺寸
         //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
         float scale = mapBase.width * 0.5f / minimapViewRadius;
         item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
             mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
         RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次都校一次层级
+    }
+
+    // [临时排查] 打印小地图图标自身 + 父链各级的尺寸/缩放，定位"显示远小于 FGUI 设计"的问题（定位完删除）
+    private void LogMinimapSize(SCMinimapEntity entity, UI_MinimapItem item, GGraph mapBase)
+    {
+        var sb = new System.Text.StringBuilder();
+        float net = 1f;
+        for (GObject o = item; o != null; o = o.parent)
+        {
+            net *= o.scale.x;
+            sb.Append($"{o.name}[{o.width}x{o.height} scale=({o.scale.x},{o.scale.y})]");
+            if (o.parent != null) sb.Append(" <- ");
+        }
+        Debug.Log($"[MinimapSize] id={entity.entityId} type={item.m_type.selectedIndex} design={item.width}x{item.height} net={net:0.000} final={item.width * net:0.0}x{item.height * net:0.0} mapBase={mapBase.width}x{mapBase.height} uiScale={UiScale:0.000} screenH={Screen.height} chain: {sb}");
     }
 
     //自身图标永远置顶，不被其它点位遮挡
