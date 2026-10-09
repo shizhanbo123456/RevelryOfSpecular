@@ -48,7 +48,6 @@ public class BattlePage : PageBase
     {
         public int type;     // UI_EventItem 的 type 控制器：0 纯文字 / 1 图标+文字 / 2 文字+图标+文字
         public string text;  // type 0/1 的文本
-        public Color color;  // type 0 的文本颜色
         public int icon;     // type 1/2 的 EventIcon 档位
         public string left;  // type 2 左侧文本（击杀者）
         public string right; // type 2 右侧文本（受害者）
@@ -84,6 +83,8 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
+        EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
@@ -112,6 +113,8 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
+        EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
         if (!settlePlaying) HideSettlement(); //结算切页走正常流程不清理；断线等异常切页时取消动画并隐藏面板
@@ -594,9 +597,6 @@ public class BattlePage : PageBase
         if (e == null) return;
         switch (e.type)
         {
-            case SCBattleEvent.Type.Damage:
-                ShowDamage(e.value, (ushort)e.targetId, e.hasHitPos, e.hitPos);
-                break;
             case SCBattleEvent.Type.Kill:
             {
                 //「玩家A (图标) 玩家B」：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体（名字按归属反查）
@@ -614,14 +614,8 @@ public class BattlePage : PageBase
                 break;
             }
             case SCBattleEvent.Type.BeaconDestroyed:
-                AddTextEvent("守护点被摧毁！", CampAttackColor);
+                AddTextEvent("守护点被摧毁！");
                 SetBeaconDestroyed(e.value);
-                break;
-            case SCBattleEvent.Type.CrystalCollected:
-                AddTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
-                break;
-            case SCBattleEvent.Type.CrystalBroken:
-                AddTextEvent("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
                 break;
             case SCBattleEvent.Type.PlagueTreeCaptured:
                 AddEventEntry(new EventEntry
@@ -631,10 +625,18 @@ public class BattlePage : PageBase
                     text = "攻占瘟疫树！获得瘟疫祝福",
                 });
                 break;
-            case SCBattleEvent.Type.ShowText:
-                AddTextEvent(NoticeMessageMap.Get(e.value), Color.white);
-                break;
         }
+    }
+
+    private void OnShowPrompt(int messageId)
+    {
+        AddTextEvent(NoticeMessageMap.Get(messageId));
+    }
+
+    private void OnDamageDisplay(SCDamage d)
+    {
+        if (d == null) return;
+        ShowDamage(d.value, (ushort)d.targetId, d.hasHitPos, d.hitPos);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -864,7 +866,6 @@ public class BattlePage : PageBase
         {
             case 0:
                 item.m_type0_label.text = entry.text;
-                item.m_type0_label.color = entry.color;
                 break;
             case 1:
                 item.m_type1_loader.m_type.selectedIndex = entry.icon;
@@ -878,9 +879,9 @@ public class BattlePage : PageBase
         }
     }
 
-    private void AddTextEvent(string text, Color color)
+    private void AddTextEvent(string text)
     {
-        AddEventEntry(new EventEntry { type = 0, text = text, color = color });
+        AddEventEntry(new EventEntry { type = 0, text = text });
     }
 
     private void TickEventItems()

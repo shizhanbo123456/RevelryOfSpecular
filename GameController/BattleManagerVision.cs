@@ -51,13 +51,13 @@ public partial class BattleManager
         return IsInRadius(viewer.transform.position, target.transform.position, VisionRadius(viewer));
     }
 
-    public void SendBattleEventToViewers(EntityData target, SCBattleEvent e)
+    public void SendDamageToViewers(EntityData target, SCDamage d)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
             var viewer = GetEntityOfClient(clientId);
             if (viewer == null || !CanSeeModel(viewer, target)) continue;
-            Tool.NetworkManager.SendBattleEvent(clientId, e);
+            Tool.NetworkManager.SendDamage(clientId, d);
         }
     }
 

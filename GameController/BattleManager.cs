@@ -357,11 +357,7 @@ public partial class BattleManager : EnsBehaviour
             if (AIClients.Contains(pair.Key)) continue; // AI 开战前已定阵营
             if (!PlayerCamp.ContainsKey(pair.Key))
             {
-                Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-                {
-                    type = SCBattleEvent.Type.ShowText,
-                    value = 18, // 尚有玩家未选择队伍
-                });
+                Tool.NetworkManager.SendPrompt(clientId, 18); // 尚有玩家未选择队伍
                 return;
             }
         }
@@ -369,11 +365,7 @@ public partial class BattleManager : EnsBehaviour
         if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) <= 0 ||
             PlayerCamp.Values.Count(c => c == EntityCamp.Defense) <= 0)
         {
-            Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-            {
-                type = SCBattleEvent.Type.ShowText,
-                value = 17, // 双方人数均需 > 0
-            });
+            Tool.NetworkManager.SendPrompt(clientId, 17); // 双方人数均需 > 0
             return;
         }
 

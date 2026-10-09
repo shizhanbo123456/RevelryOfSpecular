@@ -468,16 +468,15 @@ public abstract class EntityData : MonoBehaviour
     {
         int display = Mathf.RoundToInt(finalDamage);
         if (isCrit) display = -display;
-        var e = new SCBattleEvent()
+        var d = new SCDamage()
         {
-            type = SCBattleEvent.Type.Damage,
             value = display,
             targetId = id,
             hasHitPos = hitPos.HasValue,
             hitPos = hitPos ?? Vector3.zero,
         };
-        if (Tool.BattleManager != null) Tool.BattleManager.SendBattleEventToViewers(this, e);
-        else Tool.NetworkManager.SendBattleEvent(e);
+        if (Tool.BattleManager != null) Tool.BattleManager.SendDamageToViewers(this, d);
+        else Tool.NetworkManager.SendDamage(d);
     }
 
     public virtual void OnKilled()

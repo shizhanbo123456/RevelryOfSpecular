@@ -46,12 +46,12 @@
 | Lobby | SCRoomInfo | 两成员列表 + AI 数量 + 开始按钮可用性 |
 | Lobby | join 按钮 / AI ± | CSRoomUpdate 上报 |
 | Battle | OnEntityDisplayUpdate | 技能栏整表重渲染、m_PlayerBar、守护点 4 条 |
-| Battle | SCBattleEvent.Damage | DamageLabel（受击实体头顶，世界→屏幕→GRoot 坐标） |
+| Battle | SCDamage（OnDamageDisplay） | DamageLabel（受击实体头顶，世界→屏幕→GRoot 坐标） |
 | Battle | OnMinimapUpdate | MinimapItem 按 10 档位显示；超时未更新（离屏/夜间停传）或超显示半径时由客户端移除，不每帧清空 |
 | Battle | OnScoreUpdate（仅终局一次） | BattleResult.Show + m_t0.Play + 5s 自动关闭 |
 | Battle | Tick 逐帧 | 时间推演 + 昼夜图标旋转 + EntityBar/名牌跟随 |
 | 全局 | OnConnect/OnBattleStart/OnRestartGame | UIManager 统一切页 |
-| 全局 | SCBattleEvent.ShowText / OnScoreUpdate 终局 | 全局飘字（UIManager.ShowFloating） |
+| 全局 | SCPrompt（OnShowPrompt）/ OnScoreUpdate 终局 | 事件列表文字条目 / 全局飘字（UIManager.ShowFloating） |
 
 ## 四、可选未做（默认不做，需要再说）
 
@@ -61,8 +61,9 @@
 
 ## 五、协议依赖（已实现）
 
-- `SCBattleEvent.Type.Damage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体）+ `NetworkManager.SendBattleEvent(SCBattleEvent)` 广播重载
-- `SCBattleEvent` Kill 事件：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体 id
+- `SCDamage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体；hasHitPos+hitPos 命中点可选）+ `NetworkManager.SendDamage` 定向（按可见性）/广播重载，不可靠通道
+- `SCPrompt`（messageId = NoticeMessageMap 消息 id）+ `NetworkManager.SendPrompt` 定向：水晶获得武器 13/14/15、开局校验 17/18
+- `SCBattleEvent`（仅剩 Kill / BeaconDestroyed / PlagueTreeCaptured）：Kill value = 击杀者客户端 id（-1 无归属），targetId = 受害实体 id；BeaconDestroyed value = 守护点标识（-1 中心，0~2 外围）。水晶破坏不再触发事件
 - `SCRoomInfo.RoomMemberInfo.characterIndex / name`；`CSPlayerInfo.name`（玩家名上报）
 - `EntityPlayerManager.TryGetEntityHeadPos`（名牌/伤害飘字锚点，EntityModelInfo 顶点懒缓存）
 - `EntityData.OnDamaged(..., bool isCrit)` 在终伤处广播伤害事件（ProcessHit 传 isCrit）

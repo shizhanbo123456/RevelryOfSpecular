@@ -207,11 +207,7 @@ public partial class BattleManager
 
     private void NotifyPlayer(short clientId, int messageId)
     {
-        Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-        {
-            type = SCBattleEvent.Type.ShowText,
-            value = messageId,
-        });
+        Tool.NetworkManager.SendPrompt(clientId, messageId);
     }
 
     private void TickRevive()

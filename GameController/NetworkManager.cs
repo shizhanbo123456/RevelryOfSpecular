@@ -248,6 +248,23 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
     }
 
+    public void SendPrompt(short clientId, int messageId)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceivePromptLocal, SendTo.To(clientId), Delivery.Reliable, new SCPrompt() { messageId = messageId });
+    }
+
+    public void SendDamage(short clientId, SCDamage d)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveDamageLocal, SendTo.To(clientId), Delivery.Unreliable, d);
+    }
+
+    public void SendDamage(SCDamage d)
+    {
+        CallFuncRpc(ClientReceiveDamageLocal, SendTo.Everyone, Delivery.Unreliable, d);
+    }
+
     public void SendScoreInfo(short clientId, SCScoreInfo info)
     {
         if (!HasClient(clientId)) return;
@@ -372,6 +389,20 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (e == null) return;
         EventManager.TrigEvent(ClientEvent.OnBattleEvent, e);
+    }
+
+    [Rpc]
+    private void ClientReceivePromptLocal(SCPrompt p)
+    {
+        if (p == null) return;
+        EventManager.TrigEvent(ClientEvent.OnShowPrompt, p.messageId);
+    }
+
+    [Rpc]
+    private void ClientReceiveDamageLocal(SCDamage d)
+    {
+        if (d == null) return;
+        EventManager.TrigEvent(ClientEvent.OnDamageDisplay, d);
     }
 
     [Rpc]

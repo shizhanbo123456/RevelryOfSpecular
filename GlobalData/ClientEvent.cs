@@ -28,6 +28,7 @@ public static class ClientEvent
     public const int OnEntityDisplayCreate = 10232;
     public const int OnMinimapUpdate = 10233;
     public const int OnMinimapRadiusUpdate = 10234; // param=float 切换后的雷达显示半径
+    public const int OnDamageDisplay = 10235;       // param=SCDamage 伤害飘字
     #endregion
 
     #region UI 通用（10300 段）
@@ -35,5 +36,6 @@ public static class ClientEvent
     public const int ShowLoading = 10301;
     public const int ShowConfirm = 10302;
     public const int ShowFloatingText = 10303;
+    public const int OnShowPrompt = 10305; // param=int NoticeMessageMap 消息 id（SCPrompt）
     #endregion
 }
