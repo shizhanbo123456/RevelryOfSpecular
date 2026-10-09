@@ -47,13 +47,6 @@ public class SaveManager : MonoBehaviour
     #endregion
 
     #region 修改
-    public void UnlockCharacter(int index)
-    {
-        EnsureListSize(index);
-        characterUnlocked[index] = true;
-        Save();
-    }
-
     public void AddCharacterExp(int index, int exp)
     {
         EnsureListSize(index);

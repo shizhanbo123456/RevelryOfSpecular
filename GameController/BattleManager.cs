@@ -214,14 +214,23 @@ public partial class BattleManager : EnsBehaviour
         {
             Tool.NetworkManager.SendRemoveEntity(clientId, id);
         }
-        // 守护点被摧毁事件（UI 飘字/表现用）：带上 beacon 标识（-1=中心守护点 main，0~2=外围 Sub1~3）
+        // 守护点被摧毁事件（事件列表 icon=其它 + 血条 destroyed 状态）：textId 区分哪一座（19 中心 / 24~26 外围）
         if (BattleStarted && data.type.category == EntityCategory.Beacon)
         {
-            int beaconId = data.type == EntityType.CoreBeacon ? -1 : data.type.value;
+            int textId = data.type == EntityType.CoreBeacon ? 19 : 24 + data.type.value; // Beacon(0~2) → 24~26
             Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
             {
                 type = SCBattleEvent.Type.BeaconDestroyed,
-                value = beaconId,
+                textId = textId,
+            });
+        }
+        // 防御塔被摧毁事件（事件列表 icon=其它）
+        else if (BattleStarted && data.type.category == EntityCategory.Tower)
+        {
+            Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
+            {
+                type = SCBattleEvent.Type.TowerDestroyed,
+                textId = 27,
             });
         }
 
@@ -357,11 +366,7 @@ public partial class BattleManager : EnsBehaviour
             if (AIClients.Contains(pair.Key)) continue; // AI 开战前已定阵营
             if (!PlayerCamp.ContainsKey(pair.Key))
             {
-                Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-                {
-                    type = SCBattleEvent.Type.ShowText,
-                    value = 18, // 尚有玩家未选择队伍
-                });
+                Tool.NetworkManager.SendPrompt(clientId, 18); // 尚有玩家未选择队伍
                 return;
             }
         }
@@ -369,11 +374,7 @@ public partial class BattleManager : EnsBehaviour
         if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) <= 0 ||
             PlayerCamp.Values.Count(c => c == EntityCamp.Defense) <= 0)
         {
-            Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
-            {
-                type = SCBattleEvent.Type.ShowText,
-                value = 17, // 双方人数均需 > 0
-            });
+            Tool.NetworkManager.SendPrompt(clientId, 17); // 双方人数均需 > 0
             return;
         }
 

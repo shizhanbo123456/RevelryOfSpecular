@@ -11,7 +11,7 @@ public class BattlePage : PageBase
     private UI_BattleResult resultPanel;
     private UI_BattleResultDetail resultDetail;
     private float battleStartTime;
-    private float settleCloseAt = -1f;
+    private bool settlePlaying; //结算动画播放中（跨页面存活，Exit 据此跳过清理）
 
     private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
     private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
@@ -23,6 +23,8 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
     private readonly List<ushort> s_expiredMinimapIds = new();
+    private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
+    private float minimapViewRadius = Config.minimap_view_radius; //当前雷达显示半径（服务器权威，F 键切换）
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
@@ -46,7 +48,6 @@ public class BattlePage : PageBase
     {
         public int type;     // UI_EventItem 的 type 控制器：0 纯文字 / 1 图标+文字 / 2 文字+图标+文字
         public string text;  // type 0/1 的文本
-        public Color color;  // type 0 的文本颜色
         public int icon;     // type 1/2 的 EventIcon 档位
         public string left;  // type 2 左侧文本（击杀者）
         public string right; // type 2 右侧文本（受害者）
@@ -78,15 +79,18 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.AddEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
+        EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
-        EventManager.AddEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
+        minimapViewRadius = Config.minimap_view_radius; //每局回到默认档，与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
@@ -105,12 +109,15 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.RemoveEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
+        EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
-        EventManager.RemoveEvent<string>(ClientEvent.OnRightClickBlocked, OnRightClickBlocked);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
+        if (!settlePlaying) HideSettlement(); //结算切页走正常流程不清理；断线等异常切页时取消动画并隐藏面板
     }
 
     public override void Tick(float deltaTime)
@@ -125,8 +132,7 @@ public class BattlePage : PageBase
         TickDamageLabels(deltaTime);
         TickEventItems();
         TickMinimapTimeout();
-        //结算面板自动关闭
-        if (settleCloseAt > 0f && Time.time >= settleCloseAt) CloseSettlement();
+        TickSelfMinimapRotation();
     }
 
     #region 事件处理
@@ -283,11 +289,11 @@ public class BattlePage : PageBase
 
     // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
     // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
-    private void SetBeaconDestroyed(int beaconId)
+    private void SetBeaconDestroyed(int textId)
     {
-        UI_DefensivePointBar bar = beaconId < 0 ? panel.m_progressMain
-            : beaconId == 0 ? panel.m_progressSub1
-            : beaconId == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
+        UI_DefensivePointBar bar = textId == 19 ? panel.m_progressMain
+            : textId == 24 ? panel.m_progressSub1
+            : textId == 25 ? panel.m_progressSub2 : textId == 26 ? panel.m_progressSub3 : null;
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 1;
         bar.m_fill.fillAmount = 1f;
@@ -335,10 +341,13 @@ public class BattlePage : PageBase
 
     private void OnSettlementResult(SettlementResult r)
     {
+        //先清战斗表现，防过时内容残留
+        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
+
         if (resultPanel == null)
         {
             resultPanel = UI_BattleResult.CreateInstance();
-            Root.AddChild(resultPanel);
+            GRoot.inst.AddChild(resultPanel); //挂全局层：结算要跨页面盖在组队界面之上
             resultPanel.visible = false;
         }
         var battle = NetworkManager.battleInfo;
@@ -357,8 +366,15 @@ public class BattlePage : PageBase
 
         resultPanel.visible = true;
         resultPanel.m_t0.Play();
-        ScheduleDetailAnimations();
-        settleCloseAt = Time.time + SettleAutoClose;
+        settlePlaying = true;
+        ScheduleDetailAnimations(); //含播完自动关闭并恢复组队面板
+
+        //立即切回组队界面（战斗 HUD 随 Exit 隐藏），再隐藏组队面板等结算播完
+        if (Tool.UIManager != null)
+        {
+            Tool.UIManager.TurnPage(PageType.Lobby);
+            Tool.UIManager.SetLobbyPanelVisible(false);
+        }
     }
 
     private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
@@ -395,13 +411,19 @@ public class BattlePage : PageBase
     private void ScheduleDetailAnimations()
     {
         CancelDetailAnimations();
-        if (settleItems.Count == 0) return;
+        //总时长固定为面板自动关闭时间：明细播完后留白到 5s，transition 走完即关闭结算并恢复组队面板
         int shown = 0;
         float fadeStart = DetailStartDelay + settleItems.Count * DetailItemInterval + DetailHoldDelay;
-        float total = fadeStart + DetailFadeDuration;
-        settleTransition = Timer.AddTransition(0, total, (_, t01) =>
+        settleTransition = Timer.AddTransition(0, SettleAutoClose, (_, t01) =>
         {
-            float elapsed = t01 * total;
+            if (t01 >= 1f)
+            {
+                settleTransition = null; //自身已结束，避免在回调内 Cancel 自身
+                CloseSettlement();
+                return;
+            }
+            if (settleItems.Count == 0) return;
+            float elapsed = t01 * SettleAutoClose;
             // 到达出现时刻的条目逐条播放自身动画（shown 指针保证每条只播一次）
             while (shown < settleItems.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
             {
@@ -426,18 +448,18 @@ public class BattlePage : PageBase
         settleTransition = null;
     }
 
+    //结算动画播完：隐藏结算、恢复组队界面面板（切页与实体清理已在结算开始时做掉）
     private void CloseSettlement()
     {
-        settleCloseAt = -1f;
+        settlePlaying = false;
         CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
-        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
-        if (Tool.UIManager != null) Tool.UIManager.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
+        if (Tool.UIManager != null) Tool.UIManager.SetLobbyPanelVisible(true);
     }
 
     private void HideSettlement()
     {
-        settleCloseAt = -1f;
+        settlePlaying = false;
         CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
     }
@@ -450,42 +472,66 @@ public class BattlePage : PageBase
         UpsertMinimapEntity(e);
     }
 
+    //F 键切换雷达显示半径：服务器权威回应，客户端换用新半径做裁剪与缩放（旧点位在后续包到达时自然重排）
+    private void OnMinimapRadiusUpdate(float radius)
+    {
+        if (radius <= 0f) return;
+        minimapViewRadius = radius;
+    }
+
     private void UpsertMinimapEntity(SCMinimapEntity entity)
     {
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return;
 
-        // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出则不显示）
-        bool hasSelf = false;
-        Vector3 myPos = Vector3.zero;
-        if (NetworkManager.battleInfo != null && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
+        // 雷达式小地图：以本地玩家为中心；拿不到自身位置就无法换算，跳过本次
+        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null
+            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
+                (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos)) return;
+
+        float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
+        // 只画雷达半径内：超出显示半径的点位直接移除（服务器圈外本就过滤，回到圈内会重建）
+        float cullRadiusSq = minimapViewRadius * minimapViewRadius;
+        if (dx * dx + dz * dz > cullRadiusSq)
         {
-            hasSelf = Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
-                (ushort)NetworkManager.battleInfo.playerEntityId, out myPos);
-        }
-        if (hasSelf)
-        {
-            float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
-            float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
-            if (dx * dx + dz * dz > cullRadiusSq)
-            {
-                // 超出显示半径：隐藏该点位（再次进入范围时重建）；离屏残留由半径裁剪直接消除
-                RemoveMinimapItem(entity.entityId);
-                minimapLastReceived.Remove(entity.entityId);
-                return;
-            }
+            RemoveMinimapItem(entity.entityId);
+            minimapLastReceived.Remove(entity.entityId);
+            return;
         }
 
+        bool isSelf = entity.entityId == NetworkManager.battleInfo.playerEntityId;
         if (!minimapItems.TryGetValue(entity.entityId, out var item))
         {
             item = UI_MinimapItem.CreateInstance();
             panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
             minimapItems[entity.entityId] = item;
+            if (isSelf) selfMinimapItem = item;
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
-        //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）；坐标含 mapBase 在面板内的偏移
-        item.SetXY(mapBase.x + entity.posX / Landscape.MapSize * mapBase.width,
-            mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
+        //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
+        float scale = mapBase.width * 0.5f / minimapViewRadius;
+        item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
+            mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
+        RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次都校一次层级
+    }
+
+    //自身图标永远置顶，不被其它点位遮挡
+    private void RaiseSelfItemToTop()
+    {
+        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
+        panel.m_Minimap.SetChildIndex(selfMinimapItem, panel.m_Minimap.numChildren - 1);
+    }
+
+    //自身图标随朝向旋转：地图不转，图标转（每帧读本地玩家推演朝向）
+    private void TickSelfMinimapRotation()
+    {
+        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
+        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null) return;
+        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(
+            (ushort)NetworkManager.battleInfo.playerEntityId, out _, out var rot)) return;
+        selfMinimapItem.rotation = rot.eulerAngles.y; //FGUI 顺时针角度与 Unity yaw 同向（图标默认朝上时）
     }
 
     private int GetMinimapType(SCMinimapEntity entity)
@@ -514,6 +560,7 @@ public class BattlePage : PageBase
         {
             if (item != null) item.Dispose();
             minimapItems.Remove(entityId);
+            if (item == selfMinimapItem) selfMinimapItem = null;
         }
     }
 
@@ -525,6 +572,7 @@ public class BattlePage : PageBase
         }
         minimapItems.Clear();
         minimapLastReceived.Clear();
+        selfMinimapItem = null;
     }
 
     // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
@@ -544,52 +592,60 @@ public class BattlePage : PageBase
         }
     }
 
+    // 事件类型 → (EventIcon 档位, 条目版式)：FGUI 表现映射，协议里不传表现字段
     private void OnBattleEvent(SCBattleEvent e)
     {
         if (e == null) return;
+        byte icon;
+        byte layout;
         switch (e.type)
         {
-            case SCBattleEvent.Type.Damage:
-                ShowDamage(e.value, (ushort)e.targetId, e.hasHitPos, e.hitPos);
-                break;
-            case SCBattleEvent.Type.Kill:
-            {
-                //「玩家A (图标) 玩家B」：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体（名字按归属反查）
-                int killerId = e.value;
-                string victimName = barOwners.TryGetValue((ushort)e.targetId, out var owner)
-                    ? NetworkManager.GetMemberName(owner) : "玩家";
-                string killerName = killerId >= 0 ? NetworkManager.GetMemberName(killerId) : "玩家";
-                AddEventEntry(new EventEntry
-                {
-                    type = 2, // 文字+图标+文字
-                    icon = 6, // 玩家间击败
-                    left = killerName,
-                    right = victimName,
-                });
-                break;
-            }
-            case SCBattleEvent.Type.BeaconDestroyed:
-                AddTextEvent("守护点被摧毁！", CampAttackColor);
-                SetBeaconDestroyed(e.value);
-                break;
-            case SCBattleEvent.Type.CrystalCollected:
-                AddTextEvent("采集水晶，获得收益", new Color(0.42f, 0.85f, 0.55f));
-                break;
-            case SCBattleEvent.Type.CrystalBroken:
-                AddTextEvent("该水晶已被感染，无产出", new Color(1f, 0.62f, 0.28f));
-                break;
-            case SCBattleEvent.Type.PlagueTreeCaptured:
-                AddEventEntry(new EventEntry
-                {
-                    type = 1, // 图标+文字
-                    icon = 1, // 瘟疫树被击败
-                    text = "攻占瘟疫树！获得瘟疫祝福",
-                });
-                break;
-            case SCBattleEvent.Type.ShowText:
-                AddTextEvent(NoticeMessageMap.Get(e.value), Color.white);
-                break;
+            case SCBattleEvent.Type.PlayerKill: icon = 6; layout = 2; break;           // 文字+击败图标+文字
+            case SCBattleEvent.Type.DeathUnattributed: icon = 0; layout = 1; break;    // 无源死亡
+            case SCBattleEvent.Type.PlayerRespawn: icon = 2; layout = 1; break;        // 玩家复活
+            case SCBattleEvent.Type.PlagueTreeCaptured: icon = 1; layout = 1; break;   // 瘟疫树被击败
+            case SCBattleEvent.Type.PlagueTreeRespawn: icon = 3; layout = 1; break;    // 瘟疫树刷新
+            case SCBattleEvent.Type.Nightfall: icon = 4; layout = 1; break;            // 天黑
+            case SCBattleEvent.Type.Daybreak: icon = 5; layout = 1; break;             // 天亮
+            case SCBattleEvent.Type.BeaconDestroyed: icon = 7; layout = 1; break;      // 其它（守护点）
+            case SCBattleEvent.Type.TowerDestroyed: icon = 7; layout = 1; break;       // 其它（防御塔）
+            case SCBattleEvent.Type.Notice: icon = 0; layout = 0; break;               // 纯文字
+            default:
+                Debug.LogError($"[BattlePage] 未处理的战斗事件类型：{e.type}");
+                return;
         }
+
+        var entry = new EventEntry
+        {
+            type = layout,
+            icon = icon,
+            text = ResolveEventText(e.textId),
+        };
+        if (layout == 2) // 文字+图标+文字
+        {
+            entry.left = entry.text;
+            entry.right = ResolveEventText(e.textId2);
+        }
+        AddEventEntry(entry);
+        if (e.type == SCBattleEvent.Type.BeaconDestroyed) SetBeaconDestroyed(e.textId);
+    }
+
+    // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 NoticeMessageMap
+    private static string ResolveEventText(int id)
+    {
+        if (id >= SCBattleEvent.PlayerNameBase) return NetworkManager.GetMemberName(id - SCBattleEvent.PlayerNameBase);
+        return NoticeMessageMap.Get(id);
+    }
+
+    private void OnShowPrompt(int messageId)
+    {
+        AddTextEvent(NoticeMessageMap.Get(messageId));
+    }
+
+    private void OnDamageDisplay(SCDamage d)
+    {
+        if (d == null) return;
+        ShowDamage(d.value, (ushort)d.targetId, d.hasHitPos, d.hitPos);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -601,11 +657,6 @@ public class BattlePage : PageBase
         if (info.ready) return;
         if (panel.m_regeneration_progressbar != null)
             panel.m_regeneration_progressbar.fillAmount = Mathf.Clamp01(info.progress);
-    }
-
-    private void OnRightClickBlocked(string msg)
-    {
-        Tool.UIManager.ShowFlyText(string.IsNullOrEmpty(msg) ? "该技能无法在此状态下使用" : msg);
     }
     #endregion
 
@@ -824,7 +875,6 @@ public class BattlePage : PageBase
         {
             case 0:
                 item.m_type0_label.text = entry.text;
-                item.m_type0_label.color = entry.color;
                 break;
             case 1:
                 item.m_type1_loader.m_type.selectedIndex = entry.icon;
@@ -838,9 +888,9 @@ public class BattlePage : PageBase
         }
     }
 
-    private void AddTextEvent(string text, Color color)
+    private void AddTextEvent(string text)
     {
-        AddEventEntry(new EventEntry { type = 0, text = text, color = color });
+        AddEventEntry(new EventEntry { type = 0, text = text });
     }
 
     private void TickEventItems()

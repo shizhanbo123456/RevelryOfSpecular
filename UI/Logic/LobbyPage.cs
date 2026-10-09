@@ -20,6 +20,9 @@ public class LobbyPage : PageBase
         this.panel = panel;
     }
 
+    //结算在大厅之上播放期间隐藏/恢复面板
+    public void SetPanelVisible(bool visible) => Root.visible = visible;
+
     public override void Construct()
     {
         var view = panel.m_mainView;

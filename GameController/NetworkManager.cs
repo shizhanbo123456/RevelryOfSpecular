@@ -170,7 +170,7 @@ public partial class NetworkManager : EnsBehaviour
     public void SendInput(CSPlayerInput input)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Reliable, input, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, EnsInstance.LocalClientId);
     }
 
     public void SendRoomUpdate(CSRoomUpdate update)
@@ -183,6 +183,12 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveStartRequestLocal, SendTo.RoomOwner, Delivery.Reliable, new CSStartRequest(), EnsInstance.LocalClientId);
+    }
+
+    public void SendMinimapRadiusSwitch()
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), EnsInstance.LocalClientId);
     }
     #endregion
 
@@ -198,13 +204,13 @@ public partial class NetworkManager : EnsBehaviour
     public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Unreliable, info);
+        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendEntityAnim(short clientId, SCEntityAnimInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendRemoveEntity(short clientId, int entityId)
@@ -219,21 +225,38 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveMinimapEntityLocal, SendTo.To(clientId), Delivery.Unreliable, e);
     }
 
+    public void SendMinimapRadius(short clientId, float radius)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveMinimapRadiusLocal, SendTo.To(clientId), Delivery.Reliable, new SCMinimapRadius() { radius = radius });
+    }
+
     public void SendBattleEvent(short clientId, SCBattleEvent e)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Reliable, e);
-    }
-
-    public void SendBattleEvent(byte type, byte messageId = 0)
-    {
-        var e = new SCBattleEvent() { type = type, value = messageId };
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Strive, e);
     }
 
     public void SendBattleEvent(SCBattleEvent e)
     {
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Strive, e);
+    }
+
+    public void SendPrompt(short clientId, int messageId)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceivePromptLocal, SendTo.To(clientId), Delivery.Reliable, new SCPrompt() { messageId = messageId });
+    }
+
+    public void SendDamage(short clientId, SCDamage d)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveDamageLocal, SendTo.To(clientId), Delivery.Unreliable, d);
+    }
+
+    public void SendDamage(SCDamage d)
+    {
+        CallFuncRpc(ClientReceiveDamageLocal, SendTo.Everyone, Delivery.Unreliable, d);
     }
 
     public void SendScoreInfo(short clientId, SCScoreInfo info)
@@ -256,17 +279,17 @@ public partial class NetworkManager : EnsBehaviour
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendDayNightInfo(SCDayNightInfo info)
     {
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Strive, info);
     }
 
     public void SendSkillCast(int skillId, SkillContext context)
     {
-        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Reliable, skillId, context);
+        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Strive, skillId, context);
     }
     #endregion
 
@@ -299,6 +322,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveStartRequestLocal(CSStartRequest request, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveStartRequest(clientId, request);
+    }
+
+    [Rpc]
+    private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.SwitchMinimapRadius(clientId);
     }
     #endregion
 
@@ -343,10 +372,31 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
+    private void ClientReceiveMinimapRadiusLocal(SCMinimapRadius info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnMinimapRadiusUpdate, info.radius);
+    }
+
+    [Rpc]
     private void ClientReceiveBattleEventLocal(SCBattleEvent e)
     {
         if (e == null) return;
         EventManager.TrigEvent(ClientEvent.OnBattleEvent, e);
+    }
+
+    [Rpc]
+    private void ClientReceivePromptLocal(SCPrompt p)
+    {
+        if (p == null) return;
+        EventManager.TrigEvent(ClientEvent.OnShowPrompt, p.messageId);
+    }
+
+    [Rpc]
+    private void ClientReceiveDamageLocal(SCDamage d)
+    {
+        if (d == null) return;
+        EventManager.TrigEvent(ClientEvent.OnDamageDisplay, d);
     }
 
     [Rpc]
