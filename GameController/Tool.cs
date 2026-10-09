@@ -52,7 +52,6 @@ public class Tool : MonoBehaviour
     public static CameraController CameraController;
     public static ClientLogicManager ClientLogicManager;
     public static UIManager UIManager;
-    public static AssetsObjectPool AssetsObjectPool;
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;
 
