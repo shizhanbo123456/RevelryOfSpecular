@@ -239,7 +239,7 @@ public partial class NetworkManager : EnsBehaviour
 
     public void SendBattleEvent(SCBattleEvent e)
     {
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Strive, e);
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.ExcludeSender, Delivery.Strive, e);
     }
 
     public void SendPrompt(short clientId, int messageId)
@@ -256,7 +256,7 @@ public partial class NetworkManager : EnsBehaviour
 
     public void SendDamage(SCDamage d)
     {
-        CallFuncRpc(ClientReceiveDamageLocal, SendTo.Everyone, Delivery.Unreliable, d);
+        CallFuncRpc(ClientReceiveDamageLocal, SendTo.ExcludeSender, Delivery.Unreliable, d);
     }
 
     public void SendScoreInfo(short clientId, SCScoreInfo info)
@@ -273,7 +273,7 @@ public partial class NetworkManager : EnsBehaviour
 
     public void SendRoomInfo(SCRoomInfo info)
     {
-        CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
@@ -284,12 +284,12 @@ public partial class NetworkManager : EnsBehaviour
 
     public void SendDayNightInfo(SCDayNightInfo info)
     {
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Strive, info);
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.ExcludeSender, Delivery.Strive, info);
     }
 
     public void SendSkillCast(int skillId, SkillContext context)
     {
-        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Strive, skillId, context);
+        CallFuncRpc(ClientUseSkillLocal, SendTo.ExcludeSender, Delivery.Strive, skillId, context);
     }
     #endregion
 
