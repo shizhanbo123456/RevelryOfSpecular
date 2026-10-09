@@ -23,6 +23,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
     private readonly List<ushort> s_expiredMinimapIds = new();
+    private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
@@ -125,6 +126,7 @@ public class BattlePage : PageBase
         TickDamageLabels(deltaTime);
         TickEventItems();
         TickMinimapTimeout();
+        TickSelfMinimapRotation();
         //结算面板自动关闭
         if (settleCloseAt > 0f && Time.time >= settleCloseAt) CloseSettlement();
     }
@@ -455,37 +457,54 @@ public class BattlePage : PageBase
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return;
 
-        // 小地图显示半径裁剪：只画以本地玩家为中心 Config.minimap_view_radius 内的单位（超出则不显示）
-        bool hasSelf = false;
-        Vector3 myPos = Vector3.zero;
-        if (NetworkManager.battleInfo != null && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
+        // 雷达式小地图：以本地玩家为中心；拿不到自身位置就无法换算，跳过本次
+        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null
+            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
+                (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos)) return;
+
+        float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
+        // 只画视野圈内：超出雷达半径的点位直接移除（服务器持续发送，回到圈内会重建）
+        float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
+        if (dx * dx + dz * dz > cullRadiusSq)
         {
-            hasSelf = Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
-                (ushort)NetworkManager.battleInfo.playerEntityId, out myPos);
-        }
-        if (hasSelf)
-        {
-            float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
-            float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
-            if (dx * dx + dz * dz > cullRadiusSq)
-            {
-                // 超出显示半径：隐藏该点位（再次进入范围时重建）；离屏残留由半径裁剪直接消除
-                RemoveMinimapItem(entity.entityId);
-                minimapLastReceived.Remove(entity.entityId);
-                return;
-            }
+            RemoveMinimapItem(entity.entityId);
+            minimapLastReceived.Remove(entity.entityId);
+            return;
         }
 
+        bool isSelf = entity.entityId == NetworkManager.battleInfo.playerEntityId;
         if (!minimapItems.TryGetValue(entity.entityId, out var item))
         {
             item = UI_MinimapItem.CreateInstance();
             panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
             minimapItems[entity.entityId] = item;
+            if (isSelf) selfMinimapItem = item;
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
-        //世界坐标 → 小地图：X+ 向右、Z+ 向上（FGUI y 向下，Z 取反）；坐标含 mapBase 在面板内的偏移
-        item.SetXY(mapBase.x + entity.posX / Landscape.MapSize * mapBase.width,
-            mapBase.y + (1f - entity.posZ / Landscape.MapSize) * mapBase.height);
+        //雷达坐标：上方=世界Z+、右侧=世界X+，视野半径铺满 mapBase；减半宽高让图标几何居中
+        float scale = mapBase.width * 0.5f / Config.minimap_view_radius;
+        item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
+            mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
+        RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次都校一次层级
+    }
+
+    //自身图标永远置顶，不被其它点位遮挡
+    private void RaiseSelfItemToTop()
+    {
+        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
+        panel.m_Minimap.SetChildIndex(selfMinimapItem, panel.m_Minimap.numChildren - 1);
+    }
+
+    //自身图标随朝向旋转：地图不转，图标转（每帧读本地玩家推演朝向）
+    private void TickSelfMinimapRotation()
+    {
+        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
+        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null) return;
+        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(
+            (ushort)NetworkManager.battleInfo.playerEntityId, out _, out var rot)) return;
+        selfMinimapItem.rotation = rot.eulerAngles.y; //FGUI 顺时针角度与 Unity yaw 同向（图标默认朝上时）
     }
 
     private int GetMinimapType(SCMinimapEntity entity)
@@ -514,6 +533,7 @@ public class BattlePage : PageBase
         {
             if (item != null) item.Dispose();
             minimapItems.Remove(entityId);
+            if (item == selfMinimapItem) selfMinimapItem = null;
         }
     }
 
@@ -525,6 +545,7 @@ public class BattlePage : PageBase
         }
         minimapItems.Clear();
         minimapLastReceived.Clear();
+        selfMinimapItem = null;
     }
 
     // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
