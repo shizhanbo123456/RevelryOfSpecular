@@ -30,6 +30,7 @@ public class InputManager : MonoBehaviour
         if (Input.GetKeyDown(Config.melee_key)) pressed |= PlayerKey.J;
         if (Input.GetKeyDown(Config.jump_key)) pressed |= PlayerKey.K;
         if (Input.GetKeyDown(Config.slide_key)) pressed |= PlayerKey.LShift;
+        if (Input.GetKeyDown(Config.minimap_radius_key)) Tool.NetworkManager.SendMinimapRadiusSwitch(); //雷达显示半径切换
         for (int i = 0; i < Config.skill_slot_keys.Length; i++)
         {
             if (Input.GetKeyDown(Config.skill_slot_keys[i])) pressed |= Config.skill_slot_player_keys[i];

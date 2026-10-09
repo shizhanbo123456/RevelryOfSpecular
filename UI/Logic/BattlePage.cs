@@ -24,6 +24,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
     private readonly List<ushort> s_expiredMinimapIds = new();
     private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
+    private float minimapViewRadius = Config.minimap_view_radius; //当前雷达显示半径（服务器权威，F 键切换）
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private readonly List<UI_BattleResultDetailItem> settleItems = new();
@@ -79,6 +80,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.AddEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
@@ -88,6 +90,7 @@ public class BattlePage : PageBase
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
+        minimapViewRadius = Config.minimap_view_radius; //每局回到默认档，与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
@@ -106,6 +109,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCEntityDisplayInfo>(ClientEvent.OnEntityDisplayUpdate, OnEntityDisplayUpdate);
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.RemoveEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
+        EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
@@ -452,6 +456,13 @@ public class BattlePage : PageBase
         UpsertMinimapEntity(e);
     }
 
+    //F 键切换雷达显示半径：服务器权威回应，客户端换用新半径做裁剪与缩放（旧点位在后续包到达时自然重排）
+    private void OnMinimapRadiusUpdate(float radius)
+    {
+        if (radius <= 0f) return;
+        minimapViewRadius = radius;
+    }
+
     private void UpsertMinimapEntity(SCMinimapEntity entity)
     {
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
@@ -464,8 +475,8 @@ public class BattlePage : PageBase
                 (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos)) return;
 
         float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
-        // 只画视野圈内：超出雷达半径的点位直接移除（服务器持续发送，回到圈内会重建）
-        float cullRadiusSq = Config.minimap_view_radius * Config.minimap_view_radius;
+        // 只画雷达半径内：超出显示半径的点位直接移除（服务器圈外本就过滤，回到圈内会重建）
+        float cullRadiusSq = minimapViewRadius * minimapViewRadius;
         if (dx * dx + dz * dz > cullRadiusSq)
         {
             RemoveMinimapItem(entity.entityId);
@@ -482,8 +493,8 @@ public class BattlePage : PageBase
             if (isSelf) selfMinimapItem = item;
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
-        //雷达坐标：上方=世界Z+、右侧=世界X+，视野半径铺满 mapBase；减半宽高让图标几何居中
-        float scale = mapBase.width * 0.5f / Config.minimap_view_radius;
+        //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
+        float scale = mapBase.width * 0.5f / minimapViewRadius;
         item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
             mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
         RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次都校一次层级

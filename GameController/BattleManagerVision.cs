@@ -21,6 +21,7 @@ public partial class BattleManager
     private float minimapTimer;
 
     private readonly Dictionary<short, HashSet<ushort>> visibleByClient = new();
+    private readonly Dictionary<short, float> minimapRadiusByClient = new(); // 各客户端雷达显示半径（F 键切换，缺省 = minimap_view_radius）
 
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };
     private static readonly List<SCMinimapEntity> s_minimapEntries = new();
@@ -140,9 +141,20 @@ public partial class BattleManager
                 if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
                 // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
                 if (lost) continue;
-                // 每个实体独立成包（无片段号、不拼回）；客户端分帧累积，并对超时未更新的点位做隐藏
+                var viewer = GetEntityOfClient(pair.Key);
+                if (viewer == null) continue; // 死亡/未入场无位置基准：本轮不发，雷达随超时清空
+                float radiusSq = GetMinimapRadius(pair.Key);
+                radiusSq *= radiusSq;
+                var viewPos = viewer.transform.position;
+                // 每个实体独立成包（无片段号、不拼回）；客户端分帧累积，并对超时未更新的点位做隐藏。
+                // 非本阵营单位按该客户端的雷达显示半径在服务器侧过滤，圈外不下发
                 foreach (var entry in s_minimapEntries)
                 {
+                    if (entry.camp != camp)
+                    {
+                        float dx = entry.posX - viewPos.x, dz = entry.posZ - viewPos.z;
+                        if (dx * dx + dz * dz > radiusSq) continue;
+                    }
                     Tool.NetworkManager.SendMinimapEntity(pair.Key, entry);
                 }
             }
@@ -225,6 +237,28 @@ public partial class BattleManager
             if (!PlayerInfoList.ContainsKey(pair.Key)) s_clientScratch.Add(pair.Key);
         }
         foreach (var clientId in s_clientScratch) visibleByClient.Remove(clientId);
+        foreach (var clientId in s_clientScratch) minimapRadiusByClient.Remove(clientId);
+    }
+
+    //F 键切换雷达显示半径：在档位间循环并回应新值
+    public void SwitchMinimapRadius(short clientId)
+    {
+        var radii = Config.minimap_view_radii;
+        if (radii == null || radii.Length == 0) return;
+        float current = GetMinimapRadius(clientId);
+        int index = -1;
+        for (int i = 0; i < radii.Length; i++)
+        {
+            if (Mathf.Approximately(radii[i], current)) { index = i; break; }
+        }
+        float next = radii[(index + 1) % radii.Length]; //未记录时 index=-1，落到第一档
+        minimapRadiusByClient[clientId] = next;
+        Tool.NetworkManager.SendMinimapRadius(clientId, next);
+    }
+
+    private float GetMinimapRadius(short clientId)
+    {
+        return minimapRadiusByClient.TryGetValue(clientId, out var r) ? r : Config.minimap_view_radius;
     }
     #endregion
 

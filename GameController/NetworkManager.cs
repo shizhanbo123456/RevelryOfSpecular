@@ -184,6 +184,12 @@ public partial class NetworkManager : EnsBehaviour
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveStartRequestLocal, SendTo.RoomOwner, Delivery.Reliable, new CSStartRequest(), EnsInstance.LocalClientId);
     }
+
+    public void SendMinimapRadiusSwitch()
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), EnsInstance.LocalClientId);
+    }
     #endregion
 
     #region//发送封装：服务器 → 客户端
@@ -217,6 +223,12 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (!HasClient(clientId)) return;
         CallFuncRpc(ClientReceiveMinimapEntityLocal, SendTo.To(clientId), Delivery.Unreliable, e);
+    }
+
+    public void SendMinimapRadius(short clientId, float radius)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveMinimapRadiusLocal, SendTo.To(clientId), Delivery.Reliable, new SCMinimapRadius() { radius = radius });
     }
 
     public void SendBattleEvent(short clientId, SCBattleEvent e)
@@ -300,6 +312,12 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveStartRequest(clientId, request);
     }
+
+    [Rpc]
+    private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.SwitchMinimapRadius(clientId);
+    }
     #endregion
 
     #region//[Rpc] 客户端侧接收（服务器 → 客户端）
@@ -340,6 +358,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (e == null) return;
         EventManager.TrigEvent(ClientEvent.OnMinimapUpdate, e);
+    }
+
+    [Rpc]
+    private void ClientReceiveMinimapRadiusLocal(SCMinimapRadius info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnMinimapRadiusUpdate, info.radius);
     }
 
     [Rpc]

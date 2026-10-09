@@ -313,6 +313,7 @@ public partial class BattleManager
         plagueTreeRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
         HarvestByClient.Clear();
         KillCountByClient.Clear();
+        minimapRadiusByClient.Clear(); // 每局雷达显示半径回到默认档
     }
     #endregion
 }

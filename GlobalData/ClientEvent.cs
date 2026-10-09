@@ -28,6 +28,7 @@ public static class ClientEvent
     public const int OnEntityDisplayRemove = 10231;
     public const int OnEntityDisplayCreate = 10232;
     public const int OnMinimapUpdate = 10233;
+    public const int OnMinimapRadiusUpdate = 10234; // param=float 切换后的雷达显示半径
     #endregion
 
     #region UI 通用（10300 段）
