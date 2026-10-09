@@ -237,12 +237,6 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Reliable, e);
     }
 
-    public void SendBattleEvent(byte type, byte messageId = 0)
-    {
-        var e = new SCBattleEvent() { type = type, value = messageId };
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
-    }
-
     public void SendBattleEvent(SCBattleEvent e)
     {
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);

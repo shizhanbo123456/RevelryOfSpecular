@@ -52,6 +52,13 @@ public partial class BattleManager
         var list = Tool.LandscapeSpawns.plagueTreeSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置候选点则不刷新
         SpawnEntity(EntityType.PlagueTree0, 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
+
+        // 瘟疫树刷新播报（首次出生与重生都算刷新）
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.PlagueTreeRespawn,
+            textId = 20,
+        });
     }
 
     public void SchedulePlagueTreeRespawn()
@@ -61,7 +68,11 @@ public partial class BattleManager
 
     public void NotifyPlagueTreeCaptured(ushort treeId)
     {
-        Tool.NetworkManager.SendBattleEvent(SCBattleEvent.Type.PlagueTreeCaptured);
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.PlagueTreeCaptured,
+            textId = 23,
+        });
     }
 
     #region 水晶（按玩家邻近动态生成）

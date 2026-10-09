@@ -101,15 +101,23 @@ public partial class BattleManager
             KillCountByClient[killerClient] = killCount + 1;
         }
 
-        // 击杀事件（供客户端「玩家A 击杀 玩家B」飘字）：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体
-        int killerId = -1;
-        if (killer != null && EntityOwnerClient.TryGetValue(killer.id, out var killerOwner)) killerId = killerOwner;
-        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        // 玩家死亡才进事件列表：有归属击杀 = 玩家间击败，无归属 = 无源死亡
+        if (victimIsPlayer && EntityOwnerClient.TryGetValue(entity.id, out var victimOwner))
         {
-            type = SCBattleEvent.Type.Kill,
-            value = killerId,
-            targetId = entity.id,
-        });
+            var e = killer != null && EntityOwnerClient.TryGetValue(killer.id, out var killerOwner)
+                ? new SCBattleEvent()
+                {
+                    type = SCBattleEvent.Type.PlayerKill,
+                    textId = SCBattleEvent.PlayerNameBase + killerOwner,
+                    textId2 = SCBattleEvent.PlayerNameBase + victimOwner,
+                }
+                : new SCBattleEvent()
+                {
+                    type = SCBattleEvent.Type.DeathUnattributed,
+                    textId = SCBattleEvent.PlayerNameBase + victimOwner,
+                };
+            Tool.NetworkManager.SendBattleEvent(e);
+        }
 
         if (EntityOwnerClient.TryGetValue(entity.id, out var owner))
         {
@@ -205,9 +213,14 @@ public partial class BattleManager
         }
     }
 
+    // 战斗事件列表的纯文字提示（文本走 NoticeMessageMap）
     private void NotifyPlayer(short clientId, int messageId)
     {
-        Tool.NetworkManager.SendPrompt(clientId, messageId);
+        Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.Notice,
+            textId = messageId,
+        });
     }
 
     private void TickRevive()
@@ -288,6 +301,13 @@ public partial class BattleManager
             characterType = characterType,
         });
         SendReviveProgress(clientId, rs, entityId, ready: true);
+
+        // 复活播报（事件列表，icon=玩家复活，文本=该玩家名）
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        {
+            type = SCBattleEvent.Type.PlayerRespawn,
+            textId = SCBattleEvent.PlayerNameBase + clientId,
+        });
     }
 
     private void SendReviveProgress(short clientId, ReviveState rs, ushort entityId, bool ready)

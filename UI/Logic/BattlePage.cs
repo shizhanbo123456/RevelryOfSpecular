@@ -289,11 +289,11 @@ public class BattlePage : PageBase
 
     // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
     // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
-    private void SetBeaconDestroyed(int beaconId)
+    private void SetBeaconDestroyed(int textId)
     {
-        UI_DefensivePointBar bar = beaconId < 0 ? panel.m_progressMain
-            : beaconId == 0 ? panel.m_progressSub1
-            : beaconId == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
+        UI_DefensivePointBar bar = textId == 19 ? panel.m_progressMain
+            : textId == 24 ? panel.m_progressSub1
+            : textId == 25 ? panel.m_progressSub2 : textId == 26 ? panel.m_progressSub3 : null;
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 1;
         bar.m_fill.fillAmount = 1f;
@@ -592,40 +592,49 @@ public class BattlePage : PageBase
         }
     }
 
+    // 事件类型 → (EventIcon 档位, 条目版式)：FGUI 表现映射，协议里不传表现字段
     private void OnBattleEvent(SCBattleEvent e)
     {
         if (e == null) return;
+        byte icon;
+        byte layout;
         switch (e.type)
         {
-            case SCBattleEvent.Type.Kill:
-            {
-                //「玩家A (图标) 玩家B」：value = 击杀者客户端 id（-1 无归属），targetId = 受害实体（名字按归属反查）
-                int killerId = e.value;
-                string victimName = barOwners.TryGetValue((ushort)e.targetId, out var owner)
-                    ? NetworkManager.GetMemberName(owner) : "玩家";
-                string killerName = killerId >= 0 ? NetworkManager.GetMemberName(killerId) : "玩家";
-                AddEventEntry(new EventEntry
-                {
-                    type = 2, // 文字+图标+文字
-                    icon = 6, // 玩家间击败
-                    left = killerName,
-                    right = victimName,
-                });
-                break;
-            }
-            case SCBattleEvent.Type.BeaconDestroyed:
-                AddTextEvent("守护点被摧毁！");
-                SetBeaconDestroyed(e.value);
-                break;
-            case SCBattleEvent.Type.PlagueTreeCaptured:
-                AddEventEntry(new EventEntry
-                {
-                    type = 1, // 图标+文字
-                    icon = 1, // 瘟疫树被击败
-                    text = "攻占瘟疫树！获得瘟疫祝福",
-                });
-                break;
+            case SCBattleEvent.Type.PlayerKill: icon = 6; layout = 2; break;           // 文字+击败图标+文字
+            case SCBattleEvent.Type.DeathUnattributed: icon = 0; layout = 1; break;    // 无源死亡
+            case SCBattleEvent.Type.PlayerRespawn: icon = 2; layout = 1; break;        // 玩家复活
+            case SCBattleEvent.Type.PlagueTreeCaptured: icon = 1; layout = 1; break;   // 瘟疫树被击败
+            case SCBattleEvent.Type.PlagueTreeRespawn: icon = 3; layout = 1; break;    // 瘟疫树刷新
+            case SCBattleEvent.Type.Nightfall: icon = 4; layout = 1; break;            // 天黑
+            case SCBattleEvent.Type.Daybreak: icon = 5; layout = 1; break;             // 天亮
+            case SCBattleEvent.Type.BeaconDestroyed: icon = 7; layout = 1; break;      // 其它（守护点）
+            case SCBattleEvent.Type.TowerDestroyed: icon = 7; layout = 1; break;       // 其它（防御塔）
+            case SCBattleEvent.Type.Notice: icon = 0; layout = 0; break;               // 纯文字
+            default:
+                Debug.LogError($"[BattlePage] 未处理的战斗事件类型：{e.type}");
+                return;
         }
+
+        var entry = new EventEntry
+        {
+            type = layout,
+            icon = icon,
+            text = ResolveEventText(e.textId),
+        };
+        if (layout == 2) // 文字+图标+文字
+        {
+            entry.left = entry.text;
+            entry.right = ResolveEventText(e.textId2);
+        }
+        AddEventEntry(entry);
+        if (e.type == SCBattleEvent.Type.BeaconDestroyed) SetBeaconDestroyed(e.textId);
+    }
+
+    // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 NoticeMessageMap
+    private static string ResolveEventText(int id)
+    {
+        if (id >= SCBattleEvent.PlayerNameBase) return NetworkManager.GetMemberName(id - SCBattleEvent.PlayerNameBase);
+        return NoticeMessageMap.Get(id);
     }
 
     private void OnShowPrompt(int messageId)

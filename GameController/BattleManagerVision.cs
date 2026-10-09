@@ -272,6 +272,14 @@ public partial class BattleManager
     private void OnDayNightFlippedVision(bool isDay)
     {
         if (!AtServer || !BattleStarted) return;
+
+        // 昼夜翻转播报（事件列表 icon=天黑/天亮）
+        Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
+        {
+            type = isDay ? SCBattleEvent.Type.Daybreak : SCBattleEvent.Type.Nightfall,
+            textId = isDay ? 22 : 21,
+        });
+
         foreach (var entity in EntityContainer.Entities)
         {
             if (entity == null || entity.camp != EntityCamp.Attack) continue;

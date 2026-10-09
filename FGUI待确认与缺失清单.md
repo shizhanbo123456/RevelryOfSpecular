@@ -29,7 +29,7 @@
 | UI_SkillListItem | m_loader_iconBase（底图）+ m_loader_icon（图标，**CD = 填充比例 0→100 一轮冷却**）+ m_store + m_key（键位按 `Config.skill_slot_keys` = U I O L H Y）+ **m_starList（技能经验，exp 与星星 1:1）** + **m_empty 控制器（0 有技能 / 1 空槽）** + **m_randomOutline 控制器（0~4，进入战斗时每个槽位随机一次）**；无选中态、无经验/CD 文本 |
 | UI_DamageLabel | value 0=无效（灰）/ >0=普通（白）/ <0=暴击（橙大号），受击实体头顶（**轴心左上角 → 代码减半个宽度让数字居中于头顶**，上浮+渐隐后销毁） |
 | **UI_EventList**（BattlePanel.m_EventList） | m_EventItemContainer（**GList，纵向单列**，defaultItem = EventItem）：代码只设 `itemRenderer` + `numItems`，条目组件与排布全由界面决定；数据是 `BattlePage.eventEntries`（3.5s 到期从表头移除） |
-| UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字（"玩家A (图标) 玩家B"= A 击杀 B，图标档位 6=玩家间击败）；type0/type1 按需；EventIcon 档位：0 无源死亡 / 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它 |
+| UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字；type1 = 图标+文字；type0 = 纯文字（无图标）。**EventIcon 档位 0~7 已全部接入**：0 无源死亡（玩家死亡无归属）/ 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它（守护点被摧毁）。条目文本统一数字 id 传输（`SCBattleEvent.textId`：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000） |
 | UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；**雷达式**：本地玩家图标固定在 mapBase 正中心并随朝向旋转，上方=世界Z+、右侧=世界X+，**当前雷达显示半径**铺满 mapBase（F 键循环 100/200/300，服务器回应 `SCMinimapRadius`），其它点按相对本地玩家的偏移绘制 |
 | UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅** |
 | UI_Button1 / UI_Panel_1 / UI_NoticePanel | m_selected（选中态）；m_hideTitle=1 隐藏标题栏；m_title（ShowNotice） |
@@ -51,7 +51,7 @@
 | Battle | OnScoreUpdate（仅终局一次） | BattleResult.Show + m_t0.Play + 5s 自动关闭 |
 | Battle | Tick 逐帧 | 时间推演 + 昼夜图标旋转 + EntityBar/名牌跟随 |
 | 全局 | OnConnect/OnBattleStart/OnRestartGame | UIManager 统一切页 |
-| 全局 | SCPrompt（OnShowPrompt）/ OnScoreUpdate 终局 | 事件列表文字条目 / 全局飘字（UIManager.ShowFloating） |
+| 全局 | SCPrompt（OnShowPrompt）/ OnScoreUpdate 终局 | 全局提示（当前仅开局校验 17/18，战斗页外发、暂无显示方）/ 全局飘字（UIManager.ShowFloating） |
 
 ## 四、可选未做（默认不做，需要再说）
 
@@ -61,9 +61,9 @@
 
 ## 五、协议依赖（已实现）
 
+- `SCBattleEvent`（战斗事件列表唯一来源）：type（事件语义唯一判别，icon 档位与条目版式由客户端按类型映射）+ textId/textId2（数字文本：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000）。事件源：玩家击杀（PlayerKill，type2 双名）/玩家死亡无归属（DeathUnattributed）、复活（PlayerRespawn）、攻占瘟疫树（PlagueTreeCaptured）、瘟疫树刷新（PlagueTreeRespawn）、天黑/天亮（Nightfall/Daybreak）、守护点摧毁（BeaconDestroyed，textId 区分哪一座：19 中心 / 24~26 外围，驱动对应血条 destroyed）、防御塔摧毁（TowerDestroyed）、武器提示 13/14/15（Notice，纯文字，定向）
 - `SCDamage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体；hasHitPos+hitPos 命中点可选）+ `NetworkManager.SendDamage` 定向（按可见性）/广播重载，不可靠通道
-- `SCPrompt`（messageId = NoticeMessageMap 消息 id）+ `NetworkManager.SendPrompt` 定向：水晶获得武器 13/14/15、开局校验 17/18
-- `SCBattleEvent`（仅剩 Kill / BeaconDestroyed / PlagueTreeCaptured）：Kill value = 击杀者客户端 id（-1 无归属），targetId = 受害实体 id；BeaconDestroyed value = 守护点标识（-1 中心，0~2 外围）。水晶破坏不再触发事件
+- `SCPrompt`（messageId = NoticeMessageMap 消息 id）+ `NetworkManager.SendPrompt` 定向：仅开局校验 17/18（战斗事件列表条目一律走 SCBattleEvent，不走此通道）
 - `SCRoomInfo.RoomMemberInfo.characterIndex / name`；`CSPlayerInfo.name`（玩家名上报）
 - `EntityPlayerManager.TryGetEntityHeadPos`（名牌/伤害飘字锚点，EntityModelInfo 顶点懒缓存）
 - `EntityData.OnDamaged(..., bool isCrit)` 在终伤处广播伤害事件（ProcessHit 传 isCrit）
