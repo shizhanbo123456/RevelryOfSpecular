@@ -31,7 +31,6 @@ public class AnimAttackEvent : AnimEvent
         float nt=stateInfo.normalizedTime;
         float forward = (speedForward.Evaluate(nt+0.01f)- speedForward.Evaluate(nt - 0.01f))*50;
         float upward = (speedUpward.Evaluate(nt+0.01f)- speedUpward.Evaluate(nt - 0.01f))*50;
-        Debug.Log($"AnimAttackEvent: forward={forward}, upward={upward}");
         anim.SetVelocityForward(forward*anim.animData.legHeight);
         anim.SetVelocityVertical(upward);
 
