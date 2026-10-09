@@ -111,6 +111,12 @@ public class UIManager : MonoBehaviour
         if (currentPage != null) currentPage.Enter(param);
     }
 
+    //结算在大厅之上播放期间由结算流程控制大厅面板显隐
+    public void SetLobbyPanelVisible(bool visible)
+    {
+        if (lobby != null) lobby.SetPanelVisible(visible);
+    }
+
     private PageBase GetPage(PageType type)
     {
         return type switch

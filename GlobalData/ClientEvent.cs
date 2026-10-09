@@ -18,7 +18,6 @@ public static class ClientEvent
     // （param=SCEntityDisplayInfo，见 OnEntityDisplayUpdate），不单独发事件
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;
-    public const int OnEntityDead = 10220;
     public const int OnLocalPlayerAliveChange = 10221;
     public const int OnRoomInfoUpdate = 10222;
     #endregion

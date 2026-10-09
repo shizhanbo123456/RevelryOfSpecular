@@ -11,7 +11,7 @@ public class BattlePage : PageBase
     private UI_BattleResult resultPanel;
     private UI_BattleResultDetail resultDetail;
     private float battleStartTime;
-    private float settleCloseAt = -1f;
+    private bool settlePlaying; //结算动画播放中（跨页面存活，Exit 据此跳过清理）
 
     private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
     private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
@@ -114,6 +114,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
+        if (!settlePlaying) HideSettlement(); //结算切页走正常流程不清理；断线等异常切页时取消动画并隐藏面板
     }
 
     public override void Tick(float deltaTime)
@@ -129,8 +130,6 @@ public class BattlePage : PageBase
         TickEventItems();
         TickMinimapTimeout();
         TickSelfMinimapRotation();
-        //结算面板自动关闭
-        if (settleCloseAt > 0f && Time.time >= settleCloseAt) CloseSettlement();
     }
 
     #region 事件处理
@@ -339,10 +338,13 @@ public class BattlePage : PageBase
 
     private void OnSettlementResult(SettlementResult r)
     {
+        //先清战斗表现，防过时内容残留
+        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
+
         if (resultPanel == null)
         {
             resultPanel = UI_BattleResult.CreateInstance();
-            Root.AddChild(resultPanel);
+            GRoot.inst.AddChild(resultPanel); //挂全局层：结算要跨页面盖在组队界面之上
             resultPanel.visible = false;
         }
         var battle = NetworkManager.battleInfo;
@@ -361,8 +363,15 @@ public class BattlePage : PageBase
 
         resultPanel.visible = true;
         resultPanel.m_t0.Play();
-        ScheduleDetailAnimations();
-        settleCloseAt = Time.time + SettleAutoClose;
+        settlePlaying = true;
+        ScheduleDetailAnimations(); //含播完自动关闭并恢复组队面板
+
+        //立即切回组队界面（战斗 HUD 随 Exit 隐藏），再隐藏组队面板等结算播完
+        if (Tool.UIManager != null)
+        {
+            Tool.UIManager.TurnPage(PageType.Lobby);
+            Tool.UIManager.SetLobbyPanelVisible(false);
+        }
     }
 
     private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
@@ -399,13 +408,19 @@ public class BattlePage : PageBase
     private void ScheduleDetailAnimations()
     {
         CancelDetailAnimations();
-        if (settleItems.Count == 0) return;
+        //总时长固定为面板自动关闭时间：明细播完后留白到 5s，transition 走完即关闭结算并恢复组队面板
         int shown = 0;
         float fadeStart = DetailStartDelay + settleItems.Count * DetailItemInterval + DetailHoldDelay;
-        float total = fadeStart + DetailFadeDuration;
-        settleTransition = Timer.AddTransition(0, total, (_, t01) =>
+        settleTransition = Timer.AddTransition(0, SettleAutoClose, (_, t01) =>
         {
-            float elapsed = t01 * total;
+            if (t01 >= 1f)
+            {
+                settleTransition = null; //自身已结束，避免在回调内 Cancel 自身
+                CloseSettlement();
+                return;
+            }
+            if (settleItems.Count == 0) return;
+            float elapsed = t01 * SettleAutoClose;
             // 到达出现时刻的条目逐条播放自身动画（shown 指针保证每条只播一次）
             while (shown < settleItems.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
             {
@@ -430,18 +445,18 @@ public class BattlePage : PageBase
         settleTransition = null;
     }
 
+    //结算动画播完：隐藏结算、恢复组队界面面板（切页与实体清理已在结算开始时做掉）
     private void CloseSettlement()
     {
-        settleCloseAt = -1f;
+        settlePlaying = false;
         CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
-        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
-        if (Tool.UIManager != null) Tool.UIManager.TurnPage(PageType.Lobby); // 组队状态保留，点"准备"开启下一轮
+        if (Tool.UIManager != null) Tool.UIManager.SetLobbyPanelVisible(true);
     }
 
     private void HideSettlement()
     {
-        settleCloseAt = -1f;
+        settlePlaying = false;
         CancelDetailAnimations();
         if (resultPanel != null) resultPanel.visible = false;
     }
