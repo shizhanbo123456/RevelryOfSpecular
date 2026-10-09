@@ -170,7 +170,7 @@ public partial class NetworkManager : EnsBehaviour
     public void SendInput(CSPlayerInput input)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Reliable, input, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, EnsInstance.LocalClientId);
     }
 
     public void SendRoomUpdate(CSRoomUpdate update)
@@ -204,13 +204,13 @@ public partial class NetworkManager : EnsBehaviour
     public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Unreliable, info);
+        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendEntityAnim(short clientId, SCEntityAnimInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendRemoveEntity(short clientId, int entityId)
@@ -234,12 +234,12 @@ public partial class NetworkManager : EnsBehaviour
     public void SendBattleEvent(short clientId, SCBattleEvent e)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Reliable, e);
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Strive, e);
     }
 
     public void SendBattleEvent(SCBattleEvent e)
     {
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Reliable, e);
+        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.Everyone, Delivery.Strive, e);
     }
 
     public void SendPrompt(short clientId, int messageId)
@@ -279,17 +279,17 @@ public partial class NetworkManager : EnsBehaviour
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Strive, info);
     }
 
     public void SendDayNightInfo(SCDayNightInfo info)
     {
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Reliable, info);
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.Everyone, Delivery.Strive, info);
     }
 
     public void SendSkillCast(int skillId, SkillContext context)
     {
-        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Reliable, skillId, context);
+        CallFuncRpc(ClientUseSkillLocal, SendTo.Everyone, Delivery.Strive, skillId, context);
     }
     #endregion
 
