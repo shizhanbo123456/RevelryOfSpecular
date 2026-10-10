@@ -46,31 +46,29 @@ public struct EntityAnchorInfo
 }
 public static class EntityAnchorExtensions
 {
-    public static EntityAnchorInfo GetTransform(this EntityAnchor anchor, EntityData entity)
+    public static EntityAnchorInfo GetTransform(this EntityAnchor anchor, EntityModelInfo model,EntityAnim anim,SpringWeapon springWeapon)
     {
-        if (entity == null) return default;
-
-        if (entity.anim != null)
+        if (anim != null)
         {
             switch (anchor)
             {
-                case EntityAnchor.ModelRootPosition: return entity.anim.GetBoneTransform(HumanBodyBones.Hips).ToAnchorInfo();
-                case EntityAnchor.Head: return entity.anim.GetBoneTransform(HumanBodyBones.Head).ToAnchorInfo();
-                case EntityAnchor.LeftHand: return entity.anim.GetBoneTransform(HumanBodyBones.LeftHand).ToAnchorInfo();
-                case EntityAnchor.RightHand: return entity.anim.GetBoneTransform(HumanBodyBones.RightHand).ToAnchorInfo();
-                case EntityAnchor.LeftFoot: return entity.anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo();
-                case EntityAnchor.RightFoot: return entity.anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo();
-                case EntityAnchor.Chest: return entity.anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
+                case EntityAnchor.ModelRootPosition: return anim.GetBoneTransform(HumanBodyBones.Hips).ToAnchorInfo();
+                case EntityAnchor.Head: return anim.GetBoneTransform(HumanBodyBones.Head).ToAnchorInfo();
+                case EntityAnchor.LeftHand: return anim.GetBoneTransform(HumanBodyBones.LeftHand).ToAnchorInfo();
+                case EntityAnchor.RightHand: return anim.GetBoneTransform(HumanBodyBones.RightHand).ToAnchorInfo();
+                case EntityAnchor.LeftFoot: return anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo();
+                case EntityAnchor.RightFoot: return anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo();
+                case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
 
-                case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(entity) + Vector3.up * 0.5f;
-                case EntityAnchor.Name: return EntityAnchor.Head.GetTransform(entity) + Vector3.up * 1f;
-                case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(entity);
-                case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(entity) + (BoundZ(entity).y+0.5f) * entity.transform.forward;
+                case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 0.5f;
+                case EntityAnchor.Name: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 1f;
+                case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon);
+                case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon) + (model.zRange.y+0.5f) * model.transform.forward;
             }
         }
         switch (anchor)
         {
-            case EntityAnchor.GameObjectPosition: return entity.transform.ToAnchorInfo();
+            case EntityAnchor.GameObjectPosition: return model.transform.ToAnchorInfo();
             case EntityAnchor.WeaponSlot1:
             case EntityAnchor.WeaponSlot2:
             case EntityAnchor.WeaponSlot3:
@@ -80,7 +78,7 @@ public static class EntityAnchorExtensions
             case EntityAnchor.WeaponSlot7:
             case EntityAnchor.WeaponSlot8:
                 int weaponSlotIndex = (int)anchor - (int)EntityAnchor.WeaponSlot1;
-                entity.springWeapon.GetPos(weaponSlotIndex, out var v, out var q);
+                springWeapon.GetPos(weaponSlotIndex, out var v, out var q);
                 return new EntityAnchorInfo()
                 {
                     transform = null,
@@ -88,16 +86,13 @@ public static class EntityAnchorExtensions
                     rotation = q
                 };
 
-            case EntityAnchor.Bar: return entity.transform.ToAnchorInfo() + (BoundY(entity).y + 0.5f) * Vector3.up;
-            case EntityAnchor.Name: return entity.transform.ToAnchorInfo() + (BoundY(entity).y + 1f) * Vector3.up;
-            case EntityAnchor.UpCenter: return entity.transform.ToAnchorInfo() + BoundY(entity).y*0.75f * Vector3.up;
-            case EntityAnchor.UpFront: return entity.transform.ToAnchorInfo() + BoundY(entity).y*0.75f * Vector3.up+ (BoundZ(entity).y + 0.5f) * entity.transform.forward;
+            case EntityAnchor.Bar: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.5f) * Vector3.up;
+            case EntityAnchor.Name: return model.transform.ToAnchorInfo() + (model.yRange.y + 1f) * Vector3.up;
+            case EntityAnchor.UpCenter: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up;
+            case EntityAnchor.UpFront: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up+ (model.zRange.y + 0.5f) * model.transform.forward;
         }
         throw new System.Exception("Unknown anchor: " + anchor);
     }
-    private static Vector2 BoundX(EntityData entity) => entity.ModelInfo.xRange;
-    private static Vector2 BoundY(EntityData entity) => entity.ModelInfo.yRange;
-    private static Vector2 BoundZ(EntityData entity) => entity.ModelInfo.zRange;
     private static EntityAnchorInfo ToAnchorInfo(this Transform transform,Vector3 offset = default)
     {
         if(offset.sqrMagnitude<float.Epsilon)
