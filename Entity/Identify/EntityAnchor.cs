@@ -60,11 +60,12 @@ public static class EntityAnchorExtensions
                 case EntityAnchor.RightHand: return entity.anim.GetBoneTransform(HumanBodyBones.RightHand).ToAnchorInfo();
                 case EntityAnchor.LeftFoot: return entity.anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo();
                 case EntityAnchor.RightFoot: return entity.anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo();
+                case EntityAnchor.Chest: return entity.anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
 
                 case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(entity) + Vector3.up * 0.5f;
                 case EntityAnchor.Name: return EntityAnchor.Head.GetTransform(entity) + Vector3.up * 0.5f;
-                case EntityAnchor.UpCenter: return entity.anim.GetBoneTransform(HumanBodyBones.UpperChest).ToAnchorInfo();
-                case EntityAnchor.UpFront: return entity.anim.GetBoneTransform(HumanBodyBones.UpperChest).ToAnchorInfo() + (BoundZ(entity).y+0.5f) * entity.transform.forward;
+                case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(entity);
+                case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(entity) + (BoundZ(entity).y+0.5f) * entity.transform.forward;
             }
         }
         switch (anchor)
