@@ -16,7 +16,6 @@ public enum EntityAnchor
 
     //可依赖人物骨骼，但也支持非人形的
     Bar,//头顶血条位置
-    Name,//头顶名称位置
     UpCenter,//中上中心
     UpFront,//中上前方
 
@@ -62,7 +61,6 @@ public static class EntityAnchorExtensions
                 case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
 
                 case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 0.5f;
-                case EntityAnchor.Name: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 1f;
                 case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon);
                 case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon) + (model.zRange.y+0.5f) * model.transform.forward;
             }
@@ -89,7 +87,6 @@ public static class EntityAnchorExtensions
             case EntityAnchor.LabelFallBack: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.75f) * Vector3.up;
 
             case EntityAnchor.Bar: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.5f) * Vector3.up;
-            case EntityAnchor.Name: return model.transform.ToAnchorInfo() + (model.yRange.y + 1f) * Vector3.up;
             case EntityAnchor.UpCenter: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up;
             case EntityAnchor.UpFront: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up+ (model.zRange.y + 0.5f) * model.transform.forward;
         }
