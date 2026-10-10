@@ -24,13 +24,13 @@
 | UI_BattlePanel | m_icon_day_night 绕 Z 旋转（0°=正午，180°=午夜，Time01 线性插值）+ m_label_time_left（本地推演）+ m_PlayerBar（左上角固定，本地玩家等级+血量数字+血条）+ m_skillList + m_EventList（UI_EventList）+ m_Minimap |
 | UI_BattlePanel 复活进度 | m_showRegenerationBar 控制器显隐 + m_regeneration_progressbar 填充比例 |
 | **UI_DefensivePointBar**（×4：m_progressMain + m_progressSub1~3） | m_fill 填充比例 = 血量比；**m_destroyed 控制器 = 被摧毁标识**；减伤不在 UI 显示 |
-| UI_EntityBar（世界空间血条） | m_fill + m_label（血量数字）；名牌（PlayerName 名字 + EntityBar 血条）屏幕跟随实体头顶，锚点 = TryGetEntityHeadPos（EntityModelInfo 顶点）；**轴心为左上角（未勾作为锚点）→ 代码设位置时减半个宽度做水平居中**（血条 160 宽、名牌 20 宽） |
+| UI_EntityBar（世界空间血条） | m_fill + m_label（血量数字）；名牌（PlayerName 名字 + EntityBar 血条）屏幕跟随实体头顶，锚点 = TryGetAnchorPos(Bar)（人形 Head 骨骼+0.5m / 非人形包围盒顶+0.5m）；**轴心为左上角（未勾作为锚点）→ 代码设位置时减半个宽度做水平居中**（血条 160 宽、名牌 20 宽） |
 | **UI_SkillList**（BattlePanel.m_skillList） | m_content（**GList，横向单行**，defaultItem = SkillListItem，溢出可见无滚动）：条目数 = 本地角色**技能槽位数**（`EntityAttribute.weaponSlotCount`，默认 3、可被升级抬高）；**代码额外设列表宽度 = 所有条目宽度之和**（白名单内唯一允许的尺寸设置），位置/高度仍由界面决定 |
 | UI_SkillListItem | m_loader_iconBase（底图）+ m_loader_icon（图标，**CD = 填充比例 0→100 一轮冷却**）+ m_store + m_key（键位按 `Config.skill_slot_keys` = U I O L H Y）+ **m_starList（技能经验，exp 与星星 1:1）** + **m_empty 控制器（0 有技能 / 1 空槽）** + **m_randomOutline 控制器（0~4，进入战斗时每个槽位随机一次）**；无选中态、无经验/CD 文本 |
-| UI_DamageLabel | value 0=无效（灰）/ >0=普通（白）/ <0=暴击（橙大号），受击实体头顶（**轴心左上角 → 代码减半个宽度让数字居中于头顶**，上浮+渐隐后销毁） |
+| UI_DamageLabel | value 0=无效（灰）/ >0=普通（白）/ <0=暴击（橙大号），受击实体头顶（**轴心左上角 → 代码减半个宽度让数字居中于头顶**，上浮+渐隐后销毁；随机散布在**屏幕空间**水平±50px / 垂直±10px，创建时定死不再每帧重掷；无命中点时锚点 = 受击实体的 `EntityAnchor.LabelFallBack`） |
 | **UI_EventList**（BattlePanel.m_EventList） | m_EventItemContainer（**GList，纵向单列**，defaultItem = EventItem）：代码只设 `itemRenderer` + `numItems`，条目组件与排布全由界面决定；数据是 `BattlePage.eventEntries`（3.5s 到期从表头移除） |
 | UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字；type1 = 图标+文字；type0 = 纯文字（无图标）。**EventIcon 档位 0~7 已全部接入**：0 无源死亡（玩家死亡无归属）/ 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它（守护点被摧毁）。条目文本统一数字 id 传输（`SCBattleEvent.textId`：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000） |
-| UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；**雷达式**：本地玩家图标固定在 mapBase 正中心并随朝向旋转，上方=世界Z+、右侧=世界X+，**当前雷达显示半径**铺满 mapBase（F 键循环 100/200/300，服务器回应 `SCMinimapRadius`），其它点按相对本地玩家的偏移绘制 |
+| UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；**雷达式**：本地玩家图标固定在 mapBase 正中心并随朝向旋转，上方=世界Z+、右侧=世界X+，**当前雷达显示半径**铺满 mapBase（F 键循环 100/200/300，服务器回应 `SCMinimapRadius`），其它点按相对本地玩家的偏移绘制；点位图标创建时代码设 `scale` = 父链上层元素缩放的倒数（minimapItemScale，界面初始化时算，不含页面根 UiScale 适配），抵消上层缩放使图标保持 FGUI 设计尺寸 |
 | UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅** |
 | UI_Button1 / UI_Panel_1 / UI_NoticePanel | m_selected（选中态）；m_hideTitle=1 隐藏标题栏；m_title（ShowNotice） |
 | UI_Button1 回调 | `onClick.Set(...)` 为覆盖语义（列表复用用它），`onClick.Add(...)` 为追加 |
@@ -65,5 +65,5 @@
 - `SCDamage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体；hasHitPos+hitPos 命中点可选）+ `NetworkManager.SendDamage` 定向（按可见性）/广播重载，不可靠通道
 - `SCPrompt`（messageId = NoticeMessageMap 消息 id）+ `NetworkManager.SendPrompt` 定向：仅开局校验 17/18（战斗事件列表条目一律走 SCBattleEvent，不走此通道）
 - `SCRoomInfo.RoomMemberInfo.characterIndex / name`；`CSPlayerInfo.name`（玩家名上报）
-- `EntityPlayerManager.TryGetEntityHeadPos`（名牌/伤害飘字锚点，EntityModelInfo 顶点懒缓存）
+- `EntityPlayerManager.TryGetAnchorPos(id, EntityAnchor, out pos)`（任意锚点取世界位置，见《代码架构说明》「锚点」节；名牌/血条走 `Bar`、伤害飘字兜底走 `LabelFallBack`）
 - `EntityData.OnDamaged(..., bool isCrit)` 在终伤处广播伤害事件（ProcessHit 传 isCrit）
