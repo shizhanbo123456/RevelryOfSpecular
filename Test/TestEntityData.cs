@@ -19,7 +19,7 @@ public class TestEntityData : EntityData
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
 
         // SetType 必须在 Init 之后：EntityAnim 的 animators 列表在 Init 里才收集
-        if (anim != null) anim.Init(this, OnAnimAttack);
+        if (anim != null) anim.Init(this);
         if (anim != null)
         {
             if (animData != null) anim.SetType(animData.type);

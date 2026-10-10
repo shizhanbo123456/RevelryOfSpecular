@@ -82,10 +82,9 @@ public class EntityAnim : MonoBehaviour
     public Animator MainAnimator => mainAnimator;
 
 
-    public void Init(EntityData data, Action<AttackType> onAttack)
+    public void Init(EntityData data)
     {
         this.data = data;
-        this.onAttack = onAttack;
 
         // 参数包复位：重复 Init（如视图重建）时清掉上一轮残留的持久参数
         paramPack = AnimParamPack.Default;

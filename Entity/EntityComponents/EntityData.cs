@@ -123,7 +123,7 @@ public abstract class EntityData : MonoBehaviour
         if (animData == null) animData = GetComponentInChildren<EntityAnimData>();
 
         // 动画初始化（一切动画控制统一走 EntityAnim）
-        if (anim != null) anim.Init(this, OnAnimAttack);
+        if (anim != null) anim.Init(this);
         if (anim != null)
         {
             if (animData != null) anim.SetType(animData.type);
@@ -145,8 +145,6 @@ public abstract class EntityData : MonoBehaviour
             springWeapon.Init();
         }
     }
-
-    protected virtual void OnAnimAttack(EntityAnim.AttackType type) { }
 
     public virtual void OnUpdate()
     {
