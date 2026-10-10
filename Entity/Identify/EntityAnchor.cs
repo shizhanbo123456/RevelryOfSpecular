@@ -12,6 +12,7 @@ public enum EntityAnchor
     WeaponSlot6,
     WeaponSlot7,
     WeaponSlot8,
+    LabelFallBack,//伤害飘字回退位置
 
     //可依赖人物骨骼，但也支持非人形的
     Bar,//头顶血条位置
@@ -85,6 +86,7 @@ public static class EntityAnchorExtensions
                     position = v,
                     rotation = q
                 };
+            case EntityAnchor.LabelFallBack: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.75f) * Vector3.up;
 
             case EntityAnchor.Bar: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.5f) * Vector3.up;
             case EntityAnchor.Name: return model.transform.ToAnchorInfo() + (model.yRange.y + 1f) * Vector3.up;
