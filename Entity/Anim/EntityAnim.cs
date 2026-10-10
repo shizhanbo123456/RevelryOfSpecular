@@ -218,9 +218,15 @@ public class EntityAnim : MonoBehaviour
     #endregion
 
     #region 骨骼相关
+    private Dictionary<HumanBodyBones, Transform> boneCache = new();
     public Transform GetBoneTransform(HumanBodyBones humanBoneId)
     {
-        return mainAnimator.GetBoneTransform(humanBoneId);
+        if (!boneCache.TryGetValue(humanBoneId, out Transform boneTransform))
+        {
+            boneTransform = mainAnimator.GetBoneTransform(humanBoneId);
+            boneCache[humanBoneId] = boneTransform;
+        }
+        return boneTransform;
     }
     private readonly GameObject[] heldObjects = new GameObject[2];
     public void SetHeldObject(GameObject prefab, bool leftHand = false)
