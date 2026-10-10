@@ -59,7 +59,8 @@ public class BattlePage : PageBase
     {
         public UI_DamageLabel label;
         public float time;
-        public Vector3 anchor;  // 世界锚点（命中点 + 水平随机散布），每帧据此重投影
+        public Vector3 anchor;  // 世界锚点（不含散布），每帧据此重投影
+        public Vector2 scatterPx; // 屏幕空间随机散布（创建时定死，避免每帧重掷抖动）
         public float risePx;    // 屏幕上升累计像素
     }
 
@@ -798,9 +799,7 @@ public class BattlePage : PageBase
         Vector3 anchor;
         if (hasHitPos)
         {
-            // 1m 范围水平随机散布，避免连续命中的飘字叠在一起
-            Vector2 rand = Random.insideUnitCircle;
-            anchor = hitPos + new Vector3(rand.x, 0f, rand.y);
+            anchor = hitPos;
         }
         else
         {
@@ -812,6 +811,9 @@ public class BattlePage : PageBase
         // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示
         var cam = GetProjectionCamera();
         if (cam != null && cam.WorldToScreenPoint(anchor).z <= 0f) return;
+
+        // 散布走屏幕空间（水平±50/垂直±10px）：世界空间散布随距离表现异常（远则仍叠、近则偏移过大）
+        var scatterPx = new Vector2(Random.Range(-50f, 50f), Random.Range(-10f, 10f));
 
         var label = UI_DamageLabel.CreateInstance();
         if (encoded == 0)
@@ -830,8 +832,8 @@ public class BattlePage : PageBase
         }
         Root.AddChild(label);
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
-        label.xy = WorldToPanel(anchor, cam) - new Vector2(label.width * 0.5f, 0f);
-        damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, risePx = 0f });
+        label.xy = WorldToPanel(anchor, cam) + scatterPx - new Vector2(label.width * 0.5f, 0f);
+        damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
     }
 
     // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤
@@ -853,7 +855,7 @@ public class BattlePage : PageBase
             // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowDamage 的剔除一致）
             if (cam.WorldToScreenPoint(item.anchor).z <= 0f) { item.label.visible = false; continue; }
             item.label.visible = true;
-            item.label.xy = WorldToPanel(item.anchor) - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
+            item.label.xy = WorldToPanel(item.anchor) + item.scatterPx - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
         }
     }
 
