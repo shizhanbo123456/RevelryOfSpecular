@@ -100,7 +100,7 @@ public static class EntityAnchorExtensions
     private static Vector2 BoundZ(EntityData entity) => entity.ModelInfo.zRange;
     private static EntityAnchorInfo ToAnchorInfo(this Transform transform,Vector3 offset = default)
     {
-        if(offset.sqrMagnitude<0.001f)
+        if(offset.sqrMagnitude<float.Epsilon)
         {
             return new EntityAnchorInfo()
             {
