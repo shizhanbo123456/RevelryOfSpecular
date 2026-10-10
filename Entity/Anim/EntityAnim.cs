@@ -217,7 +217,11 @@ public class EntityAnim : MonoBehaviour
     }
     #endregion
 
-    #region 手持物体（客户端表现：武器/道具模型挂到手部）
+    #region 骨骼相关
+    public Transform GetBoneTransform(HumanBodyBones humanBoneId)
+    {
+        return mainAnimator.GetBoneTransform(humanBoneId);
+    }
     private readonly GameObject[] heldObjects = new GameObject[2];
     public void SetHeldObject(GameObject prefab, bool leftHand = false)
     {
