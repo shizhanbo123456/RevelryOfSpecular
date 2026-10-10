@@ -66,11 +66,7 @@ namespace Ros.Skill
             {
                 entity.heldWeapon = Weapon;
             }
-            entity.anim.onAttack = _ =>
-            {
-                entity.anim.onAttack = null; // 一次施放只在首个攻击帧结算，动画多段命中事件不重复施放
-                CastNow(entity, skillId);
-            };
+            entity.anim.onAttack = _ => CastNow(entity, skillId); // 不置空回调：多段攻击帧逐次结算技能
             entity.anim.DoAttack(CastAnim);
         }
 
