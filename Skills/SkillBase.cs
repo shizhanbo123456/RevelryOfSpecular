@@ -126,8 +126,10 @@ namespace Ros.Skill
 
         protected static Vector3 HandPos(EntityData entity, bool leftHand = false)
         {
-            var mount = entity != null && entity.anim != null ? entity.anim.GetHandMount(leftHand) : null;
-            return mount != null ? mount.position : entity.transform.position;
+            if (entity == null || entity.anim == null) return entity != null ? entity.transform.position : Vector3.zero;
+            var anchor = (leftHand ? EntityAnchor.LeftHand : EntityAnchor.RightHand)
+                .GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
+            return anchor.transform != null ? anchor.position : entity.transform.position;
         }
 
         protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)

@@ -739,7 +739,7 @@ public class BattlePage : PageBase
             var headPos = Vector3.zero;
             bool visible = false;
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
-                visible = Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(pair.Key, out headPos);
+                visible = Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(pair.Key, EntityAnchor.Bar, out headPos);
             Vector2 local = Vector2.zero;
             if (visible)
             {
@@ -806,7 +806,7 @@ public class BattlePage : PageBase
         {
             anchor = Vector3.zero;
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
-                Tool.ClientLogicManager.EntityPlayers.TryGetEntityHeadPos(targetId, out anchor);
+                Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(targetId, EntityAnchor.UpCenter, out anchor);
         }
 
         // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示

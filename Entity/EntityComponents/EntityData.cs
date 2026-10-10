@@ -156,10 +156,16 @@ public abstract class EntityData : MonoBehaviour
     private void TickWeaponFloat()
     {
         if (springWeapon == null) return;
-        var hips = anim != null && anim.MainAnimator != null ? anim.MainAnimator.GetBoneTransform(HumanBodyBones.Hips) : null;
-        float localY = hips != null
-            ? hips.position.y - transform.position.y
-            : (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
+        float localY;
+        if (anim != null)
+        {
+            var hips = EntityAnchor.ModelRootPosition.GetTransform(ModelInfo, anim, springWeapon);
+            localY = hips.transform != null ? hips.position.y - transform.position.y : (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
+        }
+        else
+        {
+            localY = (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
+        }
         springWeapon.transform.localPosition = new Vector3(0f, localY, 0f);
     }
 
@@ -517,22 +523,14 @@ public abstract class EntityData : MonoBehaviour
         if (springWeapon != null)
         {
             int i = Mathf.Clamp(slotIndex, 0, SpringWeapon.slotCount - 1);
-            springWeapon.GetPos(i, out var p, out var q);
-            return p;
+            var slot = (EntityAnchor)((int)EntityAnchor.WeaponSlot1 + i);
+            return slot.GetTransform(ModelInfo, anim, springWeapon).position;
         }
         return BulletShootPos();
     }
 
-    // 从烘焙包围盒取中心 X/Z + 75% 高度（与客户端 ViewBulletShootPos 同公式）
-    public Vector3 BulletShootPos()
-    {
-        var m = ModelInfo.transform;
-        Vector3 local = new Vector3(
-            (ModelInfo.xRange.x + ModelInfo.xRange.y) * 0.5f,
-            Mathf.Lerp(ModelInfo.yRange.x, ModelInfo.yRange.y, 0.75f),
-            (ModelInfo.zRange.x + ModelInfo.zRange.y) * 0.5f);
-        return m.TransformPoint(local);
-    }
+    // 中上锚点：人形取胸部骨骼，非人形取模型根+75%高度
+    public Vector3 BulletShootPos() => EntityAnchor.UpCenter.GetTransform(ModelInfo, anim, springWeapon).position;
 
     public void Kill()
     {
@@ -587,17 +585,16 @@ public abstract class EntityData : MonoBehaviour
     private bool TrySampleBoneSpan(Transform space, out float footY, out float headY)
     {
         footY = headY = 0f;
-        var animator = anim != null ? anim.MainAnimator : null;
-        if (animator == null) return false;
-        var footL = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-        var footR = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-        var head = animator.GetBoneTransform(HumanBodyBones.Head);
-        if (head == null || (footL == null && footR == null)) return false;
+        if (anim == null) return false;
+        var head = EntityAnchor.Head.GetTransform(ModelInfo, anim, springWeapon);
+        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim, springWeapon);
+        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim, springWeapon);
+        if (head.transform == null || (footL.transform == null && footR.transform == null)) return false;
 
         headY = space.InverseTransformPoint(head.position).y;
         footY = float.MaxValue;
-        if (footL != null) footY = space.InverseTransformPoint(footL.position).y;
-        if (footR != null) footY = Mathf.Min(footY, space.InverseTransformPoint(footR.position).y);
+        if (footL.transform != null) footY = space.InverseTransformPoint(footL.position).y;
+        if (footR.transform != null) footY = Mathf.Min(footY, space.InverseTransformPoint(footR.position).y);
         return true;
     }
     #endregion
@@ -611,14 +608,13 @@ public abstract class EntityData : MonoBehaviour
     private bool TryGetFootWorldY(out float y)
     {
         y = 0f;
-        var animator = anim != null ? anim.MainAnimator : null;
-        if (animator == null) return false;
-        var footL = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-        var footR = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-        if (footL == null && footR == null) return false;
+        if (anim == null) return false;
+        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim, springWeapon);
+        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim, springWeapon);
+        if (footL.transform == null && footR.transform == null) return false;
         y = float.MaxValue;
-        if (footL != null) y = Mathf.Min(y, footL.position.y);
-        if (footR != null) y = Mathf.Min(y, footR.position.y);
+        if (footL.transform != null) y = Mathf.Min(y, footL.position.y);
+        if (footR.transform != null) y = Mathf.Min(y, footR.position.y);
         return true;
     }
 
