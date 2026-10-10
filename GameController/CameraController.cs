@@ -28,6 +28,8 @@ public class CameraController : MonoBehaviour
     // 自动取景：每 autoFrameInterval 遍历可见实体，把可见模型的俯仰跨度约束进视野；
     // 有越界时经 SetPitch 按周期续期修正，无越界时停止刷新、由保持时间自然到期回正
     public float autoFrameInterval = 0.2f;
+    // 俯仰角自适应是否忽略玩家角色：忽略时看向敌人而非自身
+    public bool autoPitchIgnoreSelf = true;
 
     private float autoFrameTimer;
 
@@ -166,6 +168,8 @@ public class CameraController : MonoBehaviour
         foreach (var view in players.AllViews)
         {
             if (view == null) continue;
+            if (autoPitchIgnoreSelf && NetworkManager.battleInfo != null
+                && view.id == NetworkManager.battleInfo.playerEntityId) continue; // 忽略玩家角色
             Vector3 p = view.transform.position;
             float dx = p.x - camPos.x;
             float dz = p.z - camPos.z;
