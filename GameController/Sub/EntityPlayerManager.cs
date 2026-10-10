@@ -33,7 +33,7 @@ public class EntityPlayerManager : ClientSubManager
         public SpringWeapon springWeapon; // 武器漂浮弹簧实例（InfoManager.SpringWeapon 复制，挂表现体下自动跟随）
         public EntityModelInfo modelInfo; // 烘焙包围盒（CreateView 时缓存，发射点/头顶锚点共用）
         private bool springInited;        // 弹簧仅初始化一次，避免每帧重置把武器重新吸附到抖动位姿
-        public Transform cameraAnchor;    // 相机锚点：XY/旋转取实体、高度取 Head（骨骼缺失回退 Hips/实体根）
+        public Transform cameraAnchor;    // 相机注视点 = EntityAnchor.Camera；旋转取实体根，供相机偏航同步
 
         // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
         // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
@@ -97,18 +97,12 @@ public class EntityPlayerManager : ClientSubManager
                 }
             }
 
-            // 相机锚点：XY/旋转跟随实体自身，高度跟随 Head（骨骼缺失回退 Hips，再回退实体根）；
-            // 每帧更新供 CameraController.LateUpdate 读取，从而仅高度跟骨骼、不继承其旋转
+            // 相机锚点 = EntityAnchor.Camera（相机注视点，位置含高度）；旋转仍取实体根，供相机偏航同步
             if (cameraAnchor != null)
             {
-                float y = transform.position.y;
-                if (anim != null)
-                {
-                    var headInfo = EntityAnchor.Head.GetTransform(modelInfo, anim, springWeapon);
-                    if (headInfo.transform == null) headInfo = EntityAnchor.ModelRootPosition.GetTransform(modelInfo, anim, springWeapon);
-                    if (headInfo.transform != null) y = headInfo.position.y;
-                }
-                cameraAnchor.position = new Vector3(transform.position.x, y, transform.position.z);
+                cameraAnchor.position = anim != null
+                    ? EntityAnchor.Camera.GetTransform(modelInfo, anim, springWeapon).position
+                    : transform.position;
                 cameraAnchor.rotation = transform.rotation;
             }
 
@@ -252,7 +246,7 @@ public class EntityPlayerManager : ClientSubManager
         // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
         if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
-        // 本地玩家：绑定相机跟随（仅高度跟随 Head，XY/旋转跟随实体自身）
+        // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
             if (Tool.CameraController != null)
@@ -261,14 +255,9 @@ public class EntityPlayerManager : ClientSubManager
                 {
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
                     Tool.CameraController.SetLookTarget(view.cameraAnchor);
-                    float y = view.transform.position.y;
-                    if (view.anim != null)
-                    {
-                        var headInfo = EntityAnchor.Head.GetTransform(view.modelInfo, view.anim, view.springWeapon);
-                        if (headInfo.transform == null) headInfo = EntityAnchor.ModelRootPosition.GetTransform(view.modelInfo, view.anim, view.springWeapon);
-                        if (headInfo.transform != null) y = headInfo.position.y;
-                    }
-                    view.cameraAnchor.position = new Vector3(view.transform.position.x, y, view.transform.position.z);
+                    view.cameraAnchor.position = view.anim != null
+                        ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
+                        : view.transform.position;
                     view.cameraAnchor.rotation = view.transform.rotation;
                 }
             }

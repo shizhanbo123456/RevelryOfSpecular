@@ -10,22 +10,25 @@ public class CameraController : MonoBehaviour
     // 相机插值收尾后回调：UI 在此用最终相机变换投影，避免与渲染差一帧导致震颤
     public event System.Action OnCameraUpdated;
 
-    public Vector2 zRange = new Vector2(3f, 8f);
     public Vector2 yRange = new Vector2(1f, 3f);
+    public Vector2 zRange = new Vector2(3f, 8f);
 
     public float slowSmooth = 2f;
     public float fastSmooth = 10f;
-    // 旋转(绕角色水平角)平滑速率：独立配置，快转回后方时手感与位置平滑解耦
-    public float yawSmooth = 10f;
-
-    // 俯仰角（度，向下为正）；相机看向与角色水平对齐、抬高 (y - z*tan(pitch)) 的点，而非脚底
-    public float pitch = 15f;
-    // 越界缓冲带半宽：带内线性插值快慢平滑，超出带才用快速，避免速率阶跃震颤
+    // 高度越界缓冲带半宽：带内线性插值快慢平滑，超出带才用快速，避免速率阶跃震颤
     public float smoothDistance = 1.5f;
-    // 瞬移阈值：相机与理想机位的距离超过该值时直接吸附，不做平滑（覆盖从预览机位进战斗、复活换出生点）
-    public float snapDistance = 10f;
+    // 绑定目标时的初始水平后距
+    public float initialDistance = 5.5f;
 
-    private float yaw;
+    // 俯仰偏转平滑速率
+    public float pitchSmooth = 10f;
+
+    // 俯仰偏转（度，向下为正；0 = 正看锚点）：全程向目标值平滑，保持时间结束自动归零
+    private float pitchOffset;
+    private float pitchTarget;
+    private float pitchHoldTime;
+
+    private Vector3 lastLookPos; // 上一帧锚点位置：先把相机随实体平移，再量距离摆到正后方，避免行进中距离累积漂移
 
     private void Awake()
     {
@@ -36,7 +39,21 @@ public class CameraController : MonoBehaviour
     public void SetLookTarget(Transform target)
     {
         lookTarget = target;
-        if (target != null) yaw = target.eulerAngles.y;
+        if (target == null) return;
+        // 绑定/换绑（进战斗、复活换绑）：直接摆到目标正后方默认距离
+        lastLookPos = target.position;
+        Vector3 back = Quaternion.Euler(0f, target.eulerAngles.y, 0f) * Vector3.back;
+        float yCenter = (yRange.x + yRange.y) * 0.5f;
+        transform.position = target.position + Vector3.up * yCenter + back * initialDistance;
+        ApplyView();
+        NotifyCameraUpdated();
+    }
+
+    // 俯仰偏转：保持 duration 秒后自动回归看向锚点；重复调用刷新保持时间
+    public void SetPitch(float pitch, float duration = 0.1f)
+    {
+        pitchTarget = pitch;
+        pitchHoldTime = duration;
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
@@ -59,40 +76,52 @@ public class CameraController : MonoBehaviour
     {
         if (lookTarget == null) return;
 
-        float targetYaw = lookTarget.eulerAngles.y;
+        TickPitch();
 
-        // 理想机位（yaw 取目标当前朝向）：与当前位置超过瞬移阈值就直接吸附，跳过平滑
-        Vector3 idealBack = Quaternion.Euler(0f, targetYaw, 0f) * Vector3.back;
-        float zCenter = (zRange.x + zRange.y) * 0.5f;
-        float yCenter = (yRange.x + yRange.y) * 0.5f;
-        Vector3 idealPos = lookTarget.position + Vector3.up * yCenter + idealBack * zCenter;
-        if ((transform.position - idealPos).sqrMagnitude > snapDistance * snapDistance)
-        {
-            yaw = targetYaw;
-            transform.position = idealPos;
-            transform.LookAt(lookTarget.position + Vector3.up * (yCenter - zCenter * Mathf.Tan(pitch * Mathf.Deg2Rad)));
-            NotifyCameraUpdated();
-            return;
-        }
-
-        yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-yawSmooth * Time.deltaTime));
-
+        // 偏航不平滑：相机全程在角色正后方，自身偏航与角色一致
+        float yaw = lookTarget.eulerAngles.y;
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
 
+        // 1) 先随实体平移（量距不受行进位移污染），2) 再量当前水平距离/高度
+        Vector3 delta = lookTarget.position - lastLookPos;
+        delta.y = 0f;
+        transform.position += delta;
+        lastLookPos = lookTarget.position;
+
         Vector3 toCam = transform.position - lookTarget.position;
-        float yCur = toCam.y;
-        float zCur = Vector3.Dot(toCam, back);
+        toCam.y = 0f;
+        float zCur = toCam.magnitude;
+        float yCur = transform.position.y - lookTarget.position.y;
 
-        float yRate = AxisRate(yCur, yRange, smoothDistance, slowSmooth, fastSmooth);
+        // 半径/高度双轴弹性平滑（区间内慢速、越界快速）
         float zRate = AxisRate(zCur, zRange, smoothDistance, slowSmooth, fastSmooth);
-
-        float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
+        float yRate = AxisRate(yCur, yRange, smoothDistance, slowSmooth, fastSmooth);
+        float zCenter = (zRange.x + zRange.y) * 0.5f;
+        float yCenter = (yRange.x + yRange.y) * 0.5f;
         float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * Time.deltaTime));
+        float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
 
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
-        float lookUp = yNew - zNew * Mathf.Tan(pitch * Mathf.Deg2Rad);
-        transform.LookAt(lookTarget.position + Vector3.up * lookUp);
+        ApplyView();
         NotifyCameraUpdated();
+    }
+
+    // 直接看向锚点（不平滑），再叠加平滑的俯仰偏转
+    private void ApplyView()
+    {
+        transform.LookAt(lookTarget.position);
+        if (pitchOffset != 0f) transform.rotation *= Quaternion.Euler(pitchOffset, 0f, 0f);
+    }
+
+    // 俯仰偏转全程向目标值平滑；保持时间结束后目标归零（回归看向锚点）
+    private void TickPitch()
+    {
+        if (pitchHoldTime > 0f)
+        {
+            pitchHoldTime -= Time.deltaTime;
+            if (pitchHoldTime <= 0f) pitchTarget = 0f;
+        }
+        pitchOffset = Mathf.Lerp(pitchOffset, pitchTarget, 1f - Mathf.Exp(-pitchSmooth * Time.deltaTime));
     }
 
     // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），

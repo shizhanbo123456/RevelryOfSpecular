@@ -27,6 +27,7 @@ public enum EntityAnchor
     LeftFoot,
     RightFoot,
     Chest,
+    Camera,//相机注视点
 }
 public struct EntityAnchorInfo
 {
@@ -59,6 +60,7 @@ public static class EntityAnchorExtensions
                 case EntityAnchor.LeftFoot: return anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo();
                 case EntityAnchor.RightFoot: return anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo();
                 case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
+                case EntityAnchor.Camera: return EntityAnchor.ModelRootPosition.GetTransform(model, anim, springWeapon) + (model.yRange.y*0.5f + 0.5f) * Vector3.up;
 
                 case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 0.5f;
                 case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon);
