@@ -187,6 +187,9 @@ public class EntityPlayerManager : ClientSubManager
 
     public ClientEntityView GetView(ushort id) => views.TryGetValue(id, out var v) ? v : null;
 
+    // 服务端已同步给本客户端的实体视图集合（即客户端可见实体），供相机自动取景等系统遍历
+    public IEnumerable<ClientEntityView> AllViews => views.Values;
+
     private readonly Dictionary<ushort, SCEntityAnimInfo> pendingAnim = new();
 
     private static bool logForcedAnimSwitch = true;

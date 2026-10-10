@@ -22,6 +22,14 @@ public class CameraController : MonoBehaviour
 
     // 俯仰偏转平滑速率
     public float pitchSmooth = 10f;
+    // 俯仰偏转钳制范围（度）：在平滑之后钳制而非钳制目标值，设大目标可快速平滑到边界
+    public Vector2 pitchClamp = new Vector2(-45f, 45f);
+
+    // 自动取景：每 autoFrameInterval 遍历可见实体，把可见模型的俯仰跨度约束进视野；
+    // 有越界时经 SetPitch 按周期续期修正，无越界时停止刷新、由保持时间自然到期回正
+    public float autoFrameInterval = 0.2f;
+
+    private float autoFrameTimer;
 
     // 俯仰偏转（度，向下为正；0 = 正看锚点）：全程向目标值平滑，保持时间结束自动归零
     private float pitchOffset;
@@ -78,6 +86,14 @@ public class CameraController : MonoBehaviour
 
         TickPitch();
 
+        // 自动取景周期遍历
+        autoFrameTimer += Time.deltaTime;
+        if (autoFrameTimer >= autoFrameInterval)
+        {
+            autoFrameTimer = 0f;
+            UpdateAutoPitch();
+        }
+
         // 偏航不平滑：相机全程在角色正后方，自身偏航与角色一致
         float yaw = lookTarget.eulerAngles.y;
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
@@ -106,14 +122,14 @@ public class CameraController : MonoBehaviour
         NotifyCameraUpdated();
     }
 
-    // 直接看向锚点（不平滑），再叠加平滑的俯仰偏转
+    // 直接看向锚点（不平滑），再叠加平滑后的俯仰偏转
     private void ApplyView()
     {
         transform.LookAt(lookTarget.position);
         if (pitchOffset != 0f) transform.rotation *= Quaternion.Euler(pitchOffset, 0f, 0f);
     }
 
-    // 俯仰偏转全程向目标值平滑；保持时间结束后目标归零（回归看向锚点）
+    // 俯仰偏转全程向目标值平滑（平滑后钳制）；保持时间结束后目标归零（回归看向锚点）
     private void TickPitch()
     {
         if (pitchHoldTime > 0f)
@@ -122,6 +138,71 @@ public class CameraController : MonoBehaviour
             if (pitchHoldTime <= 0f) pitchTarget = 0f;
         }
         pitchOffset = Mathf.Lerp(pitchOffset, pitchTarget, 1f - Mathf.Exp(-pitchSmooth * Time.deltaTime));
+        pitchOffset = Mathf.Clamp(pitchOffset, pitchClamp.x, pitchClamp.y);
+    }
+
+    // 自动取景：遍历可见实体（水平中间 80% 内，俯仰近似为 0 的水平视野测试），
+    // 量出覆盖所有模型上下边界的俯仰跨度 [上限, 下限]；0 偏转（正看锚点）即可覆盖时不干预（自然回正），
+    // 装不下时经 SetPitch 给出最小修正偏转并按遍历周期续期；两侧都装不下时中心取上限与下限的平均值
+    private void UpdateAutoPitch()
+    {
+        var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+        if (players == null || WorldCamera == null || lookTarget == null) return;
+
+        Vector3 camPos = transform.position;
+        float vHalf = WorldCamera.fieldOfView * 0.5f;
+        float hHalf = Mathf.Atan(Mathf.Tan(vHalf * Mathf.Deg2Rad) * WorldCamera.aspect) * Mathf.Rad2Deg;
+        float bandTan = Mathf.Tan(hHalf * Mathf.Deg2Rad) * 0.8f; // 中间 80%：两侧各让出 10%
+
+        Vector3 fwd = transform.forward;
+        fwd.y = 0f;
+        if (fwd.sqrMagnitude < 0.0001f) return;
+        fwd.Normalize();
+
+        float pitchTop = float.MaxValue;    // 上限：最高的所需视线（数值最小，向下为正）
+        float pitchBottom = float.MinValue; // 下限：最低的所需视线（数值最大）
+        bool any = false;
+
+        foreach (var view in players.AllViews)
+        {
+            if (view == null) continue;
+            Vector3 p = view.transform.position;
+            float dx = p.x - camPos.x;
+            float dz = p.z - camPos.z;
+            float dist = Mathf.Sqrt(dx * dx + dz * dz);
+            if (dist < 0.05f) continue; // 与相机几乎同位置：水平视线角无定义
+
+            // 俯仰近似为 0 的水平视野测试：只取水平视场中间 80% 的实体
+            float angle = Vector2.SignedAngle(new Vector2(fwd.x, fwd.z), new Vector2(dx / dist, dz / dist));
+            if (Mathf.Abs(angle) >= hHalf) continue;
+            if (Mathf.Abs(Mathf.Tan(angle * Mathf.Deg2Rad)) > bandTan) continue;
+
+            // 模型上下边界对应的俯仰角（向下为正）
+            float pitchToTop = Mathf.Atan2(camPos.y - (p.y + view.modelInfo.yRange.y), dist) * Mathf.Rad2Deg;
+            float pitchToBottom = Mathf.Atan2(camPos.y - (p.y + view.modelInfo.yRange.x), dist) * Mathf.Rad2Deg;
+            if (pitchToTop < pitchTop) pitchTop = pitchToTop;
+            if (pitchToBottom > pitchBottom) pitchBottom = pitchToBottom;
+            any = true;
+        }
+
+        if (!any) return; // 本轮没有纳入取景的实体：不刷新，已持有的偏转到保持期结束自然回正
+
+        // 0 偏转（正看锚点）时的视角中心俯仰
+        Vector3 toAnchor = lookTarget.position - camPos;
+        float anchorPitch = Mathf.Atan2(-toAnchor.y, new Vector2(toAnchor.x, toAnchor.z).magnitude) * Mathf.Rad2Deg;
+
+        // 视角中心可行区间：上边缘 ≤ 上限 且 下边缘 ≥ 下限
+        float fitLow = pitchBottom - vHalf;
+        float fitHigh = pitchTop + vHalf;
+        if (fitLow > fitHigh)
+        {
+            // 视场装不下：中心取上限与下限的平均值
+            SetPitch((pitchTop + pitchBottom) * 0.5f - anchorPitch, autoFrameInterval * 1.5f);
+            return;
+        }
+        if (anchorPitch < fitLow) SetPitch(fitLow - anchorPitch, autoFrameInterval * 1.5f); // 压低
+        else if (anchorPitch > fitHigh) SetPitch(fitHigh - anchorPitch, autoFrameInterval * 1.5f); // 抬起
+        // 否则 0 偏转已完整覆盖：不刷新，自然回正
     }
 
     // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），
