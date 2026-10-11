@@ -8,6 +8,7 @@ namespace Ros.UI.Main
     {
         public static void BindAll()
         {
+            UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
             UIObjectFactory.SetPackageItemExtension(UI_BattlePanel.URL, typeof(UI_BattlePanel));
