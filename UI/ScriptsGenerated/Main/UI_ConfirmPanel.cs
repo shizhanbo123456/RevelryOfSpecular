@@ -7,6 +7,7 @@ namespace Ros.UI.Main
 {
     public partial class UI_ConfirmPanel : GComponent
     {
+        public GTextField m_content;
         public GButton m_btn_confirm;
         public GButton m_btn_cancel;
         public const string URL = "ui://q68vr2bftjktim";
@@ -20,6 +21,7 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
+            m_content = (GTextField)GetChildAt(2);
             m_btn_confirm = (GButton)GetChildAt(3);
             m_btn_cancel = (GButton)GetChildAt(4);
         }
