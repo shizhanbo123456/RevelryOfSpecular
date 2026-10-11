@@ -14,6 +14,7 @@ namespace Ros.UI.Main
         public GSlider m_content_slider;
         public GTextInput m_content_inputField;
         public GComboBox m_content_dropdown;
+        public GTextField m_content_slider_value;
         public const string URL = "ui://q68vr2bftjktiq";
 
         public static UI_GmItem CreateInstance()
@@ -32,6 +33,7 @@ namespace Ros.UI.Main
             m_content_slider = (GSlider)GetChildAt(4);
             m_content_inputField = (GTextInput)GetChildAt(5);
             m_content_dropdown = (GComboBox)GetChildAt(6);
+            m_content_slider_value = (GTextField)GetChildAt(7);
         }
     }
 }

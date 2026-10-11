@@ -7,8 +7,8 @@ namespace Ros.UI.Main
 {
     public partial class UI_GmPanel : GComponent
     {
-        public GComponent m_firstMenu;
-        public GComponent m_secondMenu;
+        public UI_GmButtonList m_firstMenu;
+        public UI_GmButtonList m_secondMenu;
         public GList m_GmItemList;
         public const string URL = "ui://q68vr2bftjktio";
 
@@ -21,8 +21,8 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_firstMenu = (GComponent)GetChildAt(1);
-            m_secondMenu = (GComponent)GetChildAt(2);
+            m_firstMenu = (UI_GmButtonList)GetChildAt(1);
+            m_secondMenu = (UI_GmButtonList)GetChildAt(2);
             m_GmItemList = (GList)GetChildAt(7);
         }
     }

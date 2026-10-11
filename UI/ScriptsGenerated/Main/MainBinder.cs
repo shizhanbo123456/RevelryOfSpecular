@@ -31,6 +31,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
             UIObjectFactory.SetPackageItemExtension(UI_ConfirmPanel.URL, typeof(UI_ConfirmPanel));
             UIObjectFactory.SetPackageItemExtension(UI_GmPanel.URL, typeof(UI_GmPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_GmButtonList.URL, typeof(UI_GmButtonList));
             UIObjectFactory.SetPackageItemExtension(UI_GmItem.URL, typeof(UI_GmItem));
             UIObjectFactory.SetPackageItemExtension(UI_GmComboBox_popup.URL, typeof(UI_GmComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_HomeCharacterList.URL, typeof(UI_HomeCharacterList));
