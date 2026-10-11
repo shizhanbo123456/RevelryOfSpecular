@@ -28,6 +28,10 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerInfo.URL, typeof(UI_PlayerInfo));
             UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
+            UIObjectFactory.SetPackageItemExtension(UI_ConfirmPanel.URL, typeof(UI_ConfirmPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_GmPanel.URL, typeof(UI_GmPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_GmItem.URL, typeof(UI_GmItem));
+            UIObjectFactory.SetPackageItemExtension(UI_GmComboBox_popup.URL, typeof(UI_GmComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_HomeCharacterList.URL, typeof(UI_HomeCharacterList));
             UIObjectFactory.SetPackageItemExtension(UI_Panel_1.URL, typeof(UI_Panel_1));
             UIObjectFactory.SetPackageItemExtension(UI_AttrItem.URL, typeof(UI_AttrItem));
