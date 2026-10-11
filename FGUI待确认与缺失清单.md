@@ -2,6 +2,7 @@
 
 > 配套：`Assets/Resources/GUI/Main_fui.bytes`（包名 Main）+ `ScriptsGenerated/Main`（生成类，命名空间 **Ros.UI.Main**，引用需 `using Ros.UI.Main;`）。
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
+> **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩（UI 已建、代码未接），见第五节。
 
 ## 一、页面根与结构
 
@@ -55,11 +56,54 @@
 
 ## 四、可选未做（默认不做，需要再说）
 
-- **确认面板**：断开并返回前的"确定要断开吗"二次确认弹窗（当前直接断开）
+- **确认面板**：UI 已建（ConfirmPanel + FullScreenMask，见第五节），**逻辑未接**——断开并返回前的"确定要断开吗"二次确认（当前点退出直接断开）
 - **加载遮罩**：连接服务器期间的全屏提示（当前连接期间按钮无反馈界面，仅状态文本）
 - **守护点减伤叠层**：按设计不在 UI 显示
 
-## 五、协议依赖（已实现）
+## 五、GM 面板 / 确认弹窗 / 全屏遮罩（2026-10-11 新增，UI 已建·代码未接）
+
+> 组件都在 Main 包里、`MainBinder` 已注册，能正常 `CreateInstance()`；但**代码侧暂无任何入口**（没有创建、没有协议、没有快捷键）。
+
+### GmPanel（`Panels/Modules/GmPanel.xml`，800×600）
+
+| 成员 | 类型 | 说明 |
+|---|---|---|
+| m_firstMenu / m_secondMenu | UI_GmButtonList | 一级 / 二级菜单列（各 125×500）。列内 GList 名 `button_list`，defaultItem = Button1（带 `selected` 选中态） |
+| m_GmItemList | GList | 右侧参数行列表（448×467，单列，lineGap=15），defaultItem = **GmItem** |
+| （底框，未导出） | UI_Panel_1 | 实例上 `hideTitle=1`（标题栏隐藏），且 Panel_1 本身没有关闭按钮 → **面板当前没有任何关闭入口** |
+
+### GmItem（`Panels/Modules/GM/GmItem.xml`，500×50）——`content` 控制器五档
+
+所有档位共用左侧 `m_title` 作为行名；`m_content` 是导出控制器，**按显示顺序（= `selectedIndex`）依次为**：
+
+| selectedIndex | 档位 | 显示的元素 | 含义 / 用法 |
+|---|---|---|---|
+| 0 | **文本** | m_content_text（只读 GTextField，右对齐） | 只展示当前值，不可操作 |
+| 1 | **按钮** | m_content_btn（UI_Button1） | 单次执行型指令（如"重置位置"），点一次执行一次 |
+| 2 | **滑动条** | m_content_slider（GmSlider，`value` 0~max）+ m_content_slider_value（数值文本） | 连续调参：滑条值驱动右侧数值文本 |
+| 3 | **输入框** | m_content_inputField（GTextInput，真输入框） | 手输数值 / 字符串 |
+| 4 | **下拉框** | m_content_dropdown（ComboBoxGm） | 枚举选择。popup = GmComboBox_popup（内含名为 `list` 的 GList，条目 = GmComboBox_item） |
+
+- ⚠ **页 id 与 index 不一致**：文本=0 / 按钮=**3** / 滑动条=**1** / 输入框=**2** / 下拉框=4（各元素 gearDisplay 也是按这套 id 挂的）。代码里请用 `selectedIndex`（即上表 index）或 `selectedPage = "按钮"`，**不要**把档位 id 当 index 用。
+- 组件默认页 `selected=4`（下拉框）——只影响编辑器预览和新建实例，列表里的行由代码逐行设档。
+
+### ConfirmPanel（`Panels/Modules/ConfirmPanel.xml`，400×300）
+
+| 成员 | 类型 | 说明 |
+|---|---|---|
+| m_content | GTextField | 正文提示语（代码写入） |
+| m_btn_confirm / m_btn_cancel | GButton（Button4） | 确认 / 取消 |
+
+### FullScreenMask（`Panels/Modules/FullScreenMask.xml`）
+
+5000×5000 全屏半透明遮罩（`#66000000`），弹窗时用来挡下层点击；空文本子节点 `empty_text_merely_make_sure_this_component_can_be_published` 只是为了让该组件能生成代码，无实际用途。遮罩与弹窗都需代码手动创建后 AddChild。
+
+### 本节待确认
+
+- GmPanel 无关闭入口（标题栏被隐藏、Panel_1 无关闭按钮）：待定用快捷键开关还是补关闭按钮。
+- ConfirmPanel 无标题（当前只有正文）：若需要"断开连接"这类标题需补 title。
+
+## 六、协议依赖（已实现）
 
 - `SCBattleEvent`（战斗事件列表唯一来源）：type（事件语义唯一判别，icon 档位与条目版式由客户端按类型映射）+ textId/textId2（数字文本：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000）。事件源：玩家击杀（PlayerKill，type2 双名）/玩家死亡无归属（DeathUnattributed）、复活（PlayerRespawn）、攻占瘟疫树（PlagueTreeCaptured）、瘟疫树刷新（PlagueTreeRespawn）、天黑/天亮（Nightfall/Daybreak）、守护点摧毁（BeaconDestroyed，textId 区分哪一座：19 中心 / 24~26 外围，驱动对应血条 destroyed）、防御塔摧毁（TowerDestroyed）、武器提示 13/14/15（Notice，纯文字，定向）
 - `SCDamage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体；hasHitPos+hitPos 命中点可选）+ `NetworkManager.SendDamage` 定向（按可见性）/广播重载，不可靠通道
