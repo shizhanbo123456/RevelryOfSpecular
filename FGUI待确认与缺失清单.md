@@ -3,6 +3,7 @@
 > 配套：`Assets/Resources/GUI/Main_fui.bytes`（包名 Main）+ `ScriptsGenerated/Main`（生成类，命名空间 **Ros.UI.Main**，引用需 `using Ros.UI.Main;`）。
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
 > **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩（UI 已建、代码未接），见第五节。
+> **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem，UI 已建、代码未接），见第七节。
 
 ## 一、页面根与结构
 
@@ -111,3 +112,96 @@
 - `SCRoomInfo.RoomMemberInfo.characterIndex / name`；`CSPlayerInfo.name`（玩家名上报）
 - `EntityPlayerManager.TryGetAnchorPos(id, EntityAnchor, out pos)`（任意锚点取世界位置，见《代码架构说明》「锚点」节；名牌/血条走 `Bar`、伤害飘字兜底走 `LabelFallBack`）
 - `EntityData.OnDamaged(..., bool isCrit)` 在终伤处广播伤害事件（ProcessHit 传 isCrit）
+
+## 七、聊天系统（2026-10-12 新增，UI 已建·代码未接）
+
+> 组件在 Main 包内：`Panels/Modules/ChatPanel.xml`（421×300）+ `Panels/Modules/Chat/ChatItem.xml`（400×60）。
+> `MainBinder` 已注册两者 URL，`UI_ChatPanel.CreateInstance()` / `UI_ChatItem.CreateInstance()` 可直接用；**代码侧目前 0 行**（无创建入口、无协议、无渲染、无输入处理），本节即后续纯代码开发的对接说明。
+
+### 7.1 需求确认（2026-10-12 与策划确认）
+
+| 项 | 结论 |
+|---|---|
+| 频道 | 只有两种：**全频道**（所有人可见）+ **阵营频道**（仅同阵营可见） |
+| 可用场景 | **联网状态下均可**：组队大厅（LobbyPage）+ 战斗（BattlePage）；未联网的首页不显示 |
+| 自己的消息 | **本地立即回显**（不等服务端回包），同时照常上报服务端 |
+| 面板入口 | **进入网络状态后自动显示**：无标题栏、无关闭按钮、无快捷键，靠联网/断线状态自动显隐 |
+
+### 7.2 ChatPanel 成员
+
+| 成员 | 类型 | 说明 |
+|---|---|---|
+| m_show_channel_menu | Controller（2 档） | 频道菜单显隐，档位见 7.3 |
+| m_input | GTextInput | 单行输入框（字体 20，ubb=true）；读值用 `.text` |
+| m_btn_send | GButton | 标题"发送"（334,256，81×37） |
+| m_content | GList | 400×229(11,11)，`overflow=scroll`，defaultItem = ChatItem |
+| m_btn_allChannel | GButton | 标题"全频道"（面板**上方** y=-28，100×30） |
+| m_btn_campChannel | GButton | 标题"阵营频道"（面板**上方** y=-28，100×30） |
+
+### 7.3 控制器档位
+
+**ChatPanel.m_show_channel_menu**（控制的是 `btn_allChannel` + `btn_campChannel` 所在组的显隐，组位于面板上方 y=-28，即面板外）
+
+| index | 效果 |
+|---|---|
+| 0 | 收起：只剩列表 + 输入行，频道按钮不可见 |
+| 1 | 展开：额外显示"全频道 / 阵营频道"两个按钮（**组件当前默认档 = 1**） |
+
+**ChatItem.m_camp**（控制的是两个阵营 image 的互斥显示）
+
+| index | 效果 |
+|---|---|
+| 0 | 显示攻击方图标 `Images/Common/icon_camp_attacker.png`（28×28，位于头像右下角） |
+| 1 | 显示防守方图标 `Images/Common/icon_camp_defenser.png` |
+
+**ChatItem.m_side**（控制的是「头像框组」与「阵营图标组」两个组的 XY，文本/名字不参与）
+
+| index | 头像框组（底框+headIcon） | 阵营图标组 | 正文/名字 |
+|---|---|---|---|
+| 0 = 他人（默认） | (5,6) | (33,33) | 固定 (62,29) / (62,5) |
+| 1 = 自己 | (345,5) | (340,33) | **不变** |
+
+### 7.4 ChatItem 成员
+
+| 成员 | 类型 | 说明 |
+|---|---|---|
+| m_content | GTextField | 正文，`autoSize=height` → **条目高度随文本增高** |
+| m_headIcon | GLoader | 头像，url 由代码写（取角色图标，参考 HomePage 里 UI_RoleHead.m_headIcon 的取法） |
+| m_player_name | GTextField | 发送者名字（固定宽 278，autoSize=none） |
+
+### 7.5 数据流链路（按数据流顺序；括号内为落点）
+
+1. **挂载**：联网后创建 ChatPanel（`UI_ChatPanel.CreateInstance()`），列表先设 `m_content.itemRenderer`，再设 `numItems`。（UIManager 或 LobbyPage/BattlePage，见 7.8）
+2. **交互**：`m_btn_send.onClick` / `m_input.onSubmit` → 取 `m_input.text`，判空与长度；`m_btn_allChannel.onClick` / `m_btn_campChannel.onClick` → 切发送频道。
+3. **本地回显**：先把条目加入本地列表（`m_side=1`、`m_camp`=自己的阵营），清空输入框，滚到最新。
+4. **上报**：`NetworkManager.SendChat(channel, content)` → `CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, new CSChat{...}, EnsInstance.LocalClientId)`（照 `SendStartRequest` 写法）。
+5. **服务端**：`[Rpc] ServerReceiveChatLocal(CSChat c, short clientId)` → 取阵营（`BattleManager.PlayerCamp` / `SCRoomInfo.RoomMemberInfo.camp`）组装 `SCChat`（含 senderClientId、名字、阵营）→ 全频道用 `SendTo.ExcludeSender` 广播（**排除发送者，避免与自己回显重复**）；阵营频道按同阵营 clientId 逐个 `SendTo.To(clientId)`。
+6. **下行**：`[Rpc] ClientReceiveChatLocal(SCChat e)` → `EventManager.TrigEvent(ClientEvent.OnChatMessage, e)`。
+7. **渲染**：页面 `Enter` 订阅事件 → 条目入表 → `m_content.numItems = count` → `itemRenderer` 写 `m_camp / m_side / m_player_name / m_content`（照 BattlePage `RenderEventItem` 模式，`itemRenderer` 先设、`numItems` 后设）。
+
+### 7.6 需新增/改动的位置
+
+| 文件 | 改动 |
+|---|---|
+| `Assets/Scripts/Transport/CSChat.cs`、`SCChat.cs` | 新增：载荷类 + 同名 Serializer（照 `SCRoomInfo.cs` 结构）。SCChat 需带 senderClientId、名字、**阵营**（客户端不知道别人的阵营，必须由服务端下发） |
+| `Assets/Scripts/GameController/NetworkManager.cs` | 新增 `SendChat(...)` + `[Rpc] ServerReceiveChatLocal` + `[Rpc] ClientReceiveChatLocal` |
+| `Assets/Scripts/GlobalData/ClientEvent.cs` | 新增 10310 段常量 `OnChatMessage` |
+| `Assets/Scripts/UI/UIManager.cs` 或 `UI/Logic/LobbyPage.cs`、`BattlePage.cs` | 面板挂载、事件订阅（Enter/Exit）、列表渲染 |
+| （可选）`Assets/Scripts/GlobalData/NoticeMessageMap.cs` | 若发送失败/超长要走纯文字提示 |
+
+**改完必须执行 Unity 菜单 Ens/GenerateCode**：消息 id 由代码生成器按类与方法声明顺序自动分配，不跑就没有协议 id。
+
+### 7.7 开发完成后的界面行为
+
+- 联网进入组队大厅即出现聊天面板；切到战斗界面仍在；断开/回首页时隐藏（或销毁，见 7.8）。
+- 别人发言：条目左侧（`side=0`），头像+名字，`camp` 按发送方阵营显示攻/守图标，正文自增高。
+- 自己发言：本地立即插入条目（`side=1`），头像与阵营图标移到右侧，输入框清空，列表滚到最新。
+- 频道：默认发全频道；点"阵营频道"后只发给同阵营；点任一频道按钮后 `show_channel_menu.selectedIndex = 0` 收起菜单。
+- 列表只保留最近 N 条（建议 50，超出从头部移除后重设 `numItems`）；滚动由列表自身的 `overflow=scroll` 负责。
+
+### 7.8 本节待确认
+
+- **面板挂载方式**：UIManager 联网后创建一次并常驻 GRoot（断线销毁），还是 LobbyPage/BattlePage 各自持有？影响重连时的表现。
+- **自己消息的文本位置**：`m_side=1` 目前只把头像组与阵营图标组移到右侧，**正文与名字仍在左侧** (62)。若希望自己的消息整体右对齐，需要在 FGUI 里给正文组补 gearXY/gear 对齐。
+- 消息历史上限条数、是否跨场景保留、断线重连是否清空。
+- 发送频率限制、长度上限、空消息处理策略（本地忽略 或 提示）。
