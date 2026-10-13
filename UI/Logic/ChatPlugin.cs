@@ -10,6 +10,9 @@ public class ChatPlugin
     public const int ChannelAll = 0;
     public const int ChannelCamp = 1;
 
+    // GM 开关「敌方对话」：开启后阵营频道额外显示敌方阵营的消息
+    public static bool ShowEnemyDialog;
+
     private const int MaxEntries = 50;      // 只保留最近 50 条
     private const float SendInterval = 1f;  // 最快 1s 一条
     private const int MaxLength = 50;       // 消息长度 1~50
@@ -127,7 +130,8 @@ public class ChatPlugin
     {
         if (chat == null) return;
         if (chat.senderClientId == EnsInstance.LocalClientId) return; // 自己的已本地回显
-        if (chat.channel == ChannelCamp && chat.camp != GetMyCamp()) return; // 阵营频道客户端过滤
+        // 阵营频道客户端过滤；GM「敌方对话」开启时放行敌方阵营消息
+        if (chat.channel == ChannelCamp && chat.camp != GetMyCamp() && !ShowEnemyDialog) return;
         entries.Add(new ChatEntry()
         {
             isSelf = false,

@@ -9,6 +9,10 @@ public class UIManager : MonoBehaviour
     private LobbyPage lobby;
     private BattlePage battle;
     private ChatPlugin chat;
+    private GmPanel gm;
+
+    // 结算界面：独立子界面（不挂页面），战斗结束与 GM 演示都用它
+    public SettlementView Settlement { get; private set; }
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
@@ -41,6 +45,8 @@ public class UIManager : MonoBehaviour
             lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
             battle = new BattlePage(UI_BattlePanel.CreateInstance());
             chat = new ChatPlugin(UI_ChatPanel.CreateInstance());
+            gm = new GmPanel(UI_GmPanel.CreateInstance());
+            Settlement = new SettlementView();
             Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}, chat={chat != null}");
 
             //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
@@ -48,6 +54,8 @@ public class UIManager : MonoBehaviour
             lobby.Construct();
             battle.Construct();
             chat.Construct();
+            gm.Construct();
+            Settlement.Construct();
             Debug.Log("[UIManager] Construct 完成");
 
             ApplyResize();
@@ -77,12 +85,15 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
         chat?.Shutdown();
+        gm?.Shutdown();
+        Settlement?.Shutdown();
     }
 
     private void Update()
     {
         if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight) ApplyResize();
         if (currentPage != null) currentPage.Tick(Time.deltaTime);
+        if (gm != null) gm.Tick();
         TickFloating();
     }
 
@@ -95,6 +106,7 @@ public class UIManager : MonoBehaviour
         if (lobby != null) lobby.OnResize(width, 1080f);
         if (battle != null) battle.OnResize(width, 1080f);
         if (chat != null) chat.OnResize(Screen.height / 1080f);
+        if (gm != null) gm.OnResize(Screen.height / 1080f);
     }
 
     public void ShowFlyText(string text)

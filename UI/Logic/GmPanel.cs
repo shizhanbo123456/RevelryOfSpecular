@@ -23,6 +23,15 @@ public class GmPanel
     private string curGroup;
     private string curSub;
 
+    // 面板入口：1 秒内连按 3 次 V 打开，Backspace 关闭
+    private const KeyCode panelOpenKey = KeyCode.V;
+    private const KeyCode panelCloseKey = KeyCode.Backspace;
+    private const int panelOpenPressCount = 3;
+    private const float panelOpenPressWindow = 1f;
+    private int pressCount;
+    private float firstPressTime;
+    private string meshFacesText = string.Empty; // 收集-模型网格面数：点刷新时算一次，渲染时读缓存
+
     public GmPanel(UI_GmPanel panel)
     {
         this.panel = panel;
@@ -55,6 +64,36 @@ public class GmPanel
 
     // 与页面同规则的整体缩放（设计高度 1080）
     public void OnResize(float uiScale) => panel.scale = new Vector2(uiScale, uiScale);
+
+    // 每帧由 UIManager 驱动：检测面板开关快捷键
+    public void Tick()
+    {
+        if (GRoot.inst.focus is GTextInput) return; // 正在编辑输入框时不响应，避免 Backspace 误关 / V 误开
+        if (Input.GetKeyDown(panelCloseKey))
+        {
+            ResetPress();
+            Close();
+            return;
+        }
+        if (!Input.GetKeyDown(panelOpenKey)) return;
+        if (pressCount == 0 || Time.unscaledTime - firstPressTime > panelOpenPressWindow)
+        {
+            pressCount = 1;
+            firstPressTime = Time.unscaledTime;
+        }
+        else pressCount++;
+        if (pressCount >= panelOpenPressCount)
+        {
+            ResetPress();
+            Open();
+        }
+    }
+
+    private void ResetPress()
+    {
+        pressCount = 0;
+        firstPressTime = 0f;
+    }
 
     public void Open()
     {
@@ -196,7 +235,7 @@ public class GmPanel
 
             case LayoutType.Button:
                 item.m_content.selectedPage = "按钮";
-                item.m_content_btn.title = ((Button)row).buttonTitle;
+                item.m_content_btn.title = ButtonTitle(range, (Button)row);
                 // GList 复用 item，回调需先清空再挂，避免重复
                 item.m_content_btn.onClick.Clear();
                 item.m_content_btn.onClick.Add(() => OnAction(index));
@@ -263,15 +302,30 @@ public class GmPanel
         Dropdown r => r.left,
         _ => string.Empty,
     };
+
+    // 按钮标题：个别开关型按钮要显示当前状态（如敌方对话），其余用布局里的静态标题
+    private static string ButtonTitle((GmEnum cmd, int start, int end)? range, Button row)
+    {
+        if (range != null && range.Value.cmd == GmEnum.Other_EnemyDialog) return EnemyDialogTitle();
+        return row.buttonTitle;
+    }
     #endregion
 
-    #region//默认行为：收集 → 组包 → 发包
+    #region//默认行为：收集 → 组包 → 发包（本地项除外）
     private void OnAction(int rowIndex)
     {
-        if (!Online) return; // 未联网不发包（本地项后续在特殊处理里直接改）
         var range = FindRange(rowIndex);
         if (range == null) return;
         var (cmd, start, end) = range.Value;
+
+        // 本地项（纯客户端指令）直接本地执行，不需要联网
+        if (IsLocalExecutable(cmd))
+        {
+            RunLocal(cmd, start, end);
+            return;
+        }
+
+        if (!Online) return; // 联网项未联网不发包
         var gm = new CSGm { type = cmd };
         FillPacket(gm, start, end, rowIndex);
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendGm(gm);
@@ -338,26 +392,190 @@ public class GmPanel
     #endregion
 
     #region//特殊处理（Label 数据 / 本地项）
+    // 本地项（纯客户端指令）：不联网也生效，各条实现在 RunLocal 里一一对应
+    private static bool IsLocalExecutable(GmEnum cmd) => cmd switch
+    {
+        GmEnum.Screen_Terrain_ShowRadius or
+        GmEnum.Screen_Terrain_ToggleTerrain or
+        GmEnum.Screen_Fog or
+        GmEnum.Save_PlayerLevel_AddExp or
+        GmEnum.Save_PlayerLevel_ReduceExp or
+        GmEnum.Save_PlayerLevel_AddLevel or
+        GmEnum.Save_PlayerLevel_ReduceLevel or
+        GmEnum.Save_CharacterLevel or
+        GmEnum.Other_Settlement or
+        GmEnum.Other_Debug or
+        GmEnum.Other_Collect_MeshFaces or
+        GmEnum.Other_EnemyDialog => true,
+        _ => false,
+    };
+
+    private void RunLocal(GmEnum cmd, int start, int end)
+    {
+        switch (cmd)
+        {
+            case GmEnum.Screen_Terrain_ShowRadius:
+                SetTerrainRadius(ReadFloat(start));
+                break;
+            case GmEnum.Screen_Terrain_ToggleTerrain:
+                ToggleTerrain();
+                break;
+            case GmEnum.Screen_Fog:
+                ToggleFog();
+                break;
+            case GmEnum.Save_PlayerLevel_AddExp:
+                ModifyPlayerExp(ReadInt(start));
+                break;
+            case GmEnum.Save_PlayerLevel_ReduceExp:
+                ModifyPlayerExp(-ReadInt(start));
+                break;
+            case GmEnum.Save_PlayerLevel_AddLevel:
+                ModifyPlayerLevel(ReadInt(start));
+                break;
+            case GmEnum.Save_PlayerLevel_ReduceLevel:
+                ModifyPlayerLevel(-ReadInt(start));
+                break;
+            case GmEnum.Save_CharacterLevel:
+                SetCharacterLevel(ReadDropdownValue(start, typeof(GmCharacter)), ReadInt(start + 1));
+                break;
+            case GmEnum.Other_Debug:
+                RefreshDataRows(start, end); // 重算 FPS / 实体数量 / 延迟 / 客户端时间
+                break;
+            case GmEnum.Other_Collect_MeshFaces:
+                meshFacesText = CountSceneMeshFaces().ToString();
+                RefreshDataRows(start, end);
+                break;
+            case GmEnum.Other_EnemyDialog:
+                ChatPlugin.ShowEnemyDialog = !ChatPlugin.ShowEnemyDialog;
+                if (ItemAt(start) is UI_GmItem btn) btn.m_content_btn.title = EnemyDialogTitle();
+                break;
+            case GmEnum.Other_Settlement:
+                if (Tool.UIManager != null) Tool.UIManager.Settlement.PlayDemo();
+                break;
+        }
+    }
+
+    private static string EnemyDialogTitle() => ChatPlugin.ShowEnemyDialog ? "敌方对话：开" : "敌方对话：关";
+
     // 个别指令的行需要特殊渲染时在此返回 true 接管；index 是"该指令内"的行序号。
     private bool ApplySpecial(GmEnum cmd, int index, UI_GmItem item)
     {
-        if (cmd == GmEnum.Other_Debug)
+        if (cmd == GmEnum.Other_Debug && index <= 3)
         {
-            // FPS / 客户端时间为本地数据，直接刷文本
-            if (index == 0)
-            {
-                item.m_content.selectedPage = "文本";
-                item.m_content_text.text = (1f / Mathf.Max(Time.unscaledDeltaTime, 1e-5f)).ToString("0");
-                return true;
-            }
-            if (index == 3)
-            {
-                item.m_content.selectedPage = "文本";
-                item.m_content_text.text = Time.time.ToString("0.0");
-                return true;
-            }
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = DebugText(index);
+            return true;
+        }
+        if (cmd == GmEnum.Other_Collect_MeshFaces && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = meshFacesText;
+            return true;
         }
         return false;
+    }
+
+    // 刷新按钮：只重画该指令里的数据行；不动按钮行本身（避免在按钮回调里重挂它的事件）
+    private void RefreshDataRows(int start, int end)
+    {
+        for (int i = start; i < end; i++)
+        {
+            if (rows[i].LayoutType != LayoutType.Label) continue;
+            if (ItemAt(i) is UI_GmItem item) RenderRow(i, item);
+        }
+    }
+
+    private UI_GmItem ItemAt(int rowIndex) => panel.m_GmItemList.GetChildAt(rowIndex) as UI_GmItem;
+
+    private int ReadInt(int rowIndex) => ItemAt(rowIndex) is UI_GmItem it ? ParseInt(it.m_content_inputField.text) : 0;
+    private float ReadFloat(int rowIndex) => ItemAt(rowIndex) is UI_GmItem it ? ParseFloat(it.m_content_inputField.text) : 0f;
+    private int ReadDropdownValue(int rowIndex, Type enumType) => ItemAt(rowIndex) is UI_GmItem it ? EnumValueOf(enumType, it.m_content_dropdown.selectedIndex) : 0;
+
+    private static string DebugText(int index) => index switch
+    {
+        0 => (1f / Mathf.Max(Time.unscaledDeltaTime, 1e-5f)).ToString("0"),
+        1 => CountEntities().ToString(),
+        2 => $"{EnsInstance.LocalClientDelay} ms",
+        3 => Time.time.ToString("0.0"),
+        _ => string.Empty,
+    };
+
+    private static int CountEntities()
+    {
+        var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+        if (players == null) return 0;
+        int count = 0;
+        foreach (var _ in players.AllViews) count++;
+        return count;
+    }
+
+    // 模型网格面数：遍历场景中所有网格物体累加三角面
+    private static long CountSceneMeshFaces()
+    {
+        long faces = 0;
+        foreach (var mf in UnityEngine.Object.FindObjectsOfType<MeshFilter>())
+        {
+            var mesh = mf.sharedMesh;
+            if (mesh != null) faces += mesh.triangles.Length / 3L;
+        }
+        foreach (var smr in UnityEngine.Object.FindObjectsOfType<SkinnedMeshRenderer>())
+        {
+            var mesh = smr.sharedMesh;
+            if (mesh != null) faces += mesh.triangles.Length / 3L;
+        }
+        return faces;
+    }
+
+    private static void SetTerrainRadius(float radius)
+    {
+        var culler = UnityEngine.Object.FindObjectOfType<TerrainChunkCuller>();
+        if (culler == null) { Debug.LogWarning("[GM] 场景内没有 TerrainChunkCuller，显示半径不生效"); return; }
+        culler.visibleDistance = Mathf.Max(0f, radius);
+    }
+
+    // 显隐地形：全部可见↔全部隐藏；隐藏时先停掉分块剔除，否则它本帧的 LateUpdate 会把块又打开
+    private static void ToggleTerrain()
+    {
+        var spawns = Tool.LandscapeSpawns;
+        if (spawns == null) return;
+        bool hide = false;
+        foreach (var go in spawns.terrainChunks)
+            if (go != null && go.activeSelf) { hide = true; break; }
+
+        var culler = UnityEngine.Object.FindObjectOfType<TerrainChunkCuller>();
+        if (culler != null) culler.enabled = !hide;
+        foreach (var go in spawns.terrainChunks)
+            if (go != null) go.SetActive(!hide);
+    }
+
+    private static void ToggleFog()
+    {
+        var env = Tool.EnvironmentManager;
+        if (env != null) env.SetFogEnabled(!env.fogEnabled);
+    }
+
+    private static void ModifyPlayerExp(int delta)
+    {
+        var sm = Tool.SaveManager;
+        if (sm == null || delta == 0) return;
+        if (delta > 0) sm.AddPlayerExp(delta); // 正向走存档的升级结算
+        else { sm.playerExp = Mathf.Max(0, sm.playerExp + delta); sm.Save(); }
+    }
+
+    private static void ModifyPlayerLevel(int delta)
+    {
+        var sm = Tool.SaveManager;
+        if (sm == null || delta == 0) return;
+        sm.playerLevel = Mathf.Clamp(sm.playerLevel + delta, 1, Config.player_max_level);
+        sm.Save();
+    }
+
+    private static void SetCharacterLevel(int index, int level)
+    {
+        var sm = Tool.SaveManager;
+        if (sm == null || index < 0 || index >= sm.characterLevels.Count) return;
+        sm.characterLevels[index] = Mathf.Clamp(level, 1, Config.max_entity_level);
+        sm.Save();
     }
     #endregion
 }

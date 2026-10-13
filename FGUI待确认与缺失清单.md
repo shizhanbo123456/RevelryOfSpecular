@@ -2,7 +2,7 @@
 
 > 配套：`Assets/Resources/GUI/Main_fui.bytes`（包名 Main）+ `ScriptsGenerated/Main`（生成类，命名空间 **Ros.UI.Main**，引用需 `using Ros.UI.Main;`）。
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
-> **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩（UI 已建、代码未接），见第五节。
+> **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩；**2026-10-13**：GM 面板代码已接（入口 + 本地项），确认弹窗/遮罩仍未接。见第五节。
 > **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
 
 ## 一、页面根与结构
@@ -33,7 +33,7 @@
 | **UI_EventList**（BattlePanel.m_EventList） | m_EventItemContainer（**GList，纵向单列**，defaultItem = EventItem）：代码只设 `itemRenderer` + `numItems`，条目组件与排布全由界面决定；数据是 `BattlePage.eventEntries`（3.5s 到期从表头移除） |
 | UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字；type1 = 图标+文字；type0 = 纯文字（无图标）。**EventIcon 档位 0~7 已全部接入**：0 无源死亡（玩家死亡无归属）/ 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它（守护点被摧毁）。条目文本统一数字 id 传输（`SCBattleEvent.textId`：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000） |
 | UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；**雷达式**：本地玩家图标固定在 mapBase 正中心并随朝向旋转，上方=世界Z+、右侧=世界X+，**当前雷达显示半径**铺满 mapBase（F 键循环 100/200/300，服务器回应 `SCMinimapRadius`），其它点按相对本地玩家的偏移绘制；点位图标创建时代码设 `scale` = 父链上层元素缩放的倒数（minimapItemScale，界面初始化时算，不含页面根 UiScale 适配），抵消上层缩放使图标保持 FGUI 设计尺寸 |
-| UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅** |
+| UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅**（承载类：SettlementView） |
 | UI_Button1 / UI_Panel_1 / UI_NoticePanel | m_selected（选中态）；m_hideTitle=1 隐藏标题栏；m_title（ShowNotice） |
 | UI_Button1 回调 | `onClick.Set(...)` 为覆盖语义（列表复用用它），`onClick.Add(...)` 为追加 |
 
@@ -50,7 +50,7 @@
 | Battle | OnEntityDisplayUpdate | 技能栏整表重渲染、m_PlayerBar、守护点 4 条 |
 | Battle | SCDamage（OnDamageDisplay） | DamageLabel（受击实体头顶，世界→屏幕→GRoot 坐标） |
 | Battle | OnMinimapUpdate | MinimapItem 按 10 档位显示；超时未更新（离屏/夜间停传）或超显示半径时由客户端移除，不每帧清空 |
-| Battle | OnScoreUpdate（仅终局一次） | BattleResult.Show + m_t0.Play + 5s 自动关闭 |
+| 全局 | OnSettlementResult（终局一次，SettlementManager 由 SCScoreInfo 发起） | SettlementView（独立子界面）：填标题/明细 + m_t0.Play + 5s 自动关闭；战斗结束流程再切回大厅并恢复组队面板 |
 | Battle | Tick 逐帧 | 时间推演 + 昼夜图标旋转 + EntityBar/名牌跟随 |
 | 全局 | OnConnect/OnBattleStart/OnRestartGame | UIManager 统一切页 |
 | 全局 | SCPrompt（OnShowPrompt）/ OnScoreUpdate 终局 | 全局提示（当前仅开局校验 17/18，战斗页外发、暂无显示方）/ 全局飘字（UIManager.ShowFloating） |
@@ -61,9 +61,11 @@
 - **加载遮罩**：连接服务器期间的全屏提示（当前连接期间按钮无反馈界面，仅状态文本）
 - **守护点减伤叠层**：按设计不在 UI 显示
 
-## 五、GM 面板 / 确认弹窗 / 全屏遮罩（2026-10-11 新增，UI 已建·代码未接）
+## 五、GM 面板 / 确认弹窗 / 全屏遮罩
 
-> 组件都在 Main 包里、`MainBinder` 已注册，能正常 `CreateInstance()`；但**代码侧暂无任何入口**（没有创建、没有协议、没有快捷键）。
+> 组件都在 Main 包里、`MainBinder` 已注册，能正常 `CreateInstance()`。
+> **GM 面板代码已接（2026-10-13）**：`UIManager` 创建并每帧驱动 `UI/Logic/GmPanel.cs` —— 1 秒内连按 3 次 `V` 开启、`Backspace` 关闭（编辑输入框时不响应）；协议 `CSGm`/`SCGm` + `NetworkManager.SendGm` 已通；12 条纯客户端本地项全部本地直接执行（画面 / 存档 / 调试 / 收集-面数 / 敌方对话 / 结算界面演示），其中「敌方对话」复用 `ChatPlugin.ShowEnemyDialog`、「结算界面演示」调 `UIManager.Settlement.PlayDemo()`。仅服务端 GM 执行体待接（见 `GM功能清单.txt`）。
+> 确认弹窗、全屏遮罩仍为「UI 已建·代码未接」。
 
 ### GmPanel（`Panels/Modules/GmPanel.xml`，800×600）
 
@@ -101,7 +103,7 @@
 
 ### 本节待确认
 
-- GmPanel 无关闭入口（标题栏被隐藏、Panel_1 无关闭按钮）：待定用快捷键开关还是补关闭按钮。
+- GmPanel 无关闭入口：已用快捷键开关（1 秒内连按 3 次 `V` 开 / `Backspace` 关），未补关闭按钮。
 - ConfirmPanel 无标题（当前只有正文）：若需要"断开连接"这类标题需补 title。
 
 ## 六、协议依赖（已实现）

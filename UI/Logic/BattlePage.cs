@@ -8,10 +8,7 @@ using UnityEngine;
 public class BattlePage : PageBase
 {
     private readonly UI_BattlePanel panel;
-    private UI_BattleResult resultPanel;
-    private UI_BattleResultDetail resultDetail;
     private float battleStartTime;
-    private bool settlePlaying; //结算动画播放中（跨页面存活，Exit 据此跳过清理）
 
     private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
     private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
@@ -28,18 +25,10 @@ public class BattlePage : PageBase
     private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
-    private readonly List<UI_BattleResultDetailItem> settleItems = new();
-    private readonly List<string> settleRows = new(); // 渲染器按索引读取的明细行文本
-    private Timer.TransitionHandle settleTransition;
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
-    private const float SettleAutoClose = 5f;
-    private const float DetailStartDelay = 0.5f;   // 面板转场后首条细节出现
-    private const float DetailItemInterval = 0.3f; // 相邻两条细节的间隔
-    private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
-    private const float DetailFadeDuration = 0.5f; // 全部细节同步淡出时长
     private const int SkillOutlineVariants = 5;    // UI_SkillListItem.m_randomOutline 的档位数（0~4）
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
@@ -95,7 +84,6 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
-        EventManager.AddEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
@@ -113,7 +101,6 @@ public class BattlePage : PageBase
         ClearMinimap();
         ClearEventItems();
         BuildSkillSlots(NetworkManager.battleInfo != null ? NetworkManager.battleInfo.camp : EntityCamp.None);
-        HideSettlement();
         RefreshTimeIcon();
     }
 
@@ -125,13 +112,11 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
-        EventManager.RemoveEvent<SettlementResult>(ClientEvent.OnSettlementResult, OnSettlementResult);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
-        if (!settlePlaying) HideSettlement(); //结算切页走正常流程不清理；断线等异常切页时取消动画并隐藏面板
     }
 
     public override void Tick(float deltaTime)
@@ -351,131 +336,6 @@ public class BattlePage : PageBase
     {
         if (info == null) return;
         if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
-    }
-
-    private void OnSettlementResult(SettlementResult r)
-    {
-        //先清战斗表现，防过时内容残留
-        if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
-
-        if (resultPanel == null)
-        {
-            resultPanel = UI_BattleResult.CreateInstance();
-            GRoot.inst.AddChild(resultPanel); //挂全局层：结算要跨页面盖在组队界面之上
-            resultPanel.visible = false;
-        }
-        var battle = NetworkManager.battleInfo;
-        EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
-        resultPanel.m_title.text = GetEndText(r.gameState, camp);
-        resultPanel.m_title.color = GetEndColor(r.gameState);
-        resultPanel.m_content.text = $"战斗用时：{Mathf.RoundToInt(Mathf.Max(0f, Config.battle_duration - r.remainTime))} 秒";
-
-        // 结算细节：BattleResultDetail 列表承载（位置/尺寸由 FGUI 包决定，代码不做适配）
-        if (resultDetail == null)
-        {
-            resultDetail = UI_BattleResultDetail.CreateInstance();
-            resultPanel.AddChild(resultDetail);
-        }
-        BuildResultRows(resultDetail, r);
-
-        resultPanel.visible = true;
-        resultPanel.m_t0.Play();
-        settlePlaying = true;
-        ScheduleDetailAnimations(); //含播完自动关闭并恢复组队面板
-
-        //立即切回组队界面（战斗 HUD 随 Exit 隐藏），再隐藏组队面板等结算播完
-        if (Tool.UIManager != null)
-        {
-            Tool.UIManager.TurnPage(PageType.Lobby);
-            Tool.UIManager.SetLobbyPanelVisible(false);
-        }
-    }
-
-    private void BuildResultRows(UI_BattleResultDetail detail, SettlementResult r)
-    {
-        settleRows.Clear();
-        settleItems.Clear();
-        var battle = NetworkManager.battleInfo;
-        EntityCamp camp = battle != null ? battle.camp : EntityCamp.None;
-        settleRows.Add($"战斗分数：进攻方 {(int)r.attackScore} ／ 防守方 {(int)r.defenseScore}");
-        settleRows.Add($"击杀数：{r.killScore}");
-        settleRows.Add(camp == EntityCamp.Attack
-            ? $"对防守点伤害：{(int)r.expGain}"
-            : $"防守点剩余血量：{(int)r.beaconHealth}");
-        settleRows.Add($"获得的角色经验：+{r.expGain}");
-        settleRows.Add($"获得的玩家经验：+{r.expGain}");
-        if (r.characterLevelAfter > r.characterLevelBefore)
-            settleRows.Add($"角色升级：{r.characterLevelBefore} → {r.characterLevelAfter}");
-        if (r.playerLevelAfter > r.playerLevelBefore)
-            settleRows.Add($"玩家升级：{r.playerLevelBefore} → {r.playerLevelAfter}");
-
-        var list = detail.m_resultList;
-        list.itemRenderer = RenderResultRow;
-        list.numItems = settleRows.Count; // 非虚拟列表同步建条目并回调渲染器
-    }
-
-    private void RenderResultRow(int index, GObject obj)
-    {
-        if (obj is not UI_BattleResultDetailItem item) return;
-        item.alpha = 0f; // 播放自身动画前保持透明
-        item.m_content.text = index < settleRows.Count ? settleRows[index] : string.Empty;
-        if (!settleItems.Contains(item)) settleItems.Add(item); // 动画序列按此顺序逐条播放
-    }
-
-    private void ScheduleDetailAnimations()
-    {
-        CancelDetailAnimations();
-        //总时长固定为面板自动关闭时间：明细播完后留白到 5s，transition 走完即关闭结算并恢复组队面板
-        int shown = 0;
-        float fadeStart = DetailStartDelay + settleItems.Count * DetailItemInterval + DetailHoldDelay;
-        settleTransition = Timer.AddTransition(0, SettleAutoClose, (_, t01) =>
-        {
-            if (t01 >= 1f)
-            {
-                settleTransition = null; //自身已结束，避免在回调内 Cancel 自身
-                CloseSettlement();
-                return;
-            }
-            if (settleItems.Count == 0) return;
-            float elapsed = t01 * SettleAutoClose;
-            // 到达出现时刻的条目逐条播放自身动画（shown 指针保证每条只播一次）
-            while (shown < settleItems.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
-            {
-                var item = settleItems[shown++];
-                if (item != null && item.displayObject != null) item.m_t0.Play();
-            }
-            // 全部出现后同步淡出直至消失
-            if (elapsed >= fadeStart)
-            {
-                float alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / DetailFadeDuration);
-                foreach (var item in settleItems)
-                {
-                    if (item != null && item.displayObject != null) item.alpha = alpha;
-                }
-            }
-        });
-    }
-
-    private void CancelDetailAnimations()
-    {
-        if (settleTransition != null) settleTransition.Cancel();
-        settleTransition = null;
-    }
-
-    //结算动画播完：隐藏结算、恢复组队界面面板（切页与实体清理已在结算开始时做掉）
-    private void CloseSettlement()
-    {
-        settlePlaying = false;
-        CancelDetailAnimations();
-        if (resultPanel != null) resultPanel.visible = false;
-        if (Tool.UIManager != null) Tool.UIManager.SetLobbyPanelVisible(true);
-    }
-
-    private void HideSettlement()
-    {
-        settlePlaying = false;
-        CancelDetailAnimations();
-        if (resultPanel != null) resultPanel.visible = false;
     }
 
     private void OnMinimapUpdate(SCMinimapEntity e)
@@ -946,29 +806,10 @@ public class BattlePage : PageBase
         panel.m_icon_day_night.rotation = 180f - EnvironmentManager.Time01 * 180f;
     }
 
-    private static Color GetEndColor(int gameState)
-    {
-        switch (gameState)
-        {
-            case 1: return CampAttackColor;
-            case 2: return CampDefenseColor;
-            default:
-                Debug.LogError($"[BattlePage] 未处理的结算状态：{gameState}");
-                return Color.white;
-        }
-    }
-
     private static string FormatTime(float seconds)
     {
         int s = Mathf.CeilToInt(seconds);
         return $"{s / 60:D2}:{s % 60:D2}";
-    }
-
-    private static string GetEndText(int gameState, EntityCamp camp)
-    {
-        bool win = (gameState == 1 && camp == EntityCamp.Attack)
-                || (gameState == 2 && camp == EntityCamp.Defense);
-        return win ? "胜利" : "结束";
     }
 
     private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
