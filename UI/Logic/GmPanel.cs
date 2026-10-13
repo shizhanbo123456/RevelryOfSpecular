@@ -30,7 +30,13 @@ public class GmPanel
     private const float panelOpenPressWindow = 1f;
     private int pressCount;
     private float firstPressTime;
-    private string meshFacesText = string.Empty; // 收集-模型网格面数：点刷新时算一次，渲染时读缓存
+    private string meshFacesText = string.Empty;   // 收集-模型网格面数：点刷新时算一次，渲染时读缓存
+    private string serverFpsText = string.Empty;   // 收集-服务器帧率：服务器回包后填
+    private string serverTimeText = string.Empty;  // 收集-服务器时间：服务器回包后填
+
+    // 开关类指令的本地状态（服务端按目标状态设置；本地只用于按钮标题与切换）
+    private readonly HashSet<GmEnum> toggleOn = new();
+    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标 0~4
 
     public GmPanel(UI_GmPanel panel)
     {
@@ -53,6 +59,8 @@ public class GmPanel
         EventManager.AddEvent(ClientEvent.OnConnect, OnNetChanged);
         EventManager.AddEvent(ClientEvent.OnExitWorld, OnNetChanged);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnNetChanged);
+        EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStartChanged);
+        EventManager.AddEvent<SCGm>(ClientEvent.OnGmResult, OnGmResult);
     }
 
     public void Shutdown()
@@ -60,6 +68,8 @@ public class GmPanel
         EventManager.RemoveEvent(ClientEvent.OnConnect, OnNetChanged);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnNetChanged);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnNetChanged);
+        EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStartChanged);
+        EventManager.RemoveEvent<SCGm>(ClientEvent.OnGmResult, OnGmResult);
     }
 
     // 与页面同规则的整体缩放（设计高度 1080）
@@ -107,6 +117,9 @@ public class GmPanel
 
     private void OnNetChanged() { if (panel.visible) BuildGroups(); }
 
+    // 开战：被动启用项只属于组队期，要在战斗期隐藏 → 重建菜单
+    private void OnBattleStartChanged(int camp) => OnNetChanged();
+
     #region//菜单
     private static string GroupOf(GmEnum t) => SplitLabel(t)[0];
     private static string SubOf(GmEnum t) => SplitLabel(t)[1];
@@ -132,8 +145,9 @@ public class GmPanel
         return f != null && Attribute.GetCustomAttribute(f, typeof(GmOfflineAttribute)) != null;
     }
 
-    // 未联网时只显示可离线项
-    private static bool Visible(GmEnum t) => Online || IsOffline(t);
+    // 未联网时只显示可离线项；「被动启用」只在组队期（非战斗）显示
+    private static bool Visible(GmEnum t) =>
+        (Online || IsOffline(t)) && (t != GmEnum.Player_Skill_PassiveEnable || !NetworkManager.BattleRunning);
 
     // numItems 置相同值不会重刷，先置 0 再置 N
     private static void Refresh(GList list, int count)
@@ -235,7 +249,9 @@ public class GmPanel
 
             case LayoutType.Button:
                 item.m_content.selectedPage = "按钮";
-                item.m_content_btn.title = ButtonTitle(range, (Button)row);
+                item.m_content_btn.title = range != null
+                    ? ButtonTitle(range.Value.cmd, index - range.Value.start, ((Button)row).buttonTitle)
+                    : ((Button)row).buttonTitle;
                 // GList 复用 item，回调需先清空再挂，避免重复
                 item.m_content_btn.onClick.Clear();
                 item.m_content_btn.onClick.Add(() => OnAction(index));
@@ -303,11 +319,14 @@ public class GmPanel
         _ => string.Empty,
     };
 
-    // 按钮标题：个别开关型按钮要显示当前状态（如敌方对话），其余用布局里的静态标题
-    private static string ButtonTitle((GmEnum cmd, int start, int end)? range, Button row)
+    // 按钮标题：开关型按钮带当前状态（敌方对话 / 四个外挂 / 被动启用），其余用布局里的静态标题
+    private string ButtonTitle(GmEnum cmd, int relativeIndex, string staticTitle)
     {
-        if (range != null && range.Value.cmd == GmEnum.Other_EnemyDialog) return EnemyDialogTitle();
-        return row.buttonTitle;
+        if (cmd == GmEnum.Other_EnemyDialog) return $"敌方对话：{(ChatPlugin.ShowEnemyDialog ? "开" : "关")}";
+        if (cmd == GmEnum.Player_Skill_PassiveEnable) return $"{staticTitle}：{(passiveOn.Contains(relativeIndex) ? "开" : "关")}";
+        if (cmd is GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible or GmEnum.Player_Cheat_Speed or GmEnum.Player_Cheat_IgnoreCd)
+            return $"{staticTitle}：{(toggleOn.Contains(cmd) ? "开" : "关")}";
+        return staticTitle;
     }
     #endregion
 
@@ -317,6 +336,13 @@ public class GmPanel
         var range = FindRange(rowIndex);
         if (range == null) return;
         var (cmd, start, end) = range.Value;
+
+        // 开关类：本地记状态 + 按钮标题随状态更新（敌方对话纯本地，其余把目标状态发服务器）
+        if (IsToggle(cmd))
+        {
+            HandleToggle(cmd, rowIndex, start);
+            return;
+        }
 
         // 本地项（纯客户端指令）直接本地执行，不需要联网
         if (IsLocalExecutable(cmd))
@@ -405,8 +431,7 @@ public class GmPanel
         GmEnum.Save_CharacterLevel or
         GmEnum.Other_Settlement or
         GmEnum.Other_Debug or
-        GmEnum.Other_Collect_MeshFaces or
-        GmEnum.Other_EnemyDialog => true,
+        GmEnum.Other_Collect_MeshFaces => true,
         _ => false,
     };
 
@@ -445,17 +470,71 @@ public class GmPanel
                 meshFacesText = CountSceneMeshFaces().ToString();
                 RefreshDataRows(start, end);
                 break;
-            case GmEnum.Other_EnemyDialog:
-                ChatPlugin.ShowEnemyDialog = !ChatPlugin.ShowEnemyDialog;
-                if (ItemAt(start) is UI_GmItem btn) btn.m_content_btn.title = EnemyDialogTitle();
-                break;
             case GmEnum.Other_Settlement:
                 if (Tool.UIManager != null) Tool.UIManager.Settlement.PlayDemo();
                 break;
         }
     }
 
-    private static string EnemyDialogTitle() => ChatPlugin.ShowEnemyDialog ? "敌方对话：开" : "敌方对话：关";
+    // 开关类：客户端记本地状态（按钮标题随状态更新）；四个外挂与被动启用把目标状态发服务器，敌方对话纯本地
+    private static bool IsToggle(GmEnum cmd) =>
+        cmd is GmEnum.Other_EnemyDialog or GmEnum.Player_Skill_PassiveEnable
+            or GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible
+            or GmEnum.Player_Cheat_Speed or GmEnum.Player_Cheat_IgnoreCd;
+
+    private void HandleToggle(GmEnum cmd, int rowIndex, int start)
+    {
+        if (cmd == GmEnum.Other_EnemyDialog)
+        {
+            ChatPlugin.ShowEnemyDialog = !ChatPlugin.ShowEnemyDialog;
+            RefreshButtonTitle(rowIndex);
+            return;
+        }
+
+        if (cmd == GmEnum.Player_Skill_PassiveEnable)
+        {
+            int index = rowIndex - start; // 按钮顺序即防守方被动下标
+            bool on = !passiveOn.Contains(index);
+            if (on) passiveOn.Add(index); else passiveOn.Remove(index);
+            if (Tool.NetworkManager != null)
+                Tool.NetworkManager.SendGm(new CSGm { type = cmd, int1 = index, int2 = on ? 1 : 0 });
+            RefreshButtonTitle(rowIndex);
+            return;
+        }
+
+        bool turnOn = !toggleOn.Contains(cmd);
+        if (turnOn) toggleOn.Add(cmd); else toggleOn.Remove(cmd);
+        if (Tool.NetworkManager != null)
+            Tool.NetworkManager.SendGm(new CSGm { type = cmd, int1 = turnOn ? 1 : 0 });
+        RefreshButtonTitle(rowIndex);
+    }
+
+    // 只改按钮标题，不重挂事件（避免在按钮自己的回调里清掉 onClick）
+    private void RefreshButtonTitle(int rowIndex)
+    {
+        var range = FindRange(rowIndex);
+        if (range == null || rows[rowIndex] is not Button row || ItemAt(rowIndex) is not UI_GmItem item) return;
+        item.m_content_btn.title = ButtonTitle(range.Value.cmd, rowIndex - range.Value.start, row.buttonTitle);
+    }
+
+    // 服务器回包（目前只有帧率/时间）：填缓存并重画该指令的数据行
+    private void OnGmResult(SCGm gm)
+    {
+        if (gm == null) return;
+        switch (gm.type)
+        {
+            case GmEnum.Other_Collect_ServerFps: serverFpsText = $"{gm.int1} FPS"; break;
+            case GmEnum.Other_Collect_ServerTime: serverTimeText = gm.float1.ToString("0.0"); break;
+            default: return;
+        }
+        if (!panel.visible) return;
+        foreach (var r in cmdRanges)
+        {
+            if (r.cmd != gm.type) continue;
+            RefreshDataRows(r.start, r.end);
+            break;
+        }
+    }
 
     // 个别指令的行需要特殊渲染时在此返回 true 接管；index 是"该指令内"的行序号。
     private bool ApplySpecial(GmEnum cmd, int index, UI_GmItem item)
@@ -470,6 +549,18 @@ public class GmPanel
         {
             item.m_content.selectedPage = "文本";
             item.m_content_text.text = meshFacesText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_Collect_ServerFps && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = serverFpsText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_Collect_ServerTime && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = serverTimeText;
             return true;
         }
         return false;

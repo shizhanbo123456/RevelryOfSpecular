@@ -449,6 +449,7 @@ public abstract class EntityData : MonoBehaviour
     public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false, Vector3? hitPos = null)
     {
         if (!Alive) return;
+        if (BattleManager.IsGmInvincible(id)) return; // GM 无敌：伤害按 0 处理（见 BattleManagerGm）
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
         if (effectController != null)

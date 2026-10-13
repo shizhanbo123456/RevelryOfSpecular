@@ -309,6 +309,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         CallFuncRpc(ClientReceiveChatLocal, SendTo.Everyone, Delivery.Reliable, chat);
     }
+
+    //GM 指令回包（服务器帧率 / 服务器时间等）
+    public void SendGm(short clientId, SCGm gm)
+    {
+        if (gm == null || !HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveGmLocal, SendTo.To(clientId), Delivery.Reliable, gm);
+    }
     #endregion
 
     #region//[Rpc] 服务器侧接收（客户端 → 服务器）
@@ -357,8 +364,8 @@ public partial class NetworkManager : EnsBehaviour
     [Rpc]
     private void ServerReceiveGmLocal(CSGm gm, short clientId)
     {
-        // 服务器端 GM 执行体后续接入
-        UnityEngine.Debug.Log($"[GM] 收到指令 {gm?.type}（client {clientId}）");
+        if (gm == null) return;
+        if (Tool.BattleManager != null) Tool.BattleManager.ExecuteGm(clientId, gm);
     }
     #endregion
 
@@ -489,6 +496,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (chat == null) return;
         EventManager.TrigEvent(ClientEvent.OnChatMessage, chat);
+    }
+
+    [Rpc]
+    private void ClientReceiveGmLocal(SCGm gm)
+    {
+        if (gm == null) return;
+        EventManager.TrigEvent(ClientEvent.OnGmResult, gm);
     }
     #endregion
 }

@@ -51,6 +51,9 @@ public enum EffectType
     DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT）
     MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
     PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
+
+    // ---- GM（仅调试指令用，只能追加在末尾，理由同上方 AttrWeaponSlot）----
+    GmSpeedUp,          // GM「极速」：动画移速倍率 = Config.gm_speed_multiplier
 }
 
 public static class EffectTypeExt
@@ -172,6 +175,14 @@ public class EntityEffectController
         foreach (var type in s_expired) RemoveEffect(type);
     }
 
+    // GM：移除全部 Buff（逐个走 RemoveEffect，保证属性/控制/移速按类重算）
+    public void RemoveAll()
+    {
+        s_expired.Clear();
+        foreach (var pair in effects) s_expired.Add(pair.Key);
+        foreach (var type in s_expired) RemoveEffect(type);
+    }
+
     public bool HasEffect(EffectType type) => effects.ContainsKey(type);
     public int GetLevel(EffectType type) => effects.TryGetValue(type, out var rt) ? rt.level : 0;
     public float GetRemainTime(EffectType type) => effects.TryGetValue(type, out var rt) ? Mathf.Max(0f, rt.endTime - Time.time) : 0f;
@@ -244,6 +255,7 @@ public class EntityEffectController
         if (HasEffect(EffectType.AnimSlowDown)) m *= Config.anim_move_speed_down;
         if (HasEffect(EffectType.Mire)) m *= Config.anim_move_speed_mire;
         if (HasEffect(EffectType.DeathStroll)) m *= Config.death_stroll_speed_up;
+        if (HasEffect(EffectType.GmSpeedUp)) m *= Config.gm_speed_multiplier;
         return m;
     }
     #endregion
@@ -302,7 +314,7 @@ public class EntityEffectController
 
     #region//Local
     private static bool IsMoveSpeedEffect(EffectType type) =>
-        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll;
+        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll or EffectType.GmSpeedUp;
 
     private void ApplyAnimSpeedScale()
     {

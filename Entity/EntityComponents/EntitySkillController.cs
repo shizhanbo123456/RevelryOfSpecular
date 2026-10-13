@@ -122,7 +122,7 @@ public class EntitySkillController
     public bool TryUseSkill(int skillId)
     {
         if (skillId < 0) return false;
-        if (GetCdRemain(skillId) > 0f) return false;
+        if (!GmIgnoreCd && GetCdRemain(skillId) > 0f) return false;
         if (GetStore(skillId) == 0) return false;
         if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
@@ -162,5 +162,25 @@ public class EntitySkillController
             });
         }
     }
+    #endregion
+
+    #region GM（仅 GM 指令调用，见 BattleManagerGm）
+    // 无视 CD：置位后普通施放路径（TryUseSkill）也不再受 CD 限制；复活重建实体后重置
+    public bool GmIgnoreCd { get; set; }
+
+    // 强放：跳过 CD / 库存 / 沉默与强控校验，直接施放（技能仍需已注册）
+    public bool GmForceUseSkill(int skillId)
+    {
+        if (skillId < 0) return false;
+        if (!SkillManager.TryGet(skillId, out var skill)) return false;
+        CastingSlotIndex = skillIds.IndexOf(skillId);
+        skill.BeginCast(owner, skillId);
+        StartCd(skillId);
+        ConsumeStore(skillId);
+        return true;
+    }
+
+    // 立即 CD 回满
+    public void GmResetAllCd() => cdEndTimes.Clear();
     #endregion
 }

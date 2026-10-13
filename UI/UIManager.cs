@@ -84,9 +84,9 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
-        chat?.Shutdown();
-        gm?.Shutdown();
-        Settlement?.Shutdown();
+        if (chat != null) chat.Shutdown();
+        if (gm != null) gm.Shutdown();
+        if (Settlement != null) Settlement.Shutdown();
     }
 
     private void Update()

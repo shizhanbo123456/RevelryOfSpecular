@@ -101,6 +101,8 @@ public static class Config
     public const KeyCode jump_key = KeyCode.K;
     public const KeyCode slide_key = KeyCode.LeftShift;
     public const float fly_vertical_speed = 5f; // 飞行模式垂直速度（长按 K 升 / 长按 Shift 降）
+    public const float gm_speed_multiplier = 5f;  // GM「极速」动画移速倍率（占位初值）
+    public const float gm_teleport_height = 200f; // GM 传送的 Y（传送面板只给 x/z）
     #endregion
 
     #region 武器与技能

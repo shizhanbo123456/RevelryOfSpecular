@@ -104,17 +104,17 @@ namespace Ros.Gm
             // ===== 对局 =====
             layoutStyle.Add(GmEnum.Battle_RemainTime_Add, new()
             {
-                new FloatInput("时间进度"),
+                new FloatInput("时间(秒)"),
                 new Button(string.Empty,"应用增加时间")
             });
             layoutStyle.Add(GmEnum.Battle_RemainTime_Reduce, new()
             {
-                new FloatInput("时间进度"),
+                new FloatInput("时间(秒)"),
                 new Button(string.Empty, "应用减少时间")
             });
             layoutStyle.Add(GmEnum.Battle_RemainTime_Set, new()
             {
-                new FloatSlider("时间进度", 0f, 1f),
+                new FloatInput("时间(秒)"),
                 new Button(string.Empty, "应用设置时间")
             });
             layoutStyle.Add(GmEnum.Battle_Settle, new()
@@ -197,11 +197,12 @@ namespace Ros.Gm
             });
             layoutStyle.Add(GmEnum.Player_Skill_PassiveEnable, new()
             {
-                new Button(string.Empty, "被动1"),
-                new Button(string.Empty, "被动2"),
-                new Button(string.Empty, "被动3"),
-                new Button(string.Empty, "被动4"),
-                new Button(string.Empty, "被动5")
+                // 按钮顺序 = 防守方被动下标 0~4（苍白舞者 PC103 的被动是"双高转火"类，不在此列）
+                new Button(string.Empty, "鹿铠怪人"),
+                new Button(string.Empty, "白眼伯爵"),
+                new Button(string.Empty, "死灵漫步者"),
+                new Button(string.Empty, "蒙面教皇"),
+                new Button(string.Empty, "瘟疫使者")
             });
             layoutStyle.Add(GmEnum.Player_Buff_AddBuff, new()
             {
