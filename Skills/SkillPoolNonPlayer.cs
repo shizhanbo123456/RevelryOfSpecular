@@ -23,7 +23,7 @@ namespace Ros.Skill
     #region 普通僵尸（101~119）
     public class SkillZombieClawR : SkillBase
     {
-        public override int Id => 101;
+        public override int Id => (int)SkillType.SkillZombieClawR;
         public override float CD => 1.5f;
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
@@ -48,7 +48,7 @@ namespace Ros.Skill
 
     public class SkillZombieClawL : SkillBase
     {
-        public override int Id => 102;
+        public override int Id => (int)SkillType.SkillZombieClawL;
         public override float CD => 1.5f;
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
@@ -73,7 +73,7 @@ namespace Ros.Skill
 
     public class SkillZombieScream : SkillBase
     {
-        public override int Id => 103;
+        public override int Id => (int)SkillType.SkillZombieScream;
         public override float CD => 8f;
         public override int Store => -1;
 
@@ -100,7 +100,7 @@ namespace Ros.Skill
     #region 精英僵尸（120~139）
     public class SkillEliteZombieClawR : SkillBase
     {
-        public override int Id => 120;
+        public override int Id => (int)SkillType.SkillEliteZombieClawR;
         public override float CD => 1.5f;
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
@@ -125,7 +125,7 @@ namespace Ros.Skill
 
     public class SkillEliteZombieClawL : SkillBase
     {
-        public override int Id => 121;
+        public override int Id => (int)SkillType.SkillEliteZombieClawL;
         public override float CD => 1.5f;
         public override int Store => -1;
         public override float CastRange => Config.zombie_attack_range;
@@ -150,7 +150,7 @@ namespace Ros.Skill
 
     public class SkillEliteZombieScream : SkillBase
     {
-        public override int Id => 122;
+        public override int Id => (int)SkillType.SkillEliteZombieScream;
         public override float CD => 8f;
         public override int Store => -1;
 
@@ -177,7 +177,7 @@ namespace Ros.Skill
     #region 防御塔（瘟疫孢子，140~159）
     public class SkillTowerSporeShot : SkillBase
     {
-        public override int Id => 140;
+        public override int Id => (int)SkillType.SkillTowerSporeShot;
         public override float CD => 2f;
         public override int Store => -1;
         public override float CastRange => Config.tower_attack_range;
@@ -230,7 +230,7 @@ namespace Ros.Skill
         private const float PoisonDamagePerTick = 6f;
         private const float PoisonDuration = 4f;
 
-        public override int Id => 160;
+        public override int Id => (int)SkillType.SkillPlagueTreeSpore;
         public override float CD => 2.5f;
         public override int Store => -1;
         public override float CastRange => Config.plague_tree_attack_range;

@@ -107,14 +107,14 @@ public static class Config
     public const float skill_exp_damage_bonus = 0.1f;
 
     #region 武器技能 id 区间（见策划案 21 章；水晶掉武器按水晶类型从对应区间随机）
-    public const int weapon_id_melee_min = 0;   // 近战刀 0~10（11 把）
-    public const int weapon_id_melee_max = 10;
-    public const int weapon_id_spear_min = 11;  // 长枪 11~18（8 把）
-    public const int weapon_id_spear_max = 18;
-    public const int weapon_id_gun_min = 19;    // 枪械 19~33（15 把）
-    public const int weapon_id_gun_max = 33;
-    public const int weapon_id_magic_min = 34;  // 魔法球 34~49（16 个）
-    public const int weapon_id_magic_max = 49;
+    public const int weapon_id_melee_min = (int)SkillType.SkillGaleSlash;     // 近战刀 0~10（11 把）
+    public const int weapon_id_melee_max = (int)SkillType.SkillBladeDance;
+    public const int weapon_id_spear_min = (int)SkillType.SkillJavelinThrow;  // 长枪 11~18（8 把）
+    public const int weapon_id_spear_max = (int)SkillType.SkillSpearRain;
+    public const int weapon_id_gun_min = (int)SkillType.SkillQuickShot;       // 枪械 19~33（15 把）
+    public const int weapon_id_gun_max = (int)SkillType.SkillAirstrikeMark;
+    public const int weapon_id_magic_min = (int)SkillType.SkillMagicBolt;     // 魔法球 34~49（16 个）
+    public const int weapon_id_magic_max = (int)SkillType.SkillArcaneBarrier;
 
     public static int GetRandomWeaponId(int crystalValue)
     {
@@ -144,9 +144,9 @@ public static class Config
     public const int entity_id_max = 30000;
     public const float melee_hit_radius = 0.7f;
     public const float unarmed_skill_cd = 0.1f;
-    public const int unarmed_punch_left = 180;
-    public const int unarmed_punch_right = 181;
-    public const int unarmed_attack_smash = 182;
+    public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
+    public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
+    public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;
     public const float anim_move_speed_up = 1.3f;
     public const float anim_move_speed_down = 0.6f;
     public const float anim_move_speed_mire = 0.5f;
@@ -154,38 +154,38 @@ public static class Config
     {
         // ===== 进攻方角色（18 人，每角色 1 个天生攻击技能）=====
         // 策划案 4.1「不做定位区分」；暂时按 4 类武器的基础技能循环分配，待角色池定稿后调整
-        { EntityType.Attack(0), new[] { 0 } },    // 疾风斩（刀）
-        { EntityType.Attack(1), new[] { 11 } },   // 投枪（长枪）
-        { EntityType.Attack(2), new[] { 19 } },   // 快速射击（枪械）
-        { EntityType.Attack(3), new[] { 34 } },   // 魔弹（魔法球）
-        { EntityType.Attack(4), new[] { 0 } },
-        { EntityType.Attack(5), new[] { 11 } },
-        { EntityType.Attack(6), new[] { 19 } },
-        { EntityType.Attack(7), new[] { 34 } },
-        { EntityType.Attack(8), new[] { 0 } },
-        { EntityType.Attack(9), new[] { 11 } },
-        { EntityType.Attack(10), new[] { 19 } },
-        { EntityType.Attack(11), new[] { 34 } },
-        { EntityType.Attack(12), new[] { 0 } },
-        { EntityType.Attack(13), new[] { 11 } },
-        { EntityType.Attack(14), new[] { 19 } },
-        { EntityType.Attack(15), new[] { 34 } },
-        { EntityType.Attack(16), new[] { 0 } },
-        { EntityType.Attack(17), new[] { 11 } },
+        { EntityType.Attack(0), new[] { (int)SkillType.SkillGaleSlash } },      // 疾风斩（刀）
+        { EntityType.Attack(1), new[] { (int)SkillType.SkillJavelinThrow } },   // 投枪（长枪）
+        { EntityType.Attack(2), new[] { (int)SkillType.SkillQuickShot } },      // 快速射击（枪械）
+        { EntityType.Attack(3), new[] { (int)SkillType.SkillMagicBolt } },      // 魔弹（魔法球）
+        { EntityType.Attack(4), new[] { (int)SkillType.SkillGaleSlash } },
+        { EntityType.Attack(5), new[] { (int)SkillType.SkillJavelinThrow } },
+        { EntityType.Attack(6), new[] { (int)SkillType.SkillQuickShot } },
+        { EntityType.Attack(7), new[] { (int)SkillType.SkillMagicBolt } },
+        { EntityType.Attack(8), new[] { (int)SkillType.SkillGaleSlash } },
+        { EntityType.Attack(9), new[] { (int)SkillType.SkillJavelinThrow } },
+        { EntityType.Attack(10), new[] { (int)SkillType.SkillQuickShot } },
+        { EntityType.Attack(11), new[] { (int)SkillType.SkillMagicBolt } },
+        { EntityType.Attack(12), new[] { (int)SkillType.SkillGaleSlash } },
+        { EntityType.Attack(13), new[] { (int)SkillType.SkillJavelinThrow } },
+        { EntityType.Attack(14), new[] { (int)SkillType.SkillQuickShot } },
+        { EntityType.Attack(15), new[] { (int)SkillType.SkillMagicBolt } },
+        { EntityType.Attack(16), new[] { (int)SkillType.SkillGaleSlash } },
+        { EntityType.Attack(17), new[] { (int)SkillType.SkillJavelinThrow } },
 
         // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招，id 段见策划案 21.5）=====
-        { EntityType.Defense(0), new[] { 50, 51, 52 } },  // PC104 鹿铠怪人：岩石护盾 / 蘑菇感染 / 灵火
-        { EntityType.Defense(1), new[] { 54, 55, 56 } },  // NP114 白眼伯爵：白眼标记 / 无限视野 / 立即入夜
-        { EntityType.Defense(2), new[] { 58, 59, 60 } },  // PC106 死灵漫步者：召唤僵尸 / 死灵漫步 / 召唤精英
-        { EntityType.Defense(3), new[] { 62, 63, 64 } },  // NP134 蒙面教皇：沉默 / 泥沼 / 反伤
-        { EntityType.Defense(4), new[] { 66, 67, 68 } },  // PC102 瘟疫使者：瘟疫标记 / 吸收矿石 / 引爆瘟疫
-        { EntityType.Defense(5), new[] { 70, 71, 72 } },  // PC103 苍白舞者：苍白之光 / 苍白之暗 / 迷雾
+        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillMushroomInfect, (int)SkillType.SkillTowerBlazeCast } },   // PC104 鹿铠怪人：岩石护盾 / 蘑菇感染 / 灵火
+        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillInfiniteVision, (int)SkillType.SkillForceNight } },         // NP114 白眼伯爵：白眼标记 / 无限视野 / 立即入夜
+        { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } }, // PC106 死灵漫步者：召唤僵尸 / 死灵漫步 / 召唤精英
+        { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },          // NP134 蒙面教皇：沉默 / 泥沼 / 反伤
+        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillAbsorbOre, (int)SkillType.SkillDetonatePlague } },    // PC102 瘟疫使者：瘟疫标记 / 吸收矿石 / 引爆瘟疫
+        { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },        // PC103 苍白舞者：苍白之光 / 苍白之暗 / 迷雾
 
         // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退；store 均为 -1 无限制）=====
-        { EntityType.Zombie(0), new[] { 101, 102, 103 } },      // 普通僵尸：爪击左 / 爪击右 / 嘶吼
-        { EntityType.EliteZombie(0), new[] { 120, 121, 122 } }, // 精英僵尸
-        { EntityType.Tower(0), new[] { 140 } },                 // 防御塔：孢子喷射
-        { EntityType.PlagueTree(0), new[] { 160 } },            // 瘟疫树：孢子喷发
+        { EntityType.Zombie(0), new[] { (int)SkillType.SkillZombieClawR, (int)SkillType.SkillZombieClawL, (int)SkillType.SkillZombieScream } },        // 普通僵尸：爪击左 / 爪击右 / 嘶吼
+        { EntityType.EliteZombie(0), new[] { (int)SkillType.SkillEliteZombieClawR, (int)SkillType.SkillEliteZombieClawL, (int)SkillType.SkillEliteZombieScream } }, // 精英僵尸
+        { EntityType.Tower(0), new[] { (int)SkillType.SkillTowerSporeShot } },          // 防御塔：孢子喷射
+        { EntityType.PlagueTree(0), new[] { (int)SkillType.SkillPlagueTreeSpore } },    // 瘟疫树：孢子喷发
     };
 
     public static List<int> GetInitialSkills(EntityType character)

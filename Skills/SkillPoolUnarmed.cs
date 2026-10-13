@@ -15,7 +15,7 @@ namespace Ros.Skill
 
     public class SkillPunchLeft : SkillBase
     {
-        public override int Id => Config.unarmed_punch_left;
+        public override int Id => (int)SkillType.SkillPunchLeft;
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
@@ -40,7 +40,7 @@ namespace Ros.Skill
 
     public class SkillPunchRight : SkillBase
     {
-        public override int Id => Config.unarmed_punch_right;
+        public override int Id => (int)SkillType.SkillPunchRight;
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
@@ -65,7 +65,7 @@ namespace Ros.Skill
 
     public class SkillPunchSmash : SkillBase
     {
-        public override int Id => Config.unarmed_attack_smash;
+        public override int Id => (int)SkillType.SkillPunchSmash;
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;

@@ -32,7 +32,7 @@ namespace Ros.Skill
     #region PC104 鹿铠怪人（50~52）
     public class SkillRockShield : SkillBase
     {
-        public override int Id => 50;
+        public override int Id => (int)SkillType.SkillRockShield;
         public override float CD => 15f;
         public override int Store => 8;
 
@@ -66,7 +66,7 @@ namespace Ros.Skill
 
     public class SkillMushroomInfect : SkillBase
     {
-        public override int Id => 51;
+        public override int Id => (int)SkillType.SkillMushroomInfect;
         public override float CD => 12f;
         public override int Store => 5;
 
@@ -97,7 +97,7 @@ namespace Ros.Skill
 
     public class SkillTowerBlazeCast : SkillBase
     {
-        public override int Id => 52;
+        public override int Id => (int)SkillType.SkillTowerBlazeCast;
         public override float CD => 60f;
         public override int Store => 2;
 
@@ -129,7 +129,7 @@ namespace Ros.Skill
     #region NP114 白眼伯爵（54~56）
     public class SkillEyeMark : SkillBase
     {
-        public override int Id => 54;
+        public override int Id => (int)SkillType.SkillEyeMark;
         public override float CD => 18f;
         public override int Store => 6;
 
@@ -163,7 +163,7 @@ namespace Ros.Skill
 
     public class SkillInfiniteVision : SkillBase
     {
-        public override int Id => 55;
+        public override int Id => (int)SkillType.SkillInfiniteVision;
         public override float CD => 45f;
         public override int Store => 3;
 
@@ -192,7 +192,7 @@ namespace Ros.Skill
 
     public class SkillForceNight : SkillBase
     {
-        public override int Id => 56;
+        public override int Id => (int)SkillType.SkillForceNight;
         public override float CD => 60f;
         public override int Store => 2;
 
@@ -216,7 +216,7 @@ namespace Ros.Skill
     #region PC106 死灵漫步者（58~60）
     public class SkillSummonZombies : SkillBase
     {
-        public override int Id => 58;
+        public override int Id => (int)SkillType.SkillSummonZombies;
         public override float CD => 20f;
         public override int Store => 5;
 
@@ -246,7 +246,7 @@ namespace Ros.Skill
 
     public class SkillDeathStrollCast : SkillBase
     {
-        public override int Id => 59;
+        public override int Id => (int)SkillType.SkillDeathStrollCast;
         public override float CD => 40f;
         public override int Store => 3;
 
@@ -271,7 +271,7 @@ namespace Ros.Skill
 
     public class SkillSummonElites : SkillBase
     {
-        public override int Id => 60;
+        public override int Id => (int)SkillType.SkillSummonElites;
         public override float CD => 60f;
         public override int Store => 1;
 
@@ -304,7 +304,7 @@ namespace Ros.Skill
     #region NP134 蒙面教皇（62~64）
     public class SkillSilenceCast : SkillBase
     {
-        public override int Id => 62;
+        public override int Id => (int)SkillType.SkillSilenceCast;
         public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 6;
@@ -335,7 +335,7 @@ namespace Ros.Skill
 
     public class SkillMireCast : SkillBase
     {
-        public override int Id => 63;
+        public override int Id => (int)SkillType.SkillMireCast;
         public override float CD => 20f;
         public override int Store => 5;
 
@@ -365,7 +365,7 @@ namespace Ros.Skill
 
     public class SkillReflectCast : SkillBase
     {
-        public override int Id => 64;
+        public override int Id => (int)SkillType.SkillReflectCast;
         public override float CD => 60f;
         public override int Store => 2;
 
@@ -397,7 +397,7 @@ namespace Ros.Skill
     #region PC102 瘟疫使者（66~68）
     public class SkillPlagueMarkCast : SkillBase
     {
-        public override int Id => 66;
+        public override int Id => (int)SkillType.SkillPlagueMarkCast;
         public override float CastRange => 8f;
         public override float CD => 2f;
         public override int Store => 12;
@@ -428,7 +428,7 @@ namespace Ros.Skill
 
     public class SkillAbsorbOre : SkillBase
     {
-        public override int Id => 67;
+        public override int Id => (int)SkillType.SkillAbsorbOre;
         public override float CastRange => 6f;
         public override float CD => 30f;
         public override int Store => 2;
@@ -460,7 +460,7 @@ namespace Ros.Skill
 
     public class SkillDetonatePlague : SkillBase
     {
-        public override int Id => 68;
+        public override int Id => (int)SkillType.SkillDetonatePlague;
         public override float CD => 30f;
         public override int Store => 1;
 
@@ -507,7 +507,7 @@ namespace Ros.Skill
     #region PC103 苍白舞者（70~72）
     public class SkillPaleLightCast : SkillBase
     {
-        public override int Id => 70;
+        public override int Id => (int)SkillType.SkillPaleLightCast;
         public override float CastRange => 20f;
         public override float CD => 1f;
         public override int Store => 12;
@@ -541,7 +541,7 @@ namespace Ros.Skill
 
     public class SkillPaleDarkCast : SkillBase
     {
-        public override int Id => 71;
+        public override int Id => (int)SkillType.SkillPaleDarkCast;
         public override float CastRange => 20f;
         public override float CD => 2f;
         public override int Store => 12;
@@ -575,7 +575,7 @@ namespace Ros.Skill
 
     public class SkillFogCast : SkillBase
     {
-        public override int Id => 72;
+        public override int Id => (int)SkillType.SkillFogCast;
         public override float CD => 50f;
         public override int Store => 2;
 

@@ -69,7 +69,7 @@ namespace Ros.Skill
     #region 近战刀 0~10
     public class SkillGaleSlash : SkillBase
     {
-        public override int Id => 0;
+        public override int Id => (int)SkillType.SkillGaleSlash;
         public override float CastRange => 2f;
         public override float CD => 1f;
         public override int Store => 15;
@@ -87,7 +87,7 @@ namespace Ros.Skill
 
     public class SkillFlyingKnife : SkillBase
     {
-        public override int Id => 1;
+        public override int Id => (int)SkillType.SkillFlyingKnife;
         public override float CastRange => 2f;
         public override float CD => 2f;
         public override int Store => 12;
@@ -109,7 +109,7 @@ namespace Ros.Skill
 
     public class SkillCrossSlash : SkillBase
     {
-        public override int Id => 2;
+        public override int Id => (int)SkillType.SkillCrossSlash;
         public override float CastRange => 2f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -128,7 +128,7 @@ namespace Ros.Skill
 
     public class SkillChargeSlash : SkillBase
     {
-        public override int Id => 3;
+        public override int Id => (int)SkillType.SkillChargeSlash;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 3);
@@ -149,7 +149,7 @@ namespace Ros.Skill
 
     public class SkillWhirlSlash : SkillBase
     {
-        public override int Id => 4;
+        public override int Id => (int)SkillType.SkillWhirlSlash;
         public override float CastRange => 2f;
         public override float CD => 8f;
         public override int Store => 5;
@@ -168,7 +168,7 @@ namespace Ros.Skill
 
     public class SkillBreakEndureSlash : SkillBase
     {
-        public override int Id => 5;
+        public override int Id => (int)SkillType.SkillBreakEndureSlash;
         public override float CastRange => 2f;
         public override float CD => 10f;
         public override int Store => 3;
@@ -194,7 +194,7 @@ namespace Ros.Skill
 
     public class SkillFanSwordQi : SkillBase
     {
-        public override int Id => 6;
+        public override int Id => (int)SkillType.SkillFanSwordQi;
         public override float CastRange => 2f;
         public override float CD => 3f;
         public override int Store => 12;
@@ -213,7 +213,7 @@ namespace Ros.Skill
 
     public class SkillCaptureThrow : SkillBase
     {
-        public override int Id => 7;
+        public override int Id => (int)SkillType.SkillCaptureThrow;
         public override float CastRange => 2f;
         public override float CD => 12f;
         public override int Store => 4;
@@ -241,7 +241,7 @@ namespace Ros.Skill
 
     public class SkillShadowStrike : SkillBase
     {
-        public override int Id => 8;
+        public override int Id => (int)SkillType.SkillShadowStrike;
         public override float CD => 10f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 8);
@@ -267,7 +267,7 @@ namespace Ros.Skill
 
     public class SkillMountainCrash : SkillBase
     {
-        public override int Id => 9;
+        public override int Id => (int)SkillType.SkillMountainCrash;
         public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
@@ -291,7 +291,7 @@ namespace Ros.Skill
 
     public class SkillBladeDance : SkillBase
     {
-        public override int Id => 10;
+        public override int Id => (int)SkillType.SkillBladeDance;
         public override float CastRange => 2f;
         public override float CD => 4f;
         public override int Store => 12;
@@ -315,7 +315,7 @@ namespace Ros.Skill
     #region 长枪 11~18
     public class SkillJavelinThrow : SkillBase
     {
-        public override int Id => 11;
+        public override int Id => (int)SkillType.SkillJavelinThrow;
         public override float CastRange => 8f;
         public override float CD => 1.5f;
         public override int Store => 15;
@@ -337,7 +337,7 @@ namespace Ros.Skill
 
     public class SkillPierceSpear : SkillBase
     {
-        public override int Id => 12;
+        public override int Id => (int)SkillType.SkillPierceSpear;
         public override float CastRange => 8f;
         public override float CD => 4f;
         public override int Store => 10;
@@ -355,7 +355,7 @@ namespace Ros.Skill
 
     public class SkillThunderSpear : SkillBase
     {
-        public override int Id => 13;
+        public override int Id => (int)SkillType.SkillThunderSpear;
         public override float CastRange => 8f;
         public override float CD => 10f;
         public override int Store => 3;
@@ -377,7 +377,7 @@ namespace Ros.Skill
 
     public class SkillBindNail : SkillBase
     {
-        public override int Id => 14;
+        public override int Id => (int)SkillType.SkillBindNail;
         public override float CastRange => 8f;
         public override float CD => 12f;
         public override int Store => 4;
@@ -401,7 +401,7 @@ namespace Ros.Skill
 
     public class SkillThrustDash : SkillBase
     {
-        public override int Id => 15;
+        public override int Id => (int)SkillType.SkillThrustDash;
         public override float CD => 5f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 4);
@@ -422,7 +422,7 @@ namespace Ros.Skill
 
     public class SkillSweepPole : SkillBase
     {
-        public override int Id => 16;
+        public override int Id => (int)SkillType.SkillSweepPole;
         public override float CastRange => 2f;
         public override float CD => 6f;
         public override int Store => 10;
@@ -444,7 +444,7 @@ namespace Ros.Skill
 
     public class SkillSpearWall : SkillBase
     {
-        public override int Id => 17;
+        public override int Id => (int)SkillType.SkillSpearWall;
         public override float CD => 20f;
         public override int Store => 2;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 6);
@@ -472,7 +472,7 @@ namespace Ros.Skill
 
     public class SkillSpearRain : SkillBase
     {
-        public override int Id => 18;
+        public override int Id => (int)SkillType.SkillSpearRain;
         public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 3;
@@ -497,7 +497,7 @@ namespace Ros.Skill
     #region 枪械 19~33
     public class SkillQuickShot : SkillBase
     {
-        public override int Id => 19;
+        public override int Id => (int)SkillType.SkillQuickShot;
         public override float CastRange => 18f;
         public override float CD => 0.5f;
         public override int Store => 20;
@@ -515,7 +515,7 @@ namespace Ros.Skill
 
     public class SkillFanShotgun : SkillBase
     {
-        public override int Id => 20;
+        public override int Id => (int)SkillType.SkillFanShotgun;
         public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 15;
@@ -534,7 +534,7 @@ namespace Ros.Skill
 
     public class SkillArmorPiercer : SkillBase
     {
-        public override int Id => 21;
+        public override int Id => (int)SkillType.SkillArmorPiercer;
         public override float CastRange => 18f;
         public override float CD => 2f;
         public override int Store => 12;
@@ -552,7 +552,7 @@ namespace Ros.Skill
 
     public class SkillGrenade : SkillBase
     {
-        public override int Id => 22;
+        public override int Id => (int)SkillType.SkillGrenade;
         public override float CastRange => 18f;
         public override float CD => 3.5f;
         public override int Store => 10;
@@ -574,7 +574,7 @@ namespace Ros.Skill
         private const float BurnDamagePerTick = 8f;
         private const float BurnDuration = 5f;
 
-        public override int Id => 23;
+        public override int Id => (int)SkillType.SkillIncendiary;
         public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
@@ -601,7 +601,7 @@ namespace Ros.Skill
 
     public class SkillFreezeRound : SkillBase
     {
-        public override int Id => 24;
+        public override int Id => (int)SkillType.SkillFreezeRound;
         public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -625,7 +625,7 @@ namespace Ros.Skill
 
     public class SkillParalysisRound : SkillBase
     {
-        public override int Id => 25;
+        public override int Id => (int)SkillType.SkillParalysisRound;
         public override float CastRange => 18f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -649,7 +649,7 @@ namespace Ros.Skill
 
     public class SkillToxicRound : SkillBase
     {
-        public override int Id => 26;
+        public override int Id => (int)SkillType.SkillToxicRound;
         public override float CastRange => 18f;
         public override float CD => 6f;
         public override int Store => 10;
@@ -674,7 +674,7 @@ namespace Ros.Skill
 
     public class SkillHeavyBreaker : SkillBase
     {
-        public override int Id => 27;
+        public override int Id => (int)SkillType.SkillHeavyBreaker;
         public override float CastRange => 18f;
         public override float CD => 4f;
         public override int Store => 12;
@@ -698,7 +698,7 @@ namespace Ros.Skill
 
     public class SkillInspireRound : SkillBase
     {
-        public override int Id => 28;
+        public override int Id => (int)SkillType.SkillInspireRound;
         public override float CD => 8f;
         public override int Store => 10;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 9);
@@ -741,7 +741,7 @@ namespace Ros.Skill
 
     public class SkillImpactRound : SkillBase
     {
-        public override int Id => 29;
+        public override int Id => (int)SkillType.SkillImpactRound;
         public override float CastRange => 18f;
         public override float CD => 8f;
         public override int Store => 10;
@@ -763,7 +763,7 @@ namespace Ros.Skill
 
     public class SkillBlinkDash : SkillBase
     {
-        public override int Id => 30;
+        public override int Id => (int)SkillType.SkillBlinkDash;
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 11);
@@ -785,7 +785,7 @@ namespace Ros.Skill
 
     public class SkillSnipe : SkillBase
     {
-        public override int Id => 31;
+        public override int Id => (int)SkillType.SkillSnipe;
         public override float CastRange => 18f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -803,7 +803,7 @@ namespace Ros.Skill
 
     public class SkillBulletSpray : SkillBase
     {
-        public override int Id => 32;
+        public override int Id => (int)SkillType.SkillBulletSpray;
         public override float CastRange => 18f;
         public override float CD => 15f;
         public override int Store => 3;
@@ -822,7 +822,7 @@ namespace Ros.Skill
 
     public class SkillAirstrikeMark : SkillBase
     {
-        public override int Id => 33;
+        public override int Id => (int)SkillType.SkillAirstrikeMark;
         public override float CastRange => 18f;
         public override float CD => 20f;
         public override int Store => 1;
@@ -853,7 +853,7 @@ namespace Ros.Skill
     #region 魔法球 34~49
     public class SkillMagicBolt : SkillBase
     {
-        public override int Id => 34;
+        public override int Id => (int)SkillType.SkillMagicBolt;
         public override float CastRange => 15f;
         public override float CD => 0.6f;
         public override int Store => 20;
@@ -872,7 +872,7 @@ namespace Ros.Skill
 
     public class SkillFireball : SkillBase
     {
-        public override int Id => 35;
+        public override int Id => (int)SkillType.SkillFireball;
         public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
@@ -895,7 +895,7 @@ namespace Ros.Skill
 
     public class SkillIceShard : SkillBase
     {
-        public override int Id => 36;
+        public override int Id => (int)SkillType.SkillIceShard;
         public override float CastRange => 15f;
         public override float CD => 3f;
         public override int Store => 12;
@@ -919,7 +919,7 @@ namespace Ros.Skill
 
     public class SkillWindBlade : SkillBase
     {
-        public override int Id => 37;
+        public override int Id => (int)SkillType.SkillWindBlade;
         public override float CastRange => 15f;
         public override float CD => 2.5f;
         public override int Store => 12;
@@ -938,7 +938,7 @@ namespace Ros.Skill
 
     public class SkillPoisonOrb : SkillBase
     {
-        public override int Id => 38;
+        public override int Id => (int)SkillType.SkillPoisonOrb;
         public override float CastRange => 15f;
         public override float CD => 4f;
         public override int Store => 10;
@@ -963,7 +963,7 @@ namespace Ros.Skill
 
     public class SkillRockfall : SkillBase
     {
-        public override int Id => 39;
+        public override int Id => (int)SkillType.SkillRockfall;
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -986,7 +986,7 @@ namespace Ros.Skill
 
     public class SkillThunderOrb : SkillBase
     {
-        public override int Id => 40;
+        public override int Id => (int)SkillType.SkillThunderOrb;
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -1029,7 +1029,7 @@ namespace Ros.Skill
 
     public class SkillLightShield : SkillBase
     {
-        public override int Id => 41;
+        public override int Id => (int)SkillType.SkillLightShield;
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 7);
@@ -1058,7 +1058,7 @@ namespace Ros.Skill
 
     public class SkillPurgeWave : SkillBase
     {
-        public override int Id => 42;
+        public override int Id => (int)SkillType.SkillPurgeWave;
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 8);
@@ -1081,7 +1081,7 @@ namespace Ros.Skill
 
     public class SkillInspireCircle : SkillBase
     {
-        public override int Id => 43;
+        public override int Id => (int)SkillType.SkillInspireCircle;
         public override float CD => 10f;
         public override int Store => 8;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 9);
@@ -1108,7 +1108,7 @@ namespace Ros.Skill
 
     public class SkillFrostNova : SkillBase
     {
-        public override int Id => 44;
+        public override int Id => (int)SkillType.SkillFrostNova;
         public override float CastRange => 3f;
         public override float CD => 10f;
         public override int Store => 6;
@@ -1133,7 +1133,7 @@ namespace Ros.Skill
 
     public class SkillThunderFall : SkillBase
     {
-        public override int Id => 45;
+        public override int Id => (int)SkillType.SkillThunderFall;
         public override float CastRange => 15f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -1157,7 +1157,7 @@ namespace Ros.Skill
 
     public class SkillBlackHoleBomb : SkillBase
     {
-        public override int Id => 46;
+        public override int Id => (int)SkillType.SkillBlackHoleBomb;
         public override float CastRange => 15f;
         public override float CD => 5f;
         public override int Store => 8;
@@ -1176,7 +1176,7 @@ namespace Ros.Skill
 
     public class SkillStarfall : SkillBase
     {
-        public override int Id => 47;
+        public override int Id => (int)SkillType.SkillStarfall;
         public override float CastRange => 15f;
         public override float CD => 20f;
         public override int Store => 3;
@@ -1200,7 +1200,7 @@ namespace Ros.Skill
 
     public class SkillVoidGrasp : SkillBase
     {
-        public override int Id => 48;
+        public override int Id => (int)SkillType.SkillVoidGrasp;
         public override float CastRange => 15f;
         public override float CD => 15f;
         public override int Store => 4;
@@ -1224,7 +1224,7 @@ namespace Ros.Skill
 
     public class SkillArcaneBarrier : SkillBase
     {
-        public override int Id => 49;
+        public override int Id => (int)SkillType.SkillArcaneBarrier;
         public override float CD => 20f;
         public override int Store => 2;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 15);
