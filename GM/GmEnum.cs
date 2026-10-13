@@ -1,0 +1,89 @@
+namespace Ros.Gm
+{
+    public enum GmEnum
+    {
+        [GmLabel("对局-时间-增加")]
+        Battle_RemainTime_Add,
+        [GmLabel("对局-时间-减少")]
+        Battle_RemainTime_Reduce,
+        [GmLabel("对局-时间-设置")]
+        Battle_RemainTime_Set,
+        [GmLabel("对局-立即结算")]
+        Battle_Settle,
+        [GmLabel("对局-昼夜-设置时间点")]
+        Battle_DayNight_SetTimePoint,
+        [GmLabel("对局-昼夜-设置白天时长")]
+        Battle_DayNight_SetDayDuration,
+        [GmLabel("对局-昼夜-设置晚上时长")]
+        Battle_DayNight_SetNightDuration,
+
+        [GmLabel("实体-刷新")]
+        Entity_Spawn,
+        [GmLabel("实体-击杀")]
+        Entity_Kill,
+        [GmLabel("实体-击飞")]
+        Entity_Knockback,
+
+        [GmLabel("玩家-传送-坐标")]
+        Player_Teleport_ToCoordinate,
+        [GmLabel("玩家-传送-守护点")]
+        Player_Teleport_ToGuardPoint,
+        [GmLabel("玩家-立即复活")]
+        Player_Revive,
+        [GmLabel("玩家-技能-获得技能")]
+        Player_Skill_GetSkill,
+        [GmLabel("玩家-技能-使用技能")]
+        Player_Skill_DirectUseSkill,
+        [GmLabel("玩家-技能-立即CD回满")]
+        Player_Skill_ResetCd,
+        [GmLabel("玩家-技能-清空技能")]
+        Player_Skill_ClearSkill,
+        [GmLabel("玩家-技能-被动技能启用")]
+        Player_Skill_PassiveEnable,
+        [GmLabel("玩家-buff-添加")]
+        Player_Buff_AddBuff,
+        [GmLabel("玩家-buff-移除指定")]
+        Player_Buff_RemoveBuff,
+        [GmLabel("玩家-buff-移除全部")]
+        Player_Buff_RemoveAllBuff,
+        [GmLabel("玩家-外挂-飞行")]
+        Player_Cheat_Flight,
+        [GmLabel("玩家-外挂-无敌")]
+        Player_Cheat_Invincible,
+        [GmLabel("玩家-外挂-极速")]
+        Player_Cheat_Speed,
+        [GmLabel("玩家-外挂-无视cd")]
+        Player_Cheat_IgnoreCd,
+
+        [GmLabel("画面-地形-显示半径")]
+        Screen_Terrain_ShowRadius,
+        [GmLabel("画面-地形-显隐地形")]
+        Screen_Terrain_ToggleTerrain,
+        [GmLabel("画面-雾气")]
+        Screen_Fog,
+
+        [GmLabel("存档-玩家等级-增加经验")]
+        Save_PlayerLevel_AddExp,
+        [GmLabel("存档-玩家等级-减少经验")]
+        Save_PlayerLevel_ReduceExp,
+        [GmLabel("存档-玩家等级-增加等级")]
+        Save_PlayerLevel_AddLevel,
+        [GmLabel("存档-玩家等级-减少等级")]
+        Save_PlayerLevel_ReduceLevel,
+        [GmLabel("存档-角色等级")]
+        Save_CharacterLevel,
+
+        [GmLabel("其它-结算界面")]
+        Other_Settlement,
+        [GmLabel("其它-调试")]
+        Other_Debug,
+        [GmLabel("其它-收集-模型网格面数")]
+        Other_Collect_MeshFaces,
+        [GmLabel("其它-收集-服务器帧率")]
+        Other_Collect_ServerFps,
+        [GmLabel("其它-收集-服务器时间")]
+        Other_Collect_ServerTime,
+        [GmLabel("其它-敌方对话")]
+        Other_EnemyDialog,
+    }
+}

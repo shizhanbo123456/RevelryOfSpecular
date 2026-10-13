@@ -1,0 +1,107 @@
+namespace Ros.Gm
+{
+    // GM 下拉框专用枚举：命名一律以 Gm 开头，按类别控粒度（不按实例）
+
+    // 实体类型（刷新 / 击杀）
+    public enum GmEntityType
+    {
+        [GmLabel("普通僵尸")]
+        Zombie,
+        [GmLabel("精英僵尸")]
+        EliteZombie,
+        [GmLabel("水晶")]
+        Crystal,
+        [GmLabel("中立单位")]
+        Neutral,
+        [GmLabel("防御塔")]
+        Tower,
+    }
+
+    // 立即结算方式
+    public enum GmSettleType
+    {
+        [GmLabel("时间结束")]
+        TimeEnd,
+        [GmLabel("进攻方团灭")]
+        Annihilate,
+    }
+
+    // 目标筛选方式
+    public enum GmFilterType
+    {
+        [GmLabel("所有")]
+        All,
+        [GmLabel("最近")]
+        Nearest,
+        [GmLabel("n个")]
+        Count,
+        [GmLabel("r米半径内")]
+        Radius,
+    }
+
+    // 守护点（3 外围 + 1 核心）
+    public enum GmBeacon
+    {
+        [GmLabel("外围守护点1")]
+        Outer0,
+        [GmLabel("外围守护点2")]
+        Outer1,
+        [GmLabel("外围守护点3")]
+        Outer2,
+        [GmLabel("核心守护点")]
+        Core,
+    }
+
+    // 角色（18 攻击 + 6 防守）
+    public enum GmCharacter
+    {
+        [GmLabel("攻击角色0")]
+        Attack0,
+        [GmLabel("攻击角色1")]
+        Attack1,
+        [GmLabel("攻击角色2")]
+        Attack2,
+        [GmLabel("攻击角色3")]
+        Attack3,
+        [GmLabel("攻击角色4")]
+        Attack4,
+        [GmLabel("攻击角色5")]
+        Attack5,
+        [GmLabel("攻击角色6")]
+        Attack6,
+        [GmLabel("攻击角色7")]
+        Attack7,
+        [GmLabel("攻击角色8")]
+        Attack8,
+        [GmLabel("攻击角色9")]
+        Attack9,
+        [GmLabel("攻击角色10")]
+        Attack10,
+        [GmLabel("攻击角色11")]
+        Attack11,
+        [GmLabel("攻击角色12")]
+        Attack12,
+        [GmLabel("攻击角色13")]
+        Attack13,
+        [GmLabel("攻击角色14")]
+        Attack14,
+        [GmLabel("攻击角色15")]
+        Attack15,
+        [GmLabel("攻击角色16")]
+        Attack16,
+        [GmLabel("攻击角色17")]
+        Attack17,
+        [GmLabel("鹿铠怪人")]
+        Defense0,
+        [GmLabel("白眼伯爵")]
+        Defense1,
+        [GmLabel("死灵漫步者")]
+        Defense2,
+        [GmLabel("蒙面教皇")]
+        Defense3,
+        [GmLabel("瘟疫使者")]
+        Defense4,
+        [GmLabel("苍白舞者")]
+        Defense5,
+    }
+}
