@@ -12,6 +12,7 @@ namespace Ros.Transport
         DPress = 1 << 6, DRelease = 1 << 7,  // 移动（按下/抬起边沿）
         J = 1 << 8, K = 1 << 9, LShift = 1 << 10,                        // 攻击 / 跳跃 / 滑铲
         U = 1 << 11, I = 1 << 12, O = 1 << 13, L = 1 << 14, H = 1 << 15, Y = 1 << 16, // 技能槽 1~6
+        KRelease = 1 << 17, LShiftRelease = 1 << 18,                     // 长按抬起边沿（飞行高度控制预留）
 
         MovePressMask = WPress | SPress | APress | DPress,
         MoveReleaseMask = WRelease | SRelease | ARelease | DRelease,

@@ -29,7 +29,9 @@ public class InputManager : MonoBehaviour
 
         if (Input.GetKeyDown(Config.melee_key)) pressed |= PlayerKey.J;
         if (Input.GetKeyDown(Config.jump_key)) pressed |= PlayerKey.K;
+        if (Input.GetKeyUp(Config.jump_key)) pressed |= PlayerKey.KRelease; // 长按抬起（飞行高度控制预留）
         if (Input.GetKeyDown(Config.slide_key)) pressed |= PlayerKey.LShift;
+        if (Input.GetKeyUp(Config.slide_key)) pressed |= PlayerKey.LShiftRelease; // 长按抬起（飞行高度控制预留）
         if (Input.GetKeyDown(Config.minimap_radius_key)) Tool.NetworkManager.SendMinimapRadiusSwitch(); //雷达显示半径切换
         for (int i = 0; i < Config.skill_slot_keys.Length; i++)
         {

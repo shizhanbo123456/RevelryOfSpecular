@@ -14,6 +14,29 @@ public class PlayerEntityData : EntityData
 
     private MoveState moveState;
 
+    private bool flightMode;
+    private PlayerKey flyHeld; // 飞行垂直输入按住态（K 升 / Shift 降）
+
+    public override bool FlightMode => flightMode;
+
+    // GM 飞行开关：仅真人玩家使用（与 AI 控制互斥，由数据保证）
+    public void SetFlightMode(bool enabled)
+    {
+        if (flightMode == enabled) return;
+        flightMode = enabled;
+        if (enabled)
+        {
+            flyHeld = PlayerKey.None;
+            SetGravityEnabled(false); // 关重力（UpdateGrounded 随之停用，每帧再由 TickVelocity 强制）
+            grounded = true;          // 飞行视作贴地：全程 InAir=false，动画走地面状态
+            if (anim != null) anim.InAir(false);
+        }
+        else
+        {
+            SetGravityEnabled(true); // 恢复重力，落地/悬空交回地面检测
+        }
+    }
+
     // 操作屏蔽 → 移动键位（前后=W，旋转=A/D；带 Press/Release 对，抹除需同时清 Release 位）
     private PlayerKey BlockMoveKeys(InputBlockOp ops)
     {
@@ -52,7 +75,14 @@ public class PlayerEntityData : EntityData
             uint clear = (uint)blockMove | ((uint)blockMove << 1) | (uint)blockAction;
             input.pressed = (PlayerKey)((uint)input.pressed & ~clear);
             if (moveState != null) { moveState.held &= ~blockMove; ApplyMoveState(); }
+            flyHeld &= ~(PlayerKey.K | PlayerKey.LShift); // 屏蔽动作键期间飞行升降一并停止
         }
+
+        // 飞行垂直输入：K/Shift 按住态维护（按下置位、抬起清位），仅飞行模式消费
+        if ((input.pressed & PlayerKey.K) != 0) flyHeld |= PlayerKey.K;
+        else if ((input.pressed & PlayerKey.KRelease) != 0) flyHeld &= ~PlayerKey.K;
+        if ((input.pressed & PlayerKey.LShift) != 0) flyHeld |= PlayerKey.LShift;
+        else if ((input.pressed & PlayerKey.LShiftRelease) != 0) flyHeld &= ~PlayerKey.LShift;
 
         // 移动（坦克式）：W = 前进；A/D = 转向（W 按住 = 边走边转，未按 = 原地转）；S 弃用不参与方向计算。
         // 按下位并入按住掩码，抬起位清除对应按住位（右移一位，位布局刻意相邻），随即重算方向
@@ -66,14 +96,14 @@ public class PlayerEntityData : EntityData
 
         bool moving = moveState.moving;
 
-        // 跳跃键：普通跳跃（翻滚动作已整体移除，K 只做跳跃）
-        if ((input.pressed & PlayerKey.K) != 0)
+        // 跳跃键：普通跳跃（翻滚动作已整体移除，K 只做跳跃）；飞行模式下 K 转为上升长按，不跳
+        if (!flightMode && (input.pressed & PlayerKey.K) != 0)
         {
             Jump();
             Debug.Log($"[输入处理] id={id} 跳跃键(K) 下沿 → 跳跃（移动中={moving}）");
         }
-        // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）
-        if ((input.pressed & PlayerKey.LShift) != 0)
+        // 滑铲：只切进滑铲状态，持续多久由动画模块自己决定（外部不控时长）；飞行模式禁用
+        if (!flightMode && (input.pressed & PlayerKey.LShift) != 0)
         {
             if (anim != null) anim.DoSlide();
             Debug.Log($"[输入处理] id={id} 滑铲键(Shift) 下沿 → 滑铲");
@@ -154,6 +184,15 @@ public class PlayerEntityData : EntityData
     {
         EnsureMoveState();
         if (moveState == null) return;
+
+        // 飞行：垂直速度声明（长按 K 升 / 长按 Shift 降，固定速度）；水平移动与动画仍走原有地面链路
+        if (FlightMode)
+        {
+            float v = 0f;
+            if ((flyHeld & PlayerKey.K) != 0) v = Config.fly_vertical_speed;
+            else if ((flyHeld & PlayerKey.LShift) != 0) v = -Config.fly_vertical_speed;
+            SetVelocityVertical(v, VelocitySource.Flight);
+        }
 
         if (aiControlled)
         {

@@ -100,6 +100,7 @@ public static class Config
     public const KeyCode melee_key = KeyCode.J;
     public const KeyCode jump_key = KeyCode.K;
     public const KeyCode slide_key = KeyCode.LeftShift;
+    public const float fly_vertical_speed = 5f; // 飞行模式垂直速度（长按 K 升 / 长按 Shift 降）
     #endregion
 
     #region 武器与技能

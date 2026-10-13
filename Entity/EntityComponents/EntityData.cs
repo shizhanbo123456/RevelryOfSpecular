@@ -53,6 +53,9 @@ public abstract class EntityData : MonoBehaviour
 
     public virtual float YawSpeed => 0f;
 
+    // 飞行模式（仅玩家实体启用，见 PlayerEntityData.SetFlightMode）：重力关闭、免疫击飞/打断/位移，动画按地面状态播放
+    public virtual bool FlightMode => false;
+
     [HideInInspector] public WeaponRef heldWeapon = WeaponRef.None;
 
     [HideInInspector] public EntityData lastAttacker;
@@ -259,6 +262,7 @@ public abstract class EntityData : MonoBehaviour
 
     public void SetMotion(MotionBase motion)
     {
+        if (FlightMode) return; // 飞行免疫：不施加位移
         if (rb == null || anim == null) return;
         this.motion = motion;
         if (motion != null) declaredMotionEnter = true;
@@ -323,6 +327,8 @@ public abstract class EntityData : MonoBehaviour
     public void TickVelocity(float deltaTime)
     {
         if (rb == null) return;
+
+        if (FlightMode && rb.useGravity) rb.useGravity = false; // 飞行期间持续关重力（动画/技能状态可能设回）
 
         UpdateGrounded();
         TickDynamicCapsule();
@@ -399,6 +405,7 @@ public abstract class EntityData : MonoBehaviour
     {
         EndureType endure = GetEndureLevel();
         bool enterHit = anim!=null && (attack.breakEndure ? (endure == EndureType.None || endure == EndureType.Common) : endure == EndureType.None);
+        if (enterHit && FlightMode) enterHit = false; // 飞行免疫：不受击飞/被打断（伤害照常结算）
         if (enterHit)
         {
             motion=null;  // 破霸体命中：打断位移
