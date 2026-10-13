@@ -8,6 +8,7 @@ public class UIManager : MonoBehaviour
     private HomePage home;
     private LobbyPage lobby;
     private BattlePage battle;
+    private ChatPlugin chat;
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
@@ -39,12 +40,14 @@ public class UIManager : MonoBehaviour
             home = new HomePage(UI_HomePanel.CreateInstance());
             lobby = new LobbyPage(UI_LobbyPanel.CreateInstance());
             battle = new BattlePage(UI_BattlePanel.CreateInstance());
-            Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}");
+            chat = new ChatPlugin(UI_ChatPanel.CreateInstance());
+            Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}, chat={chat != null}");
 
             //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
             home.Construct();
             lobby.Construct();
             battle.Construct();
+            chat.Construct();
             Debug.Log("[UIManager] Construct 完成");
 
             ApplyResize();
@@ -73,6 +76,7 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
+        chat?.Shutdown();
     }
 
     private void Update()
@@ -90,6 +94,7 @@ public class UIManager : MonoBehaviour
         if (home != null) home.OnResize(width, 1080f);
         if (lobby != null) lobby.OnResize(width, 1080f);
         if (battle != null) battle.OnResize(width, 1080f);
+        if (chat != null) chat.OnResize(Screen.height / 1080f);
     }
 
     public void ShowFlyText(string text)

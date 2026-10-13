@@ -1,0 +1,188 @@
+using System.Collections.Generic;
+using FairyGUI;
+using Ros.Transport;
+using Ros.UI.Main;
+using UnityEngine;
+
+//全局聊天面板：联网后常驻显示，大厅与战斗共用；离开房间清空并隐藏
+public class ChatPlugin
+{
+    public const int ChannelAll = 0;
+    public const int ChannelCamp = 1;
+
+    private const int MaxEntries = 50;      // 只保留最近 50 条
+    private const float SendInterval = 1f;  // 最快 1s 一条
+    private const int MaxLength = 50;       // 消息长度 1~50
+
+    private class ChatEntry
+    {
+        public bool isSelf;
+        public short senderClientId;
+        public int camp;           // 发送方阵营：0 进攻 / 1 防守
+        public int characterIndex; // 发送方角色下标（-1 无头像）
+        public string name;
+        public string content;
+    }
+
+    private readonly UI_ChatPanel panel;
+    private readonly List<ChatEntry> entries = new();
+    private int sendChannel = ChannelAll;
+    private float lastSendTime = -999f;
+
+    public ChatPlugin(UI_ChatPanel panel)
+    {
+        this.panel = panel;
+        GRoot.inst.AddChild(panel);
+        panel.visible = false;
+    }
+
+    public void Construct()
+    {
+        panel.m_content.itemRenderer = RenderItem;
+        panel.m_btn_send.onClick.Add(TrySend);
+        panel.m_input.onSubmit.Add(TrySend);
+        panel.m_btn_allChannel.onClick.Add(() => SelectChannel(ChannelAll));
+        panel.m_btn_campChannel.onClick.Add(() => SelectChannel(ChannelCamp));
+
+        EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
+        EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
+        EventManager.AddEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
+        EventManager.AddEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
+    }
+
+    public void Shutdown()
+    {
+        //EventManager 是静态的，订阅必须与解绑成对
+        EventManager.RemoveEvent(ClientEvent.OnConnect, OnConnect);
+        EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
+        EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
+        EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
+    }
+
+    //与页面同规则的整体缩放（设计高度 1080），位置仍由 FGUI 决定
+    public void OnResize(float uiScale)
+    {
+        panel.scale = new Vector2(uiScale, uiScale);
+    }
+
+    #region//Local
+    private void OnConnect()
+    {
+        SelectChannel(ChannelAll);
+        panel.m_show_channel_menu.selectedIndex = 0; // 组队界面不显示频道页签
+        panel.visible = true;
+    }
+
+    private void OnBattleStart(int camp)
+    {
+        SelectChannel(ChannelAll);
+        panel.m_show_channel_menu.selectedIndex = 1; // 战斗时显示频道页签
+    }
+
+    private void OnLeaveRoom()
+    {
+        entries.Clear();
+        panel.m_content.numItems = 0;
+        SelectChannel(ChannelAll);
+        panel.visible = false;
+    }
+
+    private void SelectChannel(int channel)
+    {
+        sendChannel = channel;
+        panel.m_btn_allChannel.selected = channel == ChannelAll;
+        panel.m_btn_campChannel.selected = channel == ChannelCamp;
+    }
+
+    private void TrySend()
+    {
+        string content = panel.m_input.text;
+        if (string.IsNullOrWhiteSpace(content)) return; // 空消息不发送
+        content = content.Trim();
+        if (content.Length > MaxLength)
+        {
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText($"消息过长，最多{MaxLength}字");
+            return;
+        }
+        if (Time.time - lastSendTime < SendInterval) return; // 1s 冷却
+        lastSendTime = Time.time;
+
+        entries.Add(new ChatEntry()
+        {
+            isSelf = true,
+            senderClientId = EnsInstance.LocalClientId,
+            camp = Mathf.Clamp(GetMyCamp(), 0, 1),
+            characterIndex = GetLocalMember()?.characterIndex ?? -1,
+            name = GetMyName(),
+            content = content,
+        });
+        TrimAndRefresh();
+        panel.m_input.text = string.Empty;
+
+        if (Tool.NetworkManager != null)
+            Tool.NetworkManager.SendChat(new CSChat() { channel = sendChannel, content = content });
+    }
+
+    private void OnChatMessage(SCChat chat)
+    {
+        if (chat == null) return;
+        if (chat.senderClientId == EnsInstance.LocalClientId) return; // 自己的已本地回显
+        if (chat.channel == ChannelCamp && chat.camp != GetMyCamp()) return; // 阵营频道客户端过滤
+        entries.Add(new ChatEntry()
+        {
+            isSelf = false,
+            senderClientId = chat.senderClientId,
+            camp = Mathf.Clamp(chat.camp, 0, 1),
+            characterIndex = chat.characterIndex,
+            name = chat.name,
+            content = chat.content,
+        });
+        TrimAndRefresh();
+    }
+
+    private void RenderItem(int index, GObject obj)
+    {
+        if (obj is not UI_ChatItem item || index >= entries.Count) return;
+        var e = entries[index];
+        item.m_side.selectedIndex = e.isSelf ? 1 : 0;
+        item.m_camp.selectedIndex = e.camp; // 0 攻击方图标 / 1 防守方图标
+        item.m_player_name.text = string.IsNullOrEmpty(e.name) ? $"玩家{e.senderClientId}" : e.name;
+        item.m_content.text = e.content;
+        //自己的消息文本靠右，他人的靠左
+        item.m_content.align = e.isSelf ? AlignType.Right : AlignType.Left;
+        item.m_player_name.align = e.isSelf ? AlignType.Right : AlignType.Left;
+
+        var icons = Tool.AssetsManager == null ? null
+            : e.camp == 1 ? Tool.AssetsManager.DefenseCharacterIcons : Tool.AssetsManager.AttackCharacterIcons;
+        bool hasIcon = e.characterIndex >= 0 && icons != null
+            && e.characterIndex < icons.Count && icons[e.characterIndex] != null;
+        item.m_headIcon.texture = hasIcon ? new NTexture(icons[e.characterIndex]) : null;
+    }
+
+    private void TrimAndRefresh()
+    {
+        while (entries.Count > MaxEntries) entries.RemoveAt(0);
+        panel.m_content.numItems = entries.Count;
+        if (entries.Count > 0) panel.m_content.ScrollToView(entries.Count - 1);
+    }
+
+    private SCRoomInfo.RoomMemberInfo GetLocalMember()
+    {
+        return NetworkManager.LatestRoomInfo?.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
+    }
+
+    private int GetMyCamp()
+    {
+        if (NetworkManager.BattleRunning && NetworkManager.battleInfo != null)
+            return NetworkManager.battleInfo.camp == EntityCamp.Attack ? 0 : 1;
+        return GetLocalMember()?.camp ?? -1;
+    }
+
+    private string GetMyName()
+    {
+        var member = GetLocalMember();
+        if (member != null && !string.IsNullOrEmpty(member.name)) return member.name;
+        return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{EnsInstance.LocalClientId}";
+    }
+    #endregion
+}

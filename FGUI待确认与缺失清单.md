@@ -3,7 +3,7 @@
 > 配套：`Assets/Resources/GUI/Main_fui.bytes`（包名 Main）+ `ScriptsGenerated/Main`（生成类，命名空间 **Ros.UI.Main**，引用需 `using Ros.UI.Main;`）。
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
 > **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩（UI 已建、代码未接），见第五节。
-> **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem，UI 已建、代码未接），见第七节。
+> **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
 
 ## 一、页面根与结构
 
@@ -116,7 +116,7 @@
 ## 七、聊天系统（2026-10-12 新增，UI 已建·代码未接）
 
 > 组件在 Main 包内：`Panels/Modules/ChatPanel.xml`（421×300）+ `Panels/Modules/Chat/ChatItem.xml`（400×60）。
-> `MainBinder` 已注册两者 URL，`UI_ChatPanel.CreateInstance()` / `UI_ChatItem.CreateInstance()` 可直接用；**代码侧目前 0 行**（无创建入口、无协议、无渲染、无输入处理），本节即后续纯代码开发的对接说明。
+> `MainBinder` 已注册两者 URL，`UI_ChatPanel.CreateInstance()` / `UI_ChatItem.CreateInstance()` 可直接用。**代码侧已接线（2026-10-13）**：ChatPlugin（`UI/Logic`）全局持有，协议 CSChat/SCChat，事件 `OnChatMessage`(10310)。
 
 ### 7.1 需求确认（2026-10-12 与策划确认）
 
@@ -169,39 +169,38 @@
 | m_headIcon | GLoader | 头像，url 由代码写（取角色图标，参考 HomePage 里 UI_RoleHead.m_headIcon 的取法） |
 | m_player_name | GTextField | 发送者名字（固定宽 278，autoSize=none） |
 
-### 7.5 数据流链路（按数据流顺序；括号内为落点）
+### 7.5 数据流链路（已接线，按数据流顺序）
 
-1. **挂载**：联网后创建 ChatPanel（`UI_ChatPanel.CreateInstance()`），列表先设 `m_content.itemRenderer`，再设 `numItems`。（UIManager 或 LobbyPage/BattlePage，见 7.8）
-2. **交互**：`m_btn_send.onClick` / `m_input.onSubmit` → 取 `m_input.text`，判空与长度；`m_btn_allChannel.onClick` / `m_btn_campChannel.onClick` → 切发送频道。
+1. **挂载**：UIManager 启动时创建 ChatPanel（ChatPlugin 持有，`UI_ChatPanel.CreateInstance()`），默认隐藏；`OnConnect` 显示、`OnExitWorld`/`OnRestartGame` 清空列表并隐藏。列表先设 `m_content.itemRenderer`，再设 `numItems`。
+2. **交互**：`m_btn_send.onClick` / `m_input.onSubmit` → 取 `m_input.text`，校验：去首尾空白后非空、长度 ≤50、最快 1s 一条（空消息与冷却期静默忽略；超长飘字提示）。
 3. **本地回显**：先把条目加入本地列表（`m_side=1`、`m_camp`=自己的阵营），清空输入框，滚到最新。
-4. **上报**：`NetworkManager.SendChat(channel, content)` → `CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, new CSChat{...}, EnsInstance.LocalClientId)`（照 `SendStartRequest` 写法）。
-5. **服务端**：`[Rpc] ServerReceiveChatLocal(CSChat c, short clientId)` → 取阵营（`BattleManager.PlayerCamp` / `SCRoomInfo.RoomMemberInfo.camp`）组装 `SCChat`（含 senderClientId、名字、阵营）→ 全频道用 `SendTo.ExcludeSender` 广播（**排除发送者，避免与自己回显重复**）；阵营频道按同阵营 clientId 逐个 `SendTo.To(clientId)`。
-6. **下行**：`[Rpc] ClientReceiveChatLocal(SCChat e)` → `EventManager.TrigEvent(ClientEvent.OnChatMessage, e)`。
-7. **渲染**：页面 `Enter` 订阅事件 → 条目入表 → `m_content.numItems = count` → `itemRenderer` 写 `m_camp / m_side / m_player_name / m_content`（照 BattlePage `RenderEventItem` 模式，`itemRenderer` 先设、`numItems` 后设）。
+4. **上报**：`NetworkManager.SendChat(CSChat{channel, content})` → `CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, ...)`。
+5. **服务端**：`BattleManager.ReceiveChat` **只转发不存历史**，补齐 senderClientId、名字、阵营、characterIndex（客户端不知道别人的）组装 `SCChat` → `SendChat(SCChat)` 用 `SendTo.Everyone` 广播（**含发送者**，发送者收到自己的一律忽略；阵营频道内容全量转发是为后续 GM 功能预留）。
+6. **下行**：`[Rpc] ClientReceiveChatLocal(SCChat e)` → `EventManager.TrigEvent(ClientEvent.OnChatMessage, e)` → ChatPlugin 过滤：senderClientId == 自己 → 忽略；channel = 阵营频道且发送方 camp ≠ 自己 camp → 忽略（**阵营过滤在客户端做**）；其余入表。
+7. **渲染**：`itemRenderer` 写 `m_side`（自己=1）/ `m_camp`（0 攻图标 / 1 守图标）/ `m_player_name` / `m_content` / 头像；**自己的消息正文与名字 `align=Right`（代码用 GTextField.align 设置），他人的 `align=Left`**；列表只保留最近 50 条，超出从头部移除后重设 `numItems`，新消息 `ScrollToView` 滚到底。
 
-### 7.6 需新增/改动的位置
+### 7.6 实现位置
 
-| 文件 | 改动 |
+| 文件 | 内容 |
 |---|---|
-| `Assets/Scripts/Transport/CSChat.cs`、`SCChat.cs` | 新增：载荷类 + 同名 Serializer（照 `SCRoomInfo.cs` 结构）。SCChat 需带 senderClientId、名字、**阵营**（客户端不知道别人的阵营，必须由服务端下发） |
-| `Assets/Scripts/GameController/NetworkManager.cs` | 新增 `SendChat(...)` + `[Rpc] ServerReceiveChatLocal` + `[Rpc] ClientReceiveChatLocal` |
-| `Assets/Scripts/GlobalData/ClientEvent.cs` | 新增 10310 段常量 `OnChatMessage` |
-| `Assets/Scripts/UI/UIManager.cs` 或 `UI/Logic/LobbyPage.cs`、`BattlePage.cs` | 面板挂载、事件订阅（Enter/Exit）、列表渲染 |
-| （可选）`Assets/Scripts/GlobalData/NoticeMessageMap.cs` | 若发送失败/超长要走纯文字提示 |
+| `Transport/CSChat.cs`、`SCChat.cs` | 载荷类 + 同名 Serializer（照 `SCRoomInfo.cs` 结构）。CSChat：channel + content；SCChat：senderClientId、channel、camp、characterIndex、name、content |
+| `GameController/NetworkManager.cs` | `SendChat(CSChat)`（→RoomOwner）、`SendChat(SCChat)`（→Everyone）、`[Rpc] ServerReceiveChatLocal`、`[Rpc] ClientReceiveChatLocal` |
+| `GameController/BattleManager.cs` | `ReceiveChat(clientId, CSChat)`：组装 SCChat 并转发 |
+| `GlobalData/ClientEvent.cs` | `OnChatMessage = 10310`（10300 段） |
+| `UI/Logic/ChatPlugin.cs` | 全局聊天逻辑：显隐、发送校验、回显、过滤、渲染、清空 |
+| `UI/UIManager.cs` | 创建 ChatPlugin、OnResize 缩放、OnDestroy 解绑 |
 
 **改完必须执行 Unity 菜单 Ens/GenerateCode**：消息 id 由代码生成器按类与方法声明顺序自动分配，不跑就没有协议 id。
 
-### 7.7 开发完成后的界面行为
+### 7.7 界面行为（现状）
 
-- 联网进入组队大厅即出现聊天面板；切到战斗界面仍在；断开/回首页时隐藏（或销毁，见 7.8）。
-- 别人发言：条目左侧（`side=0`），头像+名字，`camp` 按发送方阵营显示攻/守图标，正文自增高。
-- 自己发言：本地立即插入条目（`side=1`），头像与阵营图标移到右侧，输入框清空，列表滚到最新。
-- 频道：默认发全频道；点"阵营频道"后只发给同阵营；点任一频道按钮后 `show_channel_menu.selectedIndex = 0` 收起菜单。
-- 列表只保留最近 N 条（建议 50，超出从头部移除后重设 `numItems`）；滚动由列表自身的 `overflow=scroll` 负责。
+- 联网进入组队大厅即显示聊天面板；切到战斗界面仍在；断开/离开房间时清空列表并隐藏，重连后为空列表。
+- **频道页签**：组队界面收起（`m_show_channel_menu=0`，两个频道按钮不显示），所有消息照常显示；进入战斗展开（=1），默认全频道，点"阵营频道"切换——阵营频道的消息仍转发给所有客户端，由各客户端按阵营过滤显示。
+- 别人发言：条目左侧（`side=0`），头像+名字+攻/守阵营图标，正文自增高；自己发言：本地立即插入（`side=1`），头像与阵营图标移到右侧、文本右对齐。
+- 发送限制：去空白后非空、长度 1~50、最快 1s 一条；服务器不校验（纯转发）。
 
-### 7.8 本节待确认
+### 7.8 待正式工程确认（本机无表现层）
 
-- **面板挂载方式**：UIManager 联网后创建一次并常驻 GRoot（断线销毁），还是 LobbyPage/BattlePage 各自持有？影响重连时的表现。
-- **自己消息的文本位置**：`m_side=1` 目前只把头像组与阵营图标组移到右侧，**正文与名字仍在左侧** (62)。若希望自己的消息整体右对齐，需要在 FGUI 里给正文组补 gearXY/gear 对齐。
-- 消息历史上限条数、是否跨场景保留、断线重连是否清空。
-- 发送频率限制、长度上限、空消息处理策略（本地忽略 或 提示）。
+- 面板整体缩放：ChatPlugin.OnResize 按页面同规则（屏幕高/1080）设 `panel.scale`，FGUI 内位置不变——多分辨率下的摆放效果需在正式工程确认。
+- 频道按钮选中态：代码会设 `GButton.selected`，若按钮在 FGUI 里没有选中态控制器则无视觉反馈，需要的话在 FGUI 补。
+- 自己消息的文本右对齐用代码 `GTextField.align` 实现（`m_side=1` 只移头像组），文本字段宽度不变——右对齐后的留白观感需在正式工程确认。

@@ -190,6 +190,12 @@ public partial class NetworkManager : EnsBehaviour
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), EnsInstance.LocalClientId);
     }
+
+    public void SendChat(CSChat chat)
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, chat, EnsInstance.LocalClientId);
+    }
     #endregion
 
     #region//发送封装：服务器 → 客户端
@@ -291,6 +297,12 @@ public partial class NetworkManager : EnsBehaviour
     {
         CallFuncRpc(ClientUseSkillLocal, SendTo.ExcludeSender, Delivery.Strive, skillId, context);
     }
+
+    //聊天转发给所有人（含发送者）：发送者本地已回显，收到自己的一律忽略
+    public void SendChat(SCChat chat)
+    {
+        CallFuncRpc(ClientReceiveChatLocal, SendTo.Everyone, Delivery.Reliable, chat);
+    }
     #endregion
 
     #region//[Rpc] 服务器侧接收（客户端 → 服务器）
@@ -328,6 +340,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SwitchMinimapRadius(clientId);
+    }
+
+    [Rpc]
+    private void ServerReceiveChatLocal(CSChat chat, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveChat(clientId, chat);
     }
     #endregion
 
@@ -451,6 +469,13 @@ public partial class NetworkManager : EnsBehaviour
         var logic = Tool.ClientLogicManager;
         if (logic != null) logic.SkillVfx.OnSkillCast(skillId, context);
         else SkillManager.PlayVFX(skillId, context);
+    }
+
+    [Rpc]
+    private void ClientReceiveChatLocal(SCChat chat)
+    {
+        if (chat == null) return;
+        EventManager.TrigEvent(ClientEvent.OnChatMessage, chat);
     }
     #endregion
 }

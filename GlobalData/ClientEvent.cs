@@ -29,5 +29,6 @@ public static class ClientEvent
 
     #region UI 通用（10300 段）
     public const int OnShowPrompt = 10305; // param=int NoticeMessageMap 消息 id（SCPrompt）
+    public const int OnChatMessage = 10310; // param=SCChat 聊天消息
     #endregion
 }

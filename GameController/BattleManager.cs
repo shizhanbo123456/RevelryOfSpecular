@@ -410,6 +410,31 @@ public partial class BattleManager : EnsBehaviour
         Tool.NetworkManager.SendRoomInfo(info);
     }
 
+    //聊天只转发不存历史；发送方名字/阵营/角色由服务器补齐（客户端不知道别人的）
+    public void ReceiveChat(short clientId, CSChat chat)
+    {
+        if (chat == null) return;
+        PlayerInfoList.TryGetValue(clientId, out var info);
+        int campValue = PlayerCamp.TryGetValue(clientId, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1;
+        int characterIndex = -1;
+        if (info != null)
+        {
+            if (campValue == 0 && info.attackCharacter.category == EntityCategory.Character_Attack)
+                characterIndex = info.attackCharacter.value;
+            else if (campValue == 1 && info.defenseCharacter.category == EntityCategory.Character_Defense)
+                characterIndex = info.defenseCharacter.value;
+        }
+        Tool.NetworkManager.SendChat(new SCChat()
+        {
+            senderClientId = clientId,
+            channel = chat.channel,
+            camp = campValue,
+            characterIndex = characterIndex,
+            name = info != null ? info.name : "",
+            content = chat.content,
+        });
+    }
+
     private Vector3 GetAttackSpawnPos()
     {
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.attackPositions);
