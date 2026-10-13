@@ -157,7 +157,7 @@ namespace Ros.Gm
                 new FloatInput("水平力度"),
                 new FloatInput("垂直力度"),
                 new Dropdown("筛选方式", typeof(GmFilterType)),
-                new FloatInput("数量/半径"),
+                new FloatInput("半径"),
                 new Button(string.Empty, "击飞")
             });
 

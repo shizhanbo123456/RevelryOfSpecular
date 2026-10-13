@@ -196,6 +196,12 @@ public partial class NetworkManager : EnsBehaviour
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, chat, EnsInstance.LocalClientId);
     }
+
+    public void SendGm(CSGm gm)
+    {
+        if (gm == null || !CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveGmLocal, SendTo.RoomOwner, Delivery.Reliable, gm, EnsInstance.LocalClientId);
+    }
     #endregion
 
     #region//发送封装：服务器 → 客户端
@@ -346,6 +352,13 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveChatLocal(CSChat chat, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveChat(clientId, chat);
+    }
+
+    [Rpc]
+    private void ServerReceiveGmLocal(CSGm gm, short clientId)
+    {
+        // 服务器端 GM 执行体后续接入
+        UnityEngine.Debug.Log($"[GM] 收到指令 {gm?.type}（client {clientId}）");
     }
     #endregion
 

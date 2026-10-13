@@ -28,7 +28,7 @@ GM 功能清单
 
 [ ] 击飞：水平力度、垂直力度，目标选择：所有实体/最近实体/r米半径内
 输入框、输入框、下拉框、输入框、按钮
-击飞（五个共用一个标签：水平力度、垂直力度、下拉框选筛选方式、输入框填数量或半径、按钮执行）
+击飞（五个共用一个标签：水平力度、垂直力度、下拉框选筛选方式、输入框填半径、按钮执行）
 
 ====================================================
 玩家
@@ -89,4 +89,22 @@ GM 功能清单
 [ ] 敌方对话：显示敌方的阵营对话内容
 按钮
 敌方对话（点击切换开关，开启后阵营聊天内额外显示敌方阵营频道的消息）
+
+====================================================
+实现进度（2026-10-13）
+
+[+] 指令枚举 GmEnum：39 条，含 GmLabel（菜单路径 组-子-项）与 GmOffline（可离线 12 条）
+[+] 布局表 Layout.layoutStyle：每条指令一串 LayoutInfo（7 种控件），Layout.GetLayout(枚举)
+[+] GM 下拉枚举：GmEntityType / GmSettleType / GmFilterType / GmBeacon / GmCharacter
+[+] 协议结构：CSGm(type,int1,int2,float1,float2,float3) / SCGm(type,int1,float1)
+[+] 客户端面板逻辑 UI/Logic/GmPanel.cs：GmLabel 路径生成两级菜单 + GetLayout 渲染参数行 + 按钮默认回调（收集→填 CSGm→发包）
+[+] 行→CSGm 组包 + 发包：NetworkManager.SendGm + [Rpc] ServerReceiveGmLocal（服务端执行体后续接）
+[ ] 服务器端 GM 执行体
+[ ] 只读行 Label 数据源（目前仅 Debug 的 FPS/客户端时间做了示例；实体数量/延迟/收集项待接）
+[ ] 面板入口开关（1 秒内连按 3 次 V 开启，Backspace 关闭）
+[ ] 本地项（雾气/地形/存档等纯客户端指令）的本地执行逻辑
+
+备注：
+- 新增 RPC 后需跑一次 Ens 生成代码（按既有约定，生成代码最后做）。
+- GmPanel 的 FGUI 细节（GmItem 内容页名 文本/按钮/滑动条/输入框/下拉框、菜单 button_list 的 item 类型）需在正式工程核对。
 

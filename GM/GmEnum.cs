@@ -56,34 +56,46 @@ namespace Ros.Gm
         Player_Cheat_IgnoreCd,
 
         [GmLabel("画面-地形-显示半径")]
+        [GmOffline]
         Screen_Terrain_ShowRadius,
         [GmLabel("画面-地形-显隐地形")]
+        [GmOffline]
         Screen_Terrain_ToggleTerrain,
         [GmLabel("画面-雾气")]
+        [GmOffline]
         Screen_Fog,
 
         [GmLabel("存档-玩家等级-增加经验")]
+        [GmOffline]
         Save_PlayerLevel_AddExp,
         [GmLabel("存档-玩家等级-减少经验")]
+        [GmOffline]
         Save_PlayerLevel_ReduceExp,
         [GmLabel("存档-玩家等级-增加等级")]
+        [GmOffline]
         Save_PlayerLevel_AddLevel,
         [GmLabel("存档-玩家等级-减少等级")]
+        [GmOffline]
         Save_PlayerLevel_ReduceLevel,
         [GmLabel("存档-角色等级")]
+        [GmOffline]
         Save_CharacterLevel,
 
         [GmLabel("其它-结算界面")]
+        [GmOffline]
         Other_Settlement,
         [GmLabel("其它-调试")]
+        [GmOffline]
         Other_Debug,
         [GmLabel("其它-收集-模型网格面数")]
+        [GmOffline]
         Other_Collect_MeshFaces,
         [GmLabel("其它-收集-服务器帧率")]
         Other_Collect_ServerFps,
         [GmLabel("其它-收集-服务器时间")]
         Other_Collect_ServerTime,
         [GmLabel("其它-敌方对话")]
+        [GmOffline]
         Other_EnemyDialog,
     }
 }

@@ -10,5 +10,6 @@ namespace Ros.Transport
         public int int2;
         public float float1;
         public float float2;
+        public float float3;
     }
 }
