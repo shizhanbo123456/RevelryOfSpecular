@@ -16,6 +16,7 @@ public class ChatPlugin
     private const int MaxEntries = 50;      // 只保留最近 50 条
     private const float SendInterval = 1f;  // 最快 1s 一条
     private const int MaxLength = 50;       // 消息长度 1~50
+    private const float BottomMargin = 50f; // 距屏幕底部（屏幕像素）
 
     private class ChatEntry
     {
@@ -62,10 +63,11 @@ public class ChatPlugin
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
 
-    //与页面同规则的整体缩放（设计高度 1080），位置仍由 FGUI 决定
+    //与页面同规则的整体缩放（设计高度 1080）；贴屏幕左下角（紧贴左侧、距底部 BottomMargin）
     public void OnResize(float uiScale)
     {
         panel.scale = new Vector2(uiScale, uiScale);
+        panel.SetXY(0f, GRoot.inst.height - panel.height * uiScale - BottomMargin);
     }
 
     #region//Local

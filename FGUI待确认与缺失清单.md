@@ -69,6 +69,8 @@
 
 ### GmPanel（`Panels/Modules/GmPanel.xml`，800×600）
 
+摆放：`GmPanel.OnResize` 按页面同规则（屏幕高/1080）设 `panel.scale` 并把面板**居中**（`SetXY((GRoot.width-宽×缩放)/2, (GRoot.height-高×缩放)/2)`，与 `ConfirmView` 同规则，GRoot 坐标为屏幕像素）。
+
 | 成员 | 类型 | 说明 |
 |---|---|---|
 | m_firstMenu / m_secondMenu | UI_GmButtonList | 一级 / 二级菜单列（各 125×500）。列内 GList 名 `button_list`，defaultItem = Button1（带 `selected` 选中态） |
@@ -213,6 +215,6 @@
 
 ### 7.8 待正式工程确认（本机无表现层）
 
-- 面板整体缩放：ChatPlugin.OnResize 按页面同规则（屏幕高/1080）设 `panel.scale`，FGUI 内位置不变——多分辨率下的摆放效果需在正式工程确认。
+- 面板整体缩放 + 摆放：`ChatPlugin.OnResize` 按页面同规则（屏幕高/1080）设 `panel.scale`，并把面板贴到**屏幕左下角**——x=0 紧贴左侧，面板下边缘距屏幕底部 50px（GRoot 坐标为屏幕像素）。
 - 频道按钮选中态：代码会设 `GButton.selected`，若按钮在 FGUI 里没有选中态控制器则无视觉反馈，需要的话在 FGUI 补。
 - 自己消息的文本右对齐用代码 `GTextField.align` 实现（`m_side=1` 只移头像组），文本字段宽度不变——右对齐后的留白观感需在正式工程确认。

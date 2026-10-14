@@ -72,8 +72,14 @@ public class GmPanel
         EventManager.RemoveEvent<SCGm>(ClientEvent.OnGmResult, OnGmResult);
     }
 
-    // 与页面同规则的整体缩放（设计高度 1080）
-    public void OnResize(float uiScale) => panel.scale = new Vector2(uiScale, uiScale);
+    // 与页面同规则的整体缩放（设计高度 1080）；面板居中
+    public void OnResize(float uiScale)
+    {
+        panel.scale = new Vector2(uiScale, uiScale);
+        panel.SetXY(
+            (GRoot.inst.width - panel.width * uiScale) * 0.5f,
+            (GRoot.inst.height - panel.height * uiScale) * 0.5f);
+    }
 
     // 每帧由 UIManager 驱动：检测面板开关快捷键
     public void Tick()
