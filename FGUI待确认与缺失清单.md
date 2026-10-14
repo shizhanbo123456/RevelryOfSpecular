@@ -64,7 +64,7 @@
 ## 五、GM 面板 / 确认弹窗 / 全屏遮罩
 
 > 组件都在 Main 包里、`MainBinder` 已注册，能正常 `CreateInstance()`。
-> **GM 面板代码已接（2026-10-13；显示过滤 2026-10-14 改读 `[GmStatus]`）**：`UIManager` 创建并每帧驱动 `UI/Logic/GmPanel.cs` —— 1 秒内连按 3 次 `V` 开启、`Backspace` 关闭（编辑输入框时不响应）；**显示哪些指令由枚举项上的 `[GmStatus]` 决定**（未联网 = Offline / 已联网未开战 = Lobby / 对局中 = Battle，缺省仅战斗）；11 条纯客户端本地项在客户端直接执行（画面 / 存档 / 调试 / 收集-面数 / 结算界面演示），其中「结算界面演示」调 `UIManager.Settlement.PlayDemo()`；「敌方对话」同为本地开关（`ChatPlugin.ShowEnemyDialog`）但只有联网时才有意义，标注为 Lobby | Battle；27 条联网项走 `CSGm` → `NetworkManager.SendGm` → `[Rpc] ServerReceiveGmLocal` → `BattleManager.ExecuteGm`（`GameController/BattleManagerGm.cs`），回包走新增的 `SCGm` + `[Rpc] ClientReceiveGmLocal`（`ClientEvent.OnGmResult`）。**未跑 Ens 生成代码前所有 Rpc 不生效**。
+> **GM 面板代码已接（2026-10-13；显示过滤 2026-10-14 改读 `[GmStatus]`，2026-10-14 起不可用指令改显示「空置」行）**：`UIManager` 创建并每帧驱动 `UI/Logic/GmPanel.cs` —— 1 秒内连按 3 次 `V` 开启、`Backspace` 关闭（编辑输入框时不响应）；**指令是否可用由枚举项上的 `[GmStatus]` 决定**（未联网 = Offline / 已联网未开战 = Lobby / 对局中 = Battle，缺省仅战斗）：**可用 = 照常列出参数行；不可用 = 不隐藏，只留一行「空置」标题（标题文本照常显示，无参数行）**，一级/二级菜单都不按状态过滤，保证任何状态下都能看到完整指令表；11 条纯客户端本地项在客户端直接执行（画面 / 存档 / 调试 / 收集-面数 / 结算界面演示），其中「结算界面演示」调 `UIManager.Settlement.PlayDemo()`；「敌方对话」同为本地开关（`ChatPlugin.ShowEnemyDialog`）但只有联网时才有意义，标注为 Lobby | Battle；27 条联网项走 `CSGm` → `NetworkManager.SendGm` → `[Rpc] ServerReceiveGmLocal` → `BattleManager.ExecuteGm`（`GameController/BattleManagerGm.cs`），回包走新增的 `SCGm` + `[Rpc] ClientReceiveGmLocal`（`ClientEvent.OnGmResult`）。**未跑 Ens 生成代码前所有 Rpc 不生效**。
 > 确认弹窗、全屏遮罩仍为「UI 已建·代码未接」。
 
 ### GmPanel（`Panels/Modules/GmPanel.xml`，800×600）
@@ -79,7 +79,7 @@
 | m_GmItemList | GList | 右侧参数行列表（448×467，单列，lineGap=15），defaultItem = **GmItem** |
 | （底框，未导出） | UI_Panel_1 | 实例上 `hideTitle=1`（标题栏隐藏），且 Panel_1 本身没有关闭按钮 → **面板当前没有任何关闭入口** |
 
-### GmItem（`Panels/Modules/GM/GmItem.xml`，500×50）——`content` 控制器六档
+### GmItem（`Panels/Modules/GM/GmItem.xml`，500×50）——`content` 控制器七档
 
 所有档位共用左侧 `m_title` 作为行名；`m_content` 是导出控制器，**按显示顺序（= `selectedIndex`）依次为**：
 
@@ -91,10 +91,12 @@
 | 3 | **输入框** | m_content_inputField（GTextInput，真输入框） | 手输数值 / 字符串 |
 | 4 | **下拉框** | m_content_dropdown（ComboBoxGm） | 枚举选择。popup = GmComboBox_popup（内含名为 `list` 的 GList，条目 = GmComboBox_item） |
 | 5 | **分隔栏** | 右侧内容控件全部隐藏，只留 `m_title` | **栏目标题**行：作为一条栏目（=一条 GM 指令）的分隔/命名行，不可操作 |
+| 6 | **空置** | 右侧内容控件全部隐藏，只留 `m_title` | 当前状态**不可用**的指令：只占一行、标题照常显示，代表"此指令在本状态下不可用" |
 
-- ⚠ **页 id 与 index 不一致**：文本=0 / 按钮=**3** / 滑动条=**1** / 输入框=**2** / 下拉框=4 / 分隔栏=5（各元素 gearDisplay 也是按这套 id 挂的）。代码里请用 `selectedPage`（页名，见上表）或 `selectedIndex`（即上表 index），**不要**把档位 id 当 index 用。
+- ⚠ **页 id 与 index 不一致**：文本=0 / 按钮=**3** / 滑动条=**1** / 输入框=**2** / 下拉框=4 / 分隔栏=5 / 空置=6（各元素 gearDisplay 也是按这套 id 挂的）。代码里请用 `selectedPage`（页名，见上表）或 `selectedIndex`（即上表 index），**不要**把档位 id 当 index 用。
 - 组件默认页 `selected=4`（下拉框）——只影响编辑器预览和新建实例，列表里的行由代码逐行设档。
-- 代码侧对应：`LayoutType.SectionTitle`（`GM/Style/GmLayout.cs`）→ `GmPanel.RenderRow` 设 `selectedPage = "分隔栏"`；GM 面板每条指令前的那一行栏目标题就是它（标题文本写进 `m_title`）。「文本」档（`LayoutType.Label`）仍是只读值行，两者不可混用。
+- 代码侧对应：`LayoutType.SectionTitle`（栏目标题行）→「分隔栏」，`LayoutType.EmptyRow`（当前状态不可用）→「空置」，两者都在 `GM/Style/GmLayout.cs`、由 `GmPanel.RenderRow` 设 `selectedPage`；标题文本都写进 `m_title`。「文本」档（`LayoutType.Label`）仍是只读值行，三者用途不同、不可混用。
+- 新增档位后 `UI_GmItem.cs` 的子节点索引会整体后移（分隔栏/空置页让 `m_title` 从 `GetChildAt(1)` 变成 `GetChildAt(3)`）——该文件由 FGUI 重新导出，代码侧无需手改。
 
 ### ConfirmPanel（`Panels/Modules/ConfirmPanel.xml`，400×300）
 

@@ -8,6 +8,7 @@ namespace Ros.Gm
     {
         Label,
         SectionTitle,
+        EmptyRow,
         Button,
         IntInput,
         FloatInput,
@@ -35,6 +36,15 @@ namespace Ros.Gm
         public override LayoutType LayoutType => LayoutType.SectionTitle;
         public string title;
         public SectionTitle(string title)
+        {
+            this.title = title;
+        }
+    }
+    public class EmptyRow : LayoutInfo
+    {
+        public override LayoutType LayoutType => LayoutType.EmptyRow;
+        public string title;
+        public EmptyRow(string title)
         {
             this.title = title;
         }
