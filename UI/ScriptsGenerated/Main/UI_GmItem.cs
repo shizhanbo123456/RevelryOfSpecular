@@ -8,13 +8,13 @@ namespace Ros.UI.Main
     public partial class UI_GmItem : GComponent
     {
         public Controller m_content;
-        public GTextField m_title;
-        public GTextField m_content_text;
         public UI_Button1 m_content_btn;
         public GSlider m_content_slider;
         public GTextInput m_content_inputField;
         public GComboBox m_content_dropdown;
         public GTextField m_content_slider_value;
+        public GTextField m_content_text;
+        public GTextField m_title;
         public const string URL = "ui://q68vr2bftjktiq";
 
         public static UI_GmItem CreateInstance()
@@ -27,13 +27,13 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_content = GetControllerAt(0);
-            m_title = (GTextField)GetChildAt(3);
-            m_content_text = (GTextField)GetChildAt(4);
-            m_content_btn = (UI_Button1)GetChildAt(5);
-            m_content_slider = (GSlider)GetChildAt(6);
-            m_content_inputField = (GTextInput)GetChildAt(7);
-            m_content_dropdown = (GComboBox)GetChildAt(8);
-            m_content_slider_value = (GTextField)GetChildAt(9);
+            m_content_btn = (UI_Button1)GetChildAt(1);
+            m_content_slider = (GSlider)GetChildAt(2);
+            m_content_inputField = (GTextInput)GetChildAt(4);
+            m_content_dropdown = (GComboBox)GetChildAt(5);
+            m_content_slider_value = (GTextField)GetChildAt(6);
+            m_content_text = (GTextField)GetChildAt(10);
+            m_title = (GTextField)GetChildAt(11);
         }
     }
 }
