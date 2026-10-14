@@ -388,7 +388,7 @@ public class GmPanel
                     PutInt(gm, ref intSlot, (int)item.m_content_slider.value);
                     break;
                 case LayoutType.FloatSlider:
-                    PutFloat(gm, ref floatSlot, item.m_content_slider.value);
+                    PutFloat(gm, ref floatSlot, (float)item.m_content_slider.value);
                     break;
                 case LayoutType.Dropdown:
                     PutInt(gm, ref intSlot, EnumValueOf(((Dropdown)row).enumType, item.m_content_dropdown.selectedIndex));
