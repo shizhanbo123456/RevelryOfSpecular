@@ -9,7 +9,7 @@ using UnityEngine;
 // GM 面板：一级菜单=组，二级菜单=该组下的"子功能"（路径第二段）。
 // Item 列表显示当前子功能下的所有指令：每条指令前插一行分割标题（标题=该指令最深层名字；二级指令即其二级名），
 // 分割标题用 Label（左=标题、右空）。按钮默认行为 = 收集本指令控件值 → 按行顺序填 CSGm → 发包。
-// 未联网时只显示带 [GmOffline] 的指令。
+// 显示哪些指令由枚举项上的 [GmStatus] 决定：未联网=Offline 项 / 已联网未开战=Lobby 项 / 对局中=Battle 项。
 // 待正式工程核对：GmItem 内容页名（文本/按钮/滑动条/输入框/下拉框）、菜单 button_list 的 item 类型。
 public class GmPanel
 {
@@ -117,7 +117,7 @@ public class GmPanel
 
     private void OnNetChanged() { if (panel.visible) BuildGroups(); }
 
-    // 开战：被动启用项只属于组队期，要在战斗期隐藏 → 重建菜单
+    // 开战：相位由组队期变对局中，各指令的启用时机随之变化 → 重建菜单
     private void OnBattleStartChanged(int camp) => OnNetChanged();
 
     #region//菜单
@@ -139,15 +139,24 @@ public class GmPanel
         return a != null ? a.label : type.ToString();
     }
 
-    private static bool IsOffline(GmEnum type)
+    // 当前相位：未联网 / 已联网未开战 / 对局进行中
+    private static GmStatusType CurrentStatus
     {
-        var f = typeof(GmEnum).GetField(type.ToString());
-        return f != null && Attribute.GetCustomAttribute(f, typeof(GmOfflineAttribute)) != null;
+        get
+        {
+            if (!Online) return GmStatusType.Offline;
+            return NetworkManager.BattleRunning ? GmStatusType.Battle : GmStatusType.Lobby;
+        }
     }
 
-    // 未联网时只显示可离线项；「被动启用」只在组队期（非战斗）显示
-    private static bool Visible(GmEnum t) =>
-        (Online || IsOffline(t)) && (t != GmEnum.Player_Skill_PassiveEnable || !NetworkManager.BattleRunning);
+    // 启用时机读枚举项上的 [GmStatus]；未标注按默认「仅战斗」
+    private static bool Visible(GmEnum t)
+    {
+        var f = typeof(GmEnum).GetField(t.ToString());
+        var a = f != null ? (GmStatusAttribute)Attribute.GetCustomAttribute(f, typeof(GmStatusAttribute)) : null;
+        GmStatusType status = a != null ? a.status : GmStatusType.Battle;
+        return (status & CurrentStatus) != 0;
+    }
 
     // numItems 置相同值不会重刷，先置 0 再置 N
     private static void Refresh(GList list, int count)

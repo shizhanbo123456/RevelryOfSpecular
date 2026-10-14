@@ -93,14 +93,15 @@ GM 功能清单
 ====================================================
 实现进度（2026-10-13）
 
-[+] 指令枚举 GmEnum：39 条，含 GmLabel（菜单路径 组-子-项）与 GmOffline（可离线 12 条）
+[+] 指令枚举 GmEnum：39 条，含 GmLabel（菜单路径 组-子-项）与 GmStatus（启用时机：Offline / Lobby / Battle 三位，缺省 Battle；39 条已逐条标注）
 [+] 布局表 Layout.layoutStyle：每条指令一串 LayoutInfo（7 种控件），Layout.GetLayout(枚举)
 [+] GM 下拉枚举：GmEntityType / GmSettleType / GmFilterType / GmBeacon / GmCharacter
 [+] 协议结构：CSGm(type,int1,int2,float1,float2,float3) / SCGm(type,int1,float1)
 [+] 客户端面板逻辑 UI/Logic/GmPanel.cs：GmLabel 路径生成两级菜单 + GetLayout 渲染参数行 + 按钮默认回调（收集→填 CSGm→发包）
 [+] 行→CSGm 组包 + 发包：NetworkManager.SendGm → [Rpc] ServerReceiveGmLocal → BattleManager.ExecuteGm
 [+] 面板入口：1 秒内连按 3 次 V 开启、Backspace 关闭（UIManager 创建并每帧驱动 GmPanel；编辑输入框时不响应）
-[+] 本地项本地执行（纯客户端指令，不联网也生效）：画面（地形显示半径 / 显隐地形 / 雾气）、存档（玩家经验± / 等级± / 角色等级）、其它（调试四行数据、收集-模型网格面数、敌方对话开关、结算界面演示）——12 条可离线项已全部可本地执行
+[+] 本地项本地执行（纯客户端指令，不联网也生效）：画面（地形显示半径 / 显隐地形 / 雾气）、存档（玩家经验± / 等级± / 角色等级）、其它（调试四行数据、收集-模型网格面数、结算界面演示）——11 条纯本地项已全部可本地执行；敌方对话开关同为本地实现，但只有联网时才有意义，故标注为 Lobby | Battle
+[+] 面板显示按 GmStatus 过滤（GmPanel.Visible）：读枚举项 [GmStatus] 与当前相位（未联网 = Offline / 已联网未开战 = Lobby / 对局中 = Battle）按位相与，未标注按缺省 Battle；「被动技能启用」的组队期限制改由标注（Lobby）表达，原硬特判已删
 [+] 结算界面改独立子界面 SettlementView（UIManager 持有，挂 GRoot，不挂任何页面）；BattlePage 不再承载结算
 [+] 敌方对话开关：ChatPlugin.ShowEnemyDialog，开启后放行敌方阵营频道消息（不存历史，仅影响之后收到的消息）
 [+] 服务器端 GM 执行体 GameController/BattleManagerGm.cs（partial BattleManager）：NetworkManager.ServerReceiveGmLocal 一行转发；27 条联网项全部接通

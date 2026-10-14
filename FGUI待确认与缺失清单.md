@@ -64,7 +64,7 @@
 ## 五、GM 面板 / 确认弹窗 / 全屏遮罩
 
 > 组件都在 Main 包里、`MainBinder` 已注册，能正常 `CreateInstance()`。
-> **GM 面板代码已接（2026-10-13）**：`UIManager` 创建并每帧驱动 `UI/Logic/GmPanel.cs` —— 1 秒内连按 3 次 `V` 开启、`Backspace` 关闭（编辑输入框时不响应）；12 条纯客户端本地项在客户端直接执行（画面 / 存档 / 调试 / 收集-面数 / 敌方对话 / 结算界面演示），其中「敌方对话」复用 `ChatPlugin.ShowEnemyDialog`、「结算界面演示」调 `UIManager.Settlement.PlayDemo()`；27 条联网项走 `CSGm` → `NetworkManager.SendGm` → `[Rpc] ServerReceiveGmLocal` → `BattleManager.ExecuteGm`（`GameController/BattleManagerGm.cs`），回包走新增的 `SCGm` + `[Rpc] ClientReceiveGmLocal`（`ClientEvent.OnGmResult`）。**未跑 Ens 生成代码前所有 Rpc 不生效**。
+> **GM 面板代码已接（2026-10-13；显示过滤 2026-10-14 改读 `[GmStatus]`）**：`UIManager` 创建并每帧驱动 `UI/Logic/GmPanel.cs` —— 1 秒内连按 3 次 `V` 开启、`Backspace` 关闭（编辑输入框时不响应）；**显示哪些指令由枚举项上的 `[GmStatus]` 决定**（未联网 = Offline / 已联网未开战 = Lobby / 对局中 = Battle，缺省仅战斗）；11 条纯客户端本地项在客户端直接执行（画面 / 存档 / 调试 / 收集-面数 / 结算界面演示），其中「结算界面演示」调 `UIManager.Settlement.PlayDemo()`；「敌方对话」同为本地开关（`ChatPlugin.ShowEnemyDialog`）但只有联网时才有意义，标注为 Lobby | Battle；27 条联网项走 `CSGm` → `NetworkManager.SendGm` → `[Rpc] ServerReceiveGmLocal` → `BattleManager.ExecuteGm`（`GameController/BattleManagerGm.cs`），回包走新增的 `SCGm` + `[Rpc] ClientReceiveGmLocal`（`ClientEvent.OnGmResult`）。**未跑 Ens 生成代码前所有 Rpc 不生效**。
 > 确认弹窗、全屏遮罩仍为「UI 已建·代码未接」。
 
 ### GmPanel（`Panels/Modules/GmPanel.xml`，800×600）
