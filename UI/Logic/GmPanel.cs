@@ -7,10 +7,10 @@ using Ros.UI.Main;
 using UnityEngine;
 
 // GM 面板：一级菜单=组，二级菜单=该组下的"子功能"（路径第二段）。
-// Item 列表显示当前子功能下的所有指令：每条指令前插一行分割标题（标题=该指令最深层名字；二级指令即其二级名），
-// 分割标题用 Label（左=标题、右空）。按钮默认行为 = 收集本指令控件值 → 按行顺序填 CSGm → 发包。
+// Item 列表显示当前子功能下的所有指令：每条指令前插一行栏目标题（标题=该指令最深层名字；二级指令即其二级名），
+// 栏目标题用 GmItem 的"分隔栏"页。按钮默认行为 = 收集本指令控件值 → 按行顺序填 CSGm → 发包。
 // 显示哪些指令由枚举项上的 [GmStatus] 决定：未联网=Offline 项 / 已联网未开战=Lobby 项 / 对局中=Battle 项。
-// 待正式工程核对：GmItem 内容页名（文本/按钮/滑动条/输入框/下拉框）、菜单 button_list 的 item 类型。
+// 待正式工程核对：GmItem 内容页名（文本/按钮/滑动条/输入框/下拉框/分隔栏）、菜单 button_list 的 item 类型。
 public class GmPanel
 {
     private readonly UI_GmPanel panel;
@@ -186,6 +186,7 @@ public class GmPanel
     private void SelectGroup(string g)
     {
         curGroup = g;
+        Refresh(panel.m_firstMenu.m_button_list, groups.Count); // 重刷一级菜单，否则上一个组的高亮会残留
         subs.Clear();
         foreach (GmEnum t in Enum.GetValues(typeof(GmEnum)))
         {
@@ -201,12 +202,13 @@ public class GmPanel
     private void SelectSub(string sub)
     {
         curSub = sub;
+        Refresh(panel.m_secondMenu.m_button_list, subs.Count); // 重刷二级菜单，否则上一个子功能的高亮会残留
         rows.Clear();
         cmdRanges.Clear();
         foreach (GmEnum t in Enum.GetValues(typeof(GmEnum)))
         {
             if (GroupOf(t) != curGroup || SubOf(t) != sub || !Visible(t)) continue;
-            rows.Add(new Label(LeafOf(t), string.Empty)); // 分割标题：左=最深层名字、右空
+            rows.Add(new SectionTitle(LeafOf(t))); // 栏目标题：用 GmItem 的"分隔栏"页显示
             int start = rows.Count;
             var r = Layout.GetLayout(t);
             rows.AddRange(r);
@@ -224,12 +226,16 @@ public class GmPanel
 
     private void RenderGroupButton(int index, GObject obj)
     {
-        if (obj is GButton b && index < groups.Count) b.title = groups[index];
+        if (index >= groups.Count) return;
+        if (obj is GButton b) b.title = groups[index];
+        if (obj is UI_Button1 sel) sel.m_selected.selectedIndex = groups[index] == curGroup ? 1 : 0;
     }
 
     private void RenderSubButton(int index, GObject obj)
     {
-        if (obj is GButton b && index < subs.Count) b.title = subs[index];
+        if (index >= subs.Count) return;
+        if (obj is GButton b) b.title = subs[index];
+        if (obj is UI_Button1 sel) sel.m_selected.selectedIndex = subs[index] == curSub ? 1 : 0;
     }
 
     private void OnClickGroup(EventContext ctx) => SelectGroup(groups[panel.m_firstMenu.m_button_list.GetChildIndex((GObject)ctx.data)]);
@@ -260,6 +266,10 @@ public class GmPanel
             case LayoutType.Label:
                 item.m_content.selectedPage = "文本";
                 item.m_content_text.text = ((Label)row).right;
+                break;
+
+            case LayoutType.SectionTitle:
+                item.m_content.selectedPage = "分隔栏";
                 break;
 
             case LayoutType.Button:
@@ -325,6 +335,7 @@ public class GmPanel
     private static string RowLeft(LayoutInfo row) => row switch
     {
         Label r => r.left,
+        SectionTitle r => r.title,
         Button r => r.left,
         InputInt r => r.left,
         FloatInput r => r.left,

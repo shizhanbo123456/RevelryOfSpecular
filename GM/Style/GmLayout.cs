@@ -7,6 +7,7 @@ namespace Ros.Gm
     public enum LayoutType
     {
         Label,
+        SectionTitle,
         Button,
         IntInput,
         FloatInput,
@@ -27,6 +28,15 @@ namespace Ros.Gm
         {
             this.left = left;
             this.right = right;
+        }
+    }
+    public class SectionTitle : LayoutInfo
+    {
+        public override LayoutType LayoutType => LayoutType.SectionTitle;
+        public string title;
+        public SectionTitle(string title)
+        {
+            this.title = title;
         }
     }
     public class Button : LayoutInfo

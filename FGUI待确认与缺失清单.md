@@ -71,13 +71,15 @@
 
 摆放：`GmPanel.OnResize` 按页面同规则（屏幕高/1080）设 `panel.scale` 并把面板**居中**（`SetXY((GRoot.width-宽×缩放)/2, (GRoot.height-高×缩放)/2)`，与 `ConfirmView` 同规则，GRoot 坐标为屏幕像素）。
 
+选中态：两级菜单当前选中项用 `UI_Button1.m_selected` 控制器高亮（**index 1=选中 / 0=未选**，与首页页签 `m_btn_attacker/m_btn_defenser` 同一组件、同一规则）。`SelectGroup`/`SelectSub` 在切换时重刷对应列表，否则上一项高亮会残留。
+
 | 成员 | 类型 | 说明 |
 |---|---|---|
 | m_firstMenu / m_secondMenu | UI_GmButtonList | 一级 / 二级菜单列（各 125×500）。列内 GList 名 `button_list`，defaultItem = Button1（带 `selected` 选中态） |
 | m_GmItemList | GList | 右侧参数行列表（448×467，单列，lineGap=15），defaultItem = **GmItem** |
 | （底框，未导出） | UI_Panel_1 | 实例上 `hideTitle=1`（标题栏隐藏），且 Panel_1 本身没有关闭按钮 → **面板当前没有任何关闭入口** |
 
-### GmItem（`Panels/Modules/GM/GmItem.xml`，500×50）——`content` 控制器五档
+### GmItem（`Panels/Modules/GM/GmItem.xml`，500×50）——`content` 控制器六档
 
 所有档位共用左侧 `m_title` 作为行名；`m_content` 是导出控制器，**按显示顺序（= `selectedIndex`）依次为**：
 
@@ -88,9 +90,11 @@
 | 2 | **滑动条** | m_content_slider（GmSlider，`value` 0~max）+ m_content_slider_value（数值文本） | 连续调参：滑条值驱动右侧数值文本 |
 | 3 | **输入框** | m_content_inputField（GTextInput，真输入框） | 手输数值 / 字符串 |
 | 4 | **下拉框** | m_content_dropdown（ComboBoxGm） | 枚举选择。popup = GmComboBox_popup（内含名为 `list` 的 GList，条目 = GmComboBox_item） |
+| 5 | **分隔栏** | 右侧内容控件全部隐藏，只留 `m_title` | **栏目标题**行：作为一条栏目（=一条 GM 指令）的分隔/命名行，不可操作 |
 
-- ⚠ **页 id 与 index 不一致**：文本=0 / 按钮=**3** / 滑动条=**1** / 输入框=**2** / 下拉框=4（各元素 gearDisplay 也是按这套 id 挂的）。代码里请用 `selectedIndex`（即上表 index）或 `selectedPage = "按钮"`，**不要**把档位 id 当 index 用。
+- ⚠ **页 id 与 index 不一致**：文本=0 / 按钮=**3** / 滑动条=**1** / 输入框=**2** / 下拉框=4 / 分隔栏=5（各元素 gearDisplay 也是按这套 id 挂的）。代码里请用 `selectedPage`（页名，见上表）或 `selectedIndex`（即上表 index），**不要**把档位 id 当 index 用。
 - 组件默认页 `selected=4`（下拉框）——只影响编辑器预览和新建实例，列表里的行由代码逐行设档。
+- 代码侧对应：`LayoutType.SectionTitle`（`GM/Style/GmLayout.cs`）→ `GmPanel.RenderRow` 设 `selectedPage = "分隔栏"`；GM 面板每条指令前的那一行栏目标题就是它（标题文本写进 `m_title`）。「文本」档（`LayoutType.Label`）仍是只读值行，两者不可混用。
 
 ### ConfirmPanel（`Panels/Modules/ConfirmPanel.xml`，400×300）
 
