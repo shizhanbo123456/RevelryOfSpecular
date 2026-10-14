@@ -1,3 +1,5 @@
+using Ens.ProtoFormat;
+
 public class RSRoom : EnsRoom
 {
     public RSRoom(int id) : base(id)
@@ -16,19 +18,15 @@ public class RSRoom : EnsRoom
     {
         ClientConnections.Add(conn.ClientId, conn);
         conn.room = this;
-        E_EventMessageWriter.instance.b = 0x01;
-        E_EventMessageWriter.instance.connId = conn.ClientId;
-        Broadcast(conn.ClientId, Header.E, Delivery.Reliable, E_EventMessageWriter.instance);
+        Broadcast(conn.ClientId, Delivery.Reliable, new MessageBody_E_SC { eventId = 1, clientId = conn.ClientId }, Pkt.scE);
         if (CurrentAuthorityAt == -1)
         {
             CurrentAuthorityAt = conn.ClientId;
-            BoolWriter.instance.target = true;
-            ConnectionSend(conn,Header.A, Delivery.Reliable, BoolWriter.instance);
+            ConnectionSend(conn, Delivery.Reliable, new MessageBody_A_SC { authorityActive = true }, Pkt.scA);
         }
         else
         {
-            BoolWriter.instance.target = false;
-            ConnectionSend(conn, Header.A, Delivery.Reliable, BoolWriter.instance);
+            ConnectionSend(conn, Delivery.Reliable, new MessageBody_A_SC { authorityActive = false }, Pkt.scA);
         }
     }
     public override void Exit(EnsConnection conn)
@@ -36,9 +34,8 @@ public class RSRoom : EnsRoom
         ClientConnections.Remove(conn.ClientId);
         conn.room = null;
 
-        E_EventMessageWriter.instance.b = 0x02;
-        E_EventMessageWriter.instance.connId = conn.ClientId;
-        Broadcast(conn.ClientId, Header.E, Delivery.Reliable, E_EventMessageWriter.instance);
+        // 房主离开只通知同伴，不销毁房间
+        Broadcast(conn.ClientId, Delivery.Reliable, new MessageBody_E_SC { eventId = 2, clientId = conn.ClientId }, Pkt.scE);
     }
     public override void SetAuthority(short clientId)
     {
