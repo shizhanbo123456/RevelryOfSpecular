@@ -257,11 +257,12 @@ public class EntityPlayerManager : ClientSubManager
                 if (view.cameraAnchor == null)
                 {
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
-                    Tool.CameraController.SetLookTarget(view.cameraAnchor);
                     view.cameraAnchor.position = view.anim != null
                         ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
                         : view.transform.position;
                     view.cameraAnchor.rotation = view.transform.rotation;
+                    // 先定位再绑定：SetLookTarget 按锚点当前位姿立即摆位并算俯仰，位姿没设就绑会摆到世界原点
+                    Tool.CameraController.SetLookTarget(view.cameraAnchor);
                 }
             }
         }

@@ -17,8 +17,6 @@ public class CameraController : MonoBehaviour
     public float fastSmooth = 10f;
     // 高度越界缓冲带半宽：带内线性插值快慢平滑，超出带才用快速，避免速率阶跃震颤
     public float smoothDistance = 1.5f;
-    // 绑定目标时的初始水平后距
-    public float initialDistance = 5.5f;
 
     // 俯仰偏转平滑速率
     public float pitchSmooth = 10f;
@@ -50,11 +48,16 @@ public class CameraController : MonoBehaviour
     {
         lookTarget = target;
         if (target == null) return;
-        // 绑定/换绑（进战斗、复活换绑）：直接摆到目标正后方默认距离
+        // 绑定/换绑（进战斗、复活换绑）：直接摆到平滑目标位置，否则下一帧会被平滑拉走而抖动
         lastLookPos = target.position;
         Vector3 back = Quaternion.Euler(0f, target.eulerAngles.y, 0f) * Vector3.back;
         float yCenter = (yRange.x + yRange.y) * 0.5f;
-        transform.position = target.position + Vector3.up * yCenter + back * initialDistance;
+        float zCenter = (zRange.x + zRange.y) * 0.5f;
+        transform.position = target.position + Vector3.up * yCenter + back * zCenter;
+        LookAtAnchor();             // 先摆正朝向：UpdateAutoPitch 取 transform.forward
+        UpdateAutoPitch();          // 换绑是瞬移：俯仰立即算一次，不等周期遍历
+        // 并直接生效，否则随后几帧还要缓动过去；钳制与 TickPitch 一致（目标值可能大于钳制范围）
+        pitchOffset = Mathf.Clamp(pitchTarget, pitchClamp.x, pitchClamp.y);
         ApplyView();
         NotifyCameraUpdated();
     }
@@ -124,10 +127,16 @@ public class CameraController : MonoBehaviour
         NotifyCameraUpdated();
     }
 
-    // 直接看向锚点（不平滑），再叠加平滑后的俯仰偏转
-    private void ApplyView()
+    // 正看锚点（不含俯仰偏转）
+    private void LookAtAnchor()
     {
         transform.LookAt(lookTarget.position);
+    }
+
+    // 正看锚点，再叠加平滑后的俯仰偏转
+    private void ApplyView()
+    {
+        LookAtAnchor();
         if (pitchOffset != 0f) transform.rotation *= Quaternion.Euler(pitchOffset, 0f, 0f);
     }
 
