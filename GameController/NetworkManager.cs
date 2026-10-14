@@ -102,7 +102,7 @@ public partial class NetworkManager : EnsBehaviour
             Debug.LogError($"Ens层连接失败 rejected={rejected}");
             return ConnectResult.Failed;
         }
-        ClientRoomManagerEventCenter.TrigEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
+        ClientRoomManagerEventCenter.TrigRpcEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
         t = Time.time;
         while (serverHello == null && Time.time < t + 5f)
         {
