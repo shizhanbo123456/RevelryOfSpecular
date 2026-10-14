@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FairyGUI;
 using Ros.UI.Main;
@@ -13,6 +14,9 @@ public class UIManager : MonoBehaviour
 
     // 结算界面：独立子界面（不挂页面），战斗结束与 GM 演示都用它
     public SettlementView Settlement { get; private set; }
+
+    // 确认弹窗：独立子界面（不挂页面），弹出时自带全屏遮罩挡底层点击
+    public ConfirmView Confirm { get; private set; }
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
@@ -47,6 +51,7 @@ public class UIManager : MonoBehaviour
             chat = new ChatPlugin(UI_ChatPanel.CreateInstance());
             gm = new GmPanel(UI_GmPanel.CreateInstance());
             Settlement = new SettlementView();
+            Confirm = new ConfirmView();
             Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}, chat={chat != null}");
 
             //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
@@ -56,6 +61,7 @@ public class UIManager : MonoBehaviour
             chat.Construct();
             gm.Construct();
             Settlement.Construct();
+            Confirm.Construct();
             Debug.Log("[UIManager] Construct 完成");
 
             ApplyResize();
@@ -86,6 +92,7 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
         if (chat != null) chat.Shutdown();
         if (gm != null) gm.Shutdown();
+        if (Confirm != null) Confirm.Shutdown();
         if (Settlement != null) Settlement.Shutdown();
     }
 
@@ -107,6 +114,7 @@ public class UIManager : MonoBehaviour
         if (battle != null) battle.OnResize(width, 1080f);
         if (chat != null) chat.OnResize(Screen.height / 1080f);
         if (gm != null) gm.OnResize(Screen.height / 1080f);
+        if (Confirm != null) Confirm.OnResize(Screen.height / 1080f);
     }
 
     public void ShowFlyText(string text)
@@ -119,6 +127,18 @@ public class UIManager : MonoBehaviour
         panel.SetXY(x, y);
         panel.alpha = 0f; // 从透明起步，由 TickFloating 淡入
         floatingLabels.Add(new FloatingLabel { comp = panel, startTime = Time.time, startY = y });
+    }
+
+    // 弹出确认弹窗：content = 正文，onConfirm = 确认回调，onCancel = 取消回调（可为空）
+    public void ShowConfirm(string content, Action onConfirm, Action onCancel = null)
+    {
+        if (Confirm != null) Confirm.Show(content, onConfirm, onCancel);
+    }
+
+    // 关闭确认弹窗（不触发任何回调）
+    public void CloseConfirm()
+    {
+        if (Confirm != null) Confirm.Hide();
     }
 
     public void TurnPage(PageType type, ShowParam param = null)

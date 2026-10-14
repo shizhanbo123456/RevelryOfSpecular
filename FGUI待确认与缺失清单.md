@@ -106,6 +106,16 @@
 - GmPanel 无关闭入口：已用快捷键开关（1 秒内连按 3 次 `V` 开 / `Backspace` 关），未补关闭按钮。
 - ConfirmPanel 无标题（当前只有正文）：若需要"断开连接"这类标题需补 title。
 
+### 确认弹窗（代码已接 2026-10-14，接入位置待审核）
+
+- 接口：`UIManager.ShowConfirm(content, onConfirm, onCancel)` / `UIManager.CloseConfirm()`；实现 `UI/Logic/ConfirmView.cs`（挂 GRoot 的全局子界面：弹出时**先铺 `FullScreenMask`（`opaque = true` 吞掉点击、挡底层元素）再叠 `ConfirmPanel`**；每次弹出重新置顶，遮罩在下、弹窗在上；点确认/取消都是**先关窗再回调**，回调里可再弹窗或切页）。
+- 点遮罩空白处**不关闭**（只挡点击）；需要"点空白处 = 取消"再说。
+- **待接入位置（待审核）**：
+  1. **战斗页退出**（`BattlePage.cs:63` 的 `m_btn_exit`）——现在点一下立刻 `ExitWorld()`，对局直接作废、回首页。
+  2. **大厅"断开并返回"**（`LobbyPage.cs:159` 的 `OnExitClicked` ← `m_btn_exit`）——现在立刻断开与服务器的连接回首页。
+  3. （可选）**大厅"开始战斗"**（`LobbyPage.OnStartClicked`）——开局不可逆（开战后不能再改选队与 AI 数量）；是否加确认由策划定。
+- **不建议接入**：首页「连接」（正向操作，已有加载遮罩与校验飘字）、改名（即时存档）、选角色 / 选队 / AI 数量 ±（可反复改）、GM 面板各指令（调试工具，点一次执行一次）、结算界面自动关闭（流程性）、断线/超时回首页（被动流程，弹窗会挡流程，提示应走飘字）。
+
 ## 六、协议依赖（已实现）
 
 - `SCBattleEvent`（战斗事件列表唯一来源）：type（事件语义唯一判别，icon 档位与条目版式由客户端按类型映射）+ textId/textId2（数字文本：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000）。事件源：玩家击杀（PlayerKill，type2 双名）/玩家死亡无归属（DeathUnattributed）、复活（PlayerRespawn）、攻占瘟疫树（PlagueTreeCaptured）、瘟疫树刷新（PlagueTreeRespawn）、天黑/天亮（Nightfall/Daybreak）、守护点摧毁（BeaconDestroyed，textId 区分哪一座：19 中心 / 24~26 外围，驱动对应血条 destroyed）、防御塔摧毁（TowerDestroyed）、武器提示 13/14/15（Notice，纯文字，定向）
