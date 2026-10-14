@@ -60,7 +60,7 @@ public class BattlePage : PageBase
 
     public override void Construct()
     {
-        panel.m_btn_exit.onClick.Add(() => { if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld(); }); // 主动退出：NetworkManager 触发 OnExitWorld，UIManager 切回主界面
+        panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
         ComputeMinimapItemScale();
     }
@@ -837,6 +837,18 @@ public class BattlePage : PageBase
         //技能经验：exp 与星星数量 1:1（numItems 需要 itemRenderer 非空，给空实现）
         item.m_starList.itemRenderer = (_, _) => { };
         item.m_starList.numItems = Mathf.Max(0, slot.exp);
+    }
+
+    // 退出确认：确认后 ExitWorld → NetworkManager 触发 OnExitWorld → UIManager 切回主界面
+    private void OnExitClicked()
+    {
+        if (Tool.UIManager != null) Tool.UIManager.ShowConfirm("退出将放弃本局，确定退出吗？", DoExit);
+        else DoExit();
+    }
+
+    private static void DoExit()
+    {
+        if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld();
     }
     #endregion
 }

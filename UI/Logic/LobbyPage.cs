@@ -156,7 +156,14 @@ public class LobbyPage : PageBase
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendStartRequest();
     }
 
+    // 断开不可逆，先弹二次确认
     private void OnExitClicked()
+    {
+        if (Tool.UIManager != null) Tool.UIManager.ShowConfirm("确定断开与服务器的连接？", DoExitWorld);
+        else DoExitWorld();
+    }
+
+    private static void DoExitWorld()
     {
         if (Tool.NetworkManager != null) Tool.NetworkManager.ExitWorld();
     }

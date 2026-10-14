@@ -143,6 +143,7 @@ public class UIManager : MonoBehaviour
 
     public void TurnPage(PageType type, ShowParam param = null)
     {
+        if (Confirm != null) Confirm.Hide(); // 切页时收起未决的确认弹窗，避免残留遮罩挡住新页面
         if (currentPage != null) currentPage.Exit();
         currentPage = GetPage(type);
         if (currentPage != null) currentPage.Enter(param);

@@ -106,15 +106,15 @@
 - GmPanel 无关闭入口：已用快捷键开关（1 秒内连按 3 次 `V` 开 / `Backspace` 关），未补关闭按钮。
 - ConfirmPanel 无标题（当前只有正文）：若需要"断开连接"这类标题需补 title。
 
-### 确认弹窗（代码已接 2026-10-14，接入位置待审核）
+### 确认弹窗（2026-10-14 已接入）
 
-- 接口：`UIManager.ShowConfirm(content, onConfirm, onCancel)` / `UIManager.CloseConfirm()`；实现 `UI/Logic/ConfirmView.cs`（挂 GRoot 的全局子界面：弹出时**先铺 `FullScreenMask`（`opaque = true` 吞掉点击、挡底层元素）再叠 `ConfirmPanel`**；每次弹出重新置顶，遮罩在下、弹窗在上；点确认/取消都是**先关窗再回调**，回调里可再弹窗或切页）。
+- 接口：`UIManager.ShowConfirm(content, onConfirm, onCancel)` / `UIManager.CloseConfirm()`；实现 `UI/Logic/ConfirmView.cs`（挂 GRoot 的全局子界面：弹出时**先铺 `FullScreenMask`（`opaque = true` 吞掉点击、挡底层元素）再叠 `ConfirmPanel`**；每次弹出重新置顶，遮罩在下、弹窗在上；点确认/取消都是**先关窗再回调**，回调里可再弹窗或切页）。**切页时（`UIManager.TurnPage`）自动收起未决弹窗**，避免残留遮罩挡住新页面。
 - 点遮罩空白处**不关闭**（只挡点击）；需要"点空白处 = 取消"再说。
-- **待接入位置（待审核）**：
-  1. **战斗页退出**（`BattlePage.cs:63` 的 `m_btn_exit`）——现在点一下立刻 `ExitWorld()`，对局直接作废、回首页。
-  2. **大厅"断开并返回"**（`LobbyPage.cs:159` 的 `OnExitClicked` ← `m_btn_exit`）——现在立刻断开与服务器的连接回首页。
-  3. （可选）**大厅"开始战斗"**（`LobbyPage.OnStartClicked`）——开局不可逆（开战后不能再改选队与 AI 数量）；是否加确认由策划定。
-- **不建议接入**：首页「连接」（正向操作，已有加载遮罩与校验飘字）、改名（即时存档）、选角色 / 选队 / AI 数量 ±（可反复改）、GM 面板各指令（调试工具，点一次执行一次）、结算界面自动关闭（流程性）、断线/超时回首页（被动流程，弹窗会挡流程，提示应走飘字）。
+- **已接入的位置**：
+  1. **战斗页退出**（`BattlePage.m_btn_exit`）——文案「退出将放弃本局，确定退出吗？」，确认后走原 `ExitWorld()`（回首页）。
+  2. **大厅"断开并返回"**（`LobbyPage.OnExitClicked` ← `m_btn_exit`）——文案「确定断开与服务器的连接？」，确认后断开连接回首页。
+- **待定（策划定）**：大厅「开始战斗」（`LobbyPage.OnStartClicked`）——开局不可逆（开战后不能再改选队与 AI 数量），是否加确认未定，代码未改。
+- **不接入**：首页「连接」（正向操作，已有加载遮罩与校验飘字）、改名（即时存档）、选角色 / 选队 / AI 数量 ±（可反复改）、GM 面板各指令（调试工具，点一次执行一次）、结算界面自动关闭（流程性）、断线/超时回首页（被动流程，弹窗会挡流程，提示应走飘字）。
 
 ## 六、协议依赖（已实现）
 
