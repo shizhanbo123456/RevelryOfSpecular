@@ -703,7 +703,7 @@ public class GmPanel
     {
         var sm = Tool.SaveManager;
         if (sm == null || index < 0 || index >= sm.characterLevels.Count) return;
-        sm.characterLevels[index] = Mathf.Clamp(level, 1, Config.max_entity_level);
+        sm.characterLevels[index] = Mathf.Clamp(level, 1, Config.save_max_level);
         sm.Save();
     }
     #endregion

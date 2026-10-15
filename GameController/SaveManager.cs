@@ -52,7 +52,7 @@ public class SaveManager : MonoBehaviour
         EnsureListSize(index);
         characterExp[index] += exp;
         int level = characterLevels[index];
-        while (level < Config.max_entity_level)
+        while (level < Config.save_max_level)
         {
             int need = Config.level_up_exp[level - 1];
             if (characterExp[index] < need) break;

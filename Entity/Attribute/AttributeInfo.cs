@@ -40,7 +40,7 @@ namespace Ros.Info
 
         public string GetNextLevelGainDescription(int level)
         {
-            if (level >= Config.max_entity_level) return "已达等级上限";
+            if (level >= Config.save_max_level) return "已达等级上限";
             return FieldName(GetUpgradeType(level + 1));
         }
 

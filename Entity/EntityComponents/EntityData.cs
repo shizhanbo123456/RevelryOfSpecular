@@ -105,7 +105,8 @@ public abstract class EntityData : MonoBehaviour
     {
         this.id = id;
         this.type = type;
-        this.level = level;
+        this.level = Mathf.Min(level, Config.battle_max_level); // 战斗期等级上限
+        level = this.level;
         this.camp = camp;
         baseAttribute = Tool.InfoManager != null ? Tool.InfoManager.GetAttribute(type, level) : new EntityAttribute();
         // 克隆即满血：base 的 health 是"生命值上限"，同一个字段克隆到 floating 后就承载"当前生命值"（复活走重建实体，同样落在这里）

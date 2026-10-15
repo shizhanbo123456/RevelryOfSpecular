@@ -12,7 +12,8 @@ public static class Config
     #region 角色
     public const int attack_character_count = 18;
     public const int defense_character_count = 6;
-    public const int max_entity_level = 10;
+    public const int save_max_level = 10; // 玩家存档等级上限
+    public const int battle_max_level = 20; // 战斗期等级上限：生成实体时钳制，最高刷出 20 级
     public const int player_max_level = 50;
     public static readonly int[] level_up_exp = { 50000, 60000, 90000, 120000, 160000, 200000, 250000, 300000, 360000 };
 

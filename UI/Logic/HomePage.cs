@@ -159,7 +159,7 @@ public class HomePage : PageBase
         }
         var attr = info.GetAttribute(level);
         var baseAttr = info.GetAttribute(1);
-        var nextAttr = level < Config.max_entity_level ? info.GetAttribute(level + 1) : null;
+        var nextAttr = level < Config.save_max_level ? info.GetAttribute(level + 1) : null;
         float? nextHealth = nextAttr != null ? nextAttr.health : (float?)null;
         float? nextStrength = nextAttr != null ? nextAttr.strength : (float?)null;
         float? nextMagic = nextAttr != null ? nextAttr.magic : (float?)null;
