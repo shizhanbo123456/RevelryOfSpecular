@@ -30,7 +30,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -55,7 +55,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -80,7 +80,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, caster.transform.position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }

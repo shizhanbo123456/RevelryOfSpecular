@@ -38,7 +38,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -63,7 +63,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -87,7 +87,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -115,7 +115,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -140,7 +140,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius,
                 BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
         }
@@ -164,7 +164,7 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
@@ -187,21 +187,33 @@ namespace Ros.Skill
         protected override bool HasCastAnim => false; // 塔无攻击动画：按下即施放
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = new SkillContext();
+            int shotSlot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+            if (shotSlot < 0) shotSlot = 0;
+            Vector3 shotOrigin = GetWeaponFloatPosition(entity, shotSlot).position;
+            context.AddInts(entity.id, shotSlot);
+            context.AddVectors(shotOrigin, Utils.TargetSelect.AimPos(entity,CastRange));
             // 灵火在攻击生成时查询一次：之后塔身上的 Buff 变化不影响这一发
             bool blaze = entity.effectController != null && entity.effectController.HasEffect(EffectType.TowerBlaze);
             context.AddInts(blaze ? 1 : 0);
             return context;
         }
 
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
+        {
+            Vector3 shotOrigin = ShotOrigin((ushort)context.ints[0], context.ints[1]);
+            return TrialConstructor.Line(shotOrigin, ShotAim(shotOrigin, context.vectors[index * 2], context.vectors[index * 2 + 1]), 0.6f);
+        }
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
+            var caster = FindEntity((ushort)context.ints[0]);
             bool blaze = context.ints != null && context.ints.Count > BlazeFlagIndex && context.ints[BlazeFlagIndex] != 0;
-            ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
-                onHit: blaze ? BlazeHit(caster) : null));
+            var shotAttack = BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
+                onHit: blaze ? BlazeHit(caster) : null);
+            if (Tool.BattleManager == null) return;
+            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
+                Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
         }
 
         private Action<EntityData> BlazeHit(EntityData caster) => target =>
@@ -213,7 +225,8 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 22 });
+            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
+                VfxHelper.PlayOne(SkillVfxKind.Bullet, 22, CreateTrajectory(context, shotIndex));
             if (context.ints == null || context.ints.Count <= BlazeFlagIndex || context.ints[BlazeFlagIndex] == 0) return;
             for (int i = 0; i < (context.vectors != null ? context.vectors.Count / 2 : 0); i++)
             {
@@ -238,24 +251,40 @@ namespace Ros.Skill
         protected override bool HasCastAnim => false; // 无动画组件：按下即施放
         public override SkillContext SkillLogic(EntityData entity)
         {
-            var context = BuildShotContext(entity, Utils.TargetSelect.AimPos(entity,CastRange));
+            var context = new SkillContext();
+            int shotSlot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
+            if (shotSlot < 0) shotSlot = 0;
+            Vector3 shotOrigin = GetWeaponFloatPosition(entity, shotSlot).position;
+            context.AddInts(entity.id, shotSlot);
+            context.AddVectors(shotOrigin, Utils.TargetSelect.AimPos(entity,CastRange));
             return context;
         }
 
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.6f);
+        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
+        {
+            Vector3 shotOrigin = ShotOrigin((ushort)context.ints[0], context.ints[1]);
+            return TrialConstructor.Line(shotOrigin, ShotAim(shotOrigin, context.vectors[index * 2], context.vectors[index * 2 + 1]), 0.6f);
+        }
 
         protected override void OnCast(SkillContext context)
         {
-            var caster = GetCaster(context);
-            ShootAll(caster, context, BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
-                addEffect: Poison(caster != null ? caster.id : (ushort)0)));
+            var caster = FindEntity((ushort)context.ints[0]);
+            var shotAttack = BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
+                addEffect: Poison(caster != null ? caster.id : (ushort)0));
+            if (Tool.BattleManager == null) return;
+            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
+                Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
         }
 
         private static Action<EntityEffectController> Poison(ushort casterId) => effect => effect.AddEffect(
             EffectType.Poison, 1, PoisonDuration, negative: true,
             payload: new EntityEffectController.EffectPayload { damage = PoisonDamagePerTick, sourceId = casterId });
 
-        public override void PlayVFX(SkillContext context) => PlayShotVfx(context, SkillVfxKind.Bullet, new[] { 13 });
+        public override void PlayVFX(SkillContext context)
+        {
+            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
+                VfxHelper.PlayOne(SkillVfxKind.Bullet, 13, CreateTrajectory(context, shotIndex));
+        }
     }
     #endregion
 }

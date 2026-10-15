@@ -56,6 +56,28 @@ namespace Ros.Skill
                 .GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
         }
 
+        // —— 显式参数原语：不解析 SkillContext，参数含义由各技能自己决定 ——
+
+        // 按 id 找实体（服务器权威容器；客户端查不到返回 null）
+        protected static EntityData FindEntity(ushort id) => BattleManager.GetEntity(id);
+
+        // 双端取弹道起点：服务器按实体武器槽/中上锚点，客户端按视图镜像同一规则
+        protected Vector3 ShotOrigin(ushort casterId, int slot)
+        {
+            EntityData caster = BattleManager.GetEntity(casterId);
+            if (caster != null) return GetWeaponFloatPosition(caster, slot).position;
+            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+            return players != null && players.TryGetShotOrigin(casterId, slot, Weapon.IsValid, out var pos) ? pos : Vector3.zero;
+        }
+
+        // 弹道终点 = 实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
+        protected static Vector3 ShotAim(Vector3 origin, Vector3 frozenOrigin, Vector3 frozenDest)
+        {
+            Vector3 offset = frozenDest - frozenOrigin;
+            offset.y = 0f;
+            return origin + offset;
+        }
+
         // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
         public void BeginCast(EntityData entity, int skillId)
         {
@@ -122,16 +144,6 @@ namespace Ros.Skill
             return target => { if (target != null) target.SetMotion(new MotionToPoint(to, speed)); };
         }
 
-        [Obsolete]
-        protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)
-        {
-            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
-            for (int i = 0; i < count; i++)
-            {
-                if (Tool.BattleManager != null) Tool.BattleManager.ShootBullet(entity, attack, CreateTrajectory(context, i));
-            }
-        }
-
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR
@@ -151,83 +163,6 @@ namespace Ros.Skill
                 }
                 if (attack.onHit != null) attack.onHit.Invoke(target);
             }
-        }
-        #endregion
-
-        #region 上下文构建与双端解析（替代已弃用的 SkillContextConventions）
-        // 弹道技能标准布局：ints[0]=施放者id，ints[1]=武器槽位；vectors 每 2 个 = 一发的(冻结起点, 冻结终点)
-        [Obsolete]
-        protected SkillContext BuildShotContext(EntityData entity, params Vector3[] dests)
-        {
-            var context = new SkillContext();
-            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-            if (slot < 0) slot = 0;
-            context.AddInts(entity.id, slot);
-            Vector3 origin = GetWeaponFloatPosition(entity, slot);
-            foreach (var dest in dests) context.AddVectors(origin, dest);
-            return context;
-        }
-
-        [Obsolete]
-        protected static EntityData GetCaster(SkillContext context)
-            => context != null && context.ints.Count > 0 ? BattleManager.GetEntity((ushort)context.ints[0]) : null;
-
-        // 双端实时起点：服务器取实体武器槽，客户端按同一规则镜像（弹簧/碰撞体）
-        [Obsolete]
-        protected Vector3 GetShotOrigin(SkillContext context, int index)
-        {
-            ushort casterId = context != null && context.ints.Count > 0 ? (ushort)context.ints[0] : (ushort)0;
-            int slot = context != null && context.ints.Count > 1 ? context.ints[1] : 0;
-            EntityData caster = BattleManager.GetEntity(casterId);
-            if (caster != null) return GetWeaponFloatPosition(caster, slot);
-            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
-            return players != null && players.TryGetShotOrigin(casterId, slot, Weapon.IsValid, out var pos) ? pos : Vector3.zero;
-        }
-
-        // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
-        [Obsolete]
-        protected Vector3 GetShotAim(SkillContext context, int index)
-        {
-            Vector3 origin = GetShotOrigin(context, index);
-            if (context == null || context.vectors == null || index * 2 + 1 >= context.vectors.Count) return origin;
-            Vector3 offset = context.vectors[index * 2 + 1] - context.vectors[index * 2];
-            offset.y = 0f;
-            return origin + offset;
-        }
-
-        // 目标列表技能：把目标 id 逐个写入上下文（ints[1..]）
-        [Obsolete]
-        protected static void AddTargetIds(SkillContext context, List<EntityData> targets)
-        {
-            if (context == null || targets == null) return;
-            for (int i = 0; i < targets.Count; i++)
-                if (targets[i] != null) context.AddInts(targets[i].id);
-        }
-
-        // 逐发轨迹枚举（服务器结算与客户端的 VfxHelper.PlayAlong 共用，保证双端一致）
-        [Obsolete]
-        protected IEnumerable<BulletTrajectory> ShotTrajectories(SkillContext context)
-        {
-            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
-            for (int i = 0; i < count; i++) yield return CreateTrajectory(context, i);
-        }
-
-        // 弹道类 Vfx 便捷封装：直转 VfxHelper.PlayAlong（vfx 长度不足时循环复用首个下标）
-        [Obsolete]
-        protected void PlayShotVfx(SkillContext context, SkillVfxKind kind, params int[] vfx)
-        {
-            int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
-            if (count <= 0 || vfx == null || vfx.Length == 0) return;
-            var vfxEnum = vfx.Length == 1 ? Enumerable.Repeat(vfx[0], count) : vfx.Take(count);
-            VfxHelper.PlayAlong(kind, vfxEnum.GetEnumerator(), ShotTrajectories(context).GetEnumerator());
-        }
-
-        // 群体跟随 Vfx 便捷封装：目标取自上下文 ints[1..]
-        [Obsolete]
-        protected void PlayTargetsVfx(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
-        {
-            if (context == null || context.ints.Count <= 1) return;
-            VfxHelper.PlayFollowAll(kind, index, context.ints.Skip(1).GetEnumerator(), lifeTime);
         }
         #endregion
     }
