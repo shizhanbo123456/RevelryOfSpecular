@@ -3,9 +3,9 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    public int ZombieSpawnLevel { get; private set; } = Config.zombie_spawn_level;
-
     public float AttackReviveFactor { get; private set; } = 1f;
+
+    private bool zombieSpawnLevelBoosted;
 
     private readonly HashSet<int> defenseCharacters = new();
 
@@ -19,9 +19,7 @@ public partial class BattleManager
         }
         GmOnBattleStart(); // GM：把组队期启用的被动并进本次结算，并清掉上一局的无敌记录
 
-        ZombieSpawnLevel = DefenseHas(Config.defense_index_death_stroller)
-            ? Config.zombie_spawn_level_boosted
-            : Config.zombie_spawn_level;
+        zombieSpawnLevelBoosted = DefenseHas(Config.defense_index_death_stroller);
         AttackReviveFactor = DefenseHas(Config.defense_index_plague_bringer)
             ? Config.attack_revive_slow_factor
             : 1f;
@@ -41,6 +39,16 @@ public partial class BattleManager
         float night = Mathf.Min(cycle - 0.01f, env.nightDuration * Config.night_extend_factor);
         env.nightDuration = night;
         env.dayDuration = Mathf.Max(0.01f, cycle - night);
+    }
+    #endregion
+
+    #region 僵尸刷新等级（按战斗剩余时间实时计算，普通/精英共用）
+    public int GetZombieSpawnLevel()
+    {
+        float elapsed = Mathf.Clamp01((Config.battle_duration - BattleRemainTime) / Config.battle_duration);
+        int level = Config.zombie_spawn_level + Mathf.FloorToInt(elapsed / Config.zombie_level_step_ratio);
+        if (zombieSpawnLevelBoosted) level += Config.zombie_spawn_level_passive_boost;
+        return level;
     }
     #endregion
 

@@ -230,12 +230,12 @@ public partial class BattleManager
         {
             case GmEntityType.Zombie:
                 for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), ZombieSpawnLevel,
+                    SpawnEntity(EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(),
                         LandscapeSpawns.RandomOf(spawns.zombieSpawnPositions), EntityCamp.Zombie);
                 break;
             case GmEntityType.EliteZombie:
                 for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), ZombieSpawnLevel,
+                    SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(),
                         LandscapeSpawns.RandomOf(spawns.zombieSpawnPositions), EntityCamp.Zombie);
                 break;
             case GmEntityType.Crystal: GmSpawnCrystals(count); break;

@@ -44,7 +44,7 @@ public partial class BattleManager
         var list = Tool.LandscapeSpawns.zombieSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置僵尸出生点则不刷新
         int variant = Random.Range(0, Config.zombie_variant_count);
-        SpawnEntity(EntityType.Zombie(variant), ZombieSpawnLevel, LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
+        SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
     }
 
     private void SpawnPlagueTree()

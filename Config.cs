@@ -53,7 +53,9 @@ public static class Config
     public const int zombie_variant_count = 21;
     public const int elite_zombie_variant_count = 14;
     public const int zombie_spawn_level = 1;
-    public const int zombie_spawn_level_boosted = 3;
+    // 刷新等级随战斗时间增长：每经过 7.5% 战斗时间 +1；死亡漫步者被动再额外 +4（普通/精英不区分）
+    public const float zombie_level_step_ratio = 0.075f;
+    public const int zombie_spawn_level_passive_boost = 4;
 
     // —— AI 行为（策划案第九章只写了「无目标时游荡 / 发现目标后主动追击 / 设最大追击距离」，数值均为占位初值）——
     public const float zombie_decide_interval = 0.15f;
