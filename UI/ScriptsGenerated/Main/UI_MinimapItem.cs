@@ -8,6 +8,7 @@ namespace Ros.UI.Main
     public partial class UI_MinimapItem : GComponent
     {
         public Controller m_type;
+        public Controller m_highlight;
         public const string URL = "ui://q68vr2bfjtpbi7";
 
         public static UI_MinimapItem CreateInstance()
@@ -20,6 +21,7 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_type = GetControllerAt(0);
+            m_highlight = GetControllerAt(1);
         }
     }
 }

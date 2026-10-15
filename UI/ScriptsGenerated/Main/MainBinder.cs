@@ -27,6 +27,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_onlookComboBox_popup.URL, typeof(UI_onlookComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_ChatPanel.URL, typeof(UI_ChatPanel));
             UIObjectFactory.SetPackageItemExtension(UI_ChatItem.URL, typeof(UI_ChatItem));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerInfo.URL, typeof(UI_PlayerInfo));
