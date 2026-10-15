@@ -385,6 +385,7 @@ public class BattlePage : PageBase
             if (isSelf) selfMinimapItem = item;
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
+        item.m_highlight.selectedIndex = entity.marked ? 1 : 0; //白眼标记高亮（服务器随包下发，出现/消失都靠每包同步）
         if (isNew) LogMinimapSize(entity, item, mapBase); // [临时排查] 打印尺寸
         //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
         float scale = mapBase.width * 0.5f / minimapViewRadius;
