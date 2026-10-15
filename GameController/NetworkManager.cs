@@ -60,7 +60,7 @@ public partial class NetworkManager : EnsBehaviour
         {
             serverHello = data;
         });
-        Ens.Request.Client.JoinRoom.OnRecvReply += ClientSendInfo;
+        EnsInstance.OnJoinRoom += ClientSendInfo;
 
         EnsInstance.OnServerDisconnect += () =>
         {
@@ -71,7 +71,6 @@ public partial class NetworkManager : EnsBehaviour
             }
             EventManager.TrigEvent(ClientEvent.OnRestartGame);
         };
-        Ens.Request.Client.JoinRoom.OnTimeOut += () => EventManager.TrigEvent(ClientEvent.OnRestartGame);
     }
 
     public async Task<ConnectResult> TryConnect(string ipAddress)
@@ -124,7 +123,7 @@ public partial class NetworkManager : EnsBehaviour
         if (tryingEnterWorld) return;
         tryingEnterWorld = true;
         StartCoroutine(EnterWorldFallBack());
-        Ens.Request.Client.JoinRoom.SendRequest(EnsRoomManager.roomIdStart);
+        EnsCorrespondent.JoinRoom(EnsRoomManager.roomIdStart);
     }
 
     public void ExitWorld()
@@ -152,6 +151,8 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientSendInfo()
     {
         if (!tryingEnterWorld) return;
+        //加入房间失败时保持 tryingEnterWorld，交由 EnterWorldFallBack 兜底重连
+        if (EnsInstance.PresentRoomId <= 0) return;
         tryingEnterWorld = false;
         // 双方角色各自选择并随 CSPlayerInfo 上报；阵营完全在房间内确定，服务器按最终阵营取对应一侧
         var info = new CSPlayerInfo()

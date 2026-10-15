@@ -1,4 +1,3 @@
-using Ens.Request.Client;
 using System.Collections;
 using UnityEngine;
 
@@ -20,7 +19,7 @@ public class RSServerLauncher : MonoBehaviour
         EnsInstance.Corr.SetServerListening(true);
         yield return new WaitForSeconds(0.3f);
         Debug.LogWarning("Initializing virtual client");
-        JoinRoom.SendRequest(EnsRoomManager.roomIdStart);
+        EnsCorrespondent.JoinRoom(EnsRoomManager.roomIdStart);
         Debug.LogWarning("Server Started");
     }
 }
