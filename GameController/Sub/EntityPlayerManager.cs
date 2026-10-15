@@ -256,12 +256,15 @@ public class EntityPlayerManager : ClientSubManager
             {
                 if (view.cameraAnchor == null)
                 {
+                    // 视体位姿由 rb.MovePosition 施加，要到下一个物理步才生效；此刻读骨骼会得到"假位置"上的锚点，
+                    // 故先用权威位姿摆正一次（仅建视体这一次，之后仍由 MovePosition 驱动，不破坏碰撞解析）
+                    view.transform.position = info.position;
+                    view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
                     view.cameraAnchor.position = view.anim != null
                         ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
                         : view.transform.position;
                     view.cameraAnchor.rotation = view.transform.rotation;
-                    // 先定位再绑定：SetLookTarget 按锚点当前位姿立即摆位并算俯仰，位姿没设就绑会摆到世界原点
                     Tool.CameraController.SetLookTarget(view.cameraAnchor);
                 }
             }
