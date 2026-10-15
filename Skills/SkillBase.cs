@@ -19,6 +19,8 @@ namespace Ros.Skill
         public abstract int Store { get; }
         public virtual float CastRange => 0f;
         public virtual WeaponRef Weapon => WeaponRef.None;
+        protected virtual bool HasCastAnim => true;
+        protected virtual EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
 
         //服务器使用技能主入口，内部生成上下文，并根据上下文生成轨迹发射子弹，并传出Context给客户端
         public abstract SkillContext SkillLogic(EntityData entity);
@@ -35,22 +37,24 @@ namespace Ros.Skill
         #region 框架工具（攻击结算 / 特效播放）
         private static readonly EntityData[] s_hitBuffer = new EntityData[16];
 
-        protected Vector3 GetWeaponFloatPosition(EntityData entity, int slot)
+        protected EntityAnchorInfo GetWeaponFloatPosition(EntityData entity, int slot)
         {
-            if (!Weapon.IsValid) return entity.BulletShootPos();
-            return entity.GetWeaponFloatPos(slot);
+            if (!Weapon.IsValid) return EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
+            return ((EntityAnchor)((int)EntityAnchor.WeaponSlot1 + slot)).GetTransform(entity.ModelInfo,entity.anim,entity.springWeapon);
         }
 
-        protected Vector3 GetWeaponFloatPosition(EntityData entity)
+        protected EntityAnchorInfo GetWeaponFloatPosition(EntityData entity)
         {
             int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
             return GetWeaponFloatPosition(entity, slot < 0 ? 0 : slot);
         }
 
-        // 技能是否带攻击动画：无动画技能（如固定炮台/瘟疫树）按下即施放，不等攻击帧
-        protected virtual bool HasCastAnim => true;
-        // 攻击动画类型（HasCastAnim 为真时生效）
-        protected virtual EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
+        protected static EntityAnchorInfo HandPos(EntityData entity, bool leftHand = false)
+        {
+            if (entity == null) return default;
+            return (leftHand ? EntityAnchor.LeftHand : EntityAnchor.RightHand)
+                .GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
+        }
 
         // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
         public void BeginCast(EntityData entity, int skillId)
@@ -118,20 +122,7 @@ namespace Ros.Skill
             return target => { if (target != null) target.SetMotion(new MotionToPoint(to, speed)); };
         }
 
-        protected static bool TryGetPos(ushort entityId, out Vector3 pos) =>
-            BulletTrajectory.TryGetEntityPosition(entityId, out pos);
-
-        protected static bool TryGetTransform(ushort entityId, out Vector3 pos, out Quaternion rot) =>
-            BulletTrajectory.TryGetEntityTransform(entityId, out pos, out rot);
-
-        protected static Vector3 HandPos(EntityData entity, bool leftHand = false)
-        {
-            if (entity == null || entity.anim == null) return entity != null ? entity.transform.position : Vector3.zero;
-            var anchor = (leftHand ? EntityAnchor.LeftHand : EntityAnchor.RightHand)
-                .GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
-            return anchor.transform != null ? anchor.position : entity.transform.position;
-        }
-
+        [Obsolete]
         protected void ShootAll(EntityData entity, SkillContext context, AttackData attack)
         {
             int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
@@ -165,6 +156,7 @@ namespace Ros.Skill
 
         #region 上下文构建与双端解析（替代已弃用的 SkillContextConventions）
         // 弹道技能标准布局：ints[0]=施放者id，ints[1]=武器槽位；vectors 每 2 个 = 一发的(冻结起点, 冻结终点)
+        [Obsolete]
         protected SkillContext BuildShotContext(EntityData entity, params Vector3[] dests)
         {
             var context = new SkillContext();
@@ -176,10 +168,12 @@ namespace Ros.Skill
             return context;
         }
 
+        [Obsolete]
         protected static EntityData GetCaster(SkillContext context)
             => context != null && context.ints.Count > 0 ? BattleManager.GetEntity((ushort)context.ints[0]) : null;
 
         // 双端实时起点：服务器取实体武器槽，客户端按同一规则镜像（弹簧/碰撞体）
+        [Obsolete]
         protected Vector3 GetShotOrigin(SkillContext context, int index)
         {
             ushort casterId = context != null && context.ints.Count > 0 ? (ushort)context.ints[0] : (ushort)0;
@@ -191,6 +185,7 @@ namespace Ros.Skill
         }
 
         // 弹道终点：实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
+        [Obsolete]
         protected Vector3 GetShotAim(SkillContext context, int index)
         {
             Vector3 origin = GetShotOrigin(context, index);
@@ -201,6 +196,7 @@ namespace Ros.Skill
         }
 
         // 目标列表技能：把目标 id 逐个写入上下文（ints[1..]）
+        [Obsolete]
         protected static void AddTargetIds(SkillContext context, List<EntityData> targets)
         {
             if (context == null || targets == null) return;
@@ -209,6 +205,7 @@ namespace Ros.Skill
         }
 
         // 逐发轨迹枚举（服务器结算与客户端的 VfxHelper.PlayAlong 共用，保证双端一致）
+        [Obsolete]
         protected IEnumerable<BulletTrajectory> ShotTrajectories(SkillContext context)
         {
             int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
@@ -216,6 +213,7 @@ namespace Ros.Skill
         }
 
         // 弹道类 Vfx 便捷封装：直转 VfxHelper.PlayAlong（vfx 长度不足时循环复用首个下标）
+        [Obsolete]
         protected void PlayShotVfx(SkillContext context, SkillVfxKind kind, params int[] vfx)
         {
             int count = context != null && context.vectors != null ? context.vectors.Count / 2 : 0;
@@ -225,6 +223,7 @@ namespace Ros.Skill
         }
 
         // 群体跟随 Vfx 便捷封装：目标取自上下文 ints[1..]
+        [Obsolete]
         protected void PlayTargetsVfx(SkillContext context, SkillVfxKind kind, int index, float lifeTime = 0f)
         {
             if (context == null || context.ints.Count <= 1) return;

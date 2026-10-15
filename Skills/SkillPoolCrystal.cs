@@ -306,7 +306,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = GetCaster(context);
-            StrikeSphere(caster, HandPos(caster), 0.6f, BuildAttack(caster, 1.4f, 0.6f));
+            StrikeSphere(caster, HandPos(caster).position, 0.6f, BuildAttack(caster, 1.4f, 0.6f));
         }
         public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Bullet, 40, (ushort)context.ints[0]);
     }
@@ -437,7 +437,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = GetCaster(context);
-            StrikeSphere(caster, HandPos(caster), 0.9f, BuildAttack(caster, 1.5f, 0.9f, knockback: 3f));
+            StrikeSphere(caster, HandPos(caster).position, 0.9f, BuildAttack(caster, 1.5f, 0.9f, knockback: 3f));
         }
         public override void PlayVFX(SkillContext context) { } // 无特效
     }
@@ -713,7 +713,7 @@ namespace Ros.Skill
             Vector3 dest = ally != null
                 ? ally.transform.position
                 : entity.transform.position + entity.transform.forward * Config.default_skill_auto_target_radius;
-            context.AddVectors(GetWeaponFloatPosition(entity), dest);
+            context.AddVectors(GetWeaponFloatPosition(entity).position, dest);
             return context;
         }
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index) => TrialConstructor.Line(GetShotOrigin(context, index), GetShotAim(context, index), 0.7f);
@@ -1004,7 +1004,7 @@ namespace Ros.Skill
             context.AddInts(first != null ? first.id : entity.id);
             context.AddInts(second != null ? second.id : (first != null ? first.id : entity.id));
             // 无敌人：存正前方直射终点，避免回退自身把弹道冻结在施法者
-            if (first == null) context.AddVectors(GetWeaponFloatPosition(entity), Utils.TargetSelect.AimPos(entity,CastRange));
+            if (first == null) context.AddVectors(GetWeaponFloatPosition(entity).position, Utils.TargetSelect.AimPos(entity,CastRange));
             return context;
         }
 

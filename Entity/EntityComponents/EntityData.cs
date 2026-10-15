@@ -527,20 +527,6 @@ public abstract class EntityData : MonoBehaviour
         return info;
     }
 
-    public Vector3 GetWeaponFloatPos(int slotIndex)
-    {
-        if (springWeapon != null)
-        {
-            int i = Mathf.Clamp(slotIndex, 0, SpringWeapon.slotCount - 1);
-            var slot = (EntityAnchor)((int)EntityAnchor.WeaponSlot1 + i);
-            return slot.GetTransform(ModelInfo, anim, springWeapon).position;
-        }
-        return BulletShootPos();
-    }
-
-    // 中上锚点：人形取胸部骨骼，非人形取模型根+75%高度
-    public Vector3 BulletShootPos() => EntityAnchor.UpCenter.GetTransform(ModelInfo, anim, springWeapon).position;
-
     public void Kill()
     {
         if (!Alive) return;
