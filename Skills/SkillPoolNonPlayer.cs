@@ -90,7 +90,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrengthBoost, 1, Config.buff_duration_buff,
-                value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
+                caster);
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -167,7 +167,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
             GiveEffect(caster, EffectType.AttrStrengthBoost, 1, Config.buff_duration_buff,
-                value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
+                caster);
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -240,7 +240,6 @@ namespace Ros.Skill
     public class SkillPlagueTreeSpore : SkillBase
     {
         // 中毒数值待策划定稿（策划案 21.6 只记「中立主动攻击」，未给数值）
-        private const float PoisonDamagePerTick = 6f;
         private const float PoisonDuration = 4f;
 
         public override int Id => (int)SkillType.SkillPlagueTreeSpore;
@@ -270,15 +269,13 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             var shotAttack = BuildAttack(caster, rate: 1f, radius: 0.5f, useMagic: true,
-                addEffect: Poison(caster != null ? caster.id : (ushort)0));
+                addEffect: Poison(caster));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
         }
 
-        private static Action<EntityEffectController> Poison(ushort casterId) => effect => effect.AddEffect(
-            EffectType.Poison, 1, PoisonDuration,
-            payload: new EntityEffectController.EffectPayload { damage = PoisonDamagePerTick, sourceId = casterId });
+        private static Action<EntityEffectController> Poison(EntityData caster) => effect => effect.AddEffect(EffectType.Poison, 1, PoisonDuration, caster);
 
         public override void PlayVFX(SkillContext context)
         {

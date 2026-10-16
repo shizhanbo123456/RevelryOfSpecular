@@ -471,7 +471,7 @@ public abstract class EntityData : MonoBehaviour
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
-            float reflect = effectController.GetReflectDamage();
+            float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
             if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();

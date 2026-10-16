@@ -112,31 +112,15 @@ namespace Ros.Skill
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
         }
 
-        protected static Action<EntityEffectController> ApplyEffect(EffectType type, int level, float duration,
-            float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
+        protected static Action<EntityEffectController> ApplyEffect(EffectType type, int level, float duration, EntityData source = null)
         {
-            return effect => effect.AddEffect(type, level, duration,
-                new EntityEffectController.EffectPayload
-                {
-                    value = value,
-                    damage = damage,
-                    shieldValue = shieldValue,
-                    sourceId = sourceId,
-                });
+            return effect => effect.AddEffect(type, level, duration, source);
         }
 
-        protected static void GiveEffect(EntityData target, EffectType type, int level, float duration,
-            float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
+        protected static void GiveEffect(EntityData target, EffectType type, int level, float duration, EntityData source = null)
         {
             if (target == null || target.effectController == null) return;
-            target.effectController.AddEffect(type, level, duration,
-                new EntityEffectController.EffectPayload
-                {
-                    value = value,
-                    damage = damage,
-                    shieldValue = shieldValue,
-                    sourceId = sourceId,
-                });
+            target.effectController.AddEffect(type, level, duration, source);
         }
 
         protected static Action<EntityData> PullTo(Vector3 to, float speed = 16f)

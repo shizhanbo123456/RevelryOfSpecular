@@ -4,7 +4,7 @@ using UnityEngine;
 
 public enum EffectType
 {
-    // ---- 属性修改（重算轨道，无特效；Boost = 提升 / Decrease = 削弱成对，value = 修改量幅度，恒为正值）----
+    // ---- 属性修改（重算轨道，无特效；Boost = 提升 / Decrease = 削弱成对，幅度内部定死，见 RecomputeAttributes）----
     AttrStrengthBoost,          // 力量提升（激励法阵等）
     AttrStrengthDecrease,       // 力量降低
     AttrMagicBoost,             // 魔法提升
@@ -15,8 +15,9 @@ public enum EffectType
     AttrCritDamageDecrease,     // 暴击伤害降低
     AttrKnockbackBoost,         // 击退抗性提升
     AttrKnockbackDecrease,      // 击退抗性降低
-    AttrViewDistanceBoost,      // 可见距离提升（无限视野 = +99999）
+    AttrViewDistanceBoost,      // 可见距离提升（按 20% 规则）
     AttrViewDistanceDecrease,   // 可见距离降低
+    InfiniteView,               // 无限视野（特例：固定值 Config.infinite_view_distance，不走 20% 规则）
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
     Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
@@ -67,7 +68,7 @@ public static class EffectTypeExt
     {
         EffectType.AttrStrengthBoost or EffectType.AttrMagicBoost or
         EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or EffectType.AttrKnockbackBoost or
-        EffectType.AttrViewDistanceBoost or
+        EffectType.AttrViewDistanceBoost or EffectType.InfiniteView or
         EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
         EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or EffectType.AttrKnockbackDecrease or
         EffectType.AttrViewDistanceDecrease => true,
@@ -77,6 +78,11 @@ public static class EffectTypeExt
     public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root;
 
     public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison;
+
+    //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
+    public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.DeathStroll;
+
+    public static bool IsShield(this EffectType type) => type is EffectType.Shield or EffectType.TowerShield;
 
     //极性固定标注：负面白名单 + 全部属性削弱；其余一律正面（新增 Buff 按实际效果维护此表）
     public static bool IsNegative(this EffectType type) => type switch
@@ -95,28 +101,17 @@ public static class EffectTypeExt
 
 public class EntityEffectController
 {
-    public struct EffectPayload
-    {
-        public float value;        // 属性修改量幅度（Boost 加 / Decrease 减）/ 死灵漫步光环半径
-        public float damage;       // 固定数值伤害：DoT 每跳 / Reflect 反弹 / 死灵漫步每跳
-        public float shieldValue;  // 护盾类：护盾值
-        public ushort sourceId;    // 来源实体 id（DoT 归属）
-        public float tickInterval; // 生效间隔（DoT/光环，默认 1s）
-
-        public static EffectPayload Default => new EffectPayload() { tickInterval = 1f };
-    }
+    private const float TickInterval = 1f; // 固定间隔生效统一 1s 一跳
 
     public struct EffectRuntime
     {
         public EffectType type;
         public int level;
-        public float value;        // 属性修改量 / 光环半径
-        public float damage;       // 每跳固定伤害 / 反弹伤害
-        public float shieldValue;  // 护盾剩余值
-        public ushort sourceId;
-        public float endTime;      // 生效结束时间戳（永久 = float.MaxValue）
-        public float tickInterval; // 生效间隔（秒）
-        public float nextTickTime; // 下次生效时刻
+        public float shieldValue;              // 护盾剩余值（仅护盾类）
+        public ushort sourceId;                // 施加者 id（DoT 击杀归属）
+        public EntityAttribute sourceAttribute; // 施加者属性快照（施加时的独立克隆，不随后续变化）
+        public float endTime;                  // 生效结束时间戳（永久 = float.MaxValue）
+        public float nextTickTime;             // 下次生效时刻
         public bool isNegative;
     }
 
@@ -135,18 +130,17 @@ public class EntityEffectController
     }
 
     #region//增删查（简易统一入口）
-    public void AddEffect(EffectType type, int level = 1, float duration = -1f, EffectPayload payload = default)
+    public void AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)
     {
         float endTime = duration < 0f ? float.MaxValue : Time.time + duration;
         if (effects.TryGetValue(type, out var rt))
         {
-            // 叠层语义（11.3 特征列）：等级累加 + 时间刷新，其余参数以新值为准
+            // 叠层语义（11.3 特征列）：等级累加 + 时间刷新；施加者与快照以最新一次为准
             rt.level += level;
             rt.endTime = endTime;
-            rt.value = payload.value;
-            rt.damage = payload.damage;
-            rt.shieldValue = payload.shieldValue;
-            rt.sourceId = payload.sourceId;
+            rt.sourceId = source != null ? source.id : (ushort)0;
+            rt.sourceAttribute = source != null && source.floatingAttribute != null ? source.floatingAttribute.Clone() : null;
+            if (type.IsShield()) rt.shieldValue = ShieldValueOf(rt.level);
             effects[type] = rt;
         }
         else
@@ -155,13 +149,11 @@ public class EntityEffectController
             {
                 type = type,
                 level = level,
-                value = payload.value,
-                damage = payload.damage,
-                shieldValue = payload.shieldValue,
-                sourceId = payload.sourceId,
+                shieldValue = type.IsShield() ? ShieldValueOf(level) : 0f,
+                sourceId = source != null ? source.id : (ushort)0,
+                sourceAttribute = source != null && source.floatingAttribute != null ? source.floatingAttribute.Clone() : null,
                 endTime = endTime,
-                tickInterval = payload.tickInterval > 0f ? payload.tickInterval : 1f,
-                nextTickTime = Time.time + (payload.tickInterval > 0f ? payload.tickInterval : 1f),
+                nextTickTime = Time.time + TickInterval,
                 isNegative = type.IsNegative(),
             };
             effects[type] = rt;
@@ -237,7 +229,7 @@ public class EntityEffectController
     {
         float rate = 0f;
         if (effects.TryGetValue(EffectType.BeaconReduce, out var b)) rate += b.level * 0.25f;
-        if (effects.TryGetValue(EffectType.PopeGuard, out var p)) rate += p.value;
+        if (HasEffect(EffectType.PopeGuard)) rate += Config.pope_guard_reduce_rate;
         return Mathf.Clamp01(rate);
     }
 
@@ -255,9 +247,11 @@ public class EntityEffectController
         return m;
     }
 
-    public float GetReflectDamage()
+    // 反弹量 = 实际受到伤害 × 等级 × 系数，向下取整且至少 1（有反伤才会被调用）
+    public float GetReflectDamage(float receivedDamage)
     {
-        return effects.TryGetValue(EffectType.Reflect, out var rt) ? rt.damage : 0f;
+        if (!effects.TryGetValue(EffectType.Reflect, out var rt)) return 0f;
+        return Mathf.Max(1, Mathf.FloorToInt(receivedDamage * rt.level * Config.reflect_rate));
     }
 
     public bool IsActionBlocked() => HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) || HasEffect(EffectType.Root);
@@ -295,10 +289,10 @@ public class EntityEffectController
                 s_expired.Add(pair.Key);
                 continue;
             }
-            // DoT/光环 tick（固定数值伤害，1s 默认间隔）
-            if (rt.damage > 0f && rt.tickInterval > 0f && Time.time >= rt.nextTickTime)
+            // 固定间隔生效（燃烧/中毒/死灵漫步，1s 一跳），是否 tick 由类型决定
+            if (rt.type.IsTicking() && Time.time >= rt.nextTickTime)
             {
-                rt.nextTickTime = Time.time + rt.tickInterval;
+                rt.nextTickTime = Time.time + TickInterval;
                 effects[pair.Key] = rt;
                 TickDamage(rt);
             }
@@ -310,22 +304,36 @@ public class EntityEffectController
     {
         switch (rt.type)
         {
-            case EffectType.Poison:
             case EffectType.Burning:
-                EntityData source = FindEntity(rt.sourceId);
-                if (owner != null) owner.OnDamaged(rt.damage, source, fixedDamage: true);
+                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
                 break;
-            case EffectType.DeathStroll:
+            case EffectType.Poison:
+            {
                 if (owner == null) break;
+                float stat = SourcePower(rt);
+                owner.OnDamaged(Config.poison_damage_ratio * stat * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
+                break;
+            }
+            case EffectType.DeathStroll:
+            {
+                if (owner == null) break;
+                float stat = SourcePower(rt);
                 EntityCamp enemyCamp = EntityCampUtil.HostileOf(owner.camp);
                 s_tickTargets.Clear();
-                BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, rt.value, enemyCamp, s_tickTargets);
+                BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_stroll_radius, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
                 {
-                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(rt.damage, owner, fixedDamage: true);
+                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * rt.level, owner, fixedDamage: true);
                 }
                 break;
+            }
         }
+    }
+
+    // 施加者快照里的 max(力量, 魔力)；无施加者时为 0
+    private static float SourcePower(EffectRuntime rt)
+    {
+        return rt.sourceAttribute != null ? Mathf.Max(rt.sourceAttribute.strength, rt.sourceAttribute.magic) : 0f;
     }
 
     private static EntityData FindEntity(ushort entityId)
@@ -352,13 +360,35 @@ public class EntityEffectController
         foreach (var pair in effects)
         {
             if (!pair.Key.IsAttribute()) continue;
-            // Decrease 类型施加方向取反，value 恒为幅度
-            float sign = pair.Key.IsNegative() ? -1f : 1f;
-            attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), pair.Value.value * sign));
+            attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), AttributeDeltaOf(pair.Key, pair.Value.level)));
         }
         // 夹取上限读 base：生命值上限只由 base 承担（升级时定一次）。当前也无可达的生命类 Buff（不存在 AttrHealth）
         attr.health = Mathf.Clamp(currentHealth, 0f, owner.baseAttribute.health);
         owner.floatingAttribute = attr;
+    }
+
+    // 属性增减幅度内部定死：无限视野 = Config 固定值；其余 = 对应属性初始值 × 20% × 等级（方向由 Boost/Decrease 表达）
+    private float AttributeDeltaOf(EffectType type, int level)
+    {
+        if (type == EffectType.InfiniteView) return Config.infinite_view_distance;
+        float baseValue = FieldFromType(type) switch
+        {
+            EntityAttributeDelta.Field.Strength => owner.baseAttribute.strength,
+            EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic,
+            EntityAttributeDelta.Field.CritRate => owner.baseAttribute.critRate,
+            EntityAttributeDelta.Field.CritDamage => owner.baseAttribute.critDamage,
+            EntityAttributeDelta.Field.KnockbackResistance => owner.baseAttribute.knockbackResistance,
+            EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance,
+            _ => 0f,
+        };
+        float amount = baseValue * Config.buff_attr_ratio * level;
+        return type.IsNegative() ? -amount : amount;
+    }
+
+    // 护盾初始值 = 被施加者生命值上限 × 系数 × 等级
+    private float ShieldValueOf(int level)
+    {
+        return owner != null ? owner.baseAttribute.health * Config.shield_health_ratio * level : 0f;
     }
 
     //强控施加
@@ -391,7 +421,8 @@ public class EntityEffectController
             case EffectType.AttrKnockbackBoost:
             case EffectType.AttrKnockbackDecrease: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistanceBoost:
-            case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
+            case EffectType.AttrViewDistanceDecrease:
+            case EffectType.InfiniteView: return EntityAttributeDelta.Field.ViewDistance;
             default:
                 Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");
                 return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性

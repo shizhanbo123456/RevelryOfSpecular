@@ -58,8 +58,7 @@ public partial class BattleManager
         // PC104 被动「攻击暴击时附加轻微麻痹」：目标已死则不再挂状态
         if (!isCrit || attacker == null || target == null || !target.Alive) return;
         if (attacker.type != EntityType.Defense(Config.defense_index_deer_knight)) return;
-        if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration,
-            payload: new EntityEffectController.EffectPayload { sourceId = attacker.id });
+        if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration, attacker);
     }
 
     private void OnDayNightFlipped(bool isDay)
@@ -80,8 +79,7 @@ public partial class BattleManager
             }
             else
             {
-                beacon.effectController.AddEffect(EffectType.PopeGuard, 1, float.MaxValue,
-                    payload: new EntityEffectController.EffectPayload { value = Config.pope_guard_reduce_rate });
+                beacon.effectController.AddEffect(EffectType.PopeGuard, 1, float.MaxValue);
             }
         }
     }
@@ -107,8 +105,7 @@ public partial class BattleManager
         {
             effect.RemoveEffect(EffectType.PaleLight);
             effect.RemoveEffect(EffectType.PaleDark);
-            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff,
-                payload: new EntityEffectController.EffectPayload { damage = Config.buff_dot_damage });
+            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff);
         }
     }
     #endregion

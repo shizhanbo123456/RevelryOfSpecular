@@ -216,15 +216,18 @@ public static class Config
     public const float buff_duration_control = 3f;
     public const float buff_duration_debuff = 5f;
     public const float buff_duration_buff = 8f;
-    public const float buff_dot_damage = 8f;
-    public const float buff_shield_value = 120f;
-    public const float buff_attr_value = 15f;
+    public const float buff_attr_ratio = 0.2f;      // 属性 Buff 每级幅度 = 对应属性初始值 × 此系数
+    public const float shield_health_ratio = 0.1f;  // 护盾值 = 被施加者生命上限 × 此系数 × 等级
+    public const float burning_damage_per_tick = 30f; // 燃烧每跳 = 此值 × 等级
+    public const float poison_damage_ratio = 0.5f;  // 中毒每跳 = max(施加者力/魔) × 此系数 × 等级
+    public const float reflect_rate = 0.1f;         // 反伤 = 实际受伤 × 此系数 × 等级（向下取整，min=1）
     #endregion
 
     #region 防守方技能参数（占位初值，待策划定稿）
     public const float mushroom_infect_duration = 60f;
     public const float infinite_view_distance = 99999f;
     public const float death_stroll_radius = 4f;
+    public const float death_stroll_dot_ratio = 1.5f; // 死灵漫步光环每跳 = max(施加者力/魔) × 此系数 × 等级
     public const float death_stroll_speed_up = 1.3f;
     public const int summon_zombie_count = 5;
     public const int summon_zombie_level = 1;
