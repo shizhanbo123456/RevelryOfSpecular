@@ -59,7 +59,7 @@ public partial class BattleManager
         if (!isCrit || attacker == null || target == null || !target.Alive) return;
         if (attacker.type != EntityType.Defense(Config.defense_index_deer_knight)) return;
         if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration,
-            negative: true, payload: new EntityEffectController.EffectPayload { sourceId = attacker.id });
+            payload: new EntityEffectController.EffectPayload { sourceId = attacker.id });
     }
 
     private void OnDayNightFlipped(bool isDay)
@@ -96,18 +96,18 @@ public partial class BattleManager
         if (light >= Config.pale_full_stacks)
         {
             effect.RemoveEffect(EffectType.PaleLight);
-            effect.AddEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true);
+            effect.AddEffect(EffectType.Freeze, 1, Config.buff_duration_control);
         }
         else if (dark >= Config.pale_full_stacks)
         {
             effect.RemoveEffect(EffectType.PaleDark);
-            effect.AddEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true);
+            effect.AddEffect(EffectType.Stun, 1, Config.buff_duration_control);
         }
         else if (light >= Config.pale_mixed_stacks && dark >= Config.pale_mixed_stacks)
         {
             effect.RemoveEffect(EffectType.PaleLight);
             effect.RemoveEffect(EffectType.PaleDark);
-            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff, negative: true,
+            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff,
                 payload: new EntityEffectController.EffectPayload { damage = Config.buff_dot_damage });
         }
     }

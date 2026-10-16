@@ -89,7 +89,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
-            GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
+            GiveEffect(caster, EffectType.AttrStrengthBoost, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
         }
 
@@ -166,7 +166,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             // 不是伤害：嘶吼为自己提升攻击力
-            GiveEffect(caster, EffectType.AttrStrength, 1, Config.buff_duration_buff,
+            GiveEffect(caster, EffectType.AttrStrengthBoost, 1, Config.buff_duration_buff,
                 value: Config.buff_attr_value, sourceId: caster != null ? caster.id : (ushort)0);
         }
 
@@ -277,7 +277,7 @@ namespace Ros.Skill
         }
 
         private static Action<EntityEffectController> Poison(ushort casterId) => effect => effect.AddEffect(
-            EffectType.Poison, 1, PoisonDuration, negative: true,
+            EffectType.Poison, 1, PoisonDuration,
             payload: new EntityEffectController.EffectPayload { damage = PoisonDamagePerTick, sourceId = casterId });
 
         public override void PlayVFX(SkillContext context)

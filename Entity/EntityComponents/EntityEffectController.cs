@@ -4,13 +4,13 @@ using UnityEngine;
 
 public enum EffectType
 {
-    // ---- 属性修改（重算轨道，无特效；level 不用，value = 修改量）----
-    AttrStrength,       // 力量提升/降低（激励法阵等）
-    AttrMagic,          // 魔法提升/降低
-    AttrCritRate,       // 暴击率提升/降低
-    AttrCritDamage,     // 暴击伤害提升/降低
-    AttrKnockback,      // 击退抗性提升/降低
-    AttrViewDistance,   // 可见距离提升/降低（无限视野 = +99999）
+    // ---- 属性修改（重算轨道，无特效；方向由 Boost/Decrease 类型表达，value = 修改量幅度，恒为正值）----
+    AttrStrengthBoost,      // 力量提升（激励法阵等）
+    AttrMagicBoost,         // 魔法提升
+    AttrCritRateBoost,      // 暴击率提升
+    AttrCritDamageBoost,    // 暴击伤害提升
+    AttrKnockbackBoost,     // 击退抗性提升
+    AttrViewDistanceBoost,  // 可见距离提升（无限视野 = +99999）
     AttrWeaponSlot,     // 保留枚举位：武器槽位数不可被 Buff 影响（不在 IsAttribute 白名单内），删掉会让后续条目的数值平移
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
@@ -52,30 +52,55 @@ public enum EffectType
     MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
     PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
 
-    // ---- GM（仅调试指令用，只能追加在末尾，理由同上方 AttrWeaponSlot）----
+    // ---- GM（仅调试指令用）----
     GmSpeedUp,          // GM「极速」：动画移速倍率 = Config.gm_speed_multiplier
+
+    // ---- 属性削弱（与对应 Boost 同字段、反向施加；追加在末尾避免既有枚举值平移）----
+    AttrStrengthDecrease,      // 力量降低
+    AttrMagicDecrease,         // 魔法降低
+    AttrCritRateDecrease,      // 暴击率降低
+    AttrCritDamageDecrease,    // 暴击伤害降低
+    AttrKnockbackDecrease,     // 击退抗性降低
+    AttrViewDistanceDecrease,  // 可见距离降低
 }
 
 public static class EffectTypeExt
 {
     public static bool IsAttribute(this EffectType type) => type switch
     {
-        EffectType.AttrStrength or EffectType.AttrMagic or
-        EffectType.AttrCritRate or EffectType.AttrCritDamage or EffectType.AttrKnockback or
-        EffectType.AttrViewDistance => true,
+        EffectType.AttrStrengthBoost or EffectType.AttrMagicBoost or
+        EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or EffectType.AttrKnockbackBoost or
+        EffectType.AttrViewDistanceBoost or
+        EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
+        EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or EffectType.AttrKnockbackDecrease or
+        EffectType.AttrViewDistanceDecrease => true,
         _ => false,
     };
 
     public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root;
 
     public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison;
+
+    //极性固定标注：负面白名单 + 全部属性削弱；其余一律正面（新增 Buff 按实际效果维护此表）
+    public static bool IsNegative(this EffectType type) => type switch
+    {
+        EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
+        EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or
+        EffectType.AttrKnockbackDecrease or EffectType.AttrViewDistanceDecrease or
+        EffectType.Stun or EffectType.Freeze or EffectType.Root or EffectType.Silence or
+        EffectType.Burning or EffectType.Poison or
+        EffectType.Mire or EffectType.AnimSlowDown or EffectType.MinimapLost or
+        EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
+        EffectType.EyeMark or EffectType.Fog or EffectType.MushroomInfect => true,
+        _ => false,
+    };
 }
 
 public class EntityEffectController
 {
     public struct EffectPayload
     {
-        public float value;        // 属性修改量（Attr* 类）/ 死灵漫步光环半径
+        public float value;        // 属性修改量幅度（Boost 加 / Decrease 减）/ 死灵漫步光环半径
         public float damage;       // 固定数值伤害：DoT 每跳 / Reflect 反弹 / 死灵漫步每跳
         public float shieldValue;  // 护盾类：护盾值
         public ushort sourceId;    // 来源实体 id（DoT 归属）
@@ -113,7 +138,7 @@ public class EntityEffectController
     }
 
     #region//增删查（简易统一入口）
-    public void AddEffect(EffectType type, int level = 1, float duration = -1f, bool negative = false, EffectPayload payload = default)
+    public void AddEffect(EffectType type, int level = 1, float duration = -1f, EffectPayload payload = default)
     {
         float endTime = duration < 0f ? float.MaxValue : Time.time + duration;
         if (effects.TryGetValue(type, out var rt))
@@ -140,7 +165,7 @@ public class EntityEffectController
                 endTime = endTime,
                 tickInterval = payload.tickInterval > 0f ? payload.tickInterval : 1f,
                 nextTickTime = Time.time + (payload.tickInterval > 0f ? payload.tickInterval : 1f),
-                isNegative = negative,
+                isNegative = type.IsNegative(),
             };
             effects[type] = rt;
         }
@@ -330,7 +355,9 @@ public class EntityEffectController
         foreach (var pair in effects)
         {
             if (!pair.Key.IsAttribute()) continue;
-            attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), pair.Value.value));
+            // Decrease 类型施加方向取反，value 恒为幅度
+            float sign = pair.Key.IsNegative() ? -1f : 1f;
+            attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), pair.Value.value * sign));
         }
         // 夹取上限读 base：生命值上限只由 base 承担（升级时定一次）。当前也无可达的生命类 Buff（不存在 AttrHealth）
         attr.health = Mathf.Clamp(currentHealth, 0f, owner.baseAttribute.health);
@@ -356,12 +383,18 @@ public class EntityEffectController
     {
         switch (type)
         {
-            case EffectType.AttrStrength: return EntityAttributeDelta.Field.Strength;
-            case EffectType.AttrMagic: return EntityAttributeDelta.Field.Magic;
-            case EffectType.AttrCritRate: return EntityAttributeDelta.Field.CritRate;
-            case EffectType.AttrCritDamage: return EntityAttributeDelta.Field.CritDamage;
-            case EffectType.AttrKnockback: return EntityAttributeDelta.Field.KnockbackResistance;
-            case EffectType.AttrViewDistance: return EntityAttributeDelta.Field.ViewDistance;
+            case EffectType.AttrStrengthBoost:
+            case EffectType.AttrStrengthDecrease: return EntityAttributeDelta.Field.Strength;
+            case EffectType.AttrMagicBoost:
+            case EffectType.AttrMagicDecrease: return EntityAttributeDelta.Field.Magic;
+            case EffectType.AttrCritRateBoost:
+            case EffectType.AttrCritRateDecrease: return EntityAttributeDelta.Field.CritRate;
+            case EffectType.AttrCritDamageBoost:
+            case EffectType.AttrCritDamageDecrease: return EntityAttributeDelta.Field.CritDamage;
+            case EffectType.AttrKnockbackBoost:
+            case EffectType.AttrKnockbackDecrease: return EntityAttributeDelta.Field.KnockbackResistance;
+            case EffectType.AttrViewDistanceBoost:
+            case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
             case EffectType.AttrWeaponSlot: return EntityAttributeDelta.Field.WeaponSlotCount;
             default:
                 Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");

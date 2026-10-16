@@ -306,7 +306,7 @@ public partial class BattleManager
         }
         if (!effect.HasEffect(EffectType.MinimapLost))
         {
-            effect.AddEffect(EffectType.MinimapLost, 1, Config.minimap_lost_duration, negative: true);
+            effect.AddEffect(EffectType.MinimapLost, 1, Config.minimap_lost_duration);
         }
     }
     #endregion

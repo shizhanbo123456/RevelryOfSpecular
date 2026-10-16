@@ -88,7 +88,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.MushroomInfect, 1,
-                    Config.mushroom_infect_duration, negative: true, sourceId: cid);
+                    Config.mushroom_infect_duration, sourceId: cid);
             }
         }
 
@@ -156,7 +156,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.EyeMark, 1,
-                    Config.buff_duration_buff, negative: true, sourceId: cid);
+                    Config.buff_duration_buff, sourceId: cid);
             }
         }
 
@@ -187,7 +187,7 @@ namespace Ros.Skill
             Utils.TargetSelect.SetEntitiesInCampToBuffer(caster.camp); // 己方全体
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrViewDistance, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrViewDistanceBoost, 1, Config.buff_duration_buff,
                     value: Config.infinite_view_distance, sourceId: caster.id);
             }
         }
@@ -332,7 +332,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Silence, 1,
-                    Config.buff_duration_control, negative: true, sourceId: cid);
+                    Config.buff_duration_control, sourceId: cid);
             }
         }
 
@@ -367,7 +367,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Mire, 1,
-                    Config.buff_duration_debuff, negative: true, sourceId: cid);
+                    Config.buff_duration_debuff, sourceId: cid);
             }
         }
 
@@ -440,7 +440,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.PlagueMark, 1,
-                    Config.buff_duration_buff, negative: true, sourceId: cid);
+                    Config.buff_duration_buff, sourceId: cid);
             }
         }
 
@@ -565,7 +565,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort cid = caster != null ? caster.id : (ushort)0;
             var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
-                addEffect: ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, negative: true, sourceId: cid));
+                addEffect: ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, sourceId: cid));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, shotIndex));
@@ -614,7 +614,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort cid = caster != null ? caster.id : (ushort)0;
             var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
-                addEffect: ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, negative: true, sourceId: cid));
+                addEffect: ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, sourceId: cid));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, shotIndex));
@@ -656,7 +656,7 @@ namespace Ros.Skill
             for (int i = 0; i < (context.ints.Count - 1); i++)
             {
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Fog, 1,
-                    Config.buff_duration_buff, negative: true, sourceId: cid);
+                    Config.buff_duration_buff, sourceId: cid);
             }
         }
 

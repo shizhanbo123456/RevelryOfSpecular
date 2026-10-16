@@ -113,9 +113,9 @@ namespace Ros.Skill
         }
 
         protected static Action<EntityEffectController> ApplyEffect(EffectType type, int level, float duration,
-            bool negative = false, float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
+            float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
         {
-            return effect => effect.AddEffect(type, level, duration, negative,
+            return effect => effect.AddEffect(type, level, duration,
                 new EntityEffectController.EffectPayload
                 {
                     value = value,
@@ -126,10 +126,10 @@ namespace Ros.Skill
         }
 
         protected static void GiveEffect(EntityData target, EffectType type, int level, float duration,
-            bool negative = false, float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
+            float value = 0f, float damage = 0f, float shieldValue = 0f, ushort sourceId = 0)
         {
             if (target == null || target.effectController == null) return;
-            target.effectController.AddEffect(type, level, duration, negative,
+            target.effectController.AddEffect(type, level, duration,
                 new EntityEffectController.EffectPayload
                 {
                     value = value,

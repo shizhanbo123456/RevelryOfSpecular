@@ -273,7 +273,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 2.2f, 0.5f, breakEndure: true,
-                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -351,7 +351,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             StrikeSphere(caster, context.vectors[1], 1.5f, BuildAttack(caster, 1f, 1.5f,
-                addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
+                addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, sourceId: casterId)));
         }
         public override void PlayVFX(SkillContext context)
         {
@@ -578,7 +578,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             StrikeSphere(caster, context.vectors[1], 1.5f, BuildAttack(caster, 1f, 1.5f,
-                addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, negative: true, sourceId: casterId)));
+                addEffect: ApplyEffect(EffectType.Root, 1, Config.buff_duration_control, sourceId: casterId)));
         }
         public override void PlayVFX(SkillContext context)
         {
@@ -901,7 +901,7 @@ namespace Ros.Skill
         }
 
         private static Action<EntityEffectController> Burn(ushort casterId) => effect => effect.AddEffect(
-            EffectType.Burning, 1, BurnDuration, negative: true,
+            EffectType.Burning, 1, BurnDuration,
             payload: new EntityEffectController.EffectPayload { damage = BurnDamagePerTick, sourceId = casterId });
         public override void PlayVFX(SkillContext context)
         {
@@ -938,7 +938,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1f, 0.4f,
-                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -978,7 +978,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1f, 0.4f,
-                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -1018,7 +1018,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1f, 1f,
-                addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
+                addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff,
                     damage: Config.buff_dot_damage, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
@@ -1059,7 +1059,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1.6f, 0.45f,
-                addEffect: ApplyEffect(EffectType.AnimSlowDown, 1, Config.buff_duration_debuff, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.AnimSlowDown, 1, Config.buff_duration_debuff, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -1394,7 +1394,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1.2f, 0.4f, useMagic: true,
-                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -1472,7 +1472,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1f, 0.4f, useMagic: true,
-                addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff, negative: true,
+                addEffect: ApplyEffect(EffectType.Poison, 1, Config.buff_duration_debuff,
                     damage: Config.buff_dot_damage, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
@@ -1654,7 +1654,7 @@ namespace Ros.Skill
             BattleManager.EntityContainer.GetAllInCamp(context.vectors[1], 3f, caster.camp, Utils.TargetSelect.TargetBuffer);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrStrength, 1, Config.buff_duration_buff,
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrStrengthBoost, 1, Config.buff_duration_buff,
                     value: Config.buff_attr_value, sourceId: caster.id);
             }
         }
@@ -1694,7 +1694,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 1.2f, 0.5f, useMagic: true,
-                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Freeze, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
@@ -1734,7 +1734,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             ushort casterId = caster != null ? caster.id : (ushort)0;
             var shotAttack = BuildAttack(caster, 2f, 1f, useMagic: true,
-                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, negative: true, sourceId: casterId));
+                addEffect: ApplyEffect(EffectType.Stun, 1, Config.buff_duration_control, sourceId: casterId));
             if (Tool.BattleManager == null) return;
             for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
                 Tool.BattleManager.ShootBullet(caster, shotAttack, CreateTrajectory(context, shotIndex));
