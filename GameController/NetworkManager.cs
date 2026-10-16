@@ -289,6 +289,11 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    public void SendCampAliveCount(SCCampAliveCount info)
+    {
+        CallFuncRpc(ClientReceiveCampAliveCountLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
+    }
+
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
     {
         if (!HasClient(clientId)) return;
@@ -465,6 +470,16 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     public static SCRoomInfo LatestRoomInfo { get; private set; }
+
+    [Rpc]
+    private void ClientReceiveCampAliveCountLocal(SCCampAliveCount info)
+    {
+        if (info == null) return;
+        LatestCampAliveCount = info; // 缓存最新双方人数（战斗页进入时取初值）
+        EventManager.TrigEvent(ClientEvent.OnCampAliveCount, info);
+    }
+
+    public static SCCampAliveCount LatestCampAliveCount { get; private set; }
 
     public static string GetMemberName(int clientId)
     {

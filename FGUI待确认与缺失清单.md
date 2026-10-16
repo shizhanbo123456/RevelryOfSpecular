@@ -4,7 +4,7 @@
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
 > **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩；**2026-10-13**：GM 面板代码已接（入口 + 本地项），确认弹窗/遮罩仍未接。见第五节。
 > **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
-> **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（**UI 已建·代码未接**，对应复活观战与双方人数显示）；新增 `UI_onlookComboBox_popup` 组件。
+> **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（人数文本 2026-10-16 已接 `SCCampAliveCount`，显示「存活/总数」；`m_onlook` 仍未接，对应复活观战）；新增 `UI_onlookComboBox_popup` 组件。
 
 ## 一、页面根与结构
 

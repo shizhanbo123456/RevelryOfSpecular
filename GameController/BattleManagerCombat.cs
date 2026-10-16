@@ -330,6 +330,38 @@ public partial class BattleManager
         HarvestByClient.Clear();
         KillCountByClient.Clear();
         minimapRadiusByClient.Clear(); // 每局雷达显示半径回到默认档
+        lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = -1; // 每局重置，保证开局首帧必发
+    }
+
+    private int lastAttackerTotal = -1, lastDefenseTotal = -1, lastAttackerAlive = -1, lastDefenseAlive = -1;
+
+    // 双方玩家（真人+AI）总人数与存活数：ManagedUpdate 每帧比对，变更才下发（阵亡/复活/进出房/GM 击杀统一在此收口）
+    private void TickCampAliveCount()
+    {
+        int aTotal = 0, dTotal = 0, aAlive = 0, dAlive = 0;
+        foreach (var pair in PlayerCamp)
+        {
+            bool attack = pair.Value == EntityCamp.Attack;
+            if (attack) aTotal++; else dTotal++;
+            var data = PlayerEntityId.TryGetValue(pair.Key, out var eid) ? GetEntity(eid) : null;
+            if (data != null && data.Alive)
+            {
+                if (attack) aAlive++; else dAlive++;
+            }
+        }
+        if (aTotal == lastAttackerTotal && dTotal == lastDefenseTotal
+            && aAlive == lastAttackerAlive && dAlive == lastDefenseAlive) return;
+        lastAttackerTotal = aTotal;
+        lastDefenseTotal = dTotal;
+        lastAttackerAlive = aAlive;
+        lastDefenseAlive = dAlive;
+        Tool.NetworkManager.SendCampAliveCount(new SCCampAliveCount()
+        {
+            attackerTotal = aTotal,
+            defenseTotal = dTotal,
+            attackerAlive = aAlive,
+            defenseAlive = dAlive,
+        });
     }
     #endregion
 }

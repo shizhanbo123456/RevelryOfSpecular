@@ -625,6 +625,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kTickReviveTag = "BattleManager.TickRevive";
     private const string kTickWorldRespawnTag = "BattleManager.TickWorldRespawn";
     private const string kProcessKilledTag = "BattleManager.ProcessKilled";
+    private const string kCampAliveCountTag = "BattleManager.CampAliveCount";
     private const string kTickDyingTag = "BattleManager.TickDying";
     private const string kUpdateAITag = "BattleManager.UpdateAI";
     private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
@@ -707,6 +708,10 @@ public partial class BattleManager : EnsBehaviour
             EntityData.ClearKilled();
         }
         Profiler.EndSample(); // kProcessKilledTag
+
+        Profiler.BeginSample(kCampAliveCountTag);
+        TickCampAliveCount();
+        Profiler.EndSample();
 
         Profiler.BeginSample(kTickDyingTag);
         TickDying(); // 死亡动画播完后物理销毁（BeginDying 入队）

@@ -88,10 +88,12 @@ public class BattlePage : PageBase
         EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
+        EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
+        RefreshCampAliveCount(NetworkManager.LatestCampAliveCount); // 进入战斗先填一次缓存值，随后由变更包刷新
         minimapViewRadius = Config.minimap_view_radius; //每局回到默认档，与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
@@ -116,6 +118,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
+        EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
     }
 
@@ -336,6 +339,17 @@ public class BattlePage : PageBase
     {
         if (info == null) return;
         if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
+    }
+
+    private void OnCampAliveCount(SCCampAliveCount info) => RefreshCampAliveCount(info);
+
+    private void RefreshCampAliveCount(SCCampAliveCount info)
+    {
+        if (info == null) return;
+        if (panel.m_attacker_member_count != null)
+            panel.m_attacker_member_count.text = $"{info.attackerAlive}/{info.attackerTotal}";
+        if (panel.m_defense_member_count != null)
+            panel.m_defense_member_count.text = $"{info.defenseAlive}/{info.defenseTotal}";
     }
 
     private void OnMinimapUpdate(SCMinimapEntity e)
