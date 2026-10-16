@@ -4,14 +4,19 @@ using UnityEngine;
 
 public enum EffectType
 {
-    // ---- 属性修改（重算轨道，无特效；方向由 Boost/Decrease 类型表达，value = 修改量幅度，恒为正值）----
-    AttrStrengthBoost,      // 力量提升（激励法阵等）
-    AttrMagicBoost,         // 魔法提升
-    AttrCritRateBoost,      // 暴击率提升
-    AttrCritDamageBoost,    // 暴击伤害提升
-    AttrKnockbackBoost,     // 击退抗性提升
-    AttrViewDistanceBoost,  // 可见距离提升（无限视野 = +99999）
-    AttrWeaponSlot,     // 保留枚举位：武器槽位数不可被 Buff 影响（不在 IsAttribute 白名单内），删掉会让后续条目的数值平移
+    // ---- 属性修改（重算轨道，无特效；Boost = 提升 / Decrease = 削弱成对，value = 修改量幅度，恒为正值）----
+    AttrStrengthBoost,          // 力量提升（激励法阵等）
+    AttrStrengthDecrease,       // 力量降低
+    AttrMagicBoost,             // 魔法提升
+    AttrMagicDecrease,          // 魔法降低
+    AttrCritRateBoost,          // 暴击率提升
+    AttrCritRateDecrease,       // 暴击率降低
+    AttrCritDamageBoost,        // 暴击伤害提升
+    AttrCritDamageDecrease,     // 暴击伤害降低
+    AttrKnockbackBoost,         // 击退抗性提升
+    AttrKnockbackDecrease,      // 击退抗性降低
+    AttrViewDistanceBoost,      // 可见距离提升（无限视野 = +99999）
+    AttrViewDistanceDecrease,   // 可见距离降低
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
     Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
@@ -54,14 +59,6 @@ public enum EffectType
 
     // ---- GM（仅调试指令用）----
     GmSpeedUp,          // GM「极速」：动画移速倍率 = Config.gm_speed_multiplier
-
-    // ---- 属性削弱（与对应 Boost 同字段、反向施加；追加在末尾避免既有枚举值平移）----
-    AttrStrengthDecrease,      // 力量降低
-    AttrMagicDecrease,         // 魔法降低
-    AttrCritRateDecrease,      // 暴击率降低
-    AttrCritDamageDecrease,    // 暴击伤害降低
-    AttrKnockbackDecrease,     // 击退抗性降低
-    AttrViewDistanceDecrease,  // 可见距离降低
 }
 
 public static class EffectTypeExt
@@ -395,7 +392,6 @@ public class EntityEffectController
             case EffectType.AttrKnockbackDecrease: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistanceBoost:
             case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
-            case EffectType.AttrWeaponSlot: return EntityAttributeDelta.Field.WeaponSlotCount;
             default:
                 Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");
                 return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
