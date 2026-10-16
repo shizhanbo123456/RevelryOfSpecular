@@ -84,7 +84,8 @@ public partial class BattleManager
         }
     }
 
-    public void CheckPaleConversion(EntityData owner)
+    // source = 刚叠层的苍白标记的施加者，转化出的控制/燃烧归属它
+    public void CheckPaleConversion(EntityData owner, EntityData source)
     {
         if (!AtServer || owner == null || owner.effectController == null) return;
         var effect = owner.effectController;
@@ -94,18 +95,18 @@ public partial class BattleManager
         if (light >= Config.pale_full_stacks)
         {
             effect.RemoveEffect(EffectType.PaleLight);
-            effect.AddEffect(EffectType.Freeze, 1, Config.buff_duration_control);
+            effect.AddEffect(EffectType.Freeze, 1, Config.buff_duration_control, source);
         }
         else if (dark >= Config.pale_full_stacks)
         {
             effect.RemoveEffect(EffectType.PaleDark);
-            effect.AddEffect(EffectType.Stun, 1, Config.buff_duration_control);
+            effect.AddEffect(EffectType.Stun, 1, Config.buff_duration_control, source);
         }
         else if (light >= Config.pale_mixed_stacks && dark >= Config.pale_mixed_stacks)
         {
             effect.RemoveEffect(EffectType.PaleLight);
             effect.RemoveEffect(EffectType.PaleDark);
-            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff);
+            effect.AddEffect(EffectType.Burning, 1, Config.buff_duration_debuff, source);
         }
     }
     #endregion

@@ -164,10 +164,10 @@ public class EntityEffectController
         else if (type.IsControl()) ApplyControl();
         else if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
 
-        // 苍白之光/暗叠层后判定转化（PC103 被动：满层转冰/雷、双高转火，见 BattleManagerPassive）
+        // 苍白之光/暗叠层后判定转化（PC103 被动：满层转冰/雷、双高转火，见 BattleManagerPassive）；转化出的控制/燃烧归属原施加者
         if (type == EffectType.PaleLight || type == EffectType.PaleDark)
         {
-            if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner);
+            if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner, FindEntity(rt.sourceId));
         }
     }
 
