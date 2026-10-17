@@ -174,7 +174,7 @@ public class BattlePage : PageBase
             if (!Input.GetKeyDown(Config.skill_slot_keys[i])) continue;
             int skillId = i < skillSummary.Count && skillSummary[i] != null ? skillSummary[i].skillId : -1;
             if (skillId >= 0)
-                localCdEnds[skillId] = Time.time + SkillManager.GetSkillCD(skillId) + Mathf.Max(0f, NetworkManager.Latency);
+                localCdEnds[skillId] = Time.time + SkillManager.GetSkillCD(skillId) + Mathf.Max(0f, EnsInstance.LocalClientDelay / 1000f);
         }
         skillCdRefreshTimer -= deltaTime;
         if (skillCdRefreshTimer > 0f) return;
