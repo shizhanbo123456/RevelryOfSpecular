@@ -5,13 +5,14 @@
 > **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩；**2026-10-13**：GM 面板代码已接（入口 + 本地项），确认弹窗/遮罩仍未接。见第五节。
 > **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
 > **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（人数文本 2026-10-16 已接 `SCCampAliveCount`，显示「存活/总数」；`m_onlook` 仍未接，对应复活观战）；新增 `UI_onlookComboBox_popup` 组件。
+> **2026-10-17 重新导出**：组队界面三阵营化（攻/守/观战）+ 准备制开局（见 UI_LobbyMemberList / UI_RoleHead 行）；`ChatItem.m_camp` 扩为三档（2 = 观战）。
 
 ## 一、页面根与结构
 
 | 页面根 | 组成 |
 |---|---|
 | **UI_HomePanel** | m_page 控制器（**0=玩家信息页，1=角色列表页**）+ m_playerInfo(UI_PlayerInfo) + m_characterPanel(HomeCharacterList) + m_attributePanel(HomeAttrList) + m_connectPanel(HomeConnect) |
-| **UI_LobbyPanel** | m_mainView(LobbyMemberList) + m_btn_exit（断开并返回） |
+| **UI_LobbyPanel** | m_mainView(LobbyMemberList) + m_btn_exit（断开并返回）。**2026-10-17 起：三阵营（加入观战/进攻/防守）+ 准备制开局，见 UI_LobbyMemberList 行** |
 | **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3） |
 
 ## 二、组件规则（全部按你的讲解落实）
@@ -20,10 +21,10 @@
 |---|---|
 | **UI_PlayerInfo**（玩家信息页） | m_input_playerName（GTextInput，玩家名可编辑，**已上报**：随 CSPlayerInfo 发给服务器并进 RoomMemberInfo.name）、m_label_level（玩家等级）、m_selectedAttacker/m_selectedDefenser（UI_RoleHead 展示两阵营当前选中角色）、m_btn_editSelectedCharacter（跳角色列表页） |
 | UI_HomeCharacterList | m_characterList（←UI_RoleHead）+ m_btn_attacker/m_btn_defenser（页签切阵营）+ m_btn_finish（编辑完成切回玩家信息页，**已接线**） |
-| UI_RoleHead | m_headIcon(GLoader)、m_roleName、m_level 控制器（index = level-1）、m_lock（未解锁）；**角色头像统一用它：角色条目/大厅成员（文本=玩家名、头像=所选角色）** |
+| UI_RoleHead | m_headIcon(GLoader)、m_roleName、m_level 控制器（index = level-1）、m_lock（未解锁）、**m_confirm（勾选控制器，2026-10-17 新增：组队界面准备状态勾选，代码按 0 = 未勾 / 1 = 已勾处理）**；**角色头像统一用它：角色条目/大厅成员（文本=玩家名、头像=所选角色）** |
 | UI_HomeAttrList + UI_AttrItem | m_attrValue 用 **UBB**：基础属性白 + 已取得的全部升级加成绿 `[color=#6BD98C]+150[/color]` + 仅下一级将加成的属性橙 `[color=#FF9E47]（+50）[/color]` |
 | UI_HomeConnect + UI_InputField | m_input_ipaddress.m_content(GTextInput) 读 IP + m_btn_connect；无连接状态文本（未连接就在 Home） |
-| UI_LobbyMemberList | 攻/守成员列表（条目 = RoleHead：玩家名+所选角色头像）+ m_btn_joinAttacker/m_btn_joinDefenser（选队）+ AI 编辑（m_attackerAI_minus/m_label_attackerAI_count/m_attackerAI_add + 防守方同组）+ m_btn_battleStart |
+| UI_LobbyMemberList | 三阵营成员列表（条目 = RoleHead：玩家名+所选角色头像；**2026-10-17 起攻/守/观战三组**：m_attackerPlayers / m_defenserPlayers / m_spectatePlayers）+ m_btn_joinAttacker / m_btn_joinDefenser / **m_btn_joinSpectate（加入观战，2026-10-17 新增）**（选队）+ AI 编辑（m_attackerAI_minus/m_label_attackerAI_count/m_attackerAI_add + 防守方同组）+ **m_btn_prepare（准备按钮，2026-10-17 替换原 m_btn_battleStart 开始按钮——已删除；准备/取消准备切换，全员准备后 3 秒自动开战）** |
 | UI_BattlePanel | m_icon_day_night 绕 Z 旋转（0°=正午，180°=午夜，Time01 线性插值）+ m_label_time_left（本地推演）+ m_PlayerBar（左上角固定，本地玩家等级+血量数字+血条）+ m_skillList + m_EventList（UI_EventList）+ m_Minimap |
 | UI_BattlePanel 复活进度 | m_showRegenerationBar 控制器显隐 + m_regeneration_progressbar 填充比例 |
 | **UI_DefensivePointBar**（×4：m_progressMain + m_progressSub1~3） | m_fill 填充比例 = 血量比；**m_destroyed 控制器 = 被摧毁标识**；减伤不在 UI 显示 |
@@ -168,12 +169,13 @@
 | 0 | 收起：只剩列表 + 输入行，频道按钮不可见 |
 | 1 | 展开：额外显示"全频道 / 阵营频道"两个按钮（**组件当前默认档 = 1**） |
 
-**ChatItem.m_camp**（控制的是两个阵营 image 的互斥显示）
+**ChatItem.m_camp**（控制的是各阵营 image 的互斥显示；**2026-10-17 起三档：0 攻 / 1 守 / 2 观战**）
 
 | index | 效果 |
 |---|---|
 | 0 | 显示攻击方图标 `Images/Common/icon_camp_attacker.png`（28×28，位于头像右下角） |
 | 1 | 显示防守方图标 `Images/Common/icon_camp_defenser.png` |
+| 2 | 显示观战方图标（**2026-10-17 新增**；观战方玩家的阵营频道 = 观战玩家互相可见） |
 
 **ChatItem.m_side**（控制的是「头像框组」与「阵营图标组」两个组的 XY，文本/名字不参与）
 
