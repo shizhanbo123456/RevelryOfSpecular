@@ -391,7 +391,7 @@ public partial class BattleManager : EnsBehaviour
         };
         foreach (var pair in PlayerInfoList)
         {
-            if (AIClients.Contains(pair.Key)) continue; // AI 只以 attackAICount/defenseAICount 展示
+            // AI 一并入表（虚拟负数 clientId，名字 = "AI玩家N"）：战斗期名牌/播报可反查；大厅侧自行过滤负数 id
             int campValue = PlayerCamp.TryGetValue(pair.Key, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1;
             //所选角色：按成员最终阵营取 CSPlayerInfo 里对应一侧（首页选择随加入上报）
             int characterIndex = -1;

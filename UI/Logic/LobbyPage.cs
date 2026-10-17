@@ -107,8 +107,9 @@ public class LobbyPage : PageBase
         RenderMemberList(panel.m_mainView.m_attackerPlayers, info.members, 0);
         RenderMemberList(panel.m_mainView.m_defenserPlayers, info.members, 1);
 
-        int attackHumans = info.members.Count(m => m != null && m.camp == 0);
-        int defenseHumans = info.members.Count(m => m != null && m.camp == 1);
+        // AI（负数虚拟 clientId）已在房间表内，但大厅只列真人；AI 数量走专用 ±UI
+        int attackHumans = info.members.Count(m => m != null && m.camp == 0 && m.clientId >= 0);
+        int defenseHumans = info.members.Count(m => m != null && m.camp == 1 && m.clientId >= 0);
         canStartBattle = attackHumans + info.attackAICount > 0 && defenseHumans + info.defenseAICount > 0;
         battleStarted = info.battleStarted;
         syncingFromServer = false;
@@ -131,7 +132,7 @@ public class LobbyPage : PageBase
 
     private void RenderMemberList(GList list, List<SCRoomInfo.RoomMemberInfo> members, int camp)
     {
-        var memberList = members.Where(m => m != null && m.camp == camp).ToList();
+        var memberList = members.Where(m => m != null && m.camp == camp && m.clientId >= 0).ToList(); // 负数 = AI，不进真人列表
         var icons = Tool.AssetsManager == null ? null
             : camp == 0 ? Tool.AssetsManager.AttackCharacterIcons : Tool.AssetsManager.DefenseCharacterIcons;
         list.itemRenderer = (i, obj) =>
