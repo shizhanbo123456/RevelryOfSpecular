@@ -39,6 +39,6 @@ public class InputManager : MonoBehaviour
         }
 
         if (pressed != PlayerKey.None)
-            Tool.NetworkManager.SendInput(new CSPlayerInput() { pressed = pressed, latency = EnsInstance.LocalClientDelay / 1000f });
+            Tool.NetworkManager.SendInput(new CSPlayerInput() { pressed = pressed });
     }
 }

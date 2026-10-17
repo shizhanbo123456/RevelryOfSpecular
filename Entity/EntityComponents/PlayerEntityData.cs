@@ -62,11 +62,8 @@ public class PlayerEntityData : EntityData
 
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
-    private float inputLatency; // 客户端上报的单程延迟估计（秒）
-
     public override void RecordInput(CSPlayerInput input)
     {
-        inputLatency = Mathf.Max(0f, input.latency);
         EnsureMoveState();
 
         // 输入阻断（操作级）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
@@ -117,7 +114,9 @@ public class PlayerEntityData : EntityData
             int meleeSkill = moving
                 ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
                 : Config.unarmed_attack_smash;
-            skillController.TryUseSkill(meleeSkill);
+            var result = skillController.TryUseSkill(meleeSkill);
+            if (result != EntitySkillController.UseResult.Success && Tool.BattleManager != null)
+                Tool.BattleManager.NotifySkillUseFailed(this, result);
         }
 
         // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
@@ -165,21 +164,13 @@ public class PlayerEntityData : EntityData
 
     public void UseSkillSlot(int slot)
     {
-        if (skillController == null)
-        {
-            Debug.Log($"[输入处理] id={id} 技能槽{slot} → 技能控制器缺失，无法释放");
-            return;
-        }
+        if (skillController == null) return;
         var ids = skillController.GetSkillIds();
-        if (slot < 0 || slot >= ids.Count || ids[slot] < 0)
-        {
-            Debug.Log($"[输入处理] id={id} 技能槽{slot} → 该槽位没有技能（技能表 [{string.Join(",", ids)}]）");
-            return;
-        }
+        if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return; // 槽位空：客户端本地就该拦掉
 
-        bool ok = skillController.TryUseSkill(ids[slot], inputLatency);
-        string key = slot < Config.skill_slot_keys.Length ? Config.skill_slot_keys[slot].ToString() : "?";
-        Debug.Log($"[输入处理] id={id} 技能槽{slot}（键 {key}）→ 技能 {ids[slot]}，结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(ids[slot]))}");
+        var result = skillController.TryUseSkill(ids[slot]);
+        if (result != EntitySkillController.UseResult.Success && Tool.BattleManager != null)
+            Tool.BattleManager.NotifySkillUseFailed(this, result);
     }
 
     public override void OnTickMove(float deltaTime, bool canInput)

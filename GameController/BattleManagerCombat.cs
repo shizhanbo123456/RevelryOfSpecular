@@ -11,7 +11,6 @@ public partial class BattleManager
         foreach (var e in EntityContainer.Entities)
         {
             if (e == null || !e.Alive) continue;
-            if (e.skillController != null) e.skillController.TickRecharge(); // 技能库存按 CD 逐点回充
             if (e.anim == null) continue; // 无动画单位不移动（与 EntityData.SetupBody 同一判据）
             e.TickVelocity(dt);
         }
@@ -341,8 +340,29 @@ public partial class BattleManager
         KillCountByClient.Clear();
         minimapRadiusByClient.Clear(); // 每局雷达显示半径回到默认档
         visionStates.Clear(); // 每局视野锚点与观战状态重置
+        skillFailPromptTime.Clear();
         lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = -1; // 每局重置，保证开局首帧必发
     }
+
+    #region 技能释放失败提示
+    private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏
+    private readonly Dictionary<short, float> skillFailPromptTime = new();
+
+    // 技能失败回包：只有玩家看得懂的原因才提示（沉默/强控），AI 与配置错误不提示
+    public void NotifySkillUseFailed(EntityData entity, EntitySkillController.UseResult result)
+    {
+        if (entity == null) return;
+        int messageId;
+        if (result == EntitySkillController.UseResult.Silenced) messageId = 30;
+        else if (result == EntitySkillController.UseResult.Controlled) messageId = 31;
+        else return;
+
+        if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return; // AI / 非玩家没有客户端
+        if (skillFailPromptTime.TryGetValue(clientId, out var last) && Time.time - last < SkillFailPromptInterval) return;
+        skillFailPromptTime[clientId] = Time.time;
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendPrompt(clientId, messageId);
+    }
+    #endregion
 
     private int lastAttackerTotal = -1, lastDefenseTotal = -1, lastAttackerAlive = -1, lastDefenseAlive = -1;
 

@@ -34,6 +34,8 @@ public static class NoticeMessageMap
         { 25, "外围守护点二被摧毁！" },
         { 26, "外围守护点三被摧毁！" },
         { 27, "防御塔被摧毁！" },
+        { 30, "被沉默，无法使用技能" },
+        { 31, "被控制，无法使用技能" },
     };
 
     public static string Get(int id)

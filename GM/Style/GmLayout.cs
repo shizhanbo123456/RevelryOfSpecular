@@ -207,10 +207,6 @@ namespace Ros.Gm
                 new Dropdown("技能", typeof(SkillType)),
                 new Button(string.Empty, "使用")
             });
-            layoutStyle.Add(GmEnum.Player_Skill_ResetCd, new()
-            {
-                new Button(string.Empty, "CD回满")
-            });
             layoutStyle.Add(GmEnum.Player_Skill_ClearSkill, new()
             {
                 new Button(string.Empty, "清空技能")
@@ -249,10 +245,6 @@ namespace Ros.Gm
             layoutStyle.Add(GmEnum.Player_Cheat_Speed, new()
             {
                 new Button(string.Empty, "极速")
-            });
-            layoutStyle.Add(GmEnum.Player_Cheat_IgnoreCd, new()
-            {
-                new Button(string.Empty, "无视CD")
             });
 
             // ===== 画面 =====

@@ -66,7 +66,6 @@ public partial class BattleManager
             case GmEnum.Player_Revive: GmRevive(clientId); break;
             case GmEnum.Player_Skill_GetSkill: GmAddSkill(clientId, gm.int1); break;
             case GmEnum.Player_Skill_DirectUseSkill: GmForceUseSkill(clientId, gm.int1); break;
-            case GmEnum.Player_Skill_ResetCd: GmResetAllCd(clientId); break;
             case GmEnum.Player_Skill_ClearSkill: GmClearSkill(clientId); break;
             case GmEnum.Player_Skill_PassiveEnable:
                 if (gm.int2 != 0) gmPassives.Add(gm.int1); else gmPassives.Remove(gm.int1);
@@ -84,12 +83,6 @@ public partial class BattleManager
                     if (effect == null) break;
                     if (gm.int1 != 0) effect.AddEffect(EffectType.GmSpeedUp);
                     else effect.RemoveEffect(EffectType.GmSpeedUp);
-                    break;
-                }
-            case GmEnum.Player_Cheat_IgnoreCd:
-                {
-                    var skills = GetGmSkillController(clientId);
-                    if (skills != null) skills.GmIgnoreCd = gm.int1 != 0;
                     break;
                 }
 
@@ -140,12 +133,6 @@ public partial class BattleManager
     {
         var skills = GetGmSkillController(clientId);
         if (skills != null) skills.GmForceUseSkill(skillId);
-    }
-
-    private void GmResetAllCd(short clientId)
-    {
-        var skills = GetGmSkillController(clientId);
-        if (skills != null) skills.GmResetAllCd();
     }
 
     private void GmClearSkill(short clientId)

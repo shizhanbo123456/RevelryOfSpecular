@@ -181,7 +181,7 @@ public class ZombieEntityData : EntityData
     {
         if (InputBlocked(InputBlockOp.Attack)) return false; // 攻击屏蔽：爪击/嘶吼均不放
         if (skillController == null) return false;
-        return skillController.TryUseSkill(skillController.GetSkillIdAt(slot));
+        return skillController.TryUseSkill(skillController.GetSkillIdAt(slot)) == EntitySkillController.UseResult.Success;
     }
 
     private void FaceTarget(float deltaTime)

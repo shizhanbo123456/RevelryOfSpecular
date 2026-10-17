@@ -362,7 +362,7 @@ public class GmPanel
     {
         if (cmd == GmEnum.Other_EnemyDialog) return $"敌方对话：{(ChatPlugin.ShowEnemyDialog ? "开" : "关")}";
         if (cmd == GmEnum.Player_Skill_PassiveEnable) return $"{staticTitle}：{(passiveOn.Contains(relativeIndex) ? "开" : "关")}";
-        if (cmd is GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible or GmEnum.Player_Cheat_Speed or GmEnum.Player_Cheat_IgnoreCd)
+        if (cmd is GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible or GmEnum.Player_Cheat_Speed)
             return $"{staticTitle}：{(toggleOn.Contains(cmd) ? "开" : "关")}";
         return staticTitle;
     }
@@ -518,7 +518,7 @@ public class GmPanel
     private static bool IsToggle(GmEnum cmd) =>
         cmd is GmEnum.Other_EnemyDialog or GmEnum.Player_Skill_PassiveEnable
             or GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible
-            or GmEnum.Player_Cheat_Speed or GmEnum.Player_Cheat_IgnoreCd;
+            or GmEnum.Player_Cheat_Speed;
 
     private void HandleToggle(GmEnum cmd, int rowIndex, int start)
     {

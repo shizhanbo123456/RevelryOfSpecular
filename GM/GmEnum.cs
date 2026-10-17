@@ -49,9 +49,6 @@ namespace Ros.Gm
         [GmLabel("玩家-技能-使用技能")]
         [GmStatus(GmStatusType.Battle)]
         Player_Skill_DirectUseSkill,
-        [GmLabel("玩家-技能-立即CD回满")]
-        [GmStatus(GmStatusType.Battle)]
-        Player_Skill_ResetCd,
         [GmLabel("玩家-技能-清空技能")]
         [GmStatus(GmStatusType.Battle)]
         Player_Skill_ClearSkill,
@@ -76,9 +73,6 @@ namespace Ros.Gm
         [GmLabel("玩家-外挂-极速")]
         [GmStatus(GmStatusType.Battle)]
         Player_Cheat_Speed,
-        [GmLabel("玩家-外挂-无视cd")]
-        [GmStatus(GmStatusType.Battle)]
-        Player_Cheat_IgnoreCd,
 
         [GmLabel("画面-地形-显示半径")]
         [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]

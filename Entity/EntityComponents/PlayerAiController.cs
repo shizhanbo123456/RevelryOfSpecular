@@ -138,7 +138,7 @@ public class PlayerAiController
         if (sc == null) return;
         for (int slot = sc.SkillCount - 1; slot >= 0; slot--)
         {
-            if (sc.TryUseSkill(sc.GetSkillIdAt(slot))) return;
+            if (sc.TryUseSkill(sc.GetSkillIdAt(slot)) == EntitySkillController.UseResult.Success) return;
         }
     }
 
