@@ -433,7 +433,6 @@ public class BattlePage : PageBase
         bool destroyed = info.health <= 0;
         bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
         bar.m_fill.fillAmount = destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f);
-        LogDefensiveBarSize(destroyed ? "OnBeaconDisplay(destroyed)" : "OnBeaconDisplay", bar);
     }
 
     private void ResetBeacons()
@@ -451,16 +450,6 @@ public class BattlePage : PageBase
         bar.m_fill.fillAmount = 0f;
     }
 
-    // 临时调试：打印防御点血条尺寸信息，排查进度条与背景尺寸不匹配（确认后删除）
-    private static void LogDefensiveBarSize(string tag, UI_DefensivePointBar bar)
-    {
-        if (bar == null) return;
-        GObject bg = bar.GetChildAt(0);
-        Debug.Log($"[DefensivePointBar] {tag}: bar={bar.width}x{bar.height} bg={bg.width}x{bg.height} " +
-                  $"fill={bar.m_fill.width}x{bar.m_fill.height} source={bar.m_fill.sourceWidth}x{bar.m_fill.sourceHeight} " +
-                  $"fillAmount={bar.m_fill.fillAmount} fillMethod={bar.m_fill.fillMethod}");
-    }
-
     // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
     // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
     private void SetBeaconDestroyed(int textId)
@@ -471,7 +460,6 @@ public class BattlePage : PageBase
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 1;
         bar.m_fill.fillAmount = 1f;
-        LogDefensiveBarSize("SetBeaconDestroyed", bar);
     }
 
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
@@ -572,26 +560,11 @@ public class BattlePage : PageBase
         }
         item.m_type.selectedIndex = GetMinimapType(entity);
         item.m_highlight.selectedIndex = entity.marked ? 1 : 0; //白眼标记高亮（服务器随包下发，出现/消失都靠每包同步）
-        if (isNew) LogMinimapSize(entity, item, mapBase); // [临时排查] 打印尺寸
         //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
         float scale = mapBase.width * 0.5f / minimapViewRadius;
         item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
             mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
         RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次都校一次层级
-    }
-
-    // [临时排查] 打印小地图图标自身 + 父链各级的尺寸/缩放，定位"显示远小于 FGUI 设计"的问题（定位完删除）
-    private void LogMinimapSize(SCMinimapEntity entity, UI_MinimapItem item, GGraph mapBase)
-    {
-        var sb = new System.Text.StringBuilder();
-        float net = 1f;
-        for (GObject o = item; o != null; o = o.parent)
-        {
-            net *= o.scale.x;
-            sb.Append($"{o.name}[{o.width}x{o.height} scale=({o.scale.x},{o.scale.y})]");
-            if (o.parent != null) sb.Append(" <- ");
-        }
-        Debug.Log($"[MinimapSize] id={entity.entityId} type={item.m_type.selectedIndex} design={item.width}x{item.height} net={net:0.000} final={item.width * net:0.0}x{item.height * net:0.0} mapBase={mapBase.width}x{mapBase.height} uiScale={UiScale:0.000} screenH={Screen.height} chain: {sb}");
     }
 
     //自身图标永远置顶，不被其它点位遮挡
