@@ -28,7 +28,9 @@ public partial class BattleManager : EnsBehaviour
 
     #region 玩家进出与组队大厅
     public readonly Dictionary<short, CSPlayerInfo> PlayerInfoList = new();
-    public readonly Dictionary<short, EntityCamp> PlayerCamp = new();
+    public readonly Dictionary<short, PlayerCampType> PlayerCamps = new(); // 玩家阵营三分类（攻/守/观战），与实体阵营分离
+    private readonly Dictionary<short, bool> readyByClient = new(); // 组队界面准备状态（真人专用）
+    private bool startCountdownRunning; // 全员准备后的开战倒计时进行中
     public readonly Dictionary<short, ushort> PlayerEntityId = new();
     public readonly Dictionary<ushort, short> EntityOwnerClient = new();
 
@@ -280,6 +282,7 @@ public partial class BattleManager : EnsBehaviour
     {
         if (PlayerInfoList.ContainsKey(clientId)) return;
         PlayerInfoList[clientId] = info;
+        PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
         BroadcastRoomInfo();
         Debug.Log($"玩家 {clientId} 进入组队大厅");
     }
@@ -294,8 +297,15 @@ public partial class BattleManager : EnsBehaviour
         ExitSpectate(clientId);  // 从被观战目标的列表摘除自己
         ClearSpectators(clientId); // 观战我的人失去目标（回到各自冻结视野）
         visionStates.Remove(clientId);
+        readyByClient.Remove(clientId);
         PlayerInfoList.Remove(clientId);
-        PlayerCamp.Remove(clientId);
+        PlayerCamps.Remove(clientId);
+        // 开始倒计时中有人退场：剩余真人不再全员 ready 则取消计时并提示（仍满足则继续倒计时）
+        if (startCountdownRunning && !AllHumansReady())
+        {
+            startCountdownRunning = false;
+            SendPromptToAll(29);
+        }
         if (!BattleStarted) BroadcastRoomInfo();
         Debug.Log($"玩家 {clientId} 退场");
     }
@@ -305,16 +315,16 @@ public partial class BattleManager : EnsBehaviour
         foreach (var aiClientId in AIClients)
         {
             PlayerInfoList.Remove(aiClientId);
-            PlayerCamp.Remove(aiClientId);
+            PlayerCamps.Remove(aiClientId);
         }
         AIClients.Clear();
 
         nextAIClientId = AIClientIdStart;
-        for (int i = 0; i < AttackAICount; i++) AddAIPlayer(EntityCamp.Attack);
-        for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(EntityCamp.Defense);
+        for (int i = 0; i < AttackAICount; i++) AddAIPlayer(PlayerCampType.Attack);
+        for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(PlayerCampType.Defense);
     }
 
-    private void AddAIPlayer(EntityCamp camp)
+    private void AddAIPlayer(PlayerCampType camp)
     {
         short aiClientId = nextAIClientId--;
         var info = new CSPlayerInfo()
@@ -324,7 +334,7 @@ public partial class BattleManager : EnsBehaviour
             // 名字由虚拟 clientId 推导：重建时 id 源归位，编号稳定且不与真人（正数 id）冲突
             name = $"AI玩家{AIClientIdStart - aiClientId + 1}",
         };
-        if (camp == EntityCamp.Attack)
+        if (camp == PlayerCampType.Attack)
         {
             info.attackCharacter = EntityType.Attack(UnityEngine.Random.Range(0, Config.attack_character_count));
         }
@@ -333,7 +343,7 @@ public partial class BattleManager : EnsBehaviour
             info.defenseCharacter = EntityType.Defense(UnityEngine.Random.Range(0, Config.defense_character_count));
         }
         PlayerInfoList[aiClientId] = info;
-        PlayerCamp[aiClientId] = camp;
+        PlayerCamps[aiClientId] = camp;
         AIClients.Add(aiClientId);
     }
 
@@ -341,10 +351,13 @@ public partial class BattleManager : EnsBehaviour
     {
         if (update == null || BattleStarted || !PlayerInfoList.ContainsKey(clientId)) return;
 
-        // 选队（0 进攻 / 1 防守；-1 = 未选择/取消）
-        if (update.camp == 0) PlayerCamp[clientId] = EntityCamp.Attack;
-        else if (update.camp == 1) PlayerCamp[clientId] = EntityCamp.Defense;
-        else PlayerCamp.Remove(clientId);
+        // 选队（0 进攻 / 1 防守 / 2 观战；进入大厅默认观战，不存在无阵营状态）
+        if (update.camp == (int)PlayerCampType.Attack) PlayerCamps[clientId] = PlayerCampType.Attack;
+        else if (update.camp == (int)PlayerCampType.Defense) PlayerCamps[clientId] = PlayerCampType.Defense;
+        else if (update.camp == (int)PlayerCampType.Spectator) PlayerCamps[clientId] = PlayerCampType.Spectator;
+
+        // 准备状态（任意玩家可随时切换，全员准备后进入开战倒计时）
+        SetReady(clientId, update.ready);
 
         // AI 数量：房间共享，任意玩家可编辑，数量不限制。数量变化时重建 AI 玩家（= AI 进场随机选角）
         int attackAI = Mathf.Max(0, update.attackAICount);
@@ -359,30 +372,64 @@ public partial class BattleManager : EnsBehaviour
         BroadcastRoomInfo();
     }
 
-    public void ReceiveStartRequest(short clientId, CSStartRequest request)
+    #region 准备与开局倒计时
+    private bool AllHumansReady()
     {
-        if (request == null || BattleStarted) return;
-
-        // 校验：所有真人玩家已选队伍，且双方人数（人类 + AI）均 > 0
-        foreach (var pair in PlayerInfoList)
+        foreach (var clientId in PlayerInfoList.Keys)
         {
-            if (AIClients.Contains(pair.Key)) continue; // AI 开战前已定阵营
-            if (!PlayerCamp.ContainsKey(pair.Key))
-            {
-                Tool.NetworkManager.SendPrompt(clientId, 18); // 尚有玩家未选择队伍
-                return;
-            }
+            if (AIClients.Contains(clientId)) continue;
+            if (!readyByClient.TryGetValue(clientId, out var ready) || !ready) return false;
         }
-        // AI 已并入 PlayerCamp，此处不再另加 AI 数量（否则重复计数）
-        if (PlayerCamp.Values.Count(c => c == EntityCamp.Attack) <= 0 ||
-            PlayerCamp.Values.Count(c => c == EntityCamp.Defense) <= 0)
+        return true;
+    }
+
+    private void SetReady(short clientId, bool ready)
+    {
+        if (BattleStarted || AIClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
+        readyByClient[clientId] = ready;
+        if (!ready)
         {
-            Tool.NetworkManager.SendPrompt(clientId, 17); // 双方人数均需 > 0
+            if (startCountdownRunning)
+            {
+                startCountdownRunning = false;
+                SendPromptToAll(29); // 有玩家取消了准备
+            }
             return;
         }
+        if (startCountdownRunning || !AllHumansReady()) return;
+        // 全员准备：双方（人类 + AI）均需 > 0 才进入开始倒计时
+        if (PlayerCamps.Values.Count(c => c == PlayerCampType.Attack) <= 0
+            || PlayerCamps.Values.Count(c => c == PlayerCampType.Defense) <= 0)
+        {
+            SendPromptToAll(17);
+            return;
+        }
+        startCountdownRunning = true;
+        SendPromptToAll(28); // 全员已准备，战斗即将开始
+        Timer.AddTimer(0, _ => TryFireStartBattle(), Config.ready_start_delay, 1, false);
+    }
 
+    // 倒计时到期：期间可能有人取消/退场，重新校验后再开战
+    private void TryFireStartBattle()
+    {
+        if (!startCountdownRunning) return;
+        startCountdownRunning = false;
+        if (BattleStarted) return;
+        if (!AllHumansReady()
+            || PlayerCamps.Values.Count(c => c == PlayerCampType.Attack) <= 0
+            || PlayerCamps.Values.Count(c => c == PlayerCampType.Defense) <= 0)
+        {
+            SendPromptToAll(17);
+            return;
+        }
         StartBattle();
     }
+
+    private void SendPromptToAll(int messageId)
+    {
+        foreach (var clientId in PlayerInfoList.Keys) Tool.NetworkManager.SendPrompt(clientId, messageId);
+    }
+    #endregion
 
     private void BroadcastRoomInfo()
     {
@@ -395,19 +442,21 @@ public partial class BattleManager : EnsBehaviour
         foreach (var pair in PlayerInfoList)
         {
             // AI 一并入表（虚拟负数 clientId，名字 = "AI玩家N"）：战斗期名牌/播报可反查；大厅侧自行过滤负数 id
-            int campValue = PlayerCamp.TryGetValue(pair.Key, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1;
+            int campValue = PlayerCamps.TryGetValue(pair.Key, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
             //所选角色：按成员最终阵营取 CSPlayerInfo 里对应一侧（首页选择随加入上报）
             int characterIndex = -1;
-            if (campValue == 0 && pair.Value.attackCharacter.category == EntityCategory.Character_Attack)
+            if (campValue == (int)PlayerCampType.Attack && pair.Value.attackCharacter.category == EntityCategory.Character_Attack)
                 characterIndex = pair.Value.attackCharacter.value;
-            else if (campValue == 1 && pair.Value.defenseCharacter.category == EntityCategory.Character_Defense)
+            else if (campValue == (int)PlayerCampType.Defense && pair.Value.defenseCharacter.category == EntityCategory.Character_Defense)
                 characterIndex = pair.Value.defenseCharacter.value;
+            readyByClient.TryGetValue(pair.Key, out var ready);
             info.members.Add(new SCRoomInfo.RoomMemberInfo()
             {
                 clientId = pair.Key,
                 camp = campValue,
                 characterIndex = characterIndex,
                 name = pair.Value.name,
+                ready = ready,
             });
         }
         Tool.NetworkManager.SendRoomInfo(info);
@@ -418,7 +467,7 @@ public partial class BattleManager : EnsBehaviour
     {
         if (chat == null) return;
         PlayerInfoList.TryGetValue(clientId, out var info);
-        int campValue = PlayerCamp.TryGetValue(clientId, out var camp) ? (camp == EntityCamp.Attack ? 0 : 1) : -1;
+        int campValue = PlayerCamps.TryGetValue(clientId, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
         int characterIndex = -1;
         if (info != null)
         {
@@ -548,11 +597,23 @@ public partial class BattleManager : EnsBehaviour
         foreach (var pair in PlayerInfoList)
         {
             short clientId = pair.Key;
-            if (!PlayerCamp.TryGetValue(clientId, out var camp)) continue;
-            bool isAttack = camp == EntityCamp.Attack;
+            var campType = PlayerCamps[clientId];
+            if (campType == PlayerCampType.Spectator)
+            {
+                // 观战方玩家：无战斗实体；battleInfo 仅用于客户端切战斗界面（playerEntityId = 0）
+                Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
+                {
+                    playerEntityId = 0,
+                    camp = EntityCamp.None,
+                    characterType = pair.Value.attackCharacter,
+                });
+                continue;
+            }
+            bool isAttack = campType == PlayerCampType.Attack;
             EntityType characterType = isAttack ? pair.Value.attackCharacter : pair.Value.defenseCharacter;
             int level = isAttack ? pair.Value.attackLevel : pair.Value.defenseLevel;
             Vector3 spawnPos = isAttack ? GetAttackSpawnPos() : GetDefenseSpawnPos();
+            EntityCamp camp = isAttack ? EntityCamp.Attack : EntityCamp.Defense;
 
             ushort entityId = SpawnEntity(characterType, level, spawnPos, camp);
             if (entityId == 0) continue; // 服务器模板缺失（SpawnEntity 已告警）

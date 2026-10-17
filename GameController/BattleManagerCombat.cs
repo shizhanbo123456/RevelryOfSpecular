@@ -232,8 +232,8 @@ public partial class BattleManager
             if (PlayerEntityId.ContainsKey(clientId)) continue; // 已复活
 
             var rs = pair.Value;
-            if (!PlayerCamp.TryGetValue(clientId, out var camp)) continue;
-            if (camp == EntityCamp.Attack)
+            if (!PlayerCamps.TryGetValue(clientId, out var camp)) continue;
+            if (camp == PlayerCampType.Attack)
             {
                 float rate = EnvironmentManager.IsDay
                     ? Config.revive_day_progress_per_second
@@ -260,9 +260,9 @@ public partial class BattleManager
 
     private void RespawnPlayer(short clientId, ReviveState rs)
     {
-        if (!PlayerCamp.TryGetValue(clientId, out var camp)) return;
+        if (!PlayerCamps.TryGetValue(clientId, out var camp)) return;
         if (!PlayerInfoList.TryGetValue(clientId, out var info)) return;
-        bool isAttack = camp == EntityCamp.Attack;
+        bool isAttack = camp == PlayerCampType.Attack;
         EntityType characterType = isAttack ? info.attackCharacter : info.defenseCharacter;
         int level = isAttack ? info.attackLevel : info.defenseLevel;
 
@@ -272,7 +272,8 @@ public partial class BattleManager
             ? LandscapeSpawns.RandomOf(spawns.attackPositions)
             : LandscapeSpawns.RandomOf(spawns.defensePositions);
 
-        ushort entityId = SpawnEntity(characterType, level, pos, camp);
+        EntityCamp entityCamp = isAttack ? EntityCamp.Attack : EntityCamp.Defense;
+        ushort entityId = SpawnEntity(characterType, level, pos, entityCamp);
         if (entityId == 0)
         {
             rs.progress = 1f; // 模板缺失：保持攒满状态稍后重试
@@ -298,7 +299,7 @@ public partial class BattleManager
         Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
         {
             playerEntityId = entityId,
-            camp = camp,
+            camp = entityCamp,
             characterType = characterType,
         });
         SendReviveProgress(clientId, rs, entityId, ready: true);
@@ -341,9 +342,10 @@ public partial class BattleManager
     private void TickCampAliveCount()
     {
         int aTotal = 0, dTotal = 0, aAlive = 0, dAlive = 0;
-        foreach (var pair in PlayerCamp)
+        foreach (var pair in PlayerCamps)
         {
-            bool attack = pair.Value == EntityCamp.Attack;
+            if (pair.Value == PlayerCampType.Spectator) continue; // 观战方不计入双方人数
+            bool attack = pair.Value == PlayerCampType.Attack;
             if (attack) aTotal++; else dTotal++;
             var data = PlayerEntityId.TryGetValue(pair.Key, out var eid) ? GetEntity(eid) : null;
             if (data != null && data.Alive)

@@ -7,6 +7,7 @@ public static class Config
 {
     #region 匹配与人数
     public const float battle_duration = 600f;
+    public const float ready_start_delay = 3f; // 全员准备后到开战的倒计时（秒）
     #endregion
 
     #region 角色

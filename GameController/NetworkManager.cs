@@ -180,12 +180,6 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveRoomUpdateLocal, SendTo.RoomOwner, Delivery.Reliable, update, EnsInstance.LocalClientId);
     }
 
-    public void SendStartRequest()
-    {
-        if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveStartRequestLocal, SendTo.RoomOwner, Delivery.Reliable, new CSStartRequest(), EnsInstance.LocalClientId);
-    }
-
     public void SendMinimapRadiusSwitch()
     {
         if (!CanSendWorldCommand) return;
@@ -360,12 +354,6 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveRoomUpdateLocal(CSRoomUpdate update, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveRoomUpdate(clientId, update);
-    }
-
-    [Rpc]
-    private void ServerReceiveStartRequestLocal(CSStartRequest request, short clientId)
-    {
-        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveStartRequest(clientId, request);
     }
 
     [Rpc]

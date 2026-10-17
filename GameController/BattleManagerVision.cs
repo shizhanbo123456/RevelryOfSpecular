@@ -69,8 +69,10 @@ public partial class BattleManager
         if (!visionStates.TryGetValue(clientId, out var state)) return;
         if (targetClientId < 0 || targetClientId == clientId || !PlayerInfoList.ContainsKey((short)targetClientId)) return;
         short target = (short)targetClientId;
-        if (!PlayerCamp.TryGetValue(clientId, out var myCamp) || !PlayerCamp.TryGetValue(target, out var targetCamp)
-            || myCamp != targetCamp) return;
+        if (!PlayerCamps.TryGetValue(clientId, out var myCamp) || !PlayerCamps.TryGetValue(target, out var targetCamp)) return;
+        if (targetCamp == PlayerCampType.Spectator) return; // 观战方玩家无实体，无可跟随视角
+        // 观战方玩家可观战任意存活玩家；攻/守玩家只能观战同阵营
+        if (myCamp != PlayerCampType.Spectator && myCamp != targetCamp) return;
         if (GetEntityOfClient(target) == null) return; // 目标死亡
         state.spectating = true;
         state.spectateTarget = target;
@@ -107,7 +109,12 @@ public partial class BattleManager
     {
         if (target == null) return false;
         if (!visionStates.TryGetValue(clientId, out var state)) return false;
-        if (PlayerCamp.TryGetValue(clientId, out var camp) && target.camp == camp) return true;
+        if (PlayerCamps.TryGetValue(clientId, out var camp))
+        {
+            // 同阵营恒可见（观战方玩家无实体阵营，不走此捷径）
+            if (camp == PlayerCampType.Attack && target.camp == EntityCamp.Attack) return true;
+            if (camp == PlayerCampType.Defense && target.camp == EntityCamp.Defense) return true;
+        }
         return IsInRadius(state.position, target.transform.position, state.viewRadius);
     }
     #endregion
@@ -219,7 +226,7 @@ public partial class BattleManager
             Profiler.BeginSample(kMinimapSendTag);
             foreach (var pair in PlayerInfoList)
             {
-                if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
+                if (!PlayerCamps.TryGetValue(pair.Key, out var memberCamp) || !IsMemberOfCamp(memberCamp, camp)) continue;
                 // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
                 if (lost) continue;
                 if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
@@ -273,9 +280,9 @@ public partial class BattleManager
     {
         s_campVisionSources.Clear();
         // 视野源 = 该阵营所有成员的视野锚点（含死亡冻结的：阵亡玩家仍为阵营提供死前位置的视野）
-        foreach (var pair in PlayerCamp)
+        foreach (var pair in PlayerCamps)
         {
-            if (pair.Value != camp) continue;
+            if (!IsMemberOfCamp(pair.Value, camp)) continue; // 观战方玩家不贡献阵营视野源
             if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
             s_campVisionSources.Add(new CampVisionSource
             {
@@ -402,6 +409,13 @@ public partial class BattleManager
     #endregion
 
     #region//Local
+    // 玩家阵营（三分类）与实体阵营（二分类）匹配：观战方不匹配任何实体阵营
+    private static bool IsMemberOfCamp(PlayerCampType campType, EntityCamp entityCamp)
+    {
+        return campType == PlayerCampType.Attack && entityCamp == EntityCamp.Attack
+            || campType == PlayerCampType.Defense && entityCamp == EntityCamp.Defense;
+    }
+
     private static bool IsInRadius(Vector3 from, Vector3 to, float radius)
     {
         float dx = from.x - to.x;

@@ -116,7 +116,7 @@ public class ChatPlugin
         {
             isSelf = true,
             senderClientId = EnsInstance.LocalClientId,
-            camp = Mathf.Clamp(GetMyCamp(), 0, 1),
+            camp = GetMyCamp(),
             characterIndex = GetLocalMember()?.characterIndex ?? -1,
             name = GetMyName(),
             content = content,
@@ -138,7 +138,7 @@ public class ChatPlugin
         {
             isSelf = false,
             senderClientId = chat.senderClientId,
-            camp = Mathf.Clamp(chat.camp, 0, 1),
+            camp = chat.camp,
             characterIndex = chat.characterIndex,
             name = chat.name,
             content = chat.content,
@@ -180,8 +180,13 @@ public class ChatPlugin
     private int GetMyCamp()
     {
         if (NetworkManager.BattleRunning && NetworkManager.battleInfo != null)
-            return NetworkManager.battleInfo.camp == EntityCamp.Attack ? 0 : 1;
-        return GetLocalMember()?.camp ?? -1;
+        {
+            var camp = NetworkManager.battleInfo.camp;
+            if (camp == EntityCamp.Attack) return 0;
+            if (camp == EntityCamp.Defense) return 1;
+            return 2; // 观战方玩家（无战斗实体）
+        }
+        return GetLocalMember()?.camp ?? 2;
     }
 
     private string GetMyName()

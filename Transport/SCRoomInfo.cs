@@ -12,9 +12,10 @@ namespace Ros.Transport
         public class RoomMemberInfo
         {
             public short clientId;
-            public int camp = -1;
+            public int camp = -1;      // 0 进攻 / 1 防守 / 2 观战（-1 仅协议兼容，进大厅即默认观战）
             public int characterIndex = -1;
             public string name = "";
+            public bool ready;         // 组队界面准备状态（全员准备后服务器倒计时开战）
         }
     }
 
@@ -40,6 +41,7 @@ namespace Ros.Transport
                     if (!IntSerializer.Serialize(member.camp, result, ref indexStart)) return false;
                     if (!IntSerializer.Serialize(member.characterIndex, result, ref indexStart)) return false;
                     if (!StringSerializer.Serialize(member.name, result, ref indexStart)) return false;
+                    if (!BoolSerializer.Serialize(member.ready, result, ref indexStart)) return false;
                 }
             }
             return true;
@@ -65,6 +67,7 @@ namespace Ros.Transport
                     camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     name = StringSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
             return info;
