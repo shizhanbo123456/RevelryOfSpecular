@@ -211,7 +211,9 @@ public partial class NetworkManager : EnsBehaviour
     public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), Delivery.Strive, info);
+        // 含 buff 信息的包走尽力传输（丢一包下轮脏标记还会补）；纯位姿包走不可靠（丢了等下个快包）
+        var delivery = info.includeRuntime || info.hasBuffs ? Delivery.Strive : Delivery.Unreliable;
+        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), delivery, info);
     }
 
     public void SendEntityAnim(short clientId, SCEntityAnimInfo info)
