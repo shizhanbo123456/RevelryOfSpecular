@@ -11,10 +11,10 @@ namespace Ros.Skill.Utils
 
         private readonly List<int> tickBuffer = new(); // Tick 的遍历缓冲，避免每帧新列表
 
-        // 时间源：服务器返回 Time.time；客户端返回「本地时间 − 与服务器的时钟偏移」
+        // 时间源：服务器侧偏移恒为 0，等于 Time.time；客户端把本地时间换算成服务器时间
         public virtual float GetServerTime()
         {
-            return 0f;
+            return NetworkManager.ClientToServerTime(Time.time);
         }
 
         #region 技能列表

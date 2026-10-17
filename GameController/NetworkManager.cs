@@ -49,7 +49,29 @@ public partial class NetworkManager : EnsBehaviour
         tryingEnterWorld = false;
         intentionalExitWorld = false;
         LatestRoomInfo = null; // 跨连接清空，防止重连后大厅显示上一局成员
+        serverTimeOffset = 0f;
     }
+
+    #region 服务器时间换算
+    private static float serverTimeOffset; // 服务器时间 − 本地时间，收到带服务器时间的包时校准
+
+    // 包里的时间戳是发包时刻，补上单程延迟才是到达时刻的服务器时间
+    public static void SyncServerTime(float packetServerTime)
+    {
+        if (packetServerTime <= 0f) return;
+        serverTimeOffset = packetServerTime + EnsInstance.LocalClientDelay / 1000f - Time.time;
+    }
+
+    public static float ClientToServerTime(float localTime)
+    {
+        return localTime + serverTimeOffset;
+    }
+
+    public static float ServerToClientTime(float serverTime)
+    {
+        return serverTime - serverTimeOffset;
+    }
+    #endregion
 
     private void ClientBindEvents()
     {
@@ -410,6 +432,7 @@ public partial class NetworkManager : EnsBehaviour
     private void ClientReceiveEntityDisplayLocal(SCEntityDisplayInfo info)
     {
         if (info == null) return;
+        if (info.hasSkills) SyncServerTime(info.serverTime); // 带服务器时间的包顺手校准时钟
         var logic = Tool.ClientLogicManager;
         if (logic != null) logic.EntityPlayers.OnEntityDisplay(info);
         else EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);

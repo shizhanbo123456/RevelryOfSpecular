@@ -18,6 +18,7 @@ namespace Ros.Transport
         public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；仅技能 id，无冷却/库存
         public int health;
         public int maxHealth;
+        public float serverTime; // 发包时刻的服务器时间，仅 hasSkills 时随技能列表一起下发（客户端据此校准时钟）
         public List<BuffRuntime> buffs = new();
         public List<SkillSlotRuntime> skills = new();
 
@@ -77,7 +78,8 @@ namespace Ros.Transport
                     if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
                 }
             }
-            return true;
+            if (!value.hasSkills) return true;
+            return FloatSerializer.Serialize(value.serverTime, result, ref indexStart);
         }
 
         public static SCEntityDisplayInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -120,6 +122,7 @@ namespace Ros.Transport
                     skillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
+            if (info.hasSkills) info.serverTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex);
             return info;
         }
     }
