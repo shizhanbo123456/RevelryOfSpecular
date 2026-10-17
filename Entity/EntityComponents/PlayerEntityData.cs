@@ -62,8 +62,11 @@ public class PlayerEntityData : EntityData
 
     public override float YawSpeed => moveState != null ? moveState.yawSpeed : 0f;
 
+    private float inputLatency; // 客户端上报的单程延迟估计（秒）
+
     public override void RecordInput(CSPlayerInput input)
     {
+        inputLatency = Mathf.Max(0f, input.latency);
         EnsureMoveState();
 
         // 输入阻断（操作级）：屏蔽期间对应键在服务器恒为抬起，按下/抬起请求均失效
@@ -174,7 +177,7 @@ public class PlayerEntityData : EntityData
             return;
         }
 
-        bool ok = skillController.TryUseSkill(ids[slot]);
+        bool ok = skillController.TryUseSkill(ids[slot], inputLatency);
         string key = slot < Config.skill_slot_keys.Length ? Config.skill_slot_keys[slot].ToString() : "?";
         Debug.Log($"[输入处理] id={id} 技能槽{slot}（键 {key}）→ 技能 {ids[slot]}，结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(ids[slot]))}");
     }

@@ -117,7 +117,11 @@ public class EntityEffectController
 
     public EntityData owner;
 
-    public void Clear() => effects.Clear();
+    public void Clear()
+    {
+        effects.Clear();
+        if (owner != null) owner.buffDirty = true;
+    }
 
     private readonly Dictionary<EffectType, EffectRuntime> effects = new();
     private static readonly List<EffectType> s_expired = new();
@@ -132,6 +136,7 @@ public class EntityEffectController
     #region//增删查（简易统一入口）
     public void AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)
     {
+        if (owner != null) owner.buffDirty = true;
         float endTime = duration < 0f ? float.MaxValue : Time.time + duration;
         if (effects.TryGetValue(type, out var rt))
         {
@@ -174,6 +179,7 @@ public class EntityEffectController
     public void RemoveEffect(EffectType type)
     {
         if (!effects.Remove(type)) return;
+        if (owner != null) owner.buffDirty = true;
         if (type.IsAttribute()) RecomputeAttributes();
         if (type.IsControl()) RefreshControlPause();
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();

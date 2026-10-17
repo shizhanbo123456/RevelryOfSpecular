@@ -10,7 +10,9 @@ public class BattlePage : PageBase
     private readonly UI_BattlePanel panel;
     private float battleStartTime;
 
-    private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存
+    private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存（仅技能 id）
+    private readonly Dictionary<int, float> localCdEnds = new(); // 本地冷却模拟：skillId → 结束时刻（含延迟余量）
+    private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地模拟需要周期刷新）
     private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
     private int skillSlotCount;                           // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
     private bool skillSlotsBuilt;                         // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
@@ -160,6 +162,25 @@ public class BattlePage : PageBase
         TickMinimapTimeout();
         TickSelfMinimapRotation();
         TickSpectator(deltaTime);
+        TickLocalSkillCd(deltaTime);
+    }
+
+    // 本地冷却模拟：按下技能键即开始（时长 = 服务器 CD + 延迟余量），周期重渲染冷却环
+    private void TickLocalSkillCd(float deltaTime)
+    {
+        if (!skillSlotsBuilt || spectatorMode) return;
+        for (int i = 0; i < Config.skill_slot_keys.Length; i++)
+        {
+            if (!Input.GetKeyDown(Config.skill_slot_keys[i])) continue;
+            int skillId = i < skillSummary.Count && skillSummary[i] != null ? skillSummary[i].skillId : -1;
+            if (skillId >= 0)
+                localCdEnds[skillId] = Time.time + SkillManager.GetSkillCD(skillId) + Mathf.Max(0f, NetworkManager.Latency);
+        }
+        skillCdRefreshTimer -= deltaTime;
+        if (skillCdRefreshTimer > 0f) return;
+        skillCdRefreshTimer = 0.1f;
+        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
+        if (list != null) list.numItems = skillSlotCount; // 触发原地重渲染：冷却环按本地模拟推进
     }
 
     #region 事件处理
@@ -317,11 +338,12 @@ public class BattlePage : PageBase
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
     {
+        if (!info.hasSkills) return; // 无技能变化的包不重建摘要（保留本地冷却状态）
         var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
         if (list == null) return;
         skillSummary.Clear();
         if (info.skills != null) skillSummary.AddRange(info.skills);
-        if (!skillSlotsBuilt) BuildSkillSlots(info.camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
+        if (!skillSlotsBuilt) BuildSkillSlots(NetworkManager.battleInfo.camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
         // 数量与边框样式已定，这里重新设置 numItems 只是按新数据原地重渲染（FGUI 规定的刷新方式，不改变条目数）
         list.numItems = skillSlotCount;
     }
@@ -993,15 +1015,13 @@ public class BattlePage : PageBase
             item.m_loader_iconBase.texture = iconSprite != null ? new NTexture(iconSprite) : null;
             item.m_loader_iconBase.visible = iconSprite != null;
         }
-        if (item.m_store != null) item.m_store.text = slot.store >= 0 ? $"x{slot.store}" : "";
 
-        //CD：填充比例随冷却进度增长（0 → 100）
-        bool cooling = slot.cdTotal > 0f && slot.cdRemain > 0f;
-        item.m_loader_icon.fillAmount = cooling ? 1f - Mathf.Clamp01(slot.cdRemain / slot.cdTotal) : 1f;
 
-        //技能经验：exp 与星星数量 1:1（numItems 需要 itemRenderer 非空，给空实现）
-        item.m_starList.itemRenderer = (_, _) => { };
-        item.m_starList.numItems = Mathf.Max(0, slot.exp);
+        //CD：客户端本地模拟（TickLocalSkillCd），服务器只下发技能 id 列表，不携带冷却进度
+        float cdRemain = localCdEnds.TryGetValue(slot.skillId, out var cdEnd) ? cdEnd - Time.time : 0f;
+        float cdTotal = SkillManager.GetSkillCD(slot.skillId);
+        bool cooling = cdRemain > 0f && cdTotal > 0f;
+        item.m_loader_icon.fillAmount = cooling ? 1f - Mathf.Clamp01(cdRemain / cdTotal) : 1f;
     }
 
     // 退出确认：确认后 ExitWorld → NetworkManager 触发 OnExitWorld → UIManager 切回主界面

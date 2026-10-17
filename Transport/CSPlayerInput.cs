@@ -21,13 +21,15 @@ namespace Ros.Transport
     public struct CSPlayerInput
     {
         public PlayerKey pressed;
+        public float latency; // 客户端测得的单程延迟估计（秒），服务器施法后把冷却推进该时长
     }
 
     public struct CSPlayerInputSerializer
     {
         public static bool Serialize(CSPlayerInput value, byte[] result, ref int indexStart)
         {
-            return IntSerializer.Serialize((int)value.pressed, result, ref indexStart);
+            if (!IntSerializer.Serialize((int)value.pressed, result, ref indexStart)) return false;
+        return FloatSerializer.Serialize(value.latency, result, ref indexStart);
         }
 
         public static CSPlayerInput Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -35,6 +37,7 @@ namespace Ros.Transport
             return new CSPlayerInput()
             {
                 pressed = (PlayerKey)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                latency = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }

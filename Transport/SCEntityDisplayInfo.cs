@@ -13,6 +13,9 @@ namespace Ros.Transport
         public Vector3 velocity;
         public float yawSpeed;
         public bool includeRuntime;
+        public bool hasHealth;   // 本包含有效 health/maxHealth（实体 health 脏标记置位 / 完整同步 / 首见）
+        public bool hasBuffs;    // 本包含有效 buffs（实体 buff 脏标记置位 / 完整同步 / 首见）
+        public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；仅技能 id，无冷却/库存
         public int health;
         public int maxHealth;
         public List<BuffRuntime> buffs = new();
@@ -27,10 +30,6 @@ namespace Ros.Transport
         public class SkillSlotRuntime
         {
             public int skillId = -1;
-            public int exp;
-            public float cdRemain;
-            public float cdTotal;
-            public int store = -1;
         }
     }
 
@@ -48,6 +47,9 @@ namespace Ros.Transport
             if (!Vector3Serializer.Serialize(value.velocity, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.yawSpeed, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.hasHealth, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.hasBuffs, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.hasSkills, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
 
@@ -73,10 +75,6 @@ namespace Ros.Transport
                     if (!BoolSerializer.Serialize(slot != null, result, ref indexStart)) return false;
                     if (slot == null) continue;
                     if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
-                    if (!IntSerializer.Serialize(slot.exp, result, ref indexStart)) return false;
-                    if (!FloatSerializer.Serialize(slot.cdRemain, result, ref indexStart)) return false;
-                    if (!FloatSerializer.Serialize(slot.cdTotal, result, ref indexStart)) return false;
-                    if (!IntSerializer.Serialize(slot.store, result, ref indexStart)) return false;
                 }
             }
             return true;
@@ -95,6 +93,9 @@ namespace Ros.Transport
                 velocity = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
                 yawSpeed = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                hasHealth = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                hasBuffs = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                hasSkills = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
@@ -117,10 +118,6 @@ namespace Ros.Transport
                 info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
                 {
                     skillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    exp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    cdRemain = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    cdTotal = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    store = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
             return info;

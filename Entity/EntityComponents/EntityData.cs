@@ -467,6 +467,7 @@ public abstract class EntityData : MonoBehaviour
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
+        healthDirty = true;
         SendDamageEvent(finalDamage, isCrit, hitPos);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
@@ -510,8 +511,17 @@ public abstract class EntityData : MonoBehaviour
         }
     }
 
-    public virtual SCEntityDisplayInfo GetDisplayInfo()
+    // 显示同步脏标记：health 只在当前生命值变化时置脏（上限全程不变）、buff 只在增删时置脏、skill 只在持有列表变化时置脏
+    public bool healthDirty;
+    public bool buffDirty;
+    public bool skillDirty;
+
+    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
     {
+        // health/buffs 按脏标记选择性携带（完整同步 / 首见必带全量）
+        bool withHealth = includeRuntime || healthDirty;
+        bool withBuffs = includeRuntime || buffDirty;
+        bool withSkills = includeRuntime || skillDirty;
         var info = new SCEntityDisplayInfo()
         {
             entityId = id,
@@ -519,11 +529,18 @@ public abstract class EntityData : MonoBehaviour
             camp = camp,
             position = transform.position,
             yaw = transform.eulerAngles.y,
-            health = (int)floatingAttribute.health,   // 当前生命值
-            maxHealth = (int)baseAttribute.health,    // 生命值上限
+            includeRuntime = includeRuntime,
+            hasHealth = withHealth,
+            hasBuffs = withBuffs,
+            hasSkills = withSkills,
         };
-        if (effectController != null) effectController.FillDisplayInfo(info);
-        if (skillController != null) skillController.FillDisplayInfo(info);
+        if (withHealth)
+        {
+            info.health = (int)floatingAttribute.health;   // 当前生命值
+            info.maxHealth = (int)baseAttribute.health;    // 生命值上限（全程不变，随 health 包顺带携带）
+        }
+        if (withBuffs && effectController != null) effectController.FillDisplayInfo(info);
+        if (withSkills && skillController != null) skillController.FillDisplayInfo(info);
         return info;
     }
 
@@ -531,6 +548,7 @@ public abstract class EntityData : MonoBehaviour
     {
         if (!Alive) return;
         floatingAttribute.health = 0f;
+        healthDirty = true;
         MarkAsKilled();
     }
 

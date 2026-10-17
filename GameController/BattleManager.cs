@@ -868,7 +868,7 @@ public partial class BattleManager : EnsBehaviour
                 if (entity == null) continue;
                 if (!CanSeeFromState(clientId, entity)) continue;
                 MarkClientVisible(entity.id);
-                var info = entity.GetDisplayInfo();
+                var info = entity.GetDisplayInfo(includeRuntime);
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
                 info.includeRuntime = includeRuntime || firstSeen;
                 FillDisplayVelocity(entity, info);
@@ -878,6 +878,14 @@ public partial class BattleManager : EnsBehaviour
             }
             EndClientVisibility(clientId);
         }
+
+        // 本轮至少被一个客户端可见的实体：清 health/buff 脏标记（无人可见则保留，等下次可见随完整同步下发）
+        foreach (var id in s_dirtySweep)
+        {
+            var e = GetEntity(id);
+            if (e != null) { e.healthDirty = false; e.buffDirty = false; e.skillDirty = false; }
+        }
+        s_dirtySweep.Clear();
 
         // 脏标记是实体级的（与客户端无关），全部客户端处理完再统一清除
         foreach (var entity in EntityContainer.Entities)

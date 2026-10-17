@@ -32,17 +32,20 @@ public class EntitySkillController
     {
         skillIds.Clear();
         if (ids != null) skillIds.AddRange(ids);
+        if (owner != null) owner.skillDirty = true;
     }
 
     public void AddSkill(int skillId)
     {
         if (skillId < 0 || skillIds.Contains(skillId)) return;
         skillIds.Add(skillId);
+        if (owner != null) owner.skillDirty = true;
     }
 
     public void RemoveSkill(int skillId)
     {
-        skillIds.Remove(skillId);
+        if (!skillIds.Remove(skillId)) return;
+        if (owner != null) owner.skillDirty = true;
     }
 
     public List<int> GetSkillIds() => new(skillIds);
@@ -50,6 +53,18 @@ public class EntitySkillController
     public int SkillCount => skillIds.Count;
 
     public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
+
+    public void FillDisplayInfo(SCEntityDisplayInfo info)
+    {
+        if (info == null) return;
+        foreach (var skillId in skillIds)
+        {
+            info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
+            {
+                skillId = skillId,
+            });
+        }
+    }
 
     #endregion
 
@@ -112,7 +127,7 @@ public class EntitySkillController
     #endregion
 
     #region 释放
-    public bool TryUseSkill(int skillId)
+    public bool TryUseSkill(int skillId, float cdAdvance = 0f)
     {
         if (skillId < 0) return false;
         if (!GmIgnoreCd && GetCdRemain(skillId) > 0f) return false;
@@ -123,6 +138,7 @@ public class EntitySkillController
         CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
         StartCd(skillId);
+        if (cdAdvance > 0f) cdEndTimes[skillId] -= cdAdvance; // 延迟补偿：客户端显示冷却好时服务器必定已好
         ConsumeStore(skillId);
         return true;
     }
@@ -139,21 +155,6 @@ public class EntitySkillController
         return "通过";
     }
 
-    public void FillDisplayInfo(SCEntityDisplayInfo info)
-    {
-        if (info == null) return;
-        foreach (var skillId in skillIds)
-        {
-            info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
-            {
-                skillId = skillId,
-                exp = GetWeaponExp(skillId),
-                cdRemain = GetCdRemain(skillId),
-                cdTotal = GetCdTotal(skillId),
-                store = GetStore(skillId),
-            });
-        }
-    }
     #endregion
 
     #region GM（仅 GM 指令调用，见 BattleManagerGm）

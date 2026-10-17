@@ -296,6 +296,30 @@ public partial class NetworkManager : EnsBehaviour
         EventManager.TrigEvent(ClientEvent.OnPlayerEntityUpdate, info);
     }
 
+    public static float Latency { get; private set; } // 客户端测得的单程延迟估计（秒，EMA 平滑；0 = 未测得）
+
+    public void SendLatency(float clientTime)
+    {
+        CallFuncRpc(ServerReceiveLatencyLocal, SendTo.RoomOwner, Delivery.Reliable,
+            new CSLatency() { clientTime = clientTime }, EnsInstance.LocalClientId);
+    }
+
+    [Rpc]
+    private void ServerReceiveLatencyLocal(CSLatency ping, short clientId)
+    {
+        if (ping == null) return;
+        CallFuncRpc(ClientReceiveLatencyLocal, SendTo.To(clientId), Delivery.Reliable,
+            new SCLatency() { clientTime = ping.clientTime, serverTime = Time.time });
+    }
+
+    [Rpc]
+    private void ClientReceiveLatencyLocal(SCLatency pong)
+    {
+        if (pong == null) return;
+        float halfRtt = Mathf.Max(0f, Time.time - pong.clientTime) * 0.5f;
+        Latency = Latency <= 0f ? halfRtt : Mathf.Lerp(Latency, halfRtt, 0.2f);
+    }
+
     public void SendSpectate(CSSpectate request)
     {
         CallFuncRpc(ServerReceiveSpectateLocal, SendTo.RoomOwner, Delivery.Reliable, request, EnsInstance.LocalClientId);

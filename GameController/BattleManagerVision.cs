@@ -122,6 +122,7 @@ public partial class BattleManager
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };
     private static readonly List<SCMinimapEntity> s_minimapEntries = new();
     private static readonly HashSet<ushort> s_visibleScratch = new();
+    private static readonly HashSet<ushort> s_dirtySweep = new(); // 本轮至少被一个客户端可见的实体（用于清 health/buff 脏标记）
     private static readonly HashSet<ushort> s_removedScratch = new();
     private static readonly HashSet<short> s_clientScratch = new();
 
@@ -159,7 +160,11 @@ public partial class BattleManager
         s_visibleScratch.Clear();
     }
 
-    private static void MarkClientVisible(ushort entityId) => s_visibleScratch.Add(entityId);
+    private static void MarkClientVisible(ushort entityId)
+    {
+        s_visibleScratch.Add(entityId);
+        s_dirtySweep.Add(entityId);
+    }
 
     private void EndClientVisibility(short clientId)
     {

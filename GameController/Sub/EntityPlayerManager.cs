@@ -203,6 +203,9 @@ public class EntityPlayerManager : ClientSubManager
         return view.cameraAnchor;
     }
 
+    // 实体持有技能列表缓存（随显示包的 hasSkills 标记更新，供悬浮武器渲染）
+    private readonly Dictionary<ushort, List<SCEntityDisplayInfo.SkillSlotRuntime>> entitySkills = new();
+
     // 服务端已同步给本客户端的实体视图集合（即客户端可见实体），供相机自动取景等系统遍历
     public IEnumerable<ClientEntityView> AllViews => views.Values;
 
@@ -262,8 +265,8 @@ public class EntityPlayerManager : ClientSubManager
             ApplyAnim(view, pending);
         }
 
-        // 详细数据（血量/Buff/技能槽）仅在完整同步（0.2s）时转发 UI/逻辑层
-        if (info.includeRuntime) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+        // UI/逻辑层事件：完整同步（0.2s / 首见）或本包携带了 health/buff 变化时触发
+        if (info.includeRuntime || info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
         // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
@@ -369,6 +372,7 @@ public class EntityPlayerManager : ClientSubManager
             if (view != null) UnityEngine.Object.Destroy(view.gameObject);
         }
         views.Clear();
+        entitySkills.Clear();
         pendingAnim.Clear();
     }
 
@@ -451,7 +455,7 @@ public class EntityPlayerManager : ClientSubManager
         view.anim.SetHeldObject(prefab); // 挂点未配置时自动取 Humanoid 手部骨骼，无需手工配置
     }
 
-    private void ApplyFloatingWeapons(ClientEntityView view, SCEntityDisplayInfo info)
+    private void ApplyFloatingWeapons(ClientEntityView view, ushort entityId)
     {
         int count = SpringWeapon.slotCount;
         if (view.weaponVisuals == null || view.weaponVisuals.Length != count)
@@ -459,12 +463,13 @@ public class EntityPlayerManager : ClientSubManager
             view.weaponVisuals = new GameObject[count];
             view.weaponRefs = new WeaponRef[count];
         }
+        var slots = entitySkills.TryGetValue(entityId, out var s) ? s : null;
         for (int i = 0; i < count; i++)
         {
             var weapon = WeaponRef.None;
-            if (i < info.skills.Count && info.skills[i] != null)
+            if (slots != null && i < slots.Count && slots[i] != null)
             {
-                weapon = SkillManager.GetFlyWeapon(info.skills[i].skillId);
+                weapon = SkillManager.GetFlyWeapon(slots[i].skillId);
                 if (weapon == view.heldWeapon) weapon = WeaponRef.None; // 已拿到手上，不重复漂浮
             }
             if (view.weaponRefs[i] == weapon) continue;
@@ -544,14 +549,21 @@ public class EntityPlayerManager : ClientSubManager
             view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
         }
 
-        ApplyFloatingWeapons(view, info);                              // 常驻悬浮武器按技能槽推算（手持中的武器不再漂浮）
+        // 悬浮武器按技能槽推算（手持中的武器不再漂浮）：仅在完整同步或技能变化时刷新
+        if (info.includeRuntime || info.hasSkills)
+        {
+            var slots = new List<SCEntityDisplayInfo.SkillSlotRuntime>();
+            if (info.skills != null) slots.AddRange(info.skills);
+            entitySkills[info.entityId] = slots;
+            ApplyFloatingWeapons(view, info.entityId);
+        }
 
         // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正
         // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
-        if (info.includeRuntime) ApplyBuffVfx(view, info.buffs);
+        if (info.includeRuntime || info.hasBuffs) ApplyBuffVfx(view, info.buffs);
 
         // 蘑菇感染表现：完整同步时按 Buff 列表切换水晶/蘑菇模型（仅水晶缓存了 crystalRenderers）
-        if (info.includeRuntime && view.crystalRenderers != null)
+        if ((info.includeRuntime || info.hasBuffs) && view.crystalRenderers != null)
         {
             bool infected = false;
             foreach (var b in info.buffs)
@@ -566,7 +578,7 @@ public class EntityPlayerManager : ClientSubManager
         }
 
         // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
-        if (info.includeRuntime && NetworkManager.battleInfo != null
+        if ((info.includeRuntime || info.hasBuffs) && NetworkManager.battleInfo != null
             && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
             bool fogged = false;

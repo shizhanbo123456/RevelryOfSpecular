@@ -8,9 +8,21 @@ public class InputManager : MonoBehaviour
         Tool.InputManager = this;
     }
 
+    private float latencyPingTimer; // 延迟测量：周期性发本地时刻，服务器原样带回后算 RTT/2
+
     private void Update()
     {
         SendInput();
+        SendLatencyPing();
+    }
+
+    private void SendLatencyPing()
+    {
+        latencyPingTimer -= Time.deltaTime;
+        if (latencyPingTimer > 0f) return;
+        latencyPingTimer = 0.5f;
+        if (Tool.NetworkManager == null || NetworkManager.LatestRoomInfo == null) return; // 进房间后才开始测
+        Tool.NetworkManager.SendLatency(Time.time);
     }
 
     private void SendInput()
@@ -38,6 +50,7 @@ public class InputManager : MonoBehaviour
             if (Input.GetKeyDown(Config.skill_slot_keys[i])) pressed |= Config.skill_slot_player_keys[i];
         }
 
-        if (pressed != PlayerKey.None) Tool.NetworkManager.SendInput(new CSPlayerInput() { pressed = pressed });
+        if (pressed != PlayerKey.None)
+            Tool.NetworkManager.SendInput(new CSPlayerInput() { pressed = pressed, latency = NetworkManager.Latency });
     }
 }
