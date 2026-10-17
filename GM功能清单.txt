@@ -40,15 +40,15 @@ GM 功能清单
 按钮
 立即复活（无参数，点击执行）
 
-[ ] 技能（获得一次技能/直接使用技能/立即cd回满/清空技能/被动技能启用）
+[ ] 技能（获得一次技能/直接使用技能/清空技能/被动技能启用）
 下拉框、按钮、下拉框、按钮、按钮、按钮、下拉框、按钮、按钮、按钮、按钮、按钮
-获得技能（下拉框选技能，与按钮共用一个标签）、使用技能（下拉框选技能，与按钮共用一个标签）、立即CD回满、清空技能、被动技能启用（5个按钮分别对应5个被动，按钮标题显示开关）
+获得技能（下拉框选技能，与按钮共用一个标签）、使用技能（下拉框选技能，与按钮共用一个标签）、清空技能、被动技能启用（5个按钮分别对应5个被动，按钮标题显示开关）
 
 [ ] buff（添加指定buff/移除指定buff/移除全部buff）
 下拉框、按钮、下拉框、按钮、按钮
 添加buff（下拉框选buff，与按钮共用一个标签）、移除指定buff（下拉框选buff，与按钮共用一个标签）、移除全部buff
 
-[ ] 外挂：飞行开关/无敌开关/极速开关/使用技能无视cd开关
+[ ] 外挂：飞行开关/无敌开关/极速开关
 按钮、按钮、按钮、按钮
 四个开关（各自一行按钮，点击切换，按钮标题随状态更新，如"飞行：开/关"）
 
@@ -93,7 +93,7 @@ GM 功能清单
 ====================================================
 实现进度（2026-10-13）
 
-[+] 指令枚举 GmEnum：39 条，含 GmLabel（菜单路径 组-子-项）与 GmStatus（启用时机：Offline / Lobby / Battle 三位，缺省 Battle；39 条已逐条标注）
+[+] 指令枚举 GmEnum：37 条，含 GmLabel（菜单路径 组-子-项）与 GmStatus（启用时机：Offline / Lobby / Battle 三位，缺省 Battle；37 条已逐条标注）
 [+] 布局表 Layout.layoutStyle：每条指令一串 LayoutInfo（7 种控件），Layout.GetLayout(枚举)
 [+] GM 下拉枚举：GmEntityType / GmSettleType / GmFilterType / GmBeacon / GmCharacter
 [+] 协议结构：CSGm(type,int1,int2,float1,float2,float3) / SCGm(type,int1,float1)
@@ -106,7 +106,7 @@ GM 功能清单
 [+] 敌方对话开关：ChatPlugin.ShowEnemyDialog，开启后放行敌方阵营频道消息（不存历史，仅影响之后收到的消息）
 [+] 服务器端 GM 执行体 GameController/BattleManagerGm.cs（partial BattleManager）：NetworkManager.ServerReceiveGmLocal 一行转发；27 条联网项全部接通
 [+] 服务器 → 客户端回包：SCGm + [Rpc] ClientReceiveGmLocal → ClientEvent.OnGmResult(10311)；收集-服务器帧率/时间已接（帧率 = EnsInstance.frameRate、时间 = Time.time）
-[+] 开关类指令（飞行 / 无敌 / 极速 / 无视CD / 被动启用）由客户端带目标状态（int1 / int1+int2），按钮标题显示 开/关
+[+] 开关类指令（飞行 / 无敌 / 极速 / 被动启用）由客户端带目标状态（int1 / int1+int2），按钮标题显示 开/关
 [+] 被动启用：只在组队期显示（战斗期隐藏）；服务器记录在 gmPassives，开战时经 GmOnBattleStart 并入 ApplyGlobalPassives 一起算
 [+] GM 侧向钩子：EntityData.OnDamaged 查 BattleManager.IsGmInvincible；EntitySkillController 新增 GmIgnoreCd / GmForceUseSkill / GmResetAllCd；EntityEffectController 新增 EffectType.GmSpeedUp（Config.gm_speed_multiplier）与 RemoveAll
 [ ] 跑一次 Ens 生成代码（用户口径：全部改完再生成）。不生成则所有 [Rpc] 静默失效，服务端执行体收不到任何指令
