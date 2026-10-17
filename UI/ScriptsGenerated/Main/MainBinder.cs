@@ -30,6 +30,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_onlookComboBox_popup.URL, typeof(UI_onlookComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_ChatPanel.URL, typeof(UI_ChatPanel));
             UIObjectFactory.SetPackageItemExtension(UI_ChatItem.URL, typeof(UI_ChatItem));
+            UIObjectFactory.SetPackageItemExtension(UI_LoadingPanel.URL, typeof(UI_LoadingPanel));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerInfo.URL, typeof(UI_PlayerInfo));
             UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
             UIObjectFactory.SetPackageItemExtension(UI_ConfirmPanel.URL, typeof(UI_ConfirmPanel));

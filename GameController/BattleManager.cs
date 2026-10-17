@@ -210,6 +210,12 @@ public partial class BattleManager : EnsBehaviour
     {
         if (!EntityContainer.Entities.TryGetObject(id, out var data)) return false;
         RemoveFromContainer(data);
+        // 玩家实体销毁：清空其"玩家 → 实体"关系（死亡/离场/对局清理统一走此入口）
+        if (EntityOwnerClient.TryGetValue(id, out var ownerId))
+        {
+            EntityOwnerClient.Remove(id);
+            Tool.NetworkManager.SendPlayerEntity(ownerId, -1);
+        }
 
         // 通知所有客户端移除该实体表现（死亡/离场/摧毁统一走此入口）
         foreach (var clientId in PlayerInfoList.Keys)
@@ -607,6 +613,7 @@ public partial class BattleManager : EnsBehaviour
                     camp = EntityCamp.None,
                     characterType = pair.Value.attackCharacter,
                 });
+                Tool.NetworkManager.SendPlayerEntity(clientId, -1);
                 continue;
             }
             bool isAttack = campType == PlayerCampType.Attack;
@@ -619,6 +626,7 @@ public partial class BattleManager : EnsBehaviour
             if (entityId == 0) continue; // 服务器模板缺失（SpawnEntity 已告警）
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
+            Tool.NetworkManager.SendPlayerEntity(clientId, entityId);
 
             // AI 玩家：置位后 PlayerEntityData 才走 AI 决策（真人不受影响，输入仍来自网络）
             if (AIClients.Contains(clientId))
@@ -863,7 +871,6 @@ public partial class BattleManager : EnsBehaviour
                 var info = entity.GetDisplayInfo();
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
                 info.includeRuntime = includeRuntime || firstSeen;
-                info.ownerClientId = EntityOwnerClient.TryGetValue(entity.id, out var oc) ? oc : (short)-1;
                 FillDisplayVelocity(entity, info);
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
 

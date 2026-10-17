@@ -33,7 +33,8 @@ public class BattlePage : PageBase
     private float spectatePendingSince;   // 发起观战的时刻（目标数据迟迟不到 = 目标已死，超时重选）
     private float onlookRefreshTimer;     // 观战下拉选项刷新节流
     private bool syncingOnlookCombo;      // 程序刷新下拉选项期间屏蔽 onChanged 回调
-    private readonly Dictionary<int, ushort> clientEntityIds = new(); // 玩家 id → 实体 id（随表现数据更新）
+    private readonly Dictionary<int, int> playerEntities = new(); // 玩家 id → 实体 id（-1 = 无实体），来自 SCPlayerEntity
+    private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
@@ -97,6 +98,9 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
+        EventManager.AddEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
+        playerEntities.Clear();
+        entityOwners.Clear();
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
@@ -131,12 +135,14 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
+        EventManager.RemoveEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
+        playerEntities.Clear();
+        entityOwners.Clear();
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
         spectatorMode = false;
         localPlayerAlive = true;
         spectateTargetClientId = -1;
         spectateTargetEntityId = -1;
-        clientEntityIds.Clear();
         if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
     }
 
@@ -170,8 +176,6 @@ public class BattlePage : PageBase
             UpdateEntityBar(info);
         }
 
-        if (info.ownerClientId >= 0) clientEntityIds[info.ownerClientId] = info.entityId;
-
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
             localPlayerCamp = (int)info.camp;
@@ -188,21 +192,29 @@ public class BattlePage : PageBase
         RemoveEntityBar((ushort)entityId);
         RemoveMinimapItem((ushort)entityId);
 
-        int removedClient = -1;
-        foreach (var pair in clientEntityIds)
-        {
-            if (pair.Value == entityId) { removedClient = pair.Key; break; }
-        }
-        if (removedClient != -1) clientEntityIds.Remove(removedClient);
-        if (spectateTargetEntityId == entityId)
-        {
-            // 观战目标死亡：纯观战由 TickSpectator 自动重选；死亡观战冻结在原地
-            spectateTargetClientId = -1;
-            spectateTargetEntityId = -1;
-        }
         if (NetworkManager.battleInfo != null && entityId == NetworkManager.battleInfo.playerEntityId)
             localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
     }
+
+    private void OnPlayerEntityUpdate(SCPlayerEntity info)
+    {
+        if (info == null) return;
+        // 旧实体关系清理（复活的玩家会拿到新实体 id）
+        if (playerEntities.TryGetValue(info.clientId, out var old) && old != -1
+            && entityOwners.TryGetValue(old, out var oc) && oc == info.clientId)
+            entityOwners.Remove(old);
+        playerEntities[info.clientId] = info.entityId;
+        if (info.entityId != -1) entityOwners[info.entityId] = info.clientId;
+
+        // 正在观战的目标关系变化：-1 = 目标死亡（纯观战自动重选 / 死亡观战冻结原地），新 id = 重绑相机
+        if (spectateTargetClientId == info.clientId)
+        {
+            spectateTargetEntityId = info.entityId;
+            if (info.entityId == -1) spectateTargetClientId = -1;
+        }
+    }
+
+    private int EntityOwnerOf(ushort entityId) => entityOwners.TryGetValue(entityId, out var c) ? c : -1;
 
     #region 观战
     private void TickSpectator(float deltaTime)
@@ -226,7 +238,7 @@ public class BattlePage : PageBase
         }
         // 目标表现数据已到达：绑定相机到其视图锚点（锚点由视图逐帧刷新）
         if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
-            && clientEntityIds.TryGetValue(spectateTargetClientId, out var eid))
+            && playerEntities.TryGetValue(spectateTargetClientId, out var eid) && eid != -1)
         {
             spectateTargetEntityId = eid;
             spectatePendingSince = 0f;
@@ -251,7 +263,7 @@ public class BattlePage : PageBase
     {
         if (targetClientId < 0) return;
         spectateTargetClientId = targetClientId;
-        spectateTargetEntityId = clientEntityIds.TryGetValue(targetClientId, out var eid) ? eid : -1;
+        spectateTargetEntityId = playerEntities.TryGetValue(targetClientId, out var eid) ? eid : -1;
         spectatePendingSince = spectateTargetEntityId == -1 ? Time.time : 0f;
         NetworkManager.RequestSpectate(targetClientId);
     }
@@ -719,7 +731,7 @@ public class BattlePage : PageBase
         nameItem.visible = true;
         if (nameItem.m_num != null)
         {
-            nameItem.m_num.text = NetworkManager.GetMemberName(info.ownerClientId);
+            nameItem.m_num.text = NetworkManager.GetMemberName(EntityOwnerOf(info.entityId));
             nameItem.m_num.color = campColor;
         }
 
@@ -733,7 +745,7 @@ public class BattlePage : PageBase
         barItem.m_fill.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
         barItem.m_fill.color = campColor;
         if (barItem.m_label != null) barItem.m_label.text = $"{info.health}/{info.maxHealth}";
-        barOwners[info.entityId] = info.ownerClientId;
+        barOwners[info.entityId] = EntityOwnerOf(info.entityId);
     }
 
     private Camera GetProjectionCamera()

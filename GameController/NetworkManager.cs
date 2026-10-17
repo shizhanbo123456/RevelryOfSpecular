@@ -283,12 +283,25 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    public void SendPlayerEntity(short clientId, int entityId)
+    {
+        CallFuncRpc(ClientReceivePlayerEntityLocal, SendTo.ExcludeSender, Delivery.Reliable,
+            new SCPlayerEntity() { clientId = clientId, entityId = entityId });
+    }
+
+    [Rpc]
+    private void ClientReceivePlayerEntityLocal(SCPlayerEntity info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnPlayerEntityUpdate, info);
+    }
+
     public void SendSpectate(CSSpectate request)
     {
         CallFuncRpc(ServerReceiveSpectateLocal, SendTo.RoomOwner, Delivery.Reliable, request, EnsInstance.LocalClientId);
     }
 
-    // 观战接口：传目标玩家 clientId（客户端可从实体表现数据的 ownerClientId 取得）；
+    // 观战接口：传目标玩家 clientId（客户端可从 SCPlayerEntity 关系包 / 房间成员表取得）；
     // 传非法 / 死亡 / 异阵营目标 = 退出观战
     public static void RequestSpectate(int targetClientId)
     {

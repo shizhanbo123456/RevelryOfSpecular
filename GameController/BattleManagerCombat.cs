@@ -281,6 +281,7 @@ public partial class BattleManager
         }
         PlayerEntityId[clientId] = entityId;
         EntityOwnerClient[entityId] = clientId;
+        Tool.NetworkManager.SendPlayerEntity(clientId, entityId);
         ExitSpectate(clientId); // 复活即结束观战，视野回到自己实体
 
         var data = GetEntity(entityId);
