@@ -116,7 +116,7 @@ public class SettlementView
     private void RenderRow(int index, GObject obj)
     {
         if (obj is not UI_BattleResultDetailItem item) return;
-        item.alpha = 0f; // 播放自身动画前保持透明
+        item.alpha = 0f; // 出现前整体隐藏，到点播放 t0 时解开
         item.m_content.text = index < rows.Count ? rows[index] : string.Empty;
         if (!items.Contains(item)) items.Add(item); // 动画序列按此顺序逐条播放
     }
@@ -141,14 +141,17 @@ public class SettlementView
             while (shown < items.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
             {
                 var item = items[shown++];
-                if (item != null && item.displayObject != null) item.m_t0.Play();
+                if (item == null || item.displayObject == null) continue;
+                item.m_t0.Play();   // 淡入由 t0 的 Alpha 通道完成
+                item.alpha = 1f;    // 显示期间整体保持不透明
             }
-            // 全部出现后同步淡出直至消失
+            // 全部出现后同步淡出直至消失（只淡出已显示的条目）
             if (elapsed >= fadeStart)
             {
                 float alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / DetailFadeDuration);
-                foreach (var item in items)
+                for (int i = 0; i < shown; i++)
                 {
+                    var item = items[i];
                     if (item != null && item.displayObject != null) item.alpha = alpha;
                 }
             }
