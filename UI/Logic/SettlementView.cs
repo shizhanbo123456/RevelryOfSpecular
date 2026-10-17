@@ -11,6 +11,8 @@ public class SettlementView
     private const float DetailItemInterval = 0.3f; // 相邻两条细节的间隔
     private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
     private const float DetailFadeDuration = 0.5f; // 面板与明细同步淡出时长
+    private const float PanelCenterRatio = 0.35f;  // 面板中心在屏幕高度上的位置
+    private const float DetailTopRatio = 0.55f;    // 明细列表顶部在屏幕高度上的位置
 
     private UI_BattleResult panel;
     private UI_BattleResultDetail detail;
@@ -85,11 +87,24 @@ public class SettlementView
             panel.AddChild(detail);
         }
         BuildRows(r, camp);
+        Layout();
 
         panel.visible = true;
         panel.alpha = 1f; // 每次显示从完全不透明开始
         panel.m_t0.Play();
         ScheduleAnimations(); // 含淡出与销毁
+    }
+
+    // 锚点均为左上角：按根节点尺寸摆放，面板居中偏上，明细列表居中偏下
+    private void Layout()
+    {
+        float sw = GRoot.inst.width;
+        float sh = GRoot.inst.height;
+
+        panel.SetXY((sw - panel.width) * 0.5f, sh * PanelCenterRatio - panel.height * 0.5f);
+        // 明细是面板子对象，换回局部坐标后让列表首行落在 DetailTopRatio 高度
+        detail.SetXY((panel.width - detail.width) * 0.5f,
+                     sh * DetailTopRatio - panel.y - detail.m_resultList.y);
     }
 
     private void BuildRows(SettlementResult r, EntityCamp camp)
