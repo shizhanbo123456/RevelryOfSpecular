@@ -280,6 +280,7 @@ public partial class BattleManager
         }
         PlayerEntityId[clientId] = entityId;
         EntityOwnerClient[entityId] = clientId;
+        ExitSpectate(clientId); // 复活即结束观战，视野回到自己实体
 
         var data = GetEntity(entityId);
         if (data != null) data.aiControlled = AIClients.Contains(clientId);
@@ -330,6 +331,7 @@ public partial class BattleManager
         HarvestByClient.Clear();
         KillCountByClient.Clear();
         minimapRadiusByClient.Clear(); // 每局雷达显示半径回到默认档
+        visionStates.Clear(); // 每局视野锚点与观战状态重置
         lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = -1; // 每局重置，保证开局首帧必发
     }
 

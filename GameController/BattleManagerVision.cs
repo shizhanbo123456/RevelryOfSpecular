@@ -23,6 +23,95 @@ public partial class BattleManager
     private readonly Dictionary<short, HashSet<ushort>> visibleByClient = new();
     private readonly Dictionary<short, float> minimapRadiusByClient = new(); // 各客户端雷达显示半径（F 键切换，缺省 = minimap_view_radius）
 
+    #region 视野锚点与观战
+    // 每个玩家的视野锚点：位置/半径随操控实体逐帧刷新；实体销毁（死亡）后冻结在死亡位置；
+    // 观战时跟随目标实体（相机跟随者），目标死亡清空其观战列表后自然冻结
+    public class VisionState
+    {
+        public ushort entityId;                           // 当前操控实体 id（死亡后保留最后值）
+        public Vector3 position;                          // 视野判定圆心
+        public float viewRadius;                          // 视野判定半径
+        public bool spectating;                           // 是否正在观战
+        public short spectateTarget = -1;                 // 观战目标玩家 id（-1 = 无）
+        public readonly List<short> spectators = new();   // 观战我的玩家列表
+    }
+
+    private readonly Dictionary<short, VisionState> visionStates = new();
+
+    // 每帧刷新：存活且未观战 = 自己实体；观战中 = 目标实体；无实体可跟随（死亡/目标死亡）时保持冻结
+    private void TickVisionStates()
+    {
+        foreach (var pair in PlayerInfoList)
+        {
+            if (!visionStates.TryGetValue(pair.Key, out var state))
+            {
+                state = new VisionState();
+                visionStates[pair.Key] = state;
+            }
+            // 目标实体已销毁：立即清空其观战列表，观战者回到各自的冻结视野
+            if (state.spectators.Count > 0 && GetEntityOfClient(pair.Key) == null) ClearSpectators(pair.Key);
+
+            var follow = state.spectating && visionStates.TryGetValue(state.spectateTarget, out _)
+                ? GetEntityOfClient(state.spectateTarget)
+                : GetEntityOfClient(pair.Key);
+            if (follow == null) continue; // 冻结：不再更新位置与半径
+            state.entityId = follow.id;
+            state.position = follow.transform.position;
+            state.viewRadius = VisionRadius(follow);
+        }
+    }
+
+    // 观战请求：目标须为同阵营存活玩家（不可是自己）；非法 / 死亡 / 异阵营目标 = 退出观战
+    public void SpectateRequest(short clientId, int targetClientId)
+    {
+        if (!AtServer || !BattleStarted) return;
+        ExitSpectate(clientId);
+        if (!visionStates.TryGetValue(clientId, out var state)) return;
+        if (targetClientId < 0 || targetClientId == clientId || !PlayerInfoList.ContainsKey((short)targetClientId)) return;
+        short target = (short)targetClientId;
+        if (!PlayerCamp.TryGetValue(clientId, out var myCamp) || !PlayerCamp.TryGetValue(target, out var targetCamp)
+            || myCamp != targetCamp) return;
+        if (GetEntityOfClient(target) == null) return; // 目标死亡
+        state.spectating = true;
+        state.spectateTarget = target;
+        visionStates[target].spectators.Add(clientId);
+    }
+
+    // 退出观战：复活 / 换目标 / 退场时调用
+    public void ExitSpectate(short clientId)
+    {
+        if (!visionStates.TryGetValue(clientId, out var state) || !state.spectating) return;
+        state.spectating = false;
+        if (state.spectateTarget >= 0 && visionStates.TryGetValue(state.spectateTarget, out var target))
+            target.spectators.Remove(clientId);
+        state.spectateTarget = -1;
+    }
+
+    // 清空某玩家的观战列表（其操控实体死亡时）
+    private void ClearSpectators(short clientId)
+    {
+        if (!visionStates.TryGetValue(clientId, out var state)) return;
+        foreach (var spectator in state.spectators)
+        {
+            if (visionStates.TryGetValue(spectator, out var s) && s.spectateTarget == clientId)
+            {
+                s.spectating = false;
+                s.spectateTarget = -1;
+            }
+        }
+        state.spectators.Clear();
+    }
+
+    // 以玩家视野锚点（而非其实体）判定可见性：同阵营恒可见，否则 XZ 距离 ≤ 锚点半径
+    private bool CanSeeFromState(short clientId, EntityData target)
+    {
+        if (target == null) return false;
+        if (!visionStates.TryGetValue(clientId, out var state)) return false;
+        if (PlayerCamp.TryGetValue(clientId, out var camp) && target.camp == camp) return true;
+        return IsInRadius(state.position, target.transform.position, state.viewRadius);
+    }
+    #endregion
+
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };
     private static readonly List<SCMinimapEntity> s_minimapEntries = new();
     private static readonly HashSet<ushort> s_visibleScratch = new();
@@ -44,19 +133,11 @@ public partial class BattleManager
         return EntityContainer.Entities.TryGetObject(entityId, out var entity) ? entity : null;
     }
 
-    private static bool CanSeeModel(EntityData viewer, EntityData target)
-    {
-        if (viewer == null || target == null) return false;
-        if (target == viewer || target.camp == viewer.camp) return true;
-        return IsInRadius(viewer.transform.position, target.transform.position, VisionRadius(viewer));
-    }
-
     public void SendDamageToViewers(EntityData target, SCDamage d)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            var viewer = GetEntityOfClient(clientId);
-            if (viewer == null || !CanSeeModel(viewer, target)) continue;
+            if (!CanSeeFromState(clientId, target)) continue;
             Tool.NetworkManager.SendDamage(clientId, d);
         }
     }
@@ -141,11 +222,10 @@ public partial class BattleManager
                 if (!PlayerCamp.TryGetValue(pair.Key, out var memberCamp) || memberCamp != camp) continue;
                 // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
                 if (lost) continue;
-                var viewer = GetEntityOfClient(pair.Key);
-                if (viewer == null) continue; // 死亡/未入场无位置基准：本轮不发，雷达随超时清空
+                if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
                 float radiusSq = GetMinimapRadius(pair.Key);
                 radiusSq *= radiusSq;
-                var viewPos = viewer.transform.position;
+                var viewPos = state.position; // 视野锚点：存活/观战/死亡冻结统一由 TickVisionStates 维护
                 // 每个实体独立成包（无片段号、不拼回）；客户端分帧累积，并对超时未更新的点位做隐藏。
                 // 非本阵营单位按该客户端的雷达显示半径在服务器侧过滤，圈外不下发
                 foreach (var entry in s_minimapEntries)
@@ -189,15 +269,20 @@ public partial class BattleManager
         Profiler.EndSample();
     }
 
-    private static void CollectCampVisionSources(EntityCamp camp)
+    private void CollectCampVisionSources(EntityCamp camp)
     {
         s_campVisionSources.Clear();
-        foreach (var member in EntityContainer.Entities)
+        // 视野源 = 该阵营所有成员的视野锚点（含死亡冻结的：阵亡玩家仍为阵营提供死前位置的视野）
+        foreach (var pair in PlayerCamp)
         {
-            if (member == null || member.camp != camp) continue;
-            float r = VisionRadius(member);
-            var p = member.transform.position;
-            s_campVisionSources.Add(new CampVisionSource { x = p.x, z = p.z, radiusSq = r * r });
+            if (pair.Value != camp) continue;
+            if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
+            s_campVisionSources.Add(new CampVisionSource
+            {
+                x = state.position.x,
+                z = state.position.z,
+                radiusSq = state.viewRadius * state.viewRadius,
+            });
         }
     }
 
@@ -236,8 +321,13 @@ public partial class BattleManager
         {
             if (!PlayerInfoList.ContainsKey(pair.Key)) s_clientScratch.Add(pair.Key);
         }
-        foreach (var clientId in s_clientScratch) visibleByClient.Remove(clientId);
-        foreach (var clientId in s_clientScratch) minimapRadiusByClient.Remove(clientId);
+        foreach (var clientId in s_clientScratch)
+        {
+            visibleByClient.Remove(clientId);
+            minimapRadiusByClient.Remove(clientId);
+            ExitSpectate(clientId); // 兜底：从目标的观战列表摘除
+            visionStates.Remove(clientId);
+        }
     }
 
     //F 键切换雷达显示半径：在档位间循环并回应新值

@@ -289,6 +289,19 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    public void SendSpectate(CSSpectate request)
+    {
+        CallFuncRpc(ServerReceiveSpectateLocal, SendTo.RoomOwner, Delivery.Reliable, request, EnsInstance.LocalClientId);
+    }
+
+    // 观战接口：传目标玩家 clientId（客户端可从实体表现数据的 ownerClientId 取得）；
+    // 传非法 / 死亡 / 异阵营目标 = 退出观战
+    public static void RequestSpectate(int targetClientId)
+    {
+        if (Tool.NetworkManager == null) return;
+        Tool.NetworkManager.SendSpectate(new CSSpectate() { targetClientId = targetClientId });
+    }
+
     public void SendCampAliveCount(SCCampAliveCount info)
     {
         CallFuncRpc(ClientReceiveCampAliveCountLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
@@ -353,6 +366,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveStartRequestLocal(CSStartRequest request, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveStartRequest(clientId, request);
+    }
+
+    [Rpc]
+    private void ServerReceiveSpectateLocal(CSSpectate request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.SpectateRequest(clientId, request != null ? request.targetClientId : -1);
     }
 
     [Rpc]

@@ -291,6 +291,9 @@ public partial class BattleManager : EnsBehaviour
             DestroyEntity(entityId);
             PlayerEntityId.Remove(clientId);
         }
+        ExitSpectate(clientId);  // 从被观战目标的列表摘除自己
+        ClearSpectators(clientId); // 观战我的人失去目标（回到各自冻结视野）
+        visionStates.Remove(clientId);
         PlayerInfoList.Remove(clientId);
         PlayerCamp.Remove(clientId);
         if (!BattleStarted) BroadcastRoomInfo();
@@ -632,6 +635,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kCrystalSpawnTag = "BattleManager.CrystalSpawn";
     private const string kSyncEntitiesTag = "BattleManager.SyncEntitiesToClients";
     private const string kSyncMinimapTag = "BattleManager.SyncMinimap";
+    private const string kVisionStateTag = "BattleManager.VisionState";
 
     public override void ManagedUpdate()
     {
@@ -751,6 +755,11 @@ public partial class BattleManager : EnsBehaviour
         TickCrystalSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample();
 
+        // 视野锚点逐帧刷新（观战跟随 / 死亡冻结），供实体同步与小地图使用
+        Profiler.BeginSample(kVisionStateTag);
+        TickVisionStates();
+        Profiler.EndSample();
+
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
         Profiler.BeginSample(kSyncEntitiesTag);
         syncTimer -= UnityEngine.Time.deltaTime;
@@ -780,19 +789,15 @@ public partial class BattleManager : EnsBehaviour
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            var viewer = GetEntityOfClient(clientId);
-            if (viewer == null)
-            {
-                visibleByClient.Remove(clientId); // 复活等待中无观察者：实体已由 DestroyEntity 通知移除
-                continue;
-            }
+            // 视野锚点（存活跟随自己 / 观战跟随目标 / 死亡冻结在死亡位置），死亡不再跳过：按冻结位置继续下发
+            if (!visionStates.TryGetValue(clientId, out _)) continue;
             // 上一轮可见集合：用于判断"刚进入视野"，新实体必须整包下发（客户端要靠持久参数才能摆对状态）
             visibleByClient.TryGetValue(clientId, out var prevSeen);
             BeginClientVisibility(clientId);
             foreach (var entity in EntityContainer.Entities)
             {
                 if (entity == null) continue;
-                if (!CanSeeModel(viewer, entity)) continue;
+                if (!CanSeeFromState(clientId, entity)) continue;
                 MarkClientVisible(entity.id);
                 var info = entity.GetDisplayInfo();
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
