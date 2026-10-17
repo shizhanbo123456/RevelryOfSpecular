@@ -13,9 +13,6 @@ public class SettlementView
     private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
     private const float DetailFadeDuration = 0.5f; // 全部细节同步淡出时长
 
-    private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
-    private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
-
     private UI_BattleResult panel;
     private UI_BattleResultDetail detail;
     private readonly List<UI_BattleResultDetailItem> items = new();
@@ -81,7 +78,6 @@ public class SettlementView
             panel.visible = false;
         }
         panel.m_title.text = GetEndText(r.gameState, camp);
-        panel.m_title.color = GetEndColor(r.gameState);
         panel.m_content.text = $"战斗用时：{Mathf.RoundToInt(Mathf.Max(0f, Config.battle_duration - r.remainTime))} 秒";
 
         if (detail == null)
@@ -172,18 +168,6 @@ public class SettlementView
         if (panel != null) panel.visible = false;
         if (restoreLobby && Tool.UIManager != null) Tool.UIManager.SetLobbyPanelVisible(true);
         restoreLobby = false;
-    }
-
-    private static Color GetEndColor(int gameState)
-    {
-        switch (gameState)
-        {
-            case 1: return CampAttackColor;
-            case 2: return CampDefenseColor;
-            default:
-                Debug.LogError($"[SettlementView] 未处理的结算状态：{gameState}");
-                return Color.white;
-        }
     }
 
     private static string GetEndText(int gameState, EntityCamp camp)
