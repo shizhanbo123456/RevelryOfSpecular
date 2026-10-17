@@ -7,11 +7,10 @@ using UnityEngine;
 // 战斗结束走 OnSettlementResult 显示；GM「结算界面」演示直接调 PlayDemo。
 public class SettlementView
 {
-    private const float AutoClose = 5f;            // 面板存活总时长
     private const float DetailStartDelay = 0.5f;   // 面板转场后首条细节出现
     private const float DetailItemInterval = 0.3f; // 相邻两条细节的间隔
     private const float DetailHoldDelay = 0.6f;    // 最后一条出现后的停留
-    private const float DetailFadeDuration = 0.5f; // 全部细节同步淡出时长
+    private const float DetailFadeDuration = 0.5f; // 面板与明细同步淡出时长
 
     private UI_BattleResult panel;
     private UI_BattleResultDetail detail;
@@ -88,8 +87,9 @@ public class SettlementView
         BuildRows(r, camp);
 
         panel.visible = true;
+        panel.alpha = 1f; // 每次显示从完全不透明开始
         panel.m_t0.Play();
-        ScheduleAnimations(); // 含播完自动关闭
+        ScheduleAnimations(); // 含淡出与销毁
     }
 
     private void BuildRows(SettlementResult r, EntityCamp camp)
@@ -121,13 +121,14 @@ public class SettlementView
         if (!items.Contains(item)) items.Add(item); // 动画序列按此顺序逐条播放
     }
 
-    // 总时长固定为自动关闭时间：明细播完后留白，transition 走完即关闭结算
+    // 总时长 = 淡出开始时刻 + 淡出时长，走完即销毁
     private void ScheduleAnimations()
     {
         CancelAnimations();
         int shown = 0;
         float fadeStart = DetailStartDelay + items.Count * DetailItemInterval + DetailHoldDelay;
-        transition = Timer.AddTransition(0, AutoClose, (_, t01) =>
+        float total = fadeStart + DetailFadeDuration;
+        transition = Timer.AddTransition(0, total, (_, t01) =>
         {
             if (t01 >= 1f)
             {
@@ -136,7 +137,7 @@ public class SettlementView
                 return;
             }
             if (items.Count == 0) return;
-            float elapsed = t01 * AutoClose;
+            float elapsed = t01 * total;
             // 到达出现时刻的条目逐条播放自身动画（shown 指针保证每条只播一次）
             while (shown < items.Count && elapsed >= DetailStartDelay + shown * DetailItemInterval)
             {
@@ -145,16 +146,9 @@ public class SettlementView
                 item.m_t0.Play();   // 淡入由 t0 的 Alpha 通道完成
                 item.alpha = 1f;    // 显示期间整体保持不透明
             }
-            // 全部出现后同步淡出直至消失（只淡出已显示的条目）
-            if (elapsed >= fadeStart)
-            {
-                float alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / DetailFadeDuration);
-                for (int i = 0; i < shown; i++)
-                {
-                    var item = items[i];
-                    if (item != null && item.displayObject != null) item.alpha = alpha;
-                }
-            }
+            // 面板与明细共用同一条 alpha 曲线：只压面板，明细随父级一起淡出
+            if (elapsed >= fadeStart && panel != null)
+                panel.alpha = 1f - Mathf.Clamp01((elapsed - fadeStart) / DetailFadeDuration);
         });
     }
 
@@ -164,11 +158,18 @@ public class SettlementView
         transition = null;
     }
 
-    // 播完：隐藏结算；战斗结束流程再恢复组队面板
+    // 淡出结束：销毁面板与明细；战斗结束流程再恢复组队面板
     private void Close()
     {
         CancelAnimations();
-        if (panel != null) panel.visible = false;
+        if (panel != null)
+        {
+            panel.Dispose(); // 明细挂在面板下，随面板一起销毁
+            panel = null;
+        }
+        detail = null;
+        items.Clear();
+        rows.Clear();
         if (restoreLobby && Tool.UIManager != null) Tool.UIManager.SetLobbyPanelVisible(true);
         restoreLobby = false;
     }
