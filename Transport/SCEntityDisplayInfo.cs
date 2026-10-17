@@ -15,7 +15,6 @@ namespace Ros.Transport
         public bool includeRuntime;
         public int health;
         public int maxHealth;
-        public int selectedIndex = -1;
         public int ownerClientId = -1;
         public List<BuffRuntime> buffs = new();
         public List<SkillSlotRuntime> skills = new();
@@ -52,7 +51,6 @@ namespace Ros.Transport
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.selectedIndex, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.ownerClientId, result, ref indexStart)) return false;
 
             int buffCount = value.buffs != null ? value.buffs.Count : 0;
@@ -101,7 +99,6 @@ namespace Ros.Transport
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                selectedIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ownerClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
             int buffCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);

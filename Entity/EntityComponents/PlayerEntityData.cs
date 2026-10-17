@@ -174,7 +174,6 @@ public class PlayerEntityData : EntityData
             return;
         }
 
-        skillController.SelectIndex(slot); // 选中下标供 UI 高亮
         bool ok = skillController.TryUseSkill(ids[slot]);
         string key = slot < Config.skill_slot_keys.Length ? Config.skill_slot_keys[slot].ToString() : "?";
         Debug.Log($"[输入处理] id={id} 技能槽{slot}（键 {key}）→ 技能 {ids[slot]}，结果={(ok ? "释放成功" : "被拒绝：" + skillController.DescribeUseFailure(ids[slot]))}");

@@ -8,7 +8,6 @@ public class EntitySkillController
 
     private readonly List<int> skillIds = new();
 
-    public int SelectedIndex { get; private set; } = -1;
 
     public int CastingSlotIndex { get; private set; } = -1;
 
@@ -25,7 +24,6 @@ public class EntitySkillController
         cdEndTimes.Clear();
         stores.Clear();
         weaponExp.Clear();
-        SelectedIndex = -1;
         CastingSlotIndex = -1;
     }
 
@@ -34,7 +32,6 @@ public class EntitySkillController
     {
         skillIds.Clear();
         if (ids != null) skillIds.AddRange(ids);
-        if (SelectedIndex >= skillIds.Count) SelectedIndex = -1;
     }
 
     public void AddSkill(int skillId)
@@ -54,10 +51,6 @@ public class EntitySkillController
 
     public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
 
-    public void SelectIndex(int index)
-    {
-        SelectedIndex = index;
-    }
     #endregion
 
     #region CD 与库存
@@ -149,7 +142,6 @@ public class EntitySkillController
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        info.selectedIndex = SelectedIndex;
         foreach (var skillId in skillIds)
         {
             info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
