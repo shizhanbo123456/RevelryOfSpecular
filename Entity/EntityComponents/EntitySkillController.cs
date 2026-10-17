@@ -11,7 +11,9 @@ public class EntitySkillController
 
     public int CastingSlotIndex { get; private set; } = -1;
 
-    private readonly Dictionary<int, float> cdEndTimes = new();
+    private readonly Dictionary<int, float> rechargeEndTimes = new();
+
+    private readonly List<int> rechargeKeys = new(); // TickRecharge 的遍历缓冲，避免每帧新列表
 
     private readonly Dictionary<int, int> stores = new();
 
@@ -21,7 +23,7 @@ public class EntitySkillController
     {
         owner = data;
         skillIds.Clear();
-        cdEndTimes.Clear();
+        rechargeEndTimes.Clear();
         stores.Clear();
         weaponExp.Clear();
         CastingSlotIndex = -1;
@@ -98,18 +100,11 @@ public class EntitySkillController
     #endregion
 
     #region CD 与库存
+    // 充能剩余秒数：距下一点库存恢复的时间（无充能计时 = 0）
     public float GetCdRemain(int skillId)
     {
-        if (cdEndTimes.TryGetValue(skillId, out var end))
-        {
-            if (Time.time >= end)
-            {
-                cdEndTimes.Remove(skillId);
-                return 0f;
-            }
-            return end - Time.time;
-        }
-        return 0f;
+        if (!rechargeEndTimes.TryGetValue(skillId, out var end)) return 0f;
+        return Mathf.Max(0f, end - Time.time);
     }
 
     public float GetCdTotal(int skillId)
@@ -140,9 +135,35 @@ public class EntitySkillController
         AddWeaponExp(skillIds[index], amount);
     }
 
-    public void StartCd(int skillId)
+    // 每帧推进充能：每 CD 秒恢复 1 点库存，回到上限即停；-1（空手/非玩家）不参与充能
+    public void TickRecharge()
     {
-        cdEndTimes[skillId] = Time.time + GetCdTotal(skillId);
+        if (rechargeEndTimes.Count == 0) return;
+        rechargeKeys.Clear();
+        rechargeKeys.AddRange(rechargeEndTimes.Keys);
+        foreach (var skillId in rechargeKeys)
+        {
+            if (Time.time < rechargeEndTimes[skillId]) continue;
+            int max = SkillManager.GetSkillStore(skillId);
+            int cur = GetStore(skillId);
+            if (max < 0 || cur < 0)
+            {
+                rechargeEndTimes.Remove(skillId);
+                continue;
+            }
+            if (cur < max) stores[skillId] = cur + 1;
+            if (stores[skillId] < max) rechargeEndTimes[skillId] = Time.time + GetCdTotal(skillId);
+            else rechargeEndTimes.Remove(skillId);
+        }
+    }
+
+    // 充能一旦起跑就按自己的节奏走，连放不重置计时
+    private void StartRecharge(int skillId, float advance)
+    {
+        if (rechargeEndTimes.ContainsKey(skillId)) return;
+        int max = SkillManager.GetSkillStore(skillId);
+        if (max < 0 || GetStore(skillId) >= max) return;
+        rechargeEndTimes[skillId] = Time.time + Mathf.Max(0f, GetCdTotal(skillId) - advance);
     }
 
     public void ConsumeStore(int skillId)
@@ -156,28 +177,25 @@ public class EntitySkillController
     #endregion
 
     #region 释放
+    // 释放只看库存：CD 只决定库存回充的节奏，不额外拦释放（使用间隔由攻击动画限制）
     public bool TryUseSkill(int skillId, float cdAdvance = 0f)
     {
         if (skillId < 0) return false;
-        if (!GmIgnoreCd && GetCdRemain(skillId) > 0f) return false;
         if (GetStore(skillId) == 0) return false;
         if (owner.effectController != null && !owner.effectController.CanCastSkill()) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
 
         CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
-        StartCd(skillId);
-        if (cdAdvance > 0f) cdEndTimes[skillId] -= cdAdvance; // 延迟补偿：客户端显示冷却好时服务器必定已好
-        ConsumeStore(skillId);
+        if (!GmIgnoreCd) ConsumeStore(skillId);
+        StartRecharge(skillId, cdAdvance); // 延迟补偿：客户端按 CD 画充能进度，服务器提前这么多开始计时
         return true;
     }
 
     public string DescribeUseFailure(int skillId)
     {
         if (skillId < 0) return "槽位没有技能（id 无效）";
-        float cd = GetCdRemain(skillId);
-        if (cd > 0f) return $"CD 中（剩 {cd:F2}s）";
-        if (GetStore(skillId) == 0) return "库存为 0";
+        if (GetStore(skillId) == 0) return $"库存为 0（{GetCdRemain(skillId):F2}s 后回 1 点）";
         if (owner != null && owner.effectController != null && !owner.effectController.CanCastSkill())
             return owner.effectController.IsSilenced() ? "被沉默" : "被强控（麻痹/冰冻/定身）";
         if (!SkillManager.TryGet(skillId, out _)) return "技能未注册（SkillManager 里找不到）";
@@ -187,22 +205,26 @@ public class EntitySkillController
     #endregion
 
     #region GM（仅 GM 指令调用，见 BattleManagerGm）
-    // 无视 CD：置位后普通施放路径（TryUseSkill）也不再受 CD 限制；复活重建实体后重置
+    // 无视库存：置位后普通施放路径（TryUseSkill）不再消耗库存；复活重建实体后重置
     public bool GmIgnoreCd { get; set; }
 
-    // 强放：跳过 CD / 库存 / 沉默与强控校验，直接施放（技能仍需已注册）
+    // 强放：跳过库存 / 沉默与强控校验，直接施放（技能仍需已注册）
     public bool GmForceUseSkill(int skillId)
     {
         if (skillId < 0) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
         CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
-        StartCd(skillId);
         ConsumeStore(skillId);
+        StartRecharge(skillId, 0f);
         return true;
     }
 
-    // 立即 CD 回满
-    public void GmResetAllCd() => cdEndTimes.Clear();
+    // 立即回满库存并清充能计时
+    public void GmResetAllCd()
+    {
+        rechargeEndTimes.Clear();
+        foreach (var skillId in skillIds) stores[skillId] = SkillManager.GetSkillStore(skillId);
+    }
     #endregion
 }

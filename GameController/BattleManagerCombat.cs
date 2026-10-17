@@ -11,6 +11,7 @@ public partial class BattleManager
         foreach (var e in EntityContainer.Entities)
         {
             if (e == null || !e.Alive) continue;
+            if (e.skillController != null) e.skillController.TickRecharge(); // 技能库存按 CD 逐点回充
             if (e.anim == null) continue; // 无动画单位不移动（与 EntityData.SetupBody 同一判据）
             e.TickVelocity(dt);
         }
