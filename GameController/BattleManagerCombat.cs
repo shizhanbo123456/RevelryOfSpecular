@@ -83,6 +83,7 @@ public partial class BattleManager
         public int deathCount;
         public float progress;
         public float lastSentProgress = -1f;
+        public EntitySkillController.Loadout? loadout; // 死亡瞬间的技能与经验快照，复活重建实体后归还
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
@@ -132,6 +133,7 @@ public partial class BattleManager
             rs.deathCount++;
             rs.progress = 0f;
             rs.lastSentProgress = -1f;
+            if (entity.skillController != null) rs.loadout = entity.skillController.CaptureLoadout();
             SendReviveProgress(owner, rs, entity.id, ready: false);
         }
 
@@ -285,6 +287,10 @@ public partial class BattleManager
         ExitSpectate(clientId); // 复活即结束观战，视野回到自己实体
 
         var data = GetEntity(entityId);
+        if (data != null && data.skillController != null && rs.loadout.HasValue)
+        {
+            data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能与经验带走，库存按上限回满
+        }
         if (data != null) data.aiControlled = AIClients.Contains(clientId);
 
         // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）

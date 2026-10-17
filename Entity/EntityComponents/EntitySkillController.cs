@@ -32,6 +32,8 @@ public class EntitySkillController
     {
         skillIds.Clear();
         if (ids != null) skillIds.AddRange(ids);
+        stores.Clear();
+        foreach (var id in skillIds) stores[id] = SkillManager.GetSkillStore(id); // 库存上限唯一定义在技能池
         if (owner != null) owner.skillDirty = true;
     }
 
@@ -39,6 +41,7 @@ public class EntitySkillController
     {
         if (skillId < 0 || skillIds.Contains(skillId)) return;
         skillIds.Add(skillId);
+        stores[skillId] = SkillManager.GetSkillStore(skillId);
         if (owner != null) owner.skillDirty = true;
     }
 
@@ -66,6 +69,32 @@ public class EntitySkillController
         }
     }
 
+    #endregion
+
+    #region 复活继承
+    public struct Loadout
+    {
+        public List<int> skillIds;
+        public Dictionary<int, int> weaponExps;
+    }
+
+    public Loadout CaptureLoadout()
+    {
+        return new Loadout
+        {
+            skillIds = new List<int>(skillIds),
+            weaponExps = new Dictionary<int, int>(weaponExp),
+        };
+    }
+
+    // 复活重建实体后归还技能与经验；库存不继承，按上限回满（策划口径）
+    public void ApplyLoadout(Loadout loadout)
+    {
+        SetSkillList(loadout.skillIds);
+        weaponExp.Clear();
+        if (loadout.weaponExps == null) return;
+        foreach (var pair in loadout.weaponExps) weaponExp[pair.Key] = pair.Value;
+    }
     #endregion
 
     #region CD 与库存
