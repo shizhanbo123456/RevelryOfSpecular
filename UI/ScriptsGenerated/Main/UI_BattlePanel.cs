@@ -23,6 +23,7 @@ namespace Ros.UI.Main
         public UI_DefensivePointBar m_progressSub1;
         public UI_DefensivePointBar m_progressSub2;
         public UI_DefensivePointBar m_progressSub3;
+        public GComboBox m_onlookComboBox;
         public const string URL = "ui://q68vr2bfjtpbhd";
 
         public static UI_BattlePanel CreateInstance()
@@ -50,6 +51,7 @@ namespace Ros.UI.Main
             m_progressSub1 = (UI_DefensivePointBar)GetChildAt(21);
             m_progressSub2 = (UI_DefensivePointBar)GetChildAt(22);
             m_progressSub3 = (UI_DefensivePointBar)GetChildAt(23);
+            m_onlookComboBox = (GComboBox)GetChildAt(26);
         }
     }
 }

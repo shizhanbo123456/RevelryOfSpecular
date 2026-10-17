@@ -187,6 +187,22 @@ public class EntityPlayerManager : ClientSubManager
 
     public ClientEntityView GetView(ushort id) => views.TryGetValue(id, out var v) ? v : null;
 
+
+    // 观战跟随：取/建目标视图的相机锚点（与本地玩家同规则，建后由视图逐帧刷新）；视图不存在返回 null
+    public Transform GetOrCreateCameraAnchor(ushort id)
+    {
+        if (!views.TryGetValue(id, out var view) || view == null) return null;
+        if (view.cameraAnchor == null)
+        {
+            view.cameraAnchor = new GameObject("CameraAnchor").transform;
+            view.cameraAnchor.position = view.anim != null
+                ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
+                : view.transform.position;
+            view.cameraAnchor.rotation = view.transform.rotation;
+        }
+        return view.cameraAnchor;
+    }
+
     // 服务端已同步给本客户端的实体视图集合（即客户端可见实体），供相机自动取景等系统遍历
     public IEnumerable<ClientEntityView> AllViews => views.Values;
 

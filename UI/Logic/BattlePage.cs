@@ -26,6 +26,14 @@ public class BattlePage : PageBase
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
+    private bool spectatorMode;       // 纯观战方玩家（无战斗实体）
+    private bool localPlayerAlive = true; // 本地玩家实体是否在场（死亡观战期间 false，显示观战下拉）
+    private int spectateTargetClientId = -1;  // 当前观战目标玩家 id（-1 = 未观战）
+    private int spectateTargetEntityId = -1;  // 观战目标实体 id（-1 = 等待其表现数据到达后绑定相机）
+    private float spectatePendingSince;   // 发起观战的时刻（目标数据迟迟不到 = 目标已死，超时重选）
+    private float onlookRefreshTimer;     // 观战下拉选项刷新节流
+    private bool syncingOnlookCombo;      // 程序刷新下拉选项期间屏蔽 onChanged 回调
+    private readonly Dictionary<int, ushort> clientEntityIds = new(); // 玩家 id → 实体 id（随表现数据更新）
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
@@ -93,6 +101,10 @@ public class BattlePage : PageBase
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
+        spectatorMode = NetworkManager.battleInfo != null && NetworkManager.battleInfo.playerEntityId == 0;
+        localPlayerAlive = !spectatorMode;
+        panel.m_onlook.selectedIndex = spectatorMode ? 1 : 0; // onlook=1：FGUI 自动隐藏血条/技能等非观战元素
+        if (panel.m_onlookComboBox != null) panel.m_onlookComboBox.onChanged.Set(OnOnlookComboBoxChanged);
         RefreshCampAliveCount(NetworkManager.LatestCampAliveCount); // 进入战斗先填一次缓存值，随后由变更包刷新
         minimapViewRadius = Config.minimap_view_radius; //每局回到默认档，与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
@@ -120,6 +132,12 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
+        spectatorMode = false;
+        localPlayerAlive = true;
+        spectateTargetClientId = -1;
+        spectateTargetEntityId = -1;
+        clientEntityIds.Clear();
+        if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
     }
 
     public override void Tick(float deltaTime)
@@ -135,6 +153,7 @@ public class BattlePage : PageBase
         TickEventItems();
         TickMinimapTimeout();
         TickSelfMinimapRotation();
+        TickSpectator(deltaTime);
     }
 
     #region 事件处理
@@ -151,9 +170,14 @@ public class BattlePage : PageBase
             UpdateEntityBar(info);
         }
 
+        if (info.ownerClientId >= 0) clientEntityIds[info.ownerClientId] = info.entityId;
+
         if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
         {
             localPlayerCamp = (int)info.camp;
+            localPlayerAlive = true;
+            spectateTargetClientId = -1; // 本地实体出现（复活/正常出战）：服务器已退出观战，视角回自身
+            spectateTargetEntityId = -1;
             UpdateLocalPlayerBar(info);
             OnLocalSkillBarUpdate(info);
         }
@@ -163,7 +187,121 @@ public class BattlePage : PageBase
     {
         RemoveEntityBar((ushort)entityId);
         RemoveMinimapItem((ushort)entityId);
+
+        int removedClient = -1;
+        foreach (var pair in clientEntityIds)
+        {
+            if (pair.Value == entityId) { removedClient = pair.Key; break; }
+        }
+        if (removedClient != -1) clientEntityIds.Remove(removedClient);
+        if (spectateTargetEntityId == entityId)
+        {
+            // 观战目标死亡：纯观战由 TickSpectator 自动重选；死亡观战冻结在原地
+            spectateTargetClientId = -1;
+            spectateTargetEntityId = -1;
+        }
+        if (NetworkManager.battleInfo != null && entityId == NetworkManager.battleInfo.playerEntityId)
+            localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
     }
+
+    #region 观战
+    private void TickSpectator(float deltaTime)
+    {
+        var box = panel.m_onlookComboBox;
+        if (box == null) return;
+        box.visible = spectatorMode || !localPlayerAlive; // 观战目标下拉：纯观战/死亡观战可见
+
+        // 纯观战未选目标（进场自动选 / 目标死亡后自动重选）：随机挑一名攻/守成员
+        if (spectatorMode && spectateTargetClientId == -1)
+        {
+            SpectateTo(PickRandomCombatMember());
+            return;
+        }
+        // 目标表现数据迟迟不到 = 目标已死亡（服务器静默拒绝），超时重选/复位
+        if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
+            && spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
+        {
+            spectateTargetClientId = -1;
+            spectatePendingSince = 0f;
+        }
+        // 目标表现数据已到达：绑定相机到其视图锚点（锚点由视图逐帧刷新）
+        if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
+            && clientEntityIds.TryGetValue(spectateTargetClientId, out var eid))
+        {
+            spectateTargetEntityId = eid;
+            spectatePendingSince = 0f;
+        }
+        if (spectateTargetEntityId != -1 && Tool.CameraController != null
+            && Tool.ClientLogicManager?.EntityPlayers != null)
+        {
+            var anchor = Tool.ClientLogicManager.EntityPlayers.GetOrCreateCameraAnchor((ushort)spectateTargetEntityId);
+            if (anchor != null && Tool.CameraController.lookTarget != anchor)
+                Tool.CameraController.SetLookTarget(anchor);
+        }
+
+        onlookRefreshTimer -= deltaTime;
+        if (onlookRefreshTimer <= 0f)
+        {
+            onlookRefreshTimer = 0.5f;
+            RefreshOnlookComboBox();
+        }
+    }
+
+    private void SpectateTo(int targetClientId)
+    {
+        if (targetClientId < 0) return;
+        spectateTargetClientId = targetClientId;
+        spectateTargetEntityId = clientEntityIds.TryGetValue(targetClientId, out var eid) ? eid : -1;
+        spectatePendingSince = spectateTargetEntityId == -1 ? Time.time : 0f;
+        NetworkManager.RequestSpectate(targetClientId);
+    }
+
+    private int PickRandomCombatMember()
+    {
+        var members = NetworkManager.LatestRoomInfo?.members;
+        if (members == null) return -1;
+        var candidates = new List<int>();
+        foreach (var m in members)
+        {
+            if (m == null || m.camp == (int)PlayerCampType.Spectator) continue; // 观战方玩家无可跟随视角
+            candidates.Add(m.clientId);
+        }
+        return candidates.Count == 0 ? -1 : candidates[Random.Range(0, candidates.Count)];
+    }
+
+    private void RefreshOnlookComboBox()
+    {
+        var box = panel.m_onlookComboBox;
+        if (box == null) return;
+        var names = new List<string>();
+        var values = new List<string>();
+        var members = NetworkManager.LatestRoomInfo?.members;
+        if (members != null)
+        {
+            foreach (var m in members)
+            {
+                if (m == null || m.camp == (int)PlayerCampType.Spectator) continue;
+                if (m.clientId == EnsInstance.LocalClientId) continue; // 自己不进观战列表
+                names.Add(NetworkManager.GetMemberName(m.clientId));
+                values.Add(m.clientId.ToString());
+            }
+        }
+        syncingOnlookCombo = true;
+        box.values = values.ToArray();
+        box.items = names.ToArray();
+        box.selectedIndex = values.IndexOf(spectateTargetClientId.ToString());
+        syncingOnlookCombo = false;
+    }
+
+    private void OnOnlookComboBoxChanged()
+    {
+        if (syncingOnlookCombo) return;
+        var box = panel.m_onlookComboBox;
+        if (box == null || box.selectedIndex < 0 || box.values == null
+            || box.selectedIndex >= box.values.Length) return;
+        if (int.TryParse(box.values[box.selectedIndex], out var target)) SpectateTo(target);
+    }
+    #endregion
 
     private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
     {

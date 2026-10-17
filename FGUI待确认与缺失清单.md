@@ -4,7 +4,7 @@
 > 本文档 = 字段含义/档位表/接线映射的参考。**逻辑已全部接线（UIManager + PageBase + 三页面 Logic），剩余可选项见第四节。**
 > **2026-10-11 新增**：GM 面板、确认弹窗、全屏遮罩；**2026-10-13**：GM 面板代码已接（入口 + 本地项），确认弹窗/遮罩仍未接。见第五节。
 > **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
-> **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（人数文本 2026-10-16 已接 `SCCampAliveCount`，显示「存活/总数」；`m_onlook` 仍未接，对应复活观战）；新增 `UI_onlookComboBox_popup` 组件。
+> **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（人数文本 2026-10-16 已接 `SCCampAliveCount`，显示「存活/总数」；`m_onlook`/`m_onlookComboBox` 已接线（2026-10-17，观战系统完成，见待办清单）。新增 `UI_onlookComboBox_popup` 组件。
 > **2026-10-17 重新导出**：组队界面三阵营化（攻/守/观战）+ 准备制开局（见 UI_LobbyMemberList / UI_RoleHead 行）；`ChatItem.m_camp` 扩为三档（2 = 观战）。
 
 ## 一、页面根与结构
@@ -13,7 +13,7 @@
 |---|---|
 | **UI_HomePanel** | m_page 控制器（**0=玩家信息页，1=角色列表页**）+ m_playerInfo(UI_PlayerInfo) + m_characterPanel(HomeCharacterList) + m_attributePanel(HomeAttrList) + m_connectPanel(HomeConnect) |
 | **UI_LobbyPanel** | m_mainView(LobbyMemberList) + m_btn_exit（断开并返回）。**2026-10-17 起：三阵营（加入观战/进攻/防守）+ 准备制开局，见 UI_LobbyMemberList 行** |
-| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3） |
+| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3）+ **m_onlook 控制器（0=正常 / 1=观战：观战档由 FGUI gear 自动隐藏血条、技能栏等非观战元素）+ m_onlookComboBox（观战目标下拉，GComboBox，popup = UI_onlookComboBox_popup 内 `list`）——均已接线（2026-10-17）** |
 
 ## 二、组件规则（全部按你的讲解落实）
 
