@@ -144,6 +144,8 @@ public static class Config
     #region 同步
     public const float entity_sync_interval_fast = 0.02f;
     public const float entity_sync_interval_details = 0.2f;
+    public const float entity_sync_pos_epsilon = 0.1f;  // 位姿脏判定：与上次下发位置差超过该值（米）才置脏
+    public const float entity_sync_yaw_epsilon = 3f;    // 位姿脏判定：与上次下发朝向差超过该值（度）才置脏
     #endregion
 
     #region 通用

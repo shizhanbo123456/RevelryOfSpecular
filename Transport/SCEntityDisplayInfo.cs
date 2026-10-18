@@ -13,6 +13,7 @@ namespace Ros.Transport
         public Vector3 velocity;
         public float yawSpeed;
         public bool includeRuntime;
+        public bool hasTransform; // 本包含有效位姿（position/yaw/velocity/yawSpeed）；无变化时整包可能不下发
         public bool hasHealth;   // 本包含有效 health/maxHealth（实体 health 脏标记置位 / 完整同步 / 首见）
         public bool hasBuffs;    // 本包含有效 buffs（实体 buff 脏标记置位 / 完整同步 / 首见）
         public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；仅技能 id，无冷却/库存
@@ -43,11 +44,8 @@ namespace Ros.Transport
             if (!UshortSerializer.Serialize(value.entityId, result, ref indexStart)) return false;
             if (!EntityTypeSerializer.Serialize(value.type, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
-            if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
-            if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
-            if (!Vector3Serializer.Serialize(value.velocity, result, ref indexStart)) return false;
-            if (!FloatSerializer.Serialize(value.yawSpeed, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
+            if (!BoolSerializer.Serialize(value.hasTransform, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.hasHealth, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.hasBuffs, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.hasSkills, result, ref indexStart)) return false;
@@ -78,8 +76,15 @@ namespace Ros.Transport
                     if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
                 }
             }
-            if (!value.hasSkills) return true;
-            return FloatSerializer.Serialize(value.serverTime, result, ref indexStart);
+            if (value.hasSkills)
+            {
+                if (!FloatSerializer.Serialize(value.serverTime, result, ref indexStart)) return false;
+            }
+            if (!value.hasTransform) return true;
+            if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
+            if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
+            if (!Vector3Serializer.Serialize(value.velocity, result, ref indexStart)) return false;
+            return FloatSerializer.Serialize(value.yawSpeed, result, ref indexStart);
         }
 
         public static SCEntityDisplayInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -90,11 +95,8 @@ namespace Ros.Transport
                 entityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 type = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
-                yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                velocity = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex),
-                yawSpeed = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                hasTransform = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 hasHealth = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 hasBuffs = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 hasSkills = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -123,6 +125,11 @@ namespace Ros.Transport
                 });
             }
             if (info.hasSkills) info.serverTime = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            if (!info.hasTransform) return info;
+            info.position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
+            info.yaw = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            info.velocity = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
+            info.yawSpeed = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex);
             return info;
         }
     }

@@ -705,6 +705,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kSyncEntitiesTag = "BattleManager.SyncEntitiesToClients";
     private const string kSyncMinimapTag = "BattleManager.SyncMinimap";
     private const string kVisionStateTag = "BattleManager.VisionState";
+    private const string kTransformDirtyTag = "BattleManager.TransformDirty";
 
     public override void ManagedUpdate()
     {
@@ -829,6 +830,14 @@ public partial class BattleManager : EnsBehaviour
         TickVisionStates();
         Profiler.EndSample();
 
+        // 位姿脏标记（必须在本帧移动/物理同步之后判定）：与上次下发位姿差超阈值才置脏，无脏的快轮整包不下发
+        Profiler.BeginSample(kTransformDirtyTag);
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity != null) entity.CheckTransformDirty();
+        }
+        Profiler.EndSample();
+
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
         Profiler.BeginSample(kSyncEntitiesTag);
         syncTimer -= UnityEngine.Time.deltaTime;
@@ -867,10 +876,13 @@ public partial class BattleManager : EnsBehaviour
             {
                 if (entity == null) continue;
                 if (!CanSeeFromState(clientId, entity)) continue;
-                MarkClientVisible(entity.id);
-                var info = entity.GetDisplayInfo(includeRuntime);
+                MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
-                info.includeRuntime = includeRuntime || firstSeen;
+                bool full = includeRuntime || firstSeen;
+                var info = entity.GetDisplayInfo(full);
+                info.includeRuntime = full;
+                // 位姿/血量/buff/技能全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
+                if (!info.hasTransform && !info.hasHealth && !info.hasBuffs && !info.hasSkills) continue;
                 FillDisplayVelocity(entity, info);
                 Tool.NetworkManager.SendEntityDisplay(clientId, info);
 
@@ -879,11 +891,16 @@ public partial class BattleManager : EnsBehaviour
             EndClientVisibility(clientId);
         }
 
-        // 本轮至少被一个客户端可见的实体：清 health/buff 脏标记（无人可见则保留，等下次可见随完整同步下发）
+        // 本轮至少被一个客户端可见的实体：清 health/buff/skill 脏标记（无人可见则保留，等下次可见随完整同步下发）
         foreach (var id in s_dirtySweep)
         {
             var e = GetEntity(id);
-            if (e != null) { e.healthDirty = false; e.buffDirty = false; e.skillDirty = false; }
+            if (e == null) continue;
+            e.healthDirty = false;
+            e.buffDirty = false;
+            e.skillDirty = false;
+            // 位姿基准只在真的把新位姿发出去后推进：否则每轮都对齐当前会让慢速移动永远攒不满阈值（完整包必带位姿）
+            if (e.transformDirty || includeRuntime) e.ClearTransformDirty();
         }
         s_dirtySweep.Clear();
 
@@ -913,6 +930,7 @@ public partial class BattleManager : EnsBehaviour
 
     private void FillDisplayVelocity(EntityData entity, SCEntityDisplayInfo info)
     {
+        if (!info.hasTransform) return; // 不带位姿的包也不带速度，客户端不会拿它外插
         // 位置由物理积分，必须取刚体实际速度：用"意图速度"外插会与权威位置持续漂移；无刚体（不可移动单位）即无速度
         Vector3 v = entity.rb != null ? entity.rb.velocity : Vector3.zero;
         info.velocity = new Vector3(v.x, 0f, v.z); // 纵向不做客户端推演

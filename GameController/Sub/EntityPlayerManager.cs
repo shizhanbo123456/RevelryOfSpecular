@@ -254,8 +254,11 @@ public class EntityPlayerManager : ClientSubManager
             views[info.entityId] = view;
         }
         view.lastSeenTime = Time.time;
-        view.velocity = info.velocity;
-        view.yawSpeed = info.yawSpeed;
+        if (info.hasTransform) // 无位姿的包不覆盖速度（服务器未带，视为 0 会把推演打停）
+        {
+            view.velocity = info.velocity;
+            view.yawSpeed = info.yawSpeed;
+        }
         ApplyDisplay(view, info);
 
         // 先到的动画事件（可靠通道可能快于姿态包）：视图建好后补应用，避免初始参数丢失
@@ -273,7 +276,7 @@ public class EntityPlayerManager : ClientSubManager
         {
             if (Tool.CameraController != null)
             {
-                if (view.cameraAnchor == null)
+                if (view.cameraAnchor == null && info.hasTransform)
                 {
                     // 视体位姿由 rb.MovePosition 施加，要到下一个物理步才生效；此刻读骨骼会得到"假位置"上的锚点，
                     // 故先用权威位姿摆正一次（仅建视体这一次，之后仍由 MovePosition 驱动，不破坏碰撞解析）
@@ -535,18 +538,22 @@ public class EntityPlayerManager : ClientSubManager
 
     private void ApplyDisplay(ClientEntityView view, SCEntityDisplayInfo info)
     {
-        view.predictedPos = info.position;
-        view.predictedYaw = info.yaw;
-        view.predictedInit = true;
-        if (view.rb != null)
+        // 位姿只在带位姿的包里应用：无变化时的包不带 position/yaw，拿默认值覆盖会把实体瞬移回原点
+        if (info.hasTransform)
         {
-            view.rb.MovePosition(info.position);
-            view.rb.MoveRotation(Quaternion.Euler(0f, info.yaw, 0f));
-        }
-        else
-        {
-            view.transform.position = info.position;
-            view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
+            view.predictedPos = info.position;
+            view.predictedYaw = info.yaw;
+            view.predictedInit = true;
+            if (view.rb != null)
+            {
+                view.rb.MovePosition(info.position);
+                view.rb.MoveRotation(Quaternion.Euler(0f, info.yaw, 0f));
+            }
+            else
+            {
+                view.transform.position = info.position;
+                view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
+            }
         }
 
         // 悬浮武器按技能槽推算（手持中的武器不再漂浮）：仅在完整同步或技能变化时刷新
