@@ -75,6 +75,7 @@ public class ChatPlugin
     {
         SelectChannel(ChannelAll);
         panel.m_show_channel_menu.selectedIndex = 0; // 组队界面不显示频道页签
+        ClearMessages(); // 显示前先清空，避免残留 FGUI 设计期的测试条目
         panel.visible = true;
     }
 
@@ -86,10 +87,15 @@ public class ChatPlugin
 
     private void OnLeaveRoom()
     {
-        entries.Clear();
-        panel.m_content.numItems = 0;
+        ClearMessages();
         SelectChannel(ChannelAll);
         panel.visible = false;
+    }
+
+    private void ClearMessages()
+    {
+        entries.Clear();
+        panel.m_content.numItems = 0;
     }
 
     private void SelectChannel(int channel)
