@@ -320,6 +320,9 @@ public class GmPanel
         item.m_content_slider.max = max;
         item.m_content_slider.value = min;
         item.m_content_slider_value.text = min.ToString("0.##");
+        // GList 复用 item，回调需先清空再挂；拖动时把当前值同步到右侧文本
+        item.m_content_slider.onChanged.Clear();
+        item.m_content_slider.onChanged.Add(() => item.m_content_slider_value.text = item.m_content_slider.value.ToString("0.##"));
     }
 
     private static void SetupDropdown(UI_GmItem item, Type enumType)
