@@ -76,6 +76,7 @@ public class UIManager : MonoBehaviour
             EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
             EventManager.AddEvent(ClientEvent.OnRestartGame, OnRestartGame);
             EventManager.AddEvent(ClientEvent.OnExitWorld, OnExitWorld);
+            EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         }
         catch (System.Exception e)
         {
@@ -90,6 +91,7 @@ public class UIManager : MonoBehaviour
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnRestartGame);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnExitWorld);
+        EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         if (chat != null) chat.Shutdown();
         if (gm != null) gm.Shutdown();
         if (Confirm != null) Confirm.Shutdown();
@@ -205,6 +207,12 @@ public class UIManager : MonoBehaviour
     private void OnExitWorld()
     {
         ReturnToHome();
+    }
+
+    // 服务器提示是通用功能：与当前页面无关，收到即显示
+    private void OnShowPrompt(int messageId)
+    {
+        ShowFlyText(NoticeMessageMap.Get(messageId));
     }
 
     private void ReturnToHome()

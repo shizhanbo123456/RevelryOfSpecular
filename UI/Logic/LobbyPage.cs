@@ -40,7 +40,6 @@ public class LobbyPage : PageBase
     {
         base.Enter(param);
         EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
-        EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         // 有缓存立即渲染（服务器只在事件时广播，错过就没了）；无缓存清空展示，不留 FGUI 默认内容
         var latest = NetworkManager.LatestRoomInfo;
         if (latest != null) OnRoomInfoUpdate(latest);
@@ -54,7 +53,6 @@ public class LobbyPage : PageBase
     {
         base.Exit();
         EventManager.RemoveEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
-        EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
     }
 
     #region//Local
@@ -163,12 +161,6 @@ public class LobbyPage : PageBase
     {
         var view = panel.m_mainView;
         if (view.m_btn_prepare != null) view.m_btn_prepare.title = myReady ? "取消准备" : "准备";
-    }
-
-    // 组队期的服务器提示（准备制开局 28 / 取消 29 / 开局校验 17、18）：大厅没有事件列表，用全局飘字显示
-    private void OnShowPrompt(int messageId)
-    {
-        if (Tool.UIManager != null) Tool.UIManager.ShowFlyText(NoticeMessageMap.Get(messageId));
     }
 
     // 断开不可逆，先弹二次确认

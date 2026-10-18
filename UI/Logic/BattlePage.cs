@@ -96,7 +96,6 @@ public class BattlePage : PageBase
         EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.AddEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
@@ -133,7 +132,6 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.RemoveEvent<int>(ClientEvent.OnShowPrompt, OnShowPrompt);
         EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
@@ -686,11 +684,6 @@ public class BattlePage : PageBase
     {
         if (id >= SCBattleEvent.PlayerNameBase) return NetworkManager.GetMemberName(id - SCBattleEvent.PlayerNameBase);
         return NoticeMessageMap.Get(id);
-    }
-
-    private void OnShowPrompt(int messageId)
-    {
-        AddTextEvent(NoticeMessageMap.Get(messageId));
     }
 
     private void OnDamageDisplay(SCDamage d)
