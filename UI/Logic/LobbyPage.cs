@@ -142,7 +142,13 @@ public class LobbyPage : PageBase
     private void RenderMemberList(GList list, List<SCLobbyInfo.LobbyMemberInfo> members, int camp)
     {
         var memberList = members.Where(m => m != null && m.camp == camp && m.clientId >= 0).ToList(); // 负数 = AI，不进真人列表
-        var icons = Tool.AssetsManager == null || camp == 2 ? null // 观战方无角色头像
+        if (camp == 2) // 观战条目是 Label，只写玩家名
+        {
+            list.itemRenderer = (i, obj) => ((GLabel)obj).title = NetworkManager.GetLobbyMemberName(memberList[i].clientId);
+            list.numItems = memberList.Count;
+            return;
+        }
+        var icons = Tool.AssetsManager == null ? null
             : camp == 0 ? Tool.AssetsManager.AttackCharacterIcons : Tool.AssetsManager.DefenseCharacterIcons;
         list.itemRenderer = (i, obj) =>
         {
