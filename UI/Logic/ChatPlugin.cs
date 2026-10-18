@@ -198,8 +198,7 @@ public class ChatPlugin
 
     private string GetMyName()
     {
-        var member = GetLocalMember();
-        if (member != null && !string.IsNullOrEmpty(member.name)) return member.name;
+        if (NetworkManager.TryGetPlayerName(EnsInstance.LocalClientId, out var name)) return name;
         return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{EnsInstance.LocalClientId}";
     }
     #endregion

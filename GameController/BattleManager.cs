@@ -289,8 +289,22 @@ public partial class BattleManager : EnsBehaviour
         if (PlayerInfoList.ContainsKey(clientId)) return;
         PlayerInfoList[clientId] = info;
         PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
+        SendPlayerNames(clientId); // 名字单独下发，先把映射铺好再播房间成员列表
         BroadcastRoomInfo();
         Debug.Log($"玩家 {clientId} 进入组队大厅");
+    }
+
+    // 新玩家进房：新玩家名字广播给所有人，再把房间里已有玩家的名字逐条发给新玩家（AI 不下发名字）
+    private void SendPlayerNames(short newClientId)
+    {
+        if (PlayerInfoList.TryGetValue(newClientId, out var me))
+            Tool.NetworkManager.SendPlayerName(new SCPlayerName { clientId = newClientId, name = me.name });
+
+        foreach (var pair in PlayerInfoList)
+        {
+            if (pair.Key < 0) continue; // AI 无名字
+            Tool.NetworkManager.SendPlayerName(newClientId, new SCPlayerName { clientId = pair.Key, name = pair.Value.name });
+        }
     }
 
     public void RemovePlayer(short clientId)
@@ -461,7 +475,6 @@ public partial class BattleManager : EnsBehaviour
                 clientId = pair.Key,
                 camp = campValue,
                 characterIndex = characterIndex,
-                name = pair.Value.name,
                 ready = ready,
             });
         }

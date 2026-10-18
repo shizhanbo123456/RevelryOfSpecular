@@ -1,6 +1,7 @@
 using Ros.Transport;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -49,6 +50,7 @@ public partial class NetworkManager : EnsBehaviour
         tryingEnterWorld = false;
         intentionalExitWorld = false;
         LatestRoomInfo = null; // 跨连接清空，防止重连后大厅显示上一局成员
+        playerNames.Clear();
         serverTimeOffset = 0f;
     }
 
@@ -307,6 +309,19 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveRoomInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    // 名字广播（新玩家进房时发给所有人）
+    public void SendPlayerName(SCPlayerName info)
+    {
+        CallFuncRpc(ClientReceivePlayerNameLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
+    }
+
+    // 名字定向（给新玩家补发房间里每个玩家的名字）
+    public void SendPlayerName(short clientId, SCPlayerName info)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceivePlayerNameLocal, SendTo.To(clientId), Delivery.Reliable, info);
+    }
+
     public void SendPlayerEntity(short clientId, int entityId)
     {
         CallFuncRpc(ClientReceivePlayerEntityLocal, SendTo.ExcludeSender, Delivery.Reliable,
@@ -510,11 +525,26 @@ public partial class NetworkManager : EnsBehaviour
         if (info == null) return;
         hasRoomInfo = true; // 已收到服务器房间状态，允许发送大厅命令（选队/开始/输入）
         BattleRunning = info.battleStarted;
-        LatestRoomInfo = info; // 缓存最新房间状态（战斗期头顶名字按 clientId 反查）
+        LatestRoomInfo = info; // 缓存最新房间状态（成员/阵营/AI 数量；名字走 SCPlayerName）
         EventManager.TrigEvent(ClientEvent.OnRoomInfoUpdate, info);
     }
 
     public static SCRoomInfo LatestRoomInfo { get; private set; }
+
+    // clientId → 名字：名字单独发包，未收到映射时用兜底名（AI 不下发名字，按虚拟 id 约定推导）
+    private static readonly Dictionary<short, string> playerNames = new();
+
+    [Rpc]
+    private void ClientReceivePlayerNameLocal(SCPlayerName info)
+    {
+        if (info == null) return;
+        playerNames[info.clientId] = info.name;
+    }
+
+    public static bool TryGetPlayerName(int clientId, out string name)
+    {
+        return playerNames.TryGetValue((short)clientId, out name) && !string.IsNullOrEmpty(name);
+    }
 
     [Rpc]
     private void ClientReceiveCampAliveCountLocal(SCCampAliveCount info)
@@ -528,10 +558,10 @@ public partial class NetworkManager : EnsBehaviour
 
     public static string GetMemberName(int clientId)
     {
-        SCRoomInfo.RoomMemberInfo member = null;
-        if (LatestRoomInfo != null) member = LatestRoomInfo.members.Find(m => m != null && m.clientId == clientId);
-        if (member == null || string.IsNullOrEmpty(member.name)) return $"玩家{clientId}";
-        return member.name;
+        if (TryGetPlayerName(clientId, out var name)) return name;
+        // AI 没有名字包：按服务器的虚拟 id 约定推导（-1000 起递减，序号 = -999 - clientId），避免显示成「玩家-1000」
+        if (clientId < 0) return $"AI玩家{-999 - clientId}";
+        return $"玩家{clientId}";
     }
 
     [Rpc]

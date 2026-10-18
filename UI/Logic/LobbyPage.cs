@@ -148,7 +148,7 @@ public class LobbyPage : PageBase
         {
             var head = (UI_RoleHead)obj;
             var member = memberList[i];
-            head.m_roleName.text = string.IsNullOrEmpty(member.name) ? $"玩家{member.clientId}" : member.name;
+            head.m_roleName.text = NetworkManager.GetMemberName(member.clientId);
             head.m_level.selectedIndex = 0; // 成员条目不展示等级
             head.m_lock.selectedIndex = 0;
             head.m_confirm.selectedIndex = member.ready ? 1 : 0; // 准备勾选
