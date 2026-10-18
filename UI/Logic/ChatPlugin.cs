@@ -187,7 +187,7 @@ public class ChatPlugin
     private int GetMyCamp()
     {
         var loading = ClientLoadingManager.Current;
-        if (loading != null && loading.HasSession)
+        if (NetworkManager.BattleRunning && loading != null && loading.HasSession)
         {
             if (loading.Camp == EntityCamp.Attack) return 0;
             if (loading.Camp == EntityCamp.Defense) return 1;
@@ -199,7 +199,7 @@ public class ChatPlugin
     private string GetMyName()
     {
         var loading = ClientLoadingManager.Current;
-        if (loading != null && loading.HasSession) return loading.GetName(EnsInstance.LocalClientId);
+        if (NetworkManager.BattleRunning && loading != null && loading.HasSession) return loading.GetName(EnsInstance.LocalClientId);
         if (NetworkManager.TryGetLobbyPlayerName(EnsInstance.LocalClientId, out var lobbyName)) return lobbyName;
         return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{EnsInstance.LocalClientId}";
     }
