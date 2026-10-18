@@ -17,6 +17,10 @@ public class UIManager : MonoBehaviour
 
     // 确认弹窗：独立子界面（不挂页面），弹出时自带全屏遮罩挡底层点击
     public ConfirmView Confirm { get; private set; }
+
+    // 加载界面：独立子界面（不挂页面），默认隐藏，由外部 ShowLoading / HideLoading 控制
+    private UI_LoadingPanel loading;
+    private const int LoadingPageCount = 3; // m_page 档位数（0~2）
     private PageBase currentPage;
     private int lastScreenWidth, lastScreenHeight;
 
@@ -52,6 +56,11 @@ public class UIManager : MonoBehaviour
             gm = new GmPanel(UI_GmPanel.CreateInstance());
             Settlement = new SettlementView();
             Confirm = new ConfirmView();
+
+            loading = UI_LoadingPanel.CreateInstance();
+            loading.m_show_bar.selectedIndex = 0; // 未设置进度前不显示进度条
+            loading.visible = false;
+            GRoot.inst.AddChild(loading);
             Debug.Log($"[UIManager] 页面已创建：home={home != null}, lobby={lobby != null}, battle={battle != null}, chat={chat != null}");
 
             //注册回调/渲染器（Construct 里会设置 GList.itemRenderer，必须在设置 numItems 之前完成）
@@ -117,7 +126,41 @@ public class UIManager : MonoBehaviour
         if (chat != null) chat.OnResize(Screen.height / 1080f);
         if (gm != null) gm.OnResize(Screen.height / 1080f);
         if (Confirm != null) Confirm.OnResize(Screen.height / 1080f);
+        if (loading != null)
+        {
+            float scale = Screen.height / 1080f;
+            loading.scale = new Vector2(scale, scale);
+            loading.SetXY((GRoot.inst.width - loading.width * scale) * 0.5f,
+                (GRoot.inst.height - loading.height * scale) * 0.5f);
+        }
     }
+
+    #region 加载界面
+    public bool LoadingVisible => loading != null && loading.visible;
+
+    // 显示加载界面：每次随机挑一种页面档位，进度条先收起（等 SetLoadingProgress 再显示）
+    public void ShowLoading()
+    {
+        if (loading == null) return;
+        loading.m_page.selectedIndex = UnityEngine.Random.Range(0, LoadingPageCount);
+        loading.m_show_bar.selectedIndex = 0;
+        loading.visible = true;
+    }
+
+    public void HideLoading()
+    {
+        if (loading != null) loading.visible = false;
+    }
+
+    // 设置进度条信息：progress01 = 0~1 完成度，text 显示在进度文本上；设置即展开进度条
+    public void SetLoadingProgress(float progress01, string text)
+    {
+        if (loading == null) return;
+        loading.m_show_bar.selectedIndex = 1;
+        loading.m_progressbar.value = Mathf.Clamp01(progress01) * loading.m_progressbar.max;
+        loading.m_progress.text = text;
+    }
+    #endregion
 
     public void ShowFlyText(string text)
     {
