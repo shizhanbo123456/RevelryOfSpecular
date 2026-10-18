@@ -23,7 +23,7 @@ namespace Ros.UI.Main
 
             m_firstMenu = (UI_GmButtonList)GetChildAt(1);
             m_secondMenu = (UI_GmButtonList)GetChildAt(2);
-            m_GmItemList = (GList)GetChildAt(7);
+            m_GmItemList = (GList)GetChildAt(5);
         }
     }
 }

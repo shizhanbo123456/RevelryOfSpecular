@@ -8,6 +8,10 @@ namespace Ros.UI.Main
     {
         public static void BindAll()
         {
+            UIObjectFactory.SetPackageItemExtension(UI_panel_2.URL, typeof(UI_panel_2));
+            UIObjectFactory.SetPackageItemExtension(UI_button1.URL, typeof(UI_button1));
+            UIObjectFactory.SetPackageItemExtension(UI_button2.URL, typeof(UI_button2));
+            UIObjectFactory.SetPackageItemExtension(UI_button3.URL, typeof(UI_button3));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
@@ -32,6 +36,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_ChatItem.URL, typeof(UI_ChatItem));
             UIObjectFactory.SetPackageItemExtension(UI_LoadingPanel.URL, typeof(UI_LoadingPanel));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerInfo.URL, typeof(UI_PlayerInfo));
+            UIObjectFactory.SetPackageItemExtension(UI_btn_chatShowHide.URL, typeof(UI_btn_chatShowHide));
             UIObjectFactory.SetPackageItemExtension(UI_DefensivePointBar.URL, typeof(UI_DefensivePointBar));
             UIObjectFactory.SetPackageItemExtension(UI_ConfirmPanel.URL, typeof(UI_ConfirmPanel));
             UIObjectFactory.SetPackageItemExtension(UI_GmPanel.URL, typeof(UI_GmPanel));
@@ -39,13 +44,10 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_GmItem.URL, typeof(UI_GmItem));
             UIObjectFactory.SetPackageItemExtension(UI_GmComboBox_popup.URL, typeof(UI_GmComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_HomeCharacterList.URL, typeof(UI_HomeCharacterList));
-            UIObjectFactory.SetPackageItemExtension(UI_Panel_1.URL, typeof(UI_Panel_1));
             UIObjectFactory.SetPackageItemExtension(UI_AttrItem.URL, typeof(UI_AttrItem));
-            UIObjectFactory.SetPackageItemExtension(UI_HomeAttrList.URL, typeof(UI_HomeAttrList));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyPanel.URL, typeof(UI_LobbyPanel));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberList.URL, typeof(UI_LobbyMemberList));
             UIObjectFactory.SetPackageItemExtension(UI_HomePanel.URL, typeof(UI_HomePanel));
-            UIObjectFactory.SetPackageItemExtension(UI_Button1.URL, typeof(UI_Button1));
             UIObjectFactory.SetPackageItemExtension(UI_RoleHead.URL, typeof(UI_RoleHead));
         }
     }

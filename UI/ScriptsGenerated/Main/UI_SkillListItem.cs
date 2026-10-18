@@ -13,7 +13,6 @@ namespace Ros.UI.Main
         public GLoader m_loader_icon;
         public GTextField m_store;
         public GTextField m_key;
-        public GList m_starList;
         public const string URL = "ui://q68vr2bfjtpbhf";
 
         public static UI_SkillListItem CreateInstance()
@@ -31,7 +30,6 @@ namespace Ros.UI.Main
             m_loader_icon = (GLoader)GetChildAt(8);
             m_store = (GTextField)GetChildAt(10);
             m_key = (GTextField)GetChildAt(11);
-            m_starList = (GList)GetChildAt(12);
         }
     }
 }

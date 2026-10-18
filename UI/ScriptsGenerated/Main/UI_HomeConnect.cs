@@ -8,8 +8,8 @@ namespace Ros.UI.Main
     public partial class UI_HomeConnect : GComponent
     {
         public UI_InputField m_input_ipaddress;
-        public UI_Button1 m_btn_connect;
-        public GButton m_btn_editSelection;
+        public UI_button3 m_btn_editSelection;
+        public UI_button3 m_btn_connect;
         public const string URL = "ui://q68vr2bfjtpbhb";
 
         public static UI_HomeConnect CreateInstance()
@@ -22,8 +22,8 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_input_ipaddress = (UI_InputField)GetChildAt(1);
-            m_btn_connect = (UI_Button1)GetChildAt(3);
-            m_btn_editSelection = (GButton)GetChildAt(4);
+            m_btn_editSelection = (UI_button3)GetChildAt(3);
+            m_btn_connect = (UI_button3)GetChildAt(4);
         }
     }
 }

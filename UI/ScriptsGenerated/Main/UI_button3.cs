@@ -5,14 +5,14 @@ using FairyGUI.Utils;
 
 namespace Ros.UI.Main
 {
-    public partial class UI_Button1 : GButton
+    public partial class UI_button3 : GButton
     {
         public Controller m_selected;
-        public const string URL = "ui://q68vr2bfvjeqgw";
+        public const string URL = "ui://q68vr2bfctp8jv";
 
-        public static UI_Button1 CreateInstance()
+        public static UI_button3 CreateInstance()
         {
-            return (UI_Button1)UIPackage.CreateObject("Main", "Button1");
+            return (UI_button3)UIPackage.CreateObject("Main", "button3");
         }
 
         public override void ConstructFromXML(XML xml)
