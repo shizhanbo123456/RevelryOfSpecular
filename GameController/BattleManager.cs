@@ -882,10 +882,12 @@ public partial class BattleManager : EnsBehaviour
                 var info = entity.GetDisplayInfo(full);
                 info.includeRuntime = full;
                 // 位姿/血量/buff/技能全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
-                if (!info.hasTransform && !info.hasHealth && !info.hasBuffs && !info.hasSkills) continue;
-                FillDisplayVelocity(entity, info);
-                Tool.NetworkManager.SendEntityDisplay(clientId, info);
-
+                if (info.hasTransform || info.hasHealth || info.hasBuffs || info.hasSkills)
+                {
+                    FillDisplayVelocity(entity, info);
+                    Tool.NetworkManager.SendEntityDisplay(clientId, info);
+                }
+                // 动画包独立于表现包：表现包被跳过时仍要发，否则本轮末尾清掉 AnimSyncDirty 后这次状态变化就永久丢了
                 if (entity.anim != null && (entity.anim.AnimSyncDirty || firstSeen)) SendEntityAnim(clientId, entity);
             }
             EndClientVisibility(clientId);
