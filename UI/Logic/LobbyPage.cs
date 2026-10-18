@@ -59,6 +59,7 @@ public class LobbyPage : PageBase
     private void JoinCamp(int camp)
     {
         if (syncingFromServer) return;
+        if (BlockedByReady()) return;
         myCamp = camp;
         SendRoomState();
     }
@@ -66,10 +67,19 @@ public class LobbyPage : PageBase
     private void ChangeAICount(bool defense, int delta)
     {
         if (syncingFromServer) return;
+        if (BlockedByReady()) return;
         if (defense) defenseAICount = Mathf.Max(0, defenseAICount + delta);
         else attackAICount = Mathf.Max(0, attackAICount + delta);
         RefreshAICountLabels();
         SendRoomState();
+    }
+
+    // 已准备（含开战倒计时中）不允许改阵营与 AI 数量：服务器只在准备状态变化时重算开局条件，此时改了也不会生效
+    private bool BlockedByReady()
+    {
+        if (!myReady) return false;
+        if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("请先取消准备");
+        return true;
     }
 
     private void RefreshAICountLabels()
