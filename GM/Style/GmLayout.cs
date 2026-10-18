@@ -322,6 +322,11 @@ namespace Ros.Gm
             {
                 new Button(string.Empty, "敌方对话")
             });
+            layoutStyle.Add(GmEnum.Other_LocalDelay, new()
+            {
+                new IntSlider("延迟(ms)", 0, 100),
+                new Button(string.Empty, "应用")
+            });
         }
         public static List<LayoutInfo> GetLayout(this GmEnum type) => layoutStyle[type];
     }

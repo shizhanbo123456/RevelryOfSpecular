@@ -469,7 +469,8 @@ public class GmPanel
         GmEnum.Save_CharacterLevel or
         GmEnum.Other_Settlement or
         GmEnum.Other_Debug or
-        GmEnum.Other_Collect_MeshFaces => true,
+        GmEnum.Other_Collect_MeshFaces or
+        GmEnum.Other_LocalDelay => true,
         _ => false,
     };
 
@@ -510,6 +511,9 @@ public class GmPanel
                 break;
             case GmEnum.Other_Settlement:
                 if (Tool.UIManager != null) Tool.UIManager.Settlement.PlayDemo();
+                break;
+            case GmEnum.Other_LocalDelay:
+                if (Tool.Instance != null) Tool.Instance.delay = ReadSliderInt(start);
                 break;
         }
     }
@@ -618,6 +622,7 @@ public class GmPanel
 
     private int ReadInt(int rowIndex) => ItemAt(rowIndex) is UI_GmItem it ? ParseInt(it.m_content_inputField.text) : 0;
     private float ReadFloat(int rowIndex) => ItemAt(rowIndex) is UI_GmItem it ? ParseFloat(it.m_content_inputField.text) : 0f;
+    private int ReadSliderInt(int rowIndex) => ItemAt(rowIndex) is UI_GmItem it ? (int)it.m_content_slider.value : 0;
     private int ReadDropdownValue(int rowIndex, Type enumType) => ItemAt(rowIndex) is UI_GmItem it ? EnumValueOf(enumType, it.m_content_dropdown.selectedIndex) : 0;
 
     private static string DebugText(int index) => index switch

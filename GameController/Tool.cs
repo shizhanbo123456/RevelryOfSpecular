@@ -5,7 +5,7 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class Tool : MonoBehaviour
 {
-    [SerializeField][Range(0,100)] private int delay = 20;
+    [Range(0,100)] public int delay = 20;
 
     [Header("启动自检")]
     public bool isServer;

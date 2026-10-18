@@ -118,5 +118,8 @@ namespace Ros.Gm
         [GmLabel("其它-敌方对话")]
         [GmStatus(GmStatusType.Lobby | GmStatusType.Battle)]
         Other_EnemyDialog,
+        [GmLabel("其它-本地延迟")]
+        [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]
+        Other_LocalDelay,
     }
 }
