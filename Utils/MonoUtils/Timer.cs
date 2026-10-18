@@ -9,6 +9,7 @@ public static class Timer
         public int invokeTimeLeft;//剩余的调用次数
         public float timeBeforeNextInvoke;
         public readonly float invokeInterval;
+        public bool cancelled;
         public TimerTask(float invokeInterval, int invokeTime, bool invokeInstantly)
         {
             this.invokeInterval = invokeInterval;
@@ -49,10 +50,18 @@ public static class Timer
         }
     }
 
+    public sealed class TimerHandle
+    {
+        internal Action cancel;
+
+        public void Cancel()
+        {
+            if (cancel != null) cancel.Invoke();
+        }
+    }
+
     private abstract class TransitionTask : TimerTask
     {
-        public bool cancelled;
-
         protected TransitionTask() : base(0f, int.MaxValue, true) { }
     }
 
@@ -93,11 +102,15 @@ public static class Timer
 
     private static readonly List<TimerTask> _tasks = new();
 
-    public static void AddTimer<T>(T value, Action<T> act, float invokeInterval, int invokeTime, bool invokeInstantly)
+    public static TimerHandle AddTimer<T>(T value, Action<T> act, float invokeInterval, int invokeTime, bool invokeInstantly)
     {
-        if (act == null) return;
-        if (invokeTime <= 0) return;
-        _tasks.Add(new TimerTask<T>(value,act,invokeInterval,invokeTime,invokeInstantly));
+        var handle = new TimerHandle();
+        if (act == null) return handle;
+        if (invokeTime <= 0) return handle;
+        var task = new TimerTask<T>(value, act, invokeInterval, invokeTime, invokeInstantly);
+        handle.cancel = () => task.cancelled = true;
+        _tasks.Add(task);
+        return handle;
     }
 
     public static TransitionHandle AddTransition<T>(T value, float duration, Action<T, float> onTick)
@@ -116,6 +129,11 @@ public static class Timer
         for (int i = _tasks.Count - 1; i >= 0; i--)
         {
             var task = _tasks[i];
+            if (task.cancelled)
+            {
+                _tasks.RemoveAt(i);
+                continue;
+            }
             if (task.timeBeforeNextInvoke <= 0)
             {
                 task.Invoke();

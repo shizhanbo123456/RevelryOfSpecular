@@ -30,7 +30,7 @@ public partial class BattleManager : EnsBehaviour
     public readonly Dictionary<short, CSLobbyPlayerInfo> PlayerInfoList = new();
     public readonly Dictionary<short, PlayerCampType> PlayerCamps = new(); // 玩家阵营三分类（攻/守/观战），与实体阵营分离
     private readonly Dictionary<short, bool> readyByClient = new(); // 组队界面准备状态（真人专用）
-    private bool startCountdownRunning; // 全员准备后的开战倒计时进行中
+    private Timer.TimerHandle startCountdownHandle; // 非 null 即开战倒计时进行中；取消时须 Cancel，否则残留任务会提前开局
     public readonly Dictionary<short, ushort> PlayerEntityId = new();
     public readonly Dictionary<ushort, short> EntityOwnerClient = new();
 
@@ -335,9 +335,9 @@ public partial class BattleManager : EnsBehaviour
         PlayerInfoList.Remove(clientId);
         PlayerCamps.Remove(clientId);
         // 开始倒计时中有人退场：剩余真人不再全员 ready 则取消计时并提示（仍满足则继续倒计时）
-        if (startCountdownRunning && !AllHumansReady())
+        if (startCountdownHandle != null && !AllHumansReady())
         {
-            startCountdownRunning = false;
+            CancelStartCountdown();
             SendPromptToAll(29);
         }
         // 加载阶段有人退场：剩下的人若已全部回执，直接开战，不再等退场者
@@ -426,14 +426,14 @@ public partial class BattleManager : EnsBehaviour
         readyByClient[clientId] = ready;
         if (!ready)
         {
-            if (startCountdownRunning)
+            if (startCountdownHandle != null)
             {
-                startCountdownRunning = false;
+                CancelStartCountdown();
                 SendPromptToAll(29); // 有玩家取消了准备
             }
             return;
         }
-        if (startCountdownRunning || !AllHumansReady()) return;
+        if (startCountdownHandle != null || !AllHumansReady()) return;
         // 全员准备：双方（人类 + AI）均需 > 0 才进入开始倒计时
         if (PlayerCamps.Values.Count(c => c == PlayerCampType.Attack) <= 0
             || PlayerCamps.Values.Count(c => c == PlayerCampType.Defense) <= 0)
@@ -441,16 +441,22 @@ public partial class BattleManager : EnsBehaviour
             SendPromptToAll(17);
             return;
         }
-        startCountdownRunning = true;
         SendPromptToAll(28); // 全员已准备，战斗即将开始
-        Timer.AddTimer(0, _ => TryFireStartBattle(), Config.ready_start_delay, 1, false);
+        startCountdownHandle = Timer.AddTimer(0, _ => TryFireStartBattle(), Config.ready_start_delay, 1, false);
+    }
+
+    // 业务取消：置空句柄并让已注册任务作废，重开倒计时才是全新计时
+    private void CancelStartCountdown()
+    {
+        if (startCountdownHandle != null) startCountdownHandle.Cancel();
+        startCountdownHandle = null;
     }
 
     // 倒计时到期：期间可能有人取消/退场，重新校验后进入加载阶段
     private void TryFireStartBattle()
     {
-        if (!startCountdownRunning) return;
-        startCountdownRunning = false;
+        if (startCountdownHandle == null) return;
+        startCountdownHandle = null;
         if (BattleStarted || LoadingStarted) return;
         if (!AllHumansReady()
             || PlayerCamps.Values.Count(c => c == PlayerCampType.Attack) <= 0
