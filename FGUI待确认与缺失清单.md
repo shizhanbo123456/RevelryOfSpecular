@@ -6,23 +6,24 @@
 > **2026-10-12 新增**：聊天系统（ChatPanel + ChatItem），见第七节。
 > **2026-10-15 导出**：`UI_MinimapItem` 新增 `m_highlight` 控制器（白眼标记高亮，`BattlePage.UpsertMinimapEntity` 已按包同步，代码侧写死 0=普通 / 1=标记）；`UI_BattlePanel` 新增 `m_onlook` 控制器 + `m_attacker_member_count`/`m_defense_member_count` 文本（人数文本 2026-10-16 已接 `SCCampAliveCount`，显示「存活/总数」；`m_onlook`/`m_onlookComboBox` 已接线（2026-10-17，观战系统完成，见待办清单）。新增 `UI_onlookComboBox_popup` 组件。
 > **2026-10-17 重新导出**：组队界面三阵营化（攻/守/观战）+ 准备制开局（见 UI_LobbyMemberList / UI_RoleHead 行）；`ChatItem.m_camp` 扩为三档（2 = 观战）。
+> **2026-10-18 重新导出**：首页单页化（UI_HomePanel 去掉 `m_page`，角色列表面板改由代码控可见性）；属性列表并入 UI_HomeCharacterList.m_attrList（删 UI_HomeAttrList）；`UI_Panel_1` → `UI_panel_2`（GLabel）、`UI_Button1` → `UI_button1` 并拆出 `button2/button3`；`UI_SkillListItem` 删 `m_starList`；战斗面板加观战人数文本；聊天面板加折叠控制器与显隐按钮；`UI_RoleHead` 加 `m_quality`（暂无数据源）。
 
 ## 一、页面根与结构
 
 | 页面根 | 组成 |
 |---|---|
-| **UI_HomePanel** | m_page 控制器（**0=玩家信息页，1=角色列表页**）+ m_playerInfo(UI_PlayerInfo) + m_characterPanel(HomeCharacterList) + m_attributePanel(HomeAttrList) + m_connectPanel(HomeConnect) |
+| **UI_HomePanel** | **单页（2026-10-18 起无 m_page 控制器）**：m_connectPanel(UI_HomeConnect) + m_playerInfo(UI_PlayerInfo) + **m_characterList(UI_HomeCharacterList)**。角色列表面板的显隐由代码控制（默认隐藏，「选择角色」打开、面板内确认按钮关闭） |
 | **UI_LobbyPanel** | m_mainView(LobbyMemberList) + m_btn_exit（断开并返回）。**2026-10-17 起：三阵营（加入观战/进攻/防守）+ 准备制开局，见 UI_LobbyMemberList 行** |
-| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3）+ **m_onlook 控制器（0=正常 / 1=观战：观战档由 FGUI gear 自动隐藏血条、技能栏等非观战元素）+ m_onlookComboBox（观战目标下拉，GComboBox，popup = UI_onlookComboBox_popup 内 `list`）——均已接线（2026-10-17）** |
+| **UI_BattlePanel** | m_skillList + m_PlayerBar(PlayerHealth) + m_EventList(UI_EventList) + m_Minimap + m_icon_day_night + m_label_time_left + 复活进度（m_showRegenerationBar + m_regeneration_progressbar）+ 守护点血量面板 ×4（m_progressMain + m_progressSub1~3）+ **人数文本 m_attacker_member_count / m_defense_member_count / m_spectater_member_count（2026-10-18 新增观战人数，三者均来自 `SCCampAliveCount`）** + **m_onlook 控制器（0=正常 / 1=观战：观战档由 FGUI gear 自动隐藏血条、技能栏等非观战元素）+ m_onlookComboBox（观战目标下拉，GComboBox，popup = UI_onlookComboBox_popup 内 `list`）——均已接线（2026-10-17）** |
 
 ## 二、组件规则（全部按你的讲解落实）
 
 | 组件 | 规则 |
 |---|---|
-| **UI_PlayerInfo**（玩家信息页） | m_input_playerName（GTextInput，玩家名可编辑，**已上报**：随 `CSLobbyPlayerInfo` 发给服务器，服务器再经 `SCLobbyPlayerName` 单独下发给其他人）、m_label_level（玩家等级）、m_selectedAttacker/m_selectedDefenser（UI_RoleHead 展示两阵营当前选中角色）、m_btn_editSelectedCharacter（跳角色列表页） |
-| UI_HomeCharacterList | m_characterList（←UI_RoleHead）+ m_btn_attacker/m_btn_defenser（页签切阵营）+ m_btn_finish（编辑完成切回玩家信息页，**已接线**） |
-| UI_RoleHead | m_headIcon(GLoader)、m_roleName、m_level 控制器（index = level-1）、m_lock（未解锁）、**m_confirm（勾选控制器，2026-10-17 新增：组队界面准备状态勾选，代码按 0 = 未勾 / 1 = 已勾处理）**；**角色头像统一用它：角色条目/大厅成员（文本=玩家名、头像=所选角色）** |
-| UI_HomeAttrList + UI_AttrItem | m_attrValue 用 **UBB**：基础属性白 + 已取得的全部升级加成绿 `[color=#6BD98C]+150[/color]` + 仅下一级将加成的属性橙 `[color=#FF9E47]（+50）[/color]` |
+| **UI_PlayerInfo**（玩家信息区） | m_input_playerName（GTextInput，玩家名可编辑，**已上报**：随 `CSLobbyPlayerInfo` 发给服务器，服务器再经 `SCLobbyPlayerName` 单独下发给其他人）、m_label_level（玩家等级） |
+| UI_HomeCharacterList | m_characterList（←UI_RoleHead）+ m_btn_attacker/m_btn_defenser（页签切阵营，UI_button3）+ **m_attrList（属性列表，2026-10-18 从 UI_HomeAttrList 并入；条目仍为 UI_AttrItem）** + **确认按钮（2026-10-18 新增，FGUI 里未命名 → 生成类无字段，代码用 `GetChildAt(2)` 取；点击关闭整个角色列表面板）**；原 m_btn_finish 已删除 |
+| UI_RoleHead | m_headIcon(GLoader)、m_roleName、m_level 控制器（index = level-1）、m_lock（未解锁）、**m_confirm（勾选控制器，2026-10-17 新增：组队界面准备状态勾选，代码按 0 = 未勾 / 1 = 已勾处理）**、**m_quality（2026-10-18 新增，品质档，暂无数据源 → 代码未引用）**；**角色头像统一用它：角色条目/大厅成员（文本=玩家名、头像=所选角色）** |
+| **UI_AttrItem**（属性条目） | m_attrName + m_attrValue 用 **UBB**：基础属性白 + 已取得的全部升级加成绿 `[color=#6BD98C]+150[/color]` + 仅下一级将加成的属性橙 `[color=#FF9E47]（+50）[/color]`（原 UI_HomeAttrList 容器已删除，条目组件保留） |
 | UI_HomeConnect + UI_InputField | m_input_ipaddress.m_content(GTextInput) 读 IP + m_btn_connect；无连接状态文本（未连接就在 Home） |
 | UI_LobbyMemberList | 三阵营成员列表（条目 = RoleHead：玩家名+所选角色头像；**2026-10-17 起攻/守/观战三组**：m_attackerPlayers / m_defenserPlayers / m_spectatePlayers）+ m_btn_joinAttacker / m_btn_joinDefenser / **m_btn_joinSpectate（加入观战，2026-10-17 新增）**（选队）+ AI 编辑（m_attackerAI_minus/m_label_attackerAI_count/m_attackerAI_add + 防守方同组）+ **m_btn_prepare（准备按钮，2026-10-17 替换原 m_btn_battleStart 开始按钮——已删除；准备/取消准备切换，全员准备后 3 秒自动开战）** |
 | UI_BattlePanel | m_icon_day_night 绕 Z 旋转（0°=正午，180°=午夜，Time01 线性插值）+ m_label_time_left（本地推演）+ m_PlayerBar（左上角固定，本地玩家等级+血量数字+血条）+ m_skillList + m_EventList（UI_EventList）+ m_Minimap |
@@ -30,15 +31,17 @@
 | **UI_DefensivePointBar**（×4：m_progressMain + m_progressSub1~3） | m_fill 填充比例 = 血量比；**m_destroyed 控制器 = 被摧毁标识**；减伤不在 UI 显示 |
 | UI_EntityBar（世界空间血条） | m_fill + m_label（血量数字）；名牌（PlayerName 名字 + EntityBar 血条）屏幕跟随实体头顶，锚点 = TryGetAnchorPos(Bar)（人形 Head 骨骼+0.5m / 非人形包围盒顶+0.5m）；**轴心为左上角（未勾作为锚点）→ 代码设位置时减半个宽度做水平居中**（血条 160 宽、名牌 20 宽） |
 | **UI_SkillList**（BattlePanel.m_skillList） | m_content（**GList，横向单行**，defaultItem = SkillListItem，溢出可见无滚动）：条目数 = 本地角色**技能槽位数**（`EntityAttribute.weaponSlotCount`，默认 3、可被升级抬高）；**代码额外设列表宽度 = 所有条目宽度之和**（白名单内唯一允许的尺寸设置），位置/高度仍由界面决定 |
-| UI_SkillListItem | m_loader_iconBase（底图）+ m_loader_icon（图标，**CD = 填充比例 0→100 一轮冷却**）+ m_store + m_key（键位按 `Config.skill_slot_keys` = U I O L H Y）+ **m_starList（技能经验，exp 与星星 1:1）** + **m_empty 控制器（0 有技能 / 1 空槽）** + **m_randomOutline 控制器（0~4，进入战斗时每个槽位随机一次）**；无选中态、无经验/CD 文本 |
+| UI_SkillListItem | m_loader_iconBase（底图）+ m_loader_icon（图标，**CD = 填充比例 0→100 一轮冷却**）+ m_store + m_key（键位按 `Config.skill_slot_keys` = U I O L H Y）+ **m_empty 控制器（0 有技能 / 1 空槽）** + **m_randomOutline 控制器（0~4，进入战斗时每个槽位随机一次）**；无选中态、无经验/CD 文本；**m_starList（经验星星）已于 2026-10-18 删除** |
 | UI_DamageLabel | value 0=无效（灰）/ >0=普通（白）/ <0=暴击（橙大号），受击实体头顶（**轴心左上角 → 代码减半个宽度让数字居中于头顶**，上浮+渐隐后销毁；随机散布在**屏幕空间**水平±50px / 垂直±10px，创建时定死不再每帧重掷；无命中点时锚点 = 受击实体的 `EntityAnchor.LabelFallBack`） |
 | **UI_EventList**（BattlePanel.m_EventList） | m_EventItemContainer（**GList，纵向单列**，defaultItem = EventItem）：代码只设 `itemRenderer` + `numItems`，条目组件与排布全由界面决定；数据是 `BattlePage.eventEntries`（3.5s 到期从表头移除） |
 | UI_EventItem + UI_EventIcon | type2 = 文字+图标+文字；type1 = 图标+文字；type0 = 纯文字（无图标）。**EventIcon 档位 0~7 已全部接入**：0 无源死亡（玩家死亡无归属）/ 1 瘟疫树被击败 / 2 玩家复活 / 3 瘟疫树刷新 / 4 天黑 / 5 天亮 / 6 玩家间击败 / 7 其它（守护点被摧毁）。条目文本统一数字 id 传输（`SCBattleEvent.textId`：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000） |
 | UI_Minimap + UI_MinimapItem | 档位：0 自己 / 1 队友玩家 / 2 敌人玩家 / 3 瘟疫树 / 4 水晶 / 5 防御塔 / 6 僵尸 / 7 精英僵尸 / 8 主守护点 / 9 次守护点；**雷达式**：本地玩家图标固定在 mapBase 正中心并随朝向旋转，上方=世界Z+、右侧=世界X+，**当前雷达显示半径**铺满 mapBase（F 键循环 100/200/300，服务器回应 `SCMinimapRadius`），其它点按相对本地玩家的偏移绘制；点位图标创建时代码设 `scale` = 父链上层元素缩放的倒数（minimapItemScale，界面初始化时算，不含页面根 UiScale 适配），抵消上层缩放使图标保持 FGUI 设计尺寸 |
 | UI_BattleResult | m_title/m_content + m_t0 转场；**显示 5 秒后自动关闭回组队大厅**（承载类：SettlementView） |
-| UI_Button1 / UI_Panel_1 / UI_NoticePanel | m_selected（选中态）；m_hideTitle=1 隐藏标题栏；m_title（ShowNotice） |
+| **UI_button1 / UI_button2 / UI_button3** | 三个按钮组件都带 m_selected（选中态），按用途拆分（2026-10-18 起 button1 = 原 Button1，button2/button3 为新增） |
+| **UI_panel_2** | **GLabel**（原 UI_Panel_1 容器）：m_hidetitle 控制器隐藏标题栏，标题文本用 `title`（原 `m_title` 字段已不存在）；首页角色列表与大厅成员列表都用它当底框 |
+| UI_NoticePanel | m_title（ShowNotice / 全局飘字用） |
 | **UI_LoadingPanel**（加载界面） | m_page 控制器（**显示时随机取 0~2 一档**）、m_show_bar 控制器（0 = 收起进度条，1 = 展开，`SetLoadingProgress` 时置 1）、m_progressbar + m_progress（进度值与其文本，进度按 `m_progressbar.max` 归一）、m_label（**暂未使用**）。2026-10-18 起由 `UIManager` 接入：`ShowLoading` / `HideLoading` / `SetLoadingProgress`，跟随屏幕高/1080 缩放并居中 |
-| UI_Button1 回调 | `onClick.Set(...)` 为覆盖语义（列表复用用它），`onClick.Add(...)` 为追加 |
+| UI_button1 回调 | `onClick.Set(...)` 为覆盖语义（列表复用用它），`onClick.Add(...)` 为追加 |
 
 ## 三、接线映射
 
@@ -133,6 +136,7 @@
 - `SCBattleEvent`（战斗事件列表唯一来源）：type（事件语义唯一判别，icon 档位与条目版式由客户端按类型映射）+ textId/textId2（数字文本：<10000 = NoticeMessageMap，≥10000 = 玩家名，clientId = id − 10000）。事件源：玩家击杀（PlayerKill，type2 双名）/玩家死亡无归属（DeathUnattributed）、复活（PlayerRespawn）、攻占瘟疫树（PlagueTreeCaptured）、瘟疫树刷新（PlagueTreeRespawn）、天黑/天亮（Nightfall/Daybreak）、守护点摧毁（BeaconDestroyed，textId 区分哪一座：19 中心 / 24~26 外围，驱动对应血条 destroyed）、防御塔摧毁（TowerDestroyed）、武器提示 13/14/15（Notice，纯文字，定向）
 - `SCDamage`（value：0=无效，>0=普通，<0=暴击取绝对值；targetId=受击实体；hasHitPos+hitPos 命中点可选）+ `NetworkManager.SendDamage` 定向（按可见性）/广播重载，不可靠通道
 - `SCPrompt`（messageId = NoticeMessageMap 消息 id）+ `NetworkManager.SendPrompt` 定向：开局校验 17/18、准备制 28/29、技能失败 30/31（战斗事件列表条目一律走 SCBattleEvent，不走此通道）
+- `SCCampAliveCount`（战斗期人数面板唯一来源）：attackerTotal/defenseTotal/attackerAlive/defenseAlive + **spectatorCount（2026-10-18 新增；观战人数，战斗期不用组队期缓存）**；服务器 `TickCampAliveCount` 每帧比对、变更才下发
 - **组队期（仅大厅用）**：`SCLobbyInfo.LobbyMemberInfo.characterIndex`（角色头像）+ `ready`（勾选）；名字走独立包 `SCLobbyPlayerName`（`clientId + name`）；`CSLobbyPlayerInfo.name`（玩家名上报）
 - **加载期（开战前）**：`SCLoadingStart{camp}` → `SCLoadingPrepared{ownEntityId, characterType, serverTime}` → 逐步请求 `CSLoadingAttackPlayerRequest` / `CSLoadingDefensePlayerRequest` / `CSLoadingAiUnitRequest`（各自对应 `SCLoading*Response`，列表项 `clientId/entityId/name/camp`）→ `CSLoadingComplete` → `SCBattleStart`。**战斗期的玩家名字与玩家↔实体关系全部来自这套加载数据，组队期缓存战斗期不读**
 - `EntityPlayerManager.TryGetAnchorPos(id, EntityAnchor, out pos)`（任意锚点取世界位置，见《代码架构说明》「锚点」节；名牌/血条走 `Bar`、伤害飘字兜底走 `LabelFallBack`）
@@ -162,6 +166,9 @@
 | m_content | GList | 400×229(11,11)，`overflow=scroll`，defaultItem = ChatItem |
 | m_btn_allChannel | GButton | 标题"全频道"（面板**上方** y=-28，100×30） |
 | m_btn_campChannel | GButton | 标题"阵营频道"（面板**上方** y=-28，100×30） |
+| **m_fold** | Controller（2 档） | 面板折叠态，**2026-10-18 新增**，档位见 7.3 |
+| **m_btn_hide** | UI_btn_chatShowHide | 展开态下的收起按钮；组件自带 `m_side` 控制器（左右摆放，代码不设） |
+| **m_btn_show** | UI_btn_chatShowHide | 折叠态下的展开按钮 |
 
 ### 7.3 控制器档位
 
@@ -171,6 +178,13 @@
 |---|---|
 | 0 | 收起：只剩列表 + 输入行，频道按钮不可见 |
 | 1 | 展开：额外显示"全频道 / 阵营频道"两个按钮（**组件当前默认档 = 1**） |
+
+**ChatPanel.m_fold**（2026-10-18 新增；控制面板本体与收起/展开按钮的互斥显示）
+
+| index | 效果 |
+|---|---|
+| 0 | 展开：完整面板 + m_btn_hide（代码默认档） |
+| 1 | 收起：只剩 m_btn_show，面板本体隐藏；折叠后尺寸变化由代码重新贴边 |
 
 **ChatItem.m_camp**（控制的是各阵营 image 的互斥显示；**2026-10-17 起三档：0 攻 / 1 守 / 2 观战**）
 
@@ -224,6 +238,7 @@
 - **频道页签**：组队界面收起（`m_show_channel_menu=0`，两个频道按钮不显示），所有消息照常显示；进入战斗展开（=1），默认全频道，点"阵营频道"切换——阵营频道的消息仍转发给所有客户端，由各客户端按阵营过滤显示。
 - 别人发言：条目左侧（`side=0`），头像+名字+攻/守阵营图标，正文自增高；自己发言：本地立即插入（`side=1`），头像与阵营图标移到右侧、文本右对齐。
 - 发送限制：去空白后非空、长度 1~50、最快 1s 一条；服务器不校验（纯转发）。
+- **折叠**（2026-10-18）：默认展开（`m_fold=0`）；点 m_btn_hide 收起（=1）、点 m_btn_show 展开（=0），每次切换后按新尺寸重新贴左下角；断开/离开房间时复位为展开。
 
 ### 7.8 待正式工程确认（本机无表现层）
 

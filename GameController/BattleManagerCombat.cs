@@ -359,15 +359,19 @@ public partial class BattleManager
     }
     #endregion
 
-    private int lastAttackerTotal = -1, lastDefenseTotal = -1, lastAttackerAlive = -1, lastDefenseAlive = -1;
+    private int lastAttackerTotal = -1, lastDefenseTotal = -1, lastAttackerAlive = -1, lastDefenseAlive = -1, lastSpectatorCount = -1;
 
-    // 双方玩家（真人+AI）总人数与存活数：ManagedUpdate 每帧比对，变更才下发（阵亡/复活/进出房/GM 击杀统一在此收口）
+    // 双方玩家（真人+AI）总人数、存活数与观战人数：ManagedUpdate 每帧比对，变更才下发（阵亡/复活/进出房/GM 击杀统一在此收口）
     private void TickCampAliveCount()
     {
-        int aTotal = 0, dTotal = 0, aAlive = 0, dAlive = 0;
+        int aTotal = 0, dTotal = 0, aAlive = 0, dAlive = 0, sCount = 0;
         foreach (var pair in PlayerCamps)
         {
-            if (pair.Value == PlayerCampType.Spectator) continue; // 观战方不计入双方人数
+            if (pair.Value == PlayerCampType.Spectator)
+            {
+                sCount++; // 观战方不计入双方人数，单独统计
+                continue;
+            }
             bool attack = pair.Value == PlayerCampType.Attack;
             if (attack) aTotal++; else dTotal++;
             var data = PlayerEntityId.TryGetValue(pair.Key, out var eid) ? GetEntity(eid) : null;
@@ -377,17 +381,20 @@ public partial class BattleManager
             }
         }
         if (aTotal == lastAttackerTotal && dTotal == lastDefenseTotal
-            && aAlive == lastAttackerAlive && dAlive == lastDefenseAlive) return;
+            && aAlive == lastAttackerAlive && dAlive == lastDefenseAlive
+            && sCount == lastSpectatorCount) return;
         lastAttackerTotal = aTotal;
         lastDefenseTotal = dTotal;
         lastAttackerAlive = aAlive;
         lastDefenseAlive = dAlive;
+        lastSpectatorCount = sCount;
         Tool.NetworkManager.SendCampAliveCount(new SCCampAliveCount()
         {
             attackerTotal = aTotal,
             defenseTotal = dTotal,
             attackerAlive = aAlive,
             defenseAlive = dAlive,
+            spectatorCount = sCount,
         });
     }
     #endregion

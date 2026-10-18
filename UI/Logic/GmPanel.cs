@@ -235,14 +235,14 @@ public class GmPanel
     {
         if (index >= groups.Count) return;
         if (obj is GButton b) b.title = groups[index];
-        if (obj is UI_Button1 sel) sel.m_selected.selectedIndex = groups[index] == curGroup ? 1 : 0;
+        if (obj is UI_button1 sel) sel.m_selected.selectedIndex = groups[index] == curGroup ? 1 : 0;
     }
 
     private void RenderSubButton(int index, GObject obj)
     {
         if (index >= subs.Count) return;
         if (obj is GButton b) b.title = subs[index];
-        if (obj is UI_Button1 sel) sel.m_selected.selectedIndex = subs[index] == curSub ? 1 : 0;
+        if (obj is UI_button1 sel) sel.m_selected.selectedIndex = subs[index] == curSub ? 1 : 0;
     }
 
     private void OnClickGroup(EventContext ctx) => SelectGroup(groups[panel.m_firstMenu.m_button_list.GetChildIndex((GObject)ctx.data)]);

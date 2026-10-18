@@ -412,11 +412,6 @@ public class BattlePage : PageBase
             slot.m_loader_iconBase.visible = false;
         }
         if (slot.m_store != null) slot.m_store.text = "";
-        if (slot.m_starList != null)
-        {
-            slot.m_starList.itemRenderer = (_, _) => { };
-            slot.m_starList.numItems = 0;
-        }
     }
 
     private void OnBeaconDisplay(SCEntityDisplayInfo info)
@@ -513,6 +508,8 @@ public class BattlePage : PageBase
             panel.m_attacker_member_count.text = $"{info.attackerAlive}/{info.attackerTotal}";
         if (panel.m_defense_member_count != null)
             panel.m_defense_member_count.text = $"{info.defenseAlive}/{info.defenseTotal}";
+        if (panel.m_spectater_member_count != null)
+            panel.m_spectater_member_count.text = info.spectatorCount.ToString();
     }
 
     private void OnMinimapUpdate(SCMinimapEntity e)

@@ -19,22 +19,19 @@ public class HomePage : PageBase
 
     public override void Construct()
     {
-        panel.m_page.selectedIndex = 0; // 默认玩家信息页
-        panel.m_attributePanel.visible = false; // 属性列表初始隐藏
-
-        var charPanel = panel.m_characterPanel;
+        var charPanel = panel.m_characterList;
+        charPanel.visible = false; // 单页布局：角色选择面板默认隐藏，「选择角色」打开
         charPanel.m_characterList.itemRenderer = RenderCharacter;
         charPanel.m_btn_attacker.onClick.Add(() => SwitchTab(false));
         charPanel.m_btn_defenser.onClick.Add(() => SwitchTab(true));
-        charPanel.m_btn_finish.onClick.Add(() => // 编辑完成 → 玩家信息页，并一并关闭属性列表
-        {
-            panel.m_page.selectedIndex = 0;
-            panel.m_attributePanel.visible = false;
-        });
+        // 确认按钮在 FGUI 里没有命名，生成类里没有字段，只能按下标取
+        var confirmBtn = charPanel.GetChildAt(2) as GButton;
+        if (confirmBtn == null) Debug.LogError("[HomePage] 角色选择面板第 3 个子节点不是按钮，确认按钮接不上");
+        else confirmBtn.onClick.Add(() => charPanel.visible = false);
 
-        panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮已移至连接面板
+        panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮在连接面板上
         {
-            panel.m_page.selectedIndex = 1;
+            charPanel.visible = true;
             SwitchTab(defenseTab); // 同步页签选中态：默认进攻页签，避免进入后无任何页签选中
         });
         var nameInput = panel.m_playerInfo.m_input_playerName;
@@ -60,7 +57,7 @@ public class HomePage : PageBase
         RefreshLists();
         RefreshPlayerInfo();
         RefreshAttrList();
-        panel.m_attributePanel.visible = false; // 每次进入首页默认隐藏属性列表
+        panel.m_characterList.visible = false; // 每次进入首页收起角色选择面板
         //同步场景预览：当前选中的两角色复制到预览锚点
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
@@ -70,28 +67,27 @@ public class HomePage : PageBase
     private void SwitchTab(bool defense)
     {
         defenseTab = defense;
-        panel.m_characterPanel.m_btn_attacker.m_selected.selectedIndex = defense ? 0 : 1;
-        panel.m_characterPanel.m_btn_defenser.m_selected.selectedIndex = defense ? 1 : 0;
+        var charPanel = panel.m_characterList;
+        charPanel.m_btn_attacker.m_selected.selectedIndex = defense ? 0 : 1;
+        charPanel.m_btn_defenser.m_selected.selectedIndex = defense ? 1 : 0;
         RefreshLists();
-        if (panel.m_attributePanel.visible) RefreshAttrList(); // 阵营切换时若属性列表已显示则同步刷新
+        RefreshAttrList(); // 属性列表与角色列表同面板，切阵营后一起刷新
     }
 
     private void SetTitles()
     {
-        // 子面板标题（UI_Panel_1.m_title）
-        panel.m_characterPanel.m_panel.m_title.text = "角色选择";
-        panel.m_attributePanel.m_panel.m_title.text = "角色属性";
+        // 子面板标题：UI_panel_2 是 GLabel，标题走 title
+        panel.m_characterList.m_panel.title = "角色选择";
         // 按钮标题（GButton.title）
         panel.m_connectPanel.m_btn_editSelection.title = "选择角色"; // 打开角色选择面板
-        panel.m_characterPanel.m_btn_attacker.title = "进攻";
-        panel.m_characterPanel.m_btn_defenser.title = "防守";
-        panel.m_characterPanel.m_btn_finish.title = "完成";
+        panel.m_characterList.m_btn_attacker.title = "进攻";
+        panel.m_characterList.m_btn_defenser.title = "防守";
         panel.m_connectPanel.m_btn_connect.title = "连接";
     }
 
     private void RefreshLists()
     {
-        var charPanel = panel.m_characterPanel;
+        var charPanel = panel.m_characterList;
         var infoList = Tool.InfoManager == null ? null
             : defenseTab ? Tool.InfoManager.DefenseCharacterInfoList : Tool.InfoManager.AttackCharacterInfoList;
         charPanel.m_characterList.numItems = infoList != null ? infoList.Count : 0;
@@ -129,7 +125,6 @@ public class HomePage : PageBase
             else ClientSelection.selectedAttackIndex = index;
             RefreshLists();
             RefreshAttrList();
-            panel.m_attributePanel.visible = true; // 点击角色 → 显示属性列表
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
                 Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
         });
@@ -150,7 +145,7 @@ public class HomePage : PageBase
             : Tool.InfoManager.GetPlayerCharacterInfo(saveIndex);
         int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
 
-        var attrList = panel.m_attributePanel.m_attrList;
+        var attrList = panel.m_characterList.m_attrList;
         if (info == null)
         {
             attrList.itemRenderer = (i, obj) => ((UI_AttrItem)obj).m_attrValue.text = "-";

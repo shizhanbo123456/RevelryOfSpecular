@@ -32,6 +32,7 @@ public class ChatPlugin
     private readonly List<ChatEntry> entries = new();
     private int sendChannel = ChannelAll;
     private float lastSendTime = -999f;
+    private float uiScale = 1f;
 
     public ChatPlugin(UI_ChatPanel panel)
     {
@@ -47,6 +48,9 @@ public class ChatPlugin
         panel.m_input.onSubmit.Add(TrySend);
         panel.m_btn_allChannel.onClick.Add(() => SelectChannel(ChannelAll));
         panel.m_btn_campChannel.onClick.Add(() => SelectChannel(ChannelCamp));
+        panel.m_btn_hide.onClick.Add(() => SetFolded(true));
+        panel.m_btn_show.onClick.Add(() => SetFolded(false));
+        panel.m_fold.selectedIndex = 0; // 默认展开
 
         EventManager.AddEvent(ClientEvent.OnConnect, OnConnect);
         EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
@@ -66,11 +70,24 @@ public class ChatPlugin
     //与页面同规则的整体缩放（设计高度 1080）；贴屏幕左下角（紧贴左侧、距底部 BottomMargin）
     public void OnResize(float uiScale)
     {
+        this.uiScale = uiScale;
+        ApplyTransform();
+    }
+
+    #region//Local
+    // 折叠后面板尺寸会变，位置要按新尺寸重新贴左下角
+    private void SetFolded(bool folded)
+    {
+        panel.m_fold.selectedIndex = folded ? 1 : 0;
+        ApplyTransform();
+    }
+
+    private void ApplyTransform()
+    {
         panel.scale = new Vector2(uiScale, uiScale);
         panel.SetXY(0f, GRoot.inst.height - panel.height * uiScale - BottomMargin);
     }
 
-    #region//Local
     private void OnConnect()
     {
         SelectChannel(ChannelAll);
@@ -89,6 +106,7 @@ public class ChatPlugin
     {
         ClearMessages();
         SelectChannel(ChannelAll);
+        SetFolded(false); // 断开后下次进房重新以展开态出现
         panel.visible = false;
     }
 
