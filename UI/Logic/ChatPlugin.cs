@@ -96,6 +96,7 @@ public class ChatPlugin
     {
         entries.Clear();
         panel.m_content.numItems = 0;
+        panel.m_input.text = string.Empty;
     }
 
     private void SelectChannel(int channel)
