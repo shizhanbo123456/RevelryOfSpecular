@@ -24,10 +24,7 @@ public class HomePage : PageBase
         charPanel.m_characterList.itemRenderer = RenderCharacter;
         charPanel.m_btn_attacker.onClick.Add(() => SwitchTab(false));
         charPanel.m_btn_defenser.onClick.Add(() => SwitchTab(true));
-        // 确认按钮在 FGUI 里没有命名，生成类里没有字段，只能按下标取
-        var confirmBtn = charPanel.GetChildAt(2) as GButton;
-        if (confirmBtn == null) Debug.LogError("[HomePage] 角色选择面板第 3 个子节点不是按钮，确认按钮接不上");
-        else confirmBtn.onClick.Add(() => charPanel.visible = false);
+        charPanel.m_btn_confirm.onClick.Add(() => charPanel.visible = false); // 确认 → 收起角色选择面板
 
         panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮在连接面板上
         {

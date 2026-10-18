@@ -21,7 +21,7 @@
 | 组件 | 规则 |
 |---|---|
 | **UI_PlayerInfo**（玩家信息区） | m_input_playerName（GTextInput，玩家名可编辑，**已上报**：随 `CSLobbyPlayerInfo` 发给服务器，服务器再经 `SCLobbyPlayerName` 单独下发给其他人）、m_label_level（玩家等级） |
-| UI_HomeCharacterList | m_characterList（←UI_RoleHead）+ m_btn_attacker/m_btn_defenser（页签切阵营，UI_button3）+ **m_attrList（属性列表，2026-10-18 从 UI_HomeAttrList 并入；条目仍为 UI_AttrItem）** + **确认按钮（2026-10-18 新增，FGUI 里未命名 → 生成类无字段，代码用 `GetChildAt(2)` 取；点击关闭整个角色列表面板）**；原 m_btn_finish 已删除 |
+| UI_HomeCharacterList | m_characterList（←UI_RoleHead）+ m_btn_attacker/m_btn_defenser（页签切阵营，UI_button3）+ **m_attrList（属性列表，2026-10-18 从 UI_HomeAttrList 并入；条目仍为 UI_AttrItem）** + **m_btn_confirm（确认按钮，UI_button2，点击收起整个角色列表面板）**；原 m_btn_finish 已删除 |
 | UI_RoleHead | m_headIcon(GLoader)、m_roleName、m_level 控制器（index = level-1）、m_lock（未解锁）、**m_confirm（勾选控制器，2026-10-17 新增：组队界面准备状态勾选，代码按 0 = 未勾 / 1 = 已勾处理）**、**m_quality（2026-10-18 新增，品质档，暂无数据源 → 代码未引用）**；**角色头像统一用它：角色条目/大厅成员（文本=玩家名、头像=所选角色）** |
 | **UI_AttrItem**（属性条目） | m_attrName + m_attrValue 用 **UBB**：基础属性白 + 已取得的全部升级加成绿 `[color=#6BD98C]+150[/color]` + 仅下一级将加成的属性橙 `[color=#FF9E47]（+50）[/color]`（原 UI_HomeAttrList 容器已删除，条目组件保留） |
 | UI_HomeConnect + UI_InputField | m_input_ipaddress.m_content(GTextInput) 读 IP + m_btn_connect；无连接状态文本（未连接就在 Home） |
