@@ -234,6 +234,7 @@ public partial class BattleManager
                 if (!PlayerCamps.TryGetValue(pair.Key, out var memberCamp) || !IsMemberOfCamp(memberCamp, camp)) continue;
                 // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
                 if (lost) continue;
+                if (!loadedClients.Contains(pair.Key)) continue; // 未完成加载的客户端先不给小地图数据
                 if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
                 float radiusSq = GetMinimapRadius(pair.Key);
                 radiusSq *= radiusSq;

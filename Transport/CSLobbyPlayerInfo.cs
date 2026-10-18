@@ -1,6 +1,6 @@
 namespace Ros.Transport
 {
-    public class CSPlayerInfo
+    public class CSLobbyPlayerInfo
     {
         public EntityType attackCharacter;
         public int attackLevel = 1;
@@ -9,9 +9,9 @@ namespace Ros.Transport
         public string name = "";
     }
 
-    public struct CSPlayerInfoSerializer
+    public struct CSLobbyPlayerInfoSerializer
     {
-        public static bool Serialize(CSPlayerInfo value, byte[] result, ref int indexStart)
+        public static bool Serialize(CSLobbyPlayerInfo value, byte[] result, ref int indexStart)
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
@@ -22,10 +22,10 @@ namespace Ros.Transport
             return StringSerializer.Serialize(value.name, result, ref indexStart);
         }
 
-        public static CSPlayerInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        public static CSLobbyPlayerInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            var info = new CSPlayerInfo()
+            var info = new CSLobbyPlayerInfo()
             {
                 attackCharacter = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 attackLevel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

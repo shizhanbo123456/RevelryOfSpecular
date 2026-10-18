@@ -1,4 +1,4 @@
-using Ros.UI.Main;
+﻿using Ros.UI.Main;
 using System.Collections.Generic;
 using Ros.Info;
 using Ros.Transport;
@@ -44,6 +44,15 @@ public class BattlePage : PageBase
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
+
+    // 本局会话数据全部来自加载期（不再读组队缓存）
+    private static ClientLoadingManager Session => ClientLoadingManager.Current;
+    private static bool HasSession => Session != null && Session.HasSession;
+    private static ushort OwnEntityId => HasSession ? Session.OwnEntityId : (ushort)0;
+    private bool IsOwnEntity(int entityId) => HasSession && OwnEntityId == entityId;
+
+    // 战斗期名字一律取加载期下发的表（不再读组队期缓存）
+    private static string GetUnitName(int clientId) => HasSession ? Session.GetName(clientId) : $"玩家{clientId}";
 
     private struct EventEntry
     {
@@ -106,7 +115,7 @@ public class BattlePage : PageBase
 
         battleStartTime = Time.time;
         localPlayerCamp = -1;
-        spectatorMode = NetworkManager.battleInfo != null && NetworkManager.battleInfo.playerEntityId == 0;
+        spectatorMode = Session != null && Session.IsSpectator;
         localPlayerAlive = !spectatorMode;
         panel.m_onlook.selectedIndex = spectatorMode ? 1 : 0; // onlook=1：FGUI 自动隐藏血条/技能等非观战元素
         if (panel.m_onlookComboBox != null) panel.m_onlookComboBox.onChanged.Set(OnOnlookComboBoxChanged);
@@ -119,7 +128,7 @@ public class BattlePage : PageBase
         ClearEntityBars();
         ClearMinimap();
         ClearEventItems();
-        BuildSkillSlots(NetworkManager.battleInfo != null ? NetworkManager.battleInfo.camp : EntityCamp.None);
+        BuildSkillSlots(HasSession ? Session.Camp : EntityCamp.None);
         RefreshTimeIcon();
     }
 
@@ -149,7 +158,7 @@ public class BattlePage : PageBase
     public override void Tick(float deltaTime)
     {
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
-        if (NetworkManager.battleInfo != null && panel.m_label_time_left != null)
+        if (HasSession && panel.m_label_time_left != null)
         {
             float remain = Config.battle_duration - (Time.time - battleStartTime);
             panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
@@ -195,7 +204,7 @@ public class BattlePage : PageBase
             UpdateEntityBar(info);
         }
 
-        if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
+        if (IsOwnEntity(info.entityId))
         {
             localPlayerCamp = (int)info.camp;
             localPlayerAlive = true;
@@ -211,7 +220,7 @@ public class BattlePage : PageBase
         RemoveEntityBar((ushort)entityId);
         RemoveMinimapItem((ushort)entityId);
 
-        if (NetworkManager.battleInfo != null && entityId == NetworkManager.battleInfo.playerEntityId)
+        if (IsOwnEntity(entityId))
             localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
     }
 
@@ -289,15 +298,10 @@ public class BattlePage : PageBase
 
     private int PickRandomCombatMember()
     {
-        var members = NetworkManager.LatestRoomInfo?.members;
-        if (members == null) return -1;
-        var candidates = new List<int>();
-        foreach (var m in members)
-        {
-            if (m == null || m.camp == (int)PlayerCampType.Spectator) continue; // 观战方玩家无可跟随视角
-            candidates.Add(m.clientId);
-        }
-        return candidates.Count == 0 ? -1 : candidates[Random.Range(0, candidates.Count)];
+        if (!HasSession) return -1;
+        var units = Session.GetCombatants();
+        if (units == null || units.Count == 0) return -1;
+        return units[Random.Range(0, units.Count)].clientId;
     }
 
     private void RefreshOnlookComboBox()
@@ -306,15 +310,16 @@ public class BattlePage : PageBase
         if (box == null) return;
         var names = new List<string>();
         var values = new List<string>();
-        var members = NetworkManager.LatestRoomInfo?.members;
-        if (members != null)
+        if (HasSession)
         {
-            foreach (var m in members)
+            var units = Session.GetCombatants();
+            for (int i = 0; i < units.Count; i++)
             {
-                if (m == null || m.camp == (int)PlayerCampType.Spectator) continue;
-                if (m.clientId == EnsInstance.LocalClientId) continue; // 自己不进观战列表
-                names.Add(NetworkManager.GetMemberName(m.clientId));
-                values.Add(m.clientId.ToString());
+                var unit = units[i];
+                if (unit == null) continue;
+                if (unit.clientId == EnsInstance.LocalClientId) continue; // 自己不进观战列表
+                names.Add(Session.GetName(unit.clientId));
+                values.Add(unit.clientId.ToString());
             }
         }
         syncingOnlookCombo = true;
@@ -341,7 +346,7 @@ public class BattlePage : PageBase
         if (list == null) return;
         skillSummary.Clear();
         if (info.skills != null) skillSummary.AddRange(info.skills);
-        if (!skillSlotsBuilt) BuildSkillSlots(NetworkManager.battleInfo.camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
+        if (!skillSlotsBuilt && HasSession) BuildSkillSlots(Session.Camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
         // 数量与边框样式已定，这里重新设置 numItems 只是按新数据原地重渲染（FGUI 规定的刷新方式，不改变条目数）
         list.numItems = skillSlotCount;
     }
@@ -531,10 +536,9 @@ public class BattlePage : PageBase
         if (mapBase == null) return;
 
         // 雷达式小地图：以本地玩家为中心；拿不到自身位置就无法换算，跳过本次
-        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+        if (!HasSession || Tool.ClientLogicManager == null
             || Tool.ClientLogicManager.EntityPlayers == null
-            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(
-                (ushort)NetworkManager.battleInfo.playerEntityId, out var myPos)) return;
+            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(OwnEntityId, out var myPos)) return;
 
         float dx = entity.posX - myPos.x, dz = entity.posZ - myPos.z;
         // 只画雷达半径内：超出显示半径的点位直接移除（服务器圈外本就过滤，回到圈内会重建）
@@ -546,7 +550,7 @@ public class BattlePage : PageBase
             return;
         }
 
-        bool isSelf = entity.entityId == NetworkManager.battleInfo.playerEntityId;
+        bool isSelf = IsOwnEntity(entity.entityId);
         bool isNew = !minimapItems.TryGetValue(entity.entityId, out var item);
         if (isNew)
         {
@@ -576,10 +580,9 @@ public class BattlePage : PageBase
     private void TickSelfMinimapRotation()
     {
         if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
-        if (NetworkManager.battleInfo == null || Tool.ClientLogicManager == null
+        if (!HasSession || Tool.ClientLogicManager == null
             || Tool.ClientLogicManager.EntityPlayers == null) return;
-        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(
-            (ushort)NetworkManager.battleInfo.playerEntityId, out _, out var rot)) return;
+        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(OwnEntityId, out _, out var rot)) return;
         selfMinimapItem.rotation = rot.eulerAngles.y; //FGUI 顺时针角度与 Unity yaw 同向（图标默认朝上时）
     }
 
@@ -589,7 +592,7 @@ public class BattlePage : PageBase
         {
             case EntityCategory.Character_Attack:
             case EntityCategory.Character_Defense:
-                if (NetworkManager.battleInfo != null && entity.entityId == NetworkManager.battleInfo.playerEntityId) return 0;
+                if (IsOwnEntity(entity.entityId)) return 0;
                 return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
             case EntityCategory.PlagueTree: return 3;
             case EntityCategory.Crystal: return 4;
@@ -682,7 +685,7 @@ public class BattlePage : PageBase
     // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 NoticeMessageMap
     private static string ResolveEventText(int id)
     {
-        if (id >= SCBattleEvent.PlayerNameBase) return NetworkManager.GetMemberName(id - SCBattleEvent.PlayerNameBase);
+        if (id >= SCBattleEvent.PlayerNameBase) return GetUnitName(id - SCBattleEvent.PlayerNameBase);
         return NoticeMessageMap.Get(id);
     }
 
@@ -695,7 +698,7 @@ public class BattlePage : PageBase
     private void OnReviveProgressUpdate(SCReviveInfo info)
     {
         if (info == null) return;
-        bool isLocal = NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId;
+        bool isLocal = IsOwnEntity(info.entityId);
         if (!isLocal) return;
         panel.m_showRegenerationBar.selectedIndex = info.ready ? 0 : 1;
         if (info.ready) return;
@@ -719,7 +722,7 @@ public class BattlePage : PageBase
         nameItem.visible = true;
         if (nameItem.m_num != null)
         {
-            nameItem.m_num.text = NetworkManager.GetMemberName(EntityOwnerOf(info.entityId));
+            nameItem.m_num.text = GetUnitName(EntityOwnerOf(info.entityId));
             nameItem.m_num.color = campColor;
         }
 

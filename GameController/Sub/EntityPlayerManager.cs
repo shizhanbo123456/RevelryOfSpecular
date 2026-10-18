@@ -272,7 +272,8 @@ public class EntityPlayerManager : ClientSubManager
         if (info.includeRuntime || info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
         // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
-        if (NetworkManager.battleInfo != null && info.entityId == NetworkManager.battleInfo.playerEntityId)
+        var loading = ClientLoadingManager.Current;
+        if (loading != null && loading.HasSession && info.entityId == loading.OwnEntityId)
         {
             if (Tool.CameraController != null)
             {
@@ -585,8 +586,9 @@ public class EntityPlayerManager : ClientSubManager
         }
 
         // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
-        if ((info.includeRuntime || info.hasBuffs) && NetworkManager.battleInfo != null
-            && info.entityId == NetworkManager.battleInfo.playerEntityId)
+        var selfLoading = ClientLoadingManager.Current;
+        if ((info.includeRuntime || info.hasBuffs) && selfLoading != null && selfLoading.HasSession
+            && info.entityId == selfLoading.OwnEntityId)
         {
             bool fogged = false;
             foreach (var b in info.buffs)

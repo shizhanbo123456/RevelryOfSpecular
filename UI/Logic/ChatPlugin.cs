@@ -179,18 +179,18 @@ public class ChatPlugin
         if (entries.Count > 0) panel.m_content.ScrollToView(entries.Count - 1);
     }
 
-    private SCRoomInfo.RoomMemberInfo GetLocalMember()
+    private SCLobbyInfo.LobbyMemberInfo GetLocalMember()
     {
-        return NetworkManager.LatestRoomInfo?.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
+        return NetworkManager.LatestLobbyInfo?.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
     }
 
     private int GetMyCamp()
     {
-        if (NetworkManager.BattleRunning && NetworkManager.battleInfo != null)
+        var loading = ClientLoadingManager.Current;
+        if (loading != null && loading.HasSession)
         {
-            var camp = NetworkManager.battleInfo.camp;
-            if (camp == EntityCamp.Attack) return 0;
-            if (camp == EntityCamp.Defense) return 1;
+            if (loading.Camp == EntityCamp.Attack) return 0;
+            if (loading.Camp == EntityCamp.Defense) return 1;
             return 2; // 观战方玩家（无战斗实体）
         }
         return GetLocalMember()?.camp ?? 2;
@@ -198,7 +198,9 @@ public class ChatPlugin
 
     private string GetMyName()
     {
-        if (NetworkManager.TryGetPlayerName(EnsInstance.LocalClientId, out var name)) return name;
+        var loading = ClientLoadingManager.Current;
+        if (loading != null && loading.HasSession) return loading.GetName(EnsInstance.LocalClientId);
+        if (NetworkManager.TryGetLobbyPlayerName(EnsInstance.LocalClientId, out var lobbyName)) return lobbyName;
         return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{EnsInstance.LocalClientId}";
     }
     #endregion

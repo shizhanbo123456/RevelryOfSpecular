@@ -303,12 +303,7 @@ public partial class BattleManager
 
         rs.progress = 0f; // deathCount 保留，供下次倍率与叠层
         rs.lastSentProgress = -1f;
-        Tool.NetworkManager.SendBattleInfo(clientId, new SCBattleInfo()
-        {
-            playerEntityId = entityId,
-            camp = entityCamp,
-            characterType = characterType,
-        });
+        // 复活换了新实体 id：客户端由 SCPlayerEntity 更新自己的实体 id 与名牌归属，不再单独下发会话信息
         SendReviveProgress(clientId, rs, entityId, ready: true);
 
         // 复活播报（事件列表，icon=玩家复活，文本=该玩家名）

@@ -58,8 +58,8 @@ public class SettlementView
         // 先清战斗表现，防过时内容残留
         if (Tool.ClientLogicManager != null) Tool.ClientLogicManager.EntityPlayers.ClearAll();
 
-        var battle = NetworkManager.battleInfo;
-        Show(r, battle != null ? battle.camp : EntityCamp.None, true);
+        var loading = ClientLoadingManager.Current;
+        Show(r, loading != null && loading.HasSession ? loading.Camp : EntityCamp.None, true);
 
         // 立即切回组队界面（战斗 HUD 随 Exit 隐藏），再隐藏组队面板等结算播完
         if (Tool.UIManager != null)

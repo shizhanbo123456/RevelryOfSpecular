@@ -70,11 +70,11 @@ public class SettlementManager : ClientSubManager
 
     private static int GetLocalCharacterIndex()
     {
-        var battle = NetworkManager.battleInfo;
-        if (battle == null) return -1;
-        return battle.camp == EntityCamp.Attack
-            ? battle.characterType.value
-            : Config.attack_character_count + battle.characterType.value;
+        var loading = ClientLoadingManager.Current;
+        if (loading == null || !loading.HasSession) return -1;
+        return loading.Camp == EntityCamp.Attack
+            ? loading.CharacterType.value
+            : Config.attack_character_count + loading.CharacterType.value;
     }
 
     private static void SettleExp(SCScoreInfo info)

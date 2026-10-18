@@ -174,11 +174,12 @@ public class CameraController : MonoBehaviour
         float pitchBottom = float.MinValue; // 下限：最低的所需视线（数值最大）
         bool any = false;
 
+        var loading = ClientLoadingManager.Current;
         foreach (var view in players.AllViews)
         {
             if (view == null) continue;
-            if (autoPitchIgnoreSelf && NetworkManager.battleInfo != null
-                && view.id == NetworkManager.battleInfo.playerEntityId) continue; // 忽略玩家角色
+            if (autoPitchIgnoreSelf && loading != null && loading.HasSession
+                && view.id == loading.OwnEntityId) continue; // 忽略玩家角色
             Vector3 p = view.transform.position;
             float dx = p.x - camPos.x;
             float dz = p.z - camPos.z;

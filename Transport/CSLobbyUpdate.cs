@@ -1,6 +1,6 @@
 namespace Ros.Transport
 {
-    public class CSRoomUpdate
+    public class CSLobbyUpdate
     {
         public int camp = -1;      // 0 进攻 / 1 防守 / 2 观战（-1 = 不变更）
         public bool ready;         // 准备状态
@@ -8,9 +8,9 @@ namespace Ros.Transport
         public int defenseAICount;
     }
 
-    public struct CSRoomUpdateSerializer
+    public struct CSLobbyUpdateSerializer
     {
-        public static bool Serialize(CSRoomUpdate value, byte[] result, ref int indexStart)
+        public static bool Serialize(CSLobbyUpdate value, byte[] result, ref int indexStart)
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
@@ -20,10 +20,10 @@ namespace Ros.Transport
             return IntSerializer.Serialize(value.defenseAICount, result, ref indexStart);
         }
 
-        public static CSRoomUpdate Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        public static CSLobbyUpdate Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            return new CSRoomUpdate()
+            return new CSLobbyUpdate()
             {
                 camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),

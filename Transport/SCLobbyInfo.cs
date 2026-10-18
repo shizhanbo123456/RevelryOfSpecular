@@ -2,14 +2,14 @@ using System.Collections.Generic;
 
 namespace Ros.Transport
 {
-    public class SCRoomInfo
+    public class SCLobbyInfo
     {
-        public List<RoomMemberInfo> members = new();
+        public List<LobbyMemberInfo> members = new();
         public int attackAICount;
         public int defenseAICount;
         public bool battleStarted;
 
-        public class RoomMemberInfo
+        public class LobbyMemberInfo
         {
             public short clientId;
             public int camp = -1;      // 0 进攻 / 1 防守 / 2 观战（-1 仅协议兼容，进大厅即默认观战）
@@ -18,9 +18,9 @@ namespace Ros.Transport
         }
     }
 
-    public struct SCRoomInfoSerializer
+    public struct SCLobbyInfoSerializer
     {
-        public static bool Serialize(SCRoomInfo value, byte[] result, ref int indexStart)
+        public static bool Serialize(SCLobbyInfo value, byte[] result, ref int indexStart)
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
@@ -45,10 +45,10 @@ namespace Ros.Transport
             return true;
         }
 
-        public static SCRoomInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        public static SCLobbyInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            var info = new SCRoomInfo()
+            var info = new SCLobbyInfo()
             {
                 attackAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 defenseAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -59,7 +59,7 @@ namespace Ros.Transport
             {
                 bool hasMember = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
                 if (!hasMember) { info.members.Add(null); continue; }
-                info.members.Add(new SCRoomInfo.RoomMemberInfo()
+                info.members.Add(new SCLobbyInfo.LobbyMemberInfo()
                 {
                     clientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

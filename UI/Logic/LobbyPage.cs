@@ -39,10 +39,10 @@ public class LobbyPage : PageBase
     public override void Enter(ShowParam param)
     {
         base.Enter(param);
-        EventManager.AddEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
+        EventManager.AddEvent<SCLobbyInfo>(ClientEvent.OnLobbyInfoUpdate, OnLobbyInfoUpdate);
         // 有缓存立即渲染（服务器只在事件时广播，错过就没了）；无缓存清空展示，不留 FGUI 默认内容
-        var latest = NetworkManager.LatestRoomInfo;
-        if (latest != null) OnRoomInfoUpdate(latest);
+        var latest = NetworkManager.LatestLobbyInfo;
+        if (latest != null) OnLobbyInfoUpdate(latest);
         else ClearRoomDisplay();
         // 大厅与首页一样展示所选攻/守角色的场景预览（战斗页 Enter 时会隐藏，故返回大厅需重建）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
@@ -52,7 +52,7 @@ public class LobbyPage : PageBase
     public override void Exit()
     {
         base.Exit();
-        EventManager.RemoveEvent<SCRoomInfo>(ClientEvent.OnRoomInfoUpdate, OnRoomInfoUpdate);
+        EventManager.RemoveEvent<SCLobbyInfo>(ClientEvent.OnLobbyInfoUpdate, OnLobbyInfoUpdate);
     }
 
     #region//Local
@@ -92,7 +92,7 @@ public class LobbyPage : PageBase
     private void SendRoomState()
     {
         if (Tool.NetworkManager == null) return;
-        Tool.NetworkManager.SendRoomUpdate(new CSRoomUpdate()
+        Tool.NetworkManager.SendLobbyUpdate(new CSLobbyUpdate()
         {
             camp = myCamp,
             ready = myReady,
@@ -101,7 +101,7 @@ public class LobbyPage : PageBase
         });
     }
 
-    private void OnRoomInfoUpdate(SCRoomInfo info)
+    private void OnLobbyInfoUpdate(SCLobbyInfo info)
     {
         if (info == null) return;
         syncingFromServer = true;
@@ -132,14 +132,14 @@ public class LobbyPage : PageBase
         myReady = false;
         RefreshPrepareButton();
         RefreshAICountLabels();
-        var empty = new List<SCRoomInfo.RoomMemberInfo>();
+        var empty = new List<SCLobbyInfo.LobbyMemberInfo>();
         RenderMemberList(panel.m_mainView.m_attackerPlayers, empty, 0);
         RenderMemberList(panel.m_mainView.m_defenserPlayers, empty, 1);
         RenderMemberList(panel.m_mainView.m_spectatePlayers, empty, 2);
         syncingFromServer = false;
     }
 
-    private void RenderMemberList(GList list, List<SCRoomInfo.RoomMemberInfo> members, int camp)
+    private void RenderMemberList(GList list, List<SCLobbyInfo.LobbyMemberInfo> members, int camp)
     {
         var memberList = members.Where(m => m != null && m.camp == camp && m.clientId >= 0).ToList(); // 负数 = AI，不进真人列表
         var icons = Tool.AssetsManager == null || camp == 2 ? null // 观战方无角色头像
@@ -148,7 +148,7 @@ public class LobbyPage : PageBase
         {
             var head = (UI_RoleHead)obj;
             var member = memberList[i];
-            head.m_roleName.text = NetworkManager.GetMemberName(member.clientId);
+            head.m_roleName.text = NetworkManager.GetLobbyMemberName(member.clientId);
             head.m_level.selectedIndex = 0; // 成员条目不展示等级
             head.m_lock.selectedIndex = 0;
             head.m_confirm.selectedIndex = member.ready ? 1 : 0; // 准备勾选

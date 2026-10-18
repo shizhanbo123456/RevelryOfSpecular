@@ -16,7 +16,7 @@ public static class ClientEvent
     // （param=SCEntityDisplayInfo，见 OnEntityDisplayUpdate），不单独发事件
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;
-    public const int OnRoomInfoUpdate = 10222;
+    public const int OnLobbyInfoUpdate = 10222; // param=SCLobbyInfo 组队期房间成员/阵营/准备/AI 数量
     #endregion
 
     #region 实体表现（10230 段）

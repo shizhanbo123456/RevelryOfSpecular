@@ -12,6 +12,8 @@ public class ClientLogicManager : MonoBehaviour
 
     public HomePreviewManager HomePreview { get; private set; }
 
+    public ClientLoadingManager Loading { get; private set; }
+
     private ClientSubManager[] subManagers;
 
     private void Awake()
@@ -23,9 +25,10 @@ public class ClientLogicManager : MonoBehaviour
         SkillVfx = new ClientSkillManager();
         BattleTime = new ClientBattleTimeManager();
         HomePreview = new HomePreviewManager();
+        Loading = new ClientLoadingManager();
 
         // 先全部建好再统一 Init：Init 内可能有跨子管理器的引用
-        subManagers = new ClientSubManager[] { EntityPlayers, Settlement, SkillVfx, BattleTime, HomePreview };
+        subManagers = new ClientSubManager[] { EntityPlayers, Settlement, SkillVfx, BattleTime, HomePreview, Loading };
         foreach (var sub in subManagers) sub.Init(this);
     }
 

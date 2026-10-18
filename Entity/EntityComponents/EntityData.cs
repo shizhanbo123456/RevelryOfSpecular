@@ -1,4 +1,4 @@
-using Ros.Info;
+﻿using Ros.Info;
 using Ros.Transport;
 using System;
 using System.Collections.Generic;
@@ -579,7 +579,6 @@ public abstract class EntityData : MonoBehaviour
         }
         if (withBuffs && effectController != null) effectController.FillDisplayInfo(info);
         if (withSkills && skillController != null) skillController.FillDisplayInfo(info);
-        if (withSkills) info.serverTime = Time.time; // 随技能列表下发，客户端用它对本地时钟
         return info;
     }
 
