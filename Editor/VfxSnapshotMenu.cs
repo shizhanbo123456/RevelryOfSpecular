@@ -7,10 +7,10 @@ using UnityEngine;
 public static class VfxSnapshotMenu
 {
     private const string OutputDir = "Assets/Scenes/VfxTest/graphics";
-    private const string AssetsPrefabPath = "Assets/Files/Common/AssetsManager.prefab";
     private const string TestFlagKey = "VfxSnapshot.TestRan";
     private const int Size = 512;
     private const float Delay = 0.5f;
+    private const float Gap = 1f;
     private const int TestPerCategory = 3;
 
     private static readonly string[] CategoryNames = { "Bullet", "Shield", "RangeMagic", "MagicCircle", "Buff" };
@@ -27,7 +27,8 @@ public static class VfxSnapshotMenu
     private static bool running;
     private static bool isTest;
     private static GameObject current;
-    private static float shootAt;
+    private static float nextTime;
+    private static bool inGap;
     private static Camera cam;
     private static RenderTexture rt;
     private static Texture2D tex;
@@ -66,10 +67,10 @@ public static class VfxSnapshotMenu
             return;
         }
 
-        var mgr = FindAssetsManager();
+        var mgr = Tool.AssetsManager;
         if (mgr == null)
         {
-            EditorUtility.DisplayDialog("特效截图", $"场景与 {AssetsPrefabPath} 中都没有 AssetsManager，取不到特效列表。", "知道了");
+            EditorUtility.DisplayDialog("特效截图", "场景内 AssetsManager 未注册（Awake 未执行）：请确认当前在 Play 模式且 VfxTest 场景挂有 AssetsManager。", "知道了");
             return;
         }
 
@@ -83,7 +84,7 @@ public static class VfxSnapshotMenu
         string mode = test ? "测试" : "全量";
         if (!test && !SessionState.GetBool(TestFlagKey, false) &&
             !EditorUtility.DisplayDialog("全量特效截图",
-                $"本次会话还没跑过测试模式，建议先跑测试确认生成正常。\n\n将连续截图 {items.Count} 张，约 {items.Count * (Delay + 0.3f):F0} 秒（进度条可点取消）。继续？",
+                $"本次会话还没跑过测试模式，建议先跑测试确认生成正常。\n\n将连续截图 {items.Count} 张，约 {items.Count * (Delay + Gap + 0.2f):F0} 秒（进度条可点取消）。继续？",
                 "继续", "取消"))
             return;
 
@@ -95,16 +96,7 @@ public static class VfxSnapshotMenu
         SetupCamera();
         EditorApplication.update += Tick;
         Debug.Log($"[VfxSnapshot] {mode}开始：共 {items.Count} 张 → {OutputDir}");
-        Next();
-    }
-
-    private static AssetsManager FindAssetsManager()
-    {
-        if (Tool.AssetsManager != null) return Tool.AssetsManager;
-        var inScene = UnityEngine.Object.FindObjectOfType<AssetsManager>(true);
-        if (inScene != null) return inScene;
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetsPrefabPath);
-        return prefab != null ? prefab.GetComponent<AssetsManager>() : null;
+        CreateCurrent();
     }
 
     private static void BuildQueue(AssetsManager mgr, int perCategory)
@@ -149,28 +141,12 @@ public static class VfxSnapshotMenu
         tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
     }
 
-    private static void Next()
+    private static void CreateCurrent()
     {
-        DestroyCurrent();
-        if (cursor >= items.Count)
-        {
-            Finish();
-            return;
-        }
         Item item = items[cursor];
         current = UnityEngine.Object.Instantiate(item.prefab, Vector3.zero, Quaternion.identity);
         current.name = $"VfxSnapshot_{item.fileName}";
-        EnsurePlaying(current);
-        shootAt = Time.time + Delay;
-    }
-
-    // 个别预制体的粒子系统未开 playOnAwake，实例化后兜底启动（已在播的不重置）
-    private static void EnsurePlaying(GameObject root)
-    {
-        foreach (var ps in root.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            if (!ps.isPlaying) ps.Play(true);
-        }
+        nextTime = Time.time + Delay;
     }
 
     private static void Tick()
@@ -180,19 +156,32 @@ public static class VfxSnapshotMenu
             Abort();
             return;
         }
-        if (Time.time < shootAt) return;
 
-        Item item = items[cursor];
-        if (EditorUtility.DisplayCancelableProgressBar("特效截图", $"{cursor + 1}/{items.Count}  {item.fileName}",
-                (float)cursor / items.Count))
+        string label = inGap ? $"等待下一个（{Gap:F0}s）" : $"{cursor + 1}/{items.Count}  {items[cursor].fileName}";
+        if (EditorUtility.DisplayCancelableProgressBar("特效截图", label, (float)cursor / items.Count))
         {
             Abort();
             return;
         }
+        if (Time.time < nextTime) return;
 
-        Shoot(item);
+        if (inGap)
+        {
+            inGap = false;
+            CreateCurrent();
+            return;
+        }
+
+        Shoot(items[cursor]);
         cursor++;
-        Next();
+        DestroyCurrent(); // 销毁后空出 1s，避免上一个特效的残留粒子串进下一张
+        if (cursor >= items.Count)
+        {
+            Finish();
+            return;
+        }
+        inGap = true;
+        nextTime = Time.time + Gap;
     }
 
     private static void Shoot(Item item)
