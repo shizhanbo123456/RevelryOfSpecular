@@ -52,6 +52,11 @@ public class SkillTest : MonoBehaviour
         testCam.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(-pos, Vector3.up));
     }
 
+    private void OnDestroy()
+    {
+        if (entity != null) BattleManager.EntityContainer.Entities.Remove(entity.id); // 退出时清掉全局容器登记
+    }
+
     private void OnGUI()
     {
         Matrix4x4 oldMatrix = GUI.matrix;
@@ -120,6 +125,8 @@ public class SkillTest : MonoBehaviour
             go.name = "SkillTestEntity";
             entity = go.AddComponent<SkillTestEntity>();
             entity.OnCreate(1, new EntityType(EntityCategory.Character_Attack, 0), 1, EntityCamp.Attack);
+            // 注册进战斗容器：ShotOrigin 才能查到实体，弹道起点 = 真实武器锚点（否则兜底 Vector3.zero）
+            BattleManager.EntityContainer.Entities.Add(entity.id, entity);
             if (entity.springWeapon == null)
                 status = "InfoManager.SpringWeapon 未配置：武器类技能会释放失败（空手/近战不受影响），请检查 InfoManager 配置";
         }
