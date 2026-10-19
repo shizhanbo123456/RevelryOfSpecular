@@ -36,8 +36,8 @@ public class AssetsManager : MonoBehaviour
     #endregion
 
     #region UI 图标
-    public List<Sprite> AttackCharacterIcons = new();
-    public List<Sprite> DefenseCharacterIcons = new();
+    public List<Texture2D> AttackCharacterIcons = new();
+    public List<Texture2D> DefenseCharacterIcons = new();
     #endregion
 
     public bool TryGetGraphic(EntityType type, out GameObject graphic)
