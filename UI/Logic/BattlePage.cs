@@ -25,6 +25,8 @@ public class BattlePage : PageBase
     private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
     private float minimapViewRadius = Config.minimap_view_radius; //当前雷达显示半径（服务器权威，F 键切换）
     private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
+    private GLoader minimapMapLoader;    // 遮罩内的地形底图：xy/尺寸每帧随玩家位置与雷达半径换算
+    private NTexture minimapMapTexture;  // 缓存 NTexture：包一层 AssetsManager.MapTexture，重复 Enter 不重建
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
@@ -127,6 +129,7 @@ public class BattlePage : PageBase
         ResetBeacons();
         ClearEntityBars();
         ClearMinimap();
+        EnsureMinimapMapLoader();
         ClearEventItems();
         BuildSkillSlots(HasSession ? Session.Camp : EntityCamp.None);
         RefreshTimeIcon();
@@ -168,6 +171,7 @@ public class BattlePage : PageBase
         TickEventItems();
         TickMinimapTimeout();
         TickSelfMinimapRotation();
+        TickMinimapMapImage();
         TickSpectator(deltaTime);
         TickLocalSkillCd(deltaTime);
     }
@@ -622,6 +626,41 @@ public class BattlePage : PageBase
         minimapItems.Clear();
         minimapLastReceived.Clear();
         selfMinimapItem = null;
+    }
+
+    // 遮罩内创建地形底图 Loader：只建一次，包被重建时自动补建；图片显示由 TickMinimapMapImage 每帧驱动
+    private void EnsureMinimapMapLoader()
+    {
+        var minimap = panel.m_Minimap;
+        if (minimap?.m_mask == null) return;
+        if (minimapMapLoader != null && !minimapMapLoader.isDisposed && minimapMapLoader.parent == minimap.m_mask) return;
+        minimapMapLoader = new GLoader();
+        minimapMapLoader.fill = FillType.Scale; // 地形图与目标区域同为正方形，直接拉伸铺满
+        minimap.m_mask.AddChild(minimapMapLoader);
+        if (minimapMapTexture == null && Tool.AssetsManager != null && Tool.AssetsManager.MapTexture != null)
+            minimapMapTexture = new NTexture(Tool.AssetsManager.MapTexture);
+        minimapMapLoader.texture = minimapMapTexture;
+    }
+
+    // 地形底图对位：与点位同一套雷达换算（mapBase 半宽 = 显示半径米数），图左下=世界(0,0)、上=+Z
+    private void TickMinimapMapImage()
+    {
+        var minimap = panel.m_Minimap;
+        var mapBase = minimap != null ? minimap.m_mapBase : null;
+        if (minimapMapLoader == null || minimapMapLoader.isDisposed || mapBase == null) return;
+        if (!HasSession || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null
+            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(OwnEntityId, out var myPos)) return;
+
+        float ppm = mapBase.width * 0.5f / minimapViewRadius; // 像素/米
+        float size = Config.map_terrain_size * ppm;
+        float maskX = minimap.m_mask != null ? minimap.m_mask.x : 0f; // Loader 挂在遮罩里，坐标需换算成遮罩局部
+        float maskY = minimap.m_mask != null ? minimap.m_mask.y : 0f;
+        // 图左上角对应世界 (0, 1000)：先按雷达坐标算它在 Minimap 坐标系的位置，再减遮罩偏移
+        minimapMapLoader.SetXY(
+            mapBase.x + mapBase.width * 0.5f - myPos.x * ppm - maskX,
+            mapBase.y + mapBase.height * 0.5f - (Config.map_terrain_size - myPos.z) * ppm - maskY);
+        minimapMapLoader.SetSize(size, size);
     }
 
     // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点

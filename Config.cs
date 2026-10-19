@@ -87,6 +87,8 @@ public static class Config
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
+    // 地形边长（米）：世界 x/z 范围 0~size；小地图地形底图与世界坐标的换算基准
+    public const float map_terrain_size = 1000f;
     #endregion
 
     #region 复活与愈战愈勇
