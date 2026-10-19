@@ -17,8 +17,10 @@ public class SkillTest : MonoBehaviour
 
     private readonly List<int> skillIds = new();
     private readonly List<int> tabStarts = new();
+    private readonly List<(int id, SkillTestEntity entity)> dummies = new(); // 靶子：手删 GameObject 后按 id 清容器
     private Vector2 scroll;
     private int currentTab;
+    private int nextDummyId = 100;
     private SkillTestEntity entity;
     private string status = "";
     private Rect windowRect = new(20f, 20f, 340f, 640f);
@@ -46,6 +48,7 @@ public class SkillTest : MonoBehaviour
 
     private void Update()
     {
+        PruneDummies();
         if (entity == null) return;
         entity.transform.rotation = Quaternion.Euler(0f, yaw, 0f); // 无敌人时 AimPos 沿实体 forward 取点，yaw 即发射方向
         entity.OnUpdate();
@@ -62,6 +65,19 @@ public class SkillTest : MonoBehaviour
     private void OnDestroy()
     {
         if (entity != null) BattleManager.EntityContainer.Entities.Remove(entity.id); // 退出时清掉全局容器登记
+        foreach (var dummy in dummies) BattleManager.EntityContainer.Entities.Remove(dummy.id);
+        dummies.Clear();
+    }
+
+    // 靶子被手动删掉后同步清容器，否则索敌取到已销毁条目会在 transform 上抛 MissingReference
+    private void PruneDummies()
+    {
+        for (int i = dummies.Count - 1; i >= 0; i--)
+        {
+            if (dummies[i].entity != null) continue;
+            BattleManager.EntityContainer.Entities.Remove(dummies[i].id);
+            dummies.RemoveAt(i);
+        }
     }
 
     // 画武器漂浮槽位：球=浮动位置（ShotOrigin 取值处），线=该槽位朝向
@@ -158,6 +174,36 @@ public class SkillTest : MonoBehaviour
         }
     }
 
+    // 靶子：关重力并置运动学，位置留给 Inspector 手调；阵营 Defense 供技能索敌命中
+    private void SpawnDummy()
+    {
+        if (Tool.InfoManager == null) { status = "场景中没有 InfoManager，无法生成测试敌人"; return; }
+        GameObject prefab = FirstGraphic(Tool.AssetsManager != null ? Tool.AssetsManager.DefenseCharacterGraphics : null);
+        prefab = prefab != null ? prefab : FirstGraphic(Tool.AssetsManager != null ? Tool.AssetsManager.AttackCharacterGraphics : null);
+        if (prefab == null) { status = "AssetsManager 里没有可用的角色预制体"; return; }
+        try
+        {
+            var go = Instantiate(prefab, new Vector3(0f, 0f, 5f), Quaternion.identity);
+            go.name = $"SkillTestDummy_{nextDummyId}";
+            var dummy = go.AddComponent<SkillTestEntity>();
+            dummy.OnCreate((ushort)nextDummyId, new EntityType(EntityCategory.Character_Defense, 0), 1, EntityCamp.Defense);
+            if (dummy.rb != null)
+            {
+                dummy.rb.useGravity = false;
+                dummy.rb.isKinematic = true;
+            }
+            BattleManager.EntityContainer.Entities.Add(dummy.id, dummy);
+            dummies.Add((dummy.id, dummy));
+            nextDummyId++;
+            status = $"已添加测试敌人 {go.name}（阵营 Defense，位置可在 Inspector 手调）";
+        }
+        catch (System.Exception ex)
+        {
+            status = $"测试敌人生成失败：{ex.Message}";
+            Debug.LogException(ex); // 面板只有摘要，完整堆栈进 Console 便于定位
+        }
+    }
+
     private static GameObject FirstGraphic(List<GameObject> list)
     {
         if (list == null) return null;
@@ -172,6 +218,8 @@ public class SkillTest : MonoBehaviour
 
         GUILayout.Label($"发射方向 {yaw:F0}°");
         yaw = GUILayout.HorizontalSlider(yaw, 0f, 360f);
+
+        if (GUILayout.Button($"添加测试敌人（当前 {dummies.Count} 个）")) SpawnDummy();
 
         camControl = GUILayout.Toggle(camControl, "接管相机看向原点");
         GUILayout.Label($"相机水平距离 {camDistance:F1} m");
