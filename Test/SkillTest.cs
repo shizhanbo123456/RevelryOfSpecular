@@ -130,7 +130,8 @@ public class SkillTest : MonoBehaviour
         catch (System.Exception ex)
         {
             entity = null;
-            status = $"测试实体初始化失败：{ex.Message}"; // 显式暴露，不静默
+            status = $"测试实体初始化失败：{ex.Message}";
+            Debug.LogException(ex); // 面板只有摘要，完整堆栈进 Console 便于定位
         }
     }
 
@@ -185,7 +186,8 @@ public class SkillTest : MonoBehaviour
         }
         catch (System.Exception ex)
         {
-            status = $"[{skillId}] 释放失败：{ex.GetType().Name} {ex.Message}"; // 显式暴露，不静默
+            status = $"[{skillId}] 释放失败：{ex.GetType().Name} {ex.Message}";
+            Debug.LogException(ex); // 面板只有摘要，完整堆栈进 Console 便于定位
         }
     }
 }
