@@ -57,6 +57,19 @@ public class SkillTest : MonoBehaviour
         if (entity != null) BattleManager.EntityContainer.Entities.Remove(entity.id); // 退出时清掉全局容器登记
     }
 
+    // 画武器漂浮槽位：球=浮动位置（ShotOrigin 取值处），线=该槽位朝向
+    private void OnDrawGizmos()
+    {
+        if (entity == null || entity.springWeapon == null) return;
+        int slot = entity.skillController != null && entity.skillController.CastingSlotIndex >= 0
+            ? entity.skillController.CastingSlotIndex : 0;
+        entity.springWeapon.GetPos(slot, out Vector3 pos, out Quaternion rot);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(pos, 0.12f);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawLine(pos, pos + rot * Vector3.forward * 2f);
+    }
+
     private void OnGUI()
     {
         Matrix4x4 oldMatrix = GUI.matrix;
