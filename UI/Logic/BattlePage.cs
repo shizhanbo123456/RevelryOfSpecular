@@ -430,7 +430,7 @@ public class BattlePage : PageBase
         if (bar == null) return;
         bool destroyed = info.health <= 0;
         bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
-        bar.m_fill.fillAmount = destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f);
+        bar.m_fill.scale = new Vector2(destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f), bar.m_fill.scale.y);
     }
 
     private void ResetBeacons()
@@ -445,7 +445,7 @@ public class BattlePage : PageBase
     {
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 0;
-        bar.m_fill.fillAmount = 0f;
+        bar.m_fill.scale = new Vector2(0f, bar.m_fill.scale.y);
     }
 
     // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
@@ -457,7 +457,7 @@ public class BattlePage : PageBase
             : textId == 25 ? panel.m_progressSub2 : textId == 26 ? panel.m_progressSub3 : null;
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 1;
-        bar.m_fill.fillAmount = 1f;
+        bar.m_fill.scale = new Vector2(1f, bar.m_fill.scale.y);
     }
 
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
