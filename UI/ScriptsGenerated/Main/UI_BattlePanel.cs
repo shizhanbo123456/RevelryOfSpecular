@@ -13,6 +13,7 @@ namespace Ros.UI.Main
         public UI_PlayerHealth m_PlayerBar;
         public UI_EventList m_EventList;
         public UI_Minimap m_Minimap;
+        public UI_EventBanner m_eventBanner;
         public GTextField m_label_time_left;
         public GImage m_icon_day_night;
         public GButton m_btn_exit;
@@ -25,6 +26,7 @@ namespace Ros.UI.Main
         public GTextField m_spectater_member_count;
         public GImage m_regeneration_progressbar;
         public GComboBox m_onlookComboBox;
+        public Transition m_showBanner;
         public const string URL = "ui://q68vr2bfjtpbhd";
 
         public static UI_BattlePanel CreateInstance()
@@ -42,18 +44,20 @@ namespace Ros.UI.Main
             m_PlayerBar = (UI_PlayerHealth)GetChildAt(1);
             m_EventList = (UI_EventList)GetChildAt(2);
             m_Minimap = (UI_Minimap)GetChildAt(3);
-            m_label_time_left = (GTextField)GetChildAt(6);
-            m_icon_day_night = (GImage)GetChildAt(7);
-            m_btn_exit = (GButton)GetChildAt(9);
-            m_progressMain = (UI_DefensivePointBar)GetChildAt(11);
-            m_progressSub1 = (UI_DefensivePointBar)GetChildAt(13);
-            m_progressSub2 = (UI_DefensivePointBar)GetChildAt(15);
-            m_progressSub3 = (UI_DefensivePointBar)GetChildAt(17);
-            m_attacker_member_count = (GTextField)GetChildAt(19);
-            m_defense_member_count = (GTextField)GetChildAt(20);
-            m_spectater_member_count = (GTextField)GetChildAt(21);
-            m_regeneration_progressbar = (GImage)GetChildAt(27);
-            m_onlookComboBox = (GComboBox)GetChildAt(31);
+            m_eventBanner = (UI_EventBanner)GetChildAt(4);
+            m_label_time_left = (GTextField)GetChildAt(7);
+            m_icon_day_night = (GImage)GetChildAt(9);
+            m_btn_exit = (GButton)GetChildAt(11);
+            m_progressMain = (UI_DefensivePointBar)GetChildAt(13);
+            m_progressSub1 = (UI_DefensivePointBar)GetChildAt(15);
+            m_progressSub2 = (UI_DefensivePointBar)GetChildAt(17);
+            m_progressSub3 = (UI_DefensivePointBar)GetChildAt(19);
+            m_attacker_member_count = (GTextField)GetChildAt(21);
+            m_defense_member_count = (GTextField)GetChildAt(22);
+            m_spectater_member_count = (GTextField)GetChildAt(23);
+            m_regeneration_progressbar = (GImage)GetChildAt(29);
+            m_onlookComboBox = (GComboBox)GetChildAt(33);
+            m_showBanner = GetTransitionAt(0);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_button1.URL, typeof(UI_button1));
             UIObjectFactory.SetPackageItemExtension(UI_button2.URL, typeof(UI_button2));
             UIObjectFactory.SetPackageItemExtension(UI_button3.URL, typeof(UI_button3));
+            UIObjectFactory.SetPackageItemExtension(UI_EventBanner.URL, typeof(UI_EventBanner));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));

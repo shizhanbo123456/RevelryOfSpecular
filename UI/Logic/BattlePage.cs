@@ -27,6 +27,8 @@ public class BattlePage : PageBase
     private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
     private GLoader minimapMapLoader;    // 遮罩内的地形底图：xy/尺寸每帧随玩家位置与雷达半径换算
     private NTexture minimapMapTexture;  // 缓存 NTexture：包一层 AssetsManager.MapTexture，重复 Enter 不重建
+    private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
+    private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
@@ -119,6 +121,7 @@ public class BattlePage : PageBase
         localPlayerCamp = -1;
         spectatorMode = Session != null && Session.IsSpectator;
         localPlayerAlive = !spectatorMode;
+        localPlayerArea = -1;
         panel.m_onlook.selectedIndex = spectatorMode ? 1 : 0; // onlook=1：FGUI 自动隐藏血条/技能等非观战元素
         if (panel.m_onlookComboBox != null) panel.m_onlookComboBox.onChanged.Set(OnOnlookComboBoxChanged);
         RefreshCampAliveCount(NetworkManager.LatestCampAliveCount); // 进入战斗先填一次缓存值，随后由变更包刷新
@@ -651,6 +654,7 @@ public class BattlePage : PageBase
         if (!HasSession || Tool.ClientLogicManager == null
             || Tool.ClientLogicManager.EntityPlayers == null
             || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(OwnEntityId, out var myPos)) return;
+        TickLocalPlayerArea(myPos);
 
         float ppm = mapBase.width * 0.5f / minimapViewRadius; // 像素/米
         float size = Config.map_terrain_size * ppm;
@@ -661,6 +665,38 @@ public class BattlePage : PageBase
             mapBase.x + mapBase.width * 0.5f - myPos.x * ppm - maskX,
             mapBase.y + mapBase.height * 0.5f - (Config.map_terrain_size - myPos.z) * ppm - maskY);
         minimapMapLoader.SetSize(size, size);
+    }
+
+    // EventBanner.m_type 控制器页序：0 城市 / 1 工厂区 / 2 野外 / 3 郊区 / 4 日出 / 5 日落
+    private const int BannerCity = 0, BannerFactory = 1, BannerWild = 2, BannerSuburb = 3, BannerSunrise = 4, BannerSunset = 5;
+
+    // 区域判定：采样 MapArea 贴图（图左下=世界(0,0)，上=+Z）；alpha<128=野外，否则 RGB 最大者 = r 郊区 / g 城区 / b 工厂区
+    private void TickLocalPlayerArea(Vector3 myPos)
+    {
+        if (spectatorMode || !localPlayerAlive) return; // 死亡观战期间冻结区域，不更新
+        if (mapAreaTexture == null && Tool.AssetsManager != null)
+            mapAreaTexture = Tool.AssetsManager.MapArea as Texture2D;
+        if (mapAreaTexture == null) return;
+
+        float u = Mathf.Clamp01(myPos.x / Config.map_terrain_size);
+        float v = Mathf.Clamp01(myPos.z / Config.map_terrain_size);
+        Color c = mapAreaTexture.GetPixelBilinear(u, v);
+        int area = c.a * 255f < 128f ? BannerWild
+            : c.g >= c.r && c.g >= c.b ? BannerCity
+            : c.r >= c.b ? BannerSuburb
+            : BannerFactory;
+        if (area == localPlayerArea) return;
+        localPlayerArea = area;
+        ShowEventBanner(area);
+    }
+
+    // 切 EventBanner 档位并播 BattlePanel 的显隐转场
+    private void ShowEventBanner(int page)
+    {
+        var banner = panel.m_eventBanner;
+        if (banner == null || banner.m_type == null) return;
+        banner.m_type.selectedIndex = page;
+        if (panel.m_showBanner != null) panel.m_showBanner.Play();
     }
 
     // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
@@ -716,6 +752,8 @@ public class BattlePage : PageBase
         }
         AddEventEntry(entry);
         if (e.type == SCBattleEvent.Type.BeaconDestroyed) SetBeaconDestroyed(e.textId);
+        else if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
+        else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);       // 日出横幅
     }
 
     // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 NoticeMessageMap
