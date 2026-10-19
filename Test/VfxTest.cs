@@ -21,11 +21,11 @@ public class VfxTest : MonoBehaviour
     private Rect windowRect = new(20f, 20f, 300f, 600f);
 
     [Tooltip("绕圈半径（米）")]
-    [SerializeField] private float radius = 10f;
-    [Tooltip("绕圈高度（米）")]
-    [SerializeField] private float height = 1.5f;
+    [SerializeField] private float radius = 5f;
     [Tooltip("角速度（度/秒）")]
     [SerializeField] private float angularSpeed = 90f;
+    [Tooltip("OnGUI 整体缩放（编辑器小窗口看不清时调大）")]
+    [SerializeField] private float guiScale = 1.5f;
     [Tooltip("接管相机看向原点（关闭则不动相机）")]
     [SerializeField] private bool camControl = true;
     [Tooltip("相机距原点的水平距离（z = -距离）")]
@@ -68,18 +68,22 @@ public class VfxTest : MonoBehaviour
         currentVfx.transform.SetPositionAndRotation(pos, rot);
     }
 
-    // 绕世界原点转圈：位置在半径/高度圆周上，朝向沿运动切线
+    // 绕世界原点转圈（贴地 y=0）：位置在半径圆周上，朝向沿运动切线
     private void OrbitPose(float deg, out Vector3 pos, out Quaternion rot)
     {
         float rad = deg * Mathf.Deg2Rad;
-        pos = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * radius + Vector3.up * height;
+        pos = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * radius;
         rot = Quaternion.LookRotation(new Vector3(-Mathf.Sin(rad), 0f, Mathf.Cos(rad)), Vector3.up);
     }
 
     private void OnGUI()
     {
         if (entries.Count == 0 && Tool.AssetsManager != null) BuildEntries();
+        Matrix4x4 oldMatrix = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(new Vector2(guiScale, guiScale), Vector2.zero); // 整体放大，适配编辑器小窗口
+        windowRect.height = Mathf.Min(windowRect.height, Screen.height / guiScale);
         windowRect = GUILayout.Window(GetInstanceID(), windowRect, DrawWindow, "VfxTest 特效试放");
+        GUI.matrix = oldMatrix;
     }
 
     private void BuildEntries()
@@ -112,9 +116,7 @@ public class VfxTest : MonoBehaviour
         }
 
         GUILayout.Label($"半径 {radius:F1} m");
-        radius = GUILayout.HorizontalSlider(radius, 1f, 50f);
-        GUILayout.Label($"高度 {height:F1} m");
-        height = GUILayout.HorizontalSlider(height, 0f, 20f);
+        radius = GUILayout.HorizontalSlider(radius, 0f, 10f);
         GUILayout.Label($"角速度 {angularSpeed:F0} °/s");
         angularSpeed = GUILayout.HorizontalSlider(angularSpeed, 10f, 360f);
 
