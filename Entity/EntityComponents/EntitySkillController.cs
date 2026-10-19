@@ -121,7 +121,8 @@ public class EntitySkillController
     // 冷却与库存完全由客户端判定，服务器收到请求只做硬校验（技能存在、沉默/强控）
     public UseResult TryUseSkill(int skillId)
     {
-        if (skillId < 0 || !skillIds.Contains(skillId)) return UseResult.NoSkill;
+        if (skillId < 0) return UseResult.NoSkill;
+        if (!skillIds.Contains(skillId) && !IsUniversalSkill(skillId)) return UseResult.NoSkill;
         if (owner.effectController != null)
         {
             if (owner.effectController.IsSilenced()) return UseResult.Silenced;
@@ -136,6 +137,14 @@ public class EntitySkillController
         CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
         return UseResult.Success;
+    }
+
+    // 全角色通用技能：不在实体技能列表也可直接释放（空手攻击三连，人人天生可用）
+    private static bool IsUniversalSkill(int skillId)
+    {
+        return skillId == Config.unarmed_punch_left
+            || skillId == Config.unarmed_punch_right
+            || skillId == Config.unarmed_attack_smash;
     }
     #endregion
 
