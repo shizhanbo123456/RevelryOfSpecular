@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using Ros.Skill;
 
@@ -6,6 +7,12 @@ public class SkillTestEntity : EntityData { } // 测试专用实体：无附加�
 
 public class SkillTest : MonoBehaviour
 {
+    // 攻击动画配置是 protected，工具只读取以复刻 BeginCast 分支，不改技能代码
+    private static readonly PropertyInfo HasCastAnimProp =
+        typeof(SkillBase).GetProperty("HasCastAnim", BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly PropertyInfo CastAnimProp =
+        typeof(SkillBase).GetProperty("CastAnim", BindingFlags.Instance | BindingFlags.NonPublic);
+
     private static readonly string[] TabNames = { "水晶武器", "防守方", "非玩家单位", "空手" };
 
     private readonly List<int> skillIds = new();
@@ -188,17 +195,43 @@ public class SkillTest : MonoBehaviour
         GUILayout.EndScrollView();
     }
 
-    // 释放 = SkillLogic 生成上下文（技能内部构造）+ PlayVFX 播表现；等价于真实流程中服务器施放 + 客户端收包
+    // 复刻 SkillBase.BeginCast 的分支：有攻击动画则在攻击帧播表现，没有则立即播（避免调用 private CastNow 的服务器链路）
     private void Cast(int skillId)
     {
         if (entity == null) { status = "测试实体未生成，无法释放"; return; }
         if (!SkillManager.TryGet(skillId, out var skill)) { status = $"技能未注册：{skillId}"; return; }
+
+        if (HasCastAnimProp == null || CastAnimProp == null)
+        {
+            status = "反射读取 SkillBase.HasCastAnim/CastAnim 失败，无法判断攻击动画";
+            return;
+        }
+        bool hasAnim = entity.anim != null && (bool)HasCastAnimProp.GetValue(skill);
+        if (!hasAnim)
+        {
+            PlayVfx(skill, skillId, "无攻击动画，立即释放");
+            return;
+        }
+
+        var castAnim = (EntityAnim.AttackType)CastAnimProp.GetValue(skill);
+        if (castAnim is EntityAnim.AttackType.Attack_Weapon_R
+            or EntityAnim.AttackType.Attack_Weapon_L
+            or EntityAnim.AttackType.Attack_Weapon_R_And_L)
+            entity.heldWeapon = skill.Weapon;
+        entity.anim.onAttack = _ => PlayVfx(skill, skillId, "攻击帧释放"); // 多段攻击帧会逐次触发，与标准一致
+        entity.anim.DoAttack(castAnim);
+        status = $"[{skillId}] 已进入攻击动画，等待攻击帧";
+    }
+
+    // 播放 = SkillLogic 现场构造上下文（技能内部）+ PlayVFX；上下文在攻击帧才生成，位置/朝向与施放时刻一致
+    private void PlayVfx(SkillBase skill, int skillId, string when)
+    {
         try
         {
             var context = skill.SkillLogic(entity);
             if (context == null) { status = $"[{skillId}] 技能未生成上下文"; return; }
             skill.PlayVFX(context);
-            status = $"[{skillId}] 已释放";
+            status = $"[{skillId}] {when}";
         }
         catch (System.Exception ex)
         {
