@@ -15,6 +15,7 @@ public class VfxTest : MonoBehaviour
     private readonly List<int> categoryStarts = new();
     private Vector2 scroll;
     private int selected = -1;
+    private int currentTab;
     private GameObject currentVfx;
     private float angle;
     private Rect windowRect = new(20f, 20f, 300f, 600f);
@@ -128,18 +129,18 @@ public class VfxTest : MonoBehaviour
             : "停止";
         if (GUILayout.Button(stopText)) Select(-1);
 
+        if (currentTab >= categoryStarts.Count) currentTab = 0;
+        currentTab = GUILayout.Toolbar(currentTab, CategoryNames);
+        int start = categoryStarts[currentTab];
+        int next = currentTab + 1 < categoryStarts.Count ? categoryStarts[currentTab + 1] : entries.Count;
+
         scroll = GUILayout.BeginScrollView(scroll);
-        for (int c = 0; c < categoryStarts.Count && c < CategoryNames.Length; c++)
+        for (int i = start; i < next; i++)
         {
-            int next = c + 1 < categoryStarts.Count ? categoryStarts[c + 1] : entries.Count;
-            GUILayout.Label($"── {CategoryNames[c]} ──");
-            for (int i = categoryStarts[c]; i < next; i++)
-            {
-                var e = entries[i];
-                GUI.enabled = e.prefab != null;
-                string text = (i == selected ? "▶ " : "") + e.label + (e.prefab == null ? "（空）" : "");
-                if (GUILayout.Button(text)) Select(i);
-            }
+            var e = entries[i];
+            GUI.enabled = e.prefab != null;
+            string text = (i == selected ? "▶ " : "") + e.label + (e.prefab == null ? "（空）" : "");
+            if (GUILayout.Button(text)) Select(i);
         }
         GUI.enabled = true;
         GUILayout.EndScrollView();
