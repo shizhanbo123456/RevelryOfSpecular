@@ -49,6 +49,7 @@ public class EnvironmentManager : MonoBehaviour
 
     public static float CycleTime { get; private set; } = 1f;
 
+    // 光照方向（+1 变亮 / -1 变暗），不可用作时间推进方向
     public static int Direction => CycleTime < 1f ? 1 : -1;
 
     public static float Time01 => 1f - Mathf.Abs(CycleTime - 1f);
@@ -98,7 +99,7 @@ public class EnvironmentManager : MonoBehaviour
         // 速率 = 1 / 当前区间时长（倒数）：改时长只变速，不改当前时间
         float duration = wasDay ? dayDuration : nightDuration;
         if (duration < 0.0001f) duration = 0.0001f;
-        CycleTime += Direction * (deltaTime / duration);
+        CycleTime += deltaTime / duration; // 恒正向推进；按光照方向折返会锁死在正午
 
         // 周期回绕：[0, 2) 循环（0 与 2 都是午夜）
         CycleTime %= CycleLength;
