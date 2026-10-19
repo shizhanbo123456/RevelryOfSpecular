@@ -25,10 +25,38 @@ public class VfxTest : MonoBehaviour
     [SerializeField] private float height = 1.5f;
     [Tooltip("角速度（度/秒）")]
     [SerializeField] private float angularSpeed = 90f;
+    [Tooltip("接管相机看向原点（关闭则不动相机）")]
+    [SerializeField] private bool camControl = true;
+    [Tooltip("相机距原点的水平距离（z = -距离）")]
+    [SerializeField] private float camDistance = 15f;
+    [Tooltip("相机距原点的垂直高度")]
+    [SerializeField] private float camHeight = 8f;
+
+    private Camera testCam;
 
     private void Start()
     {
         BuildEntries();
+        EnsureCamera();
+    }
+
+    private void LateUpdate()
+    {
+        if (!camControl || testCam == null) return;
+        Vector3 pos = new Vector3(0f, camHeight, -camDistance); // x=0、z<0，朝向 z+ 看向原点
+        testCam.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(-pos, Vector3.up));
+    }
+
+    // 复用主相机，测试场景没有则补一个
+    private void EnsureCamera()
+    {
+        testCam = Camera.main;
+        if (testCam == null)
+        {
+            var go = new GameObject("VfxTest Camera");
+            testCam = go.AddComponent<Camera>();
+            go.tag = "MainCamera";
+        }
     }
 
     private void Update()
@@ -88,6 +116,12 @@ public class VfxTest : MonoBehaviour
         height = GUILayout.HorizontalSlider(height, 0f, 20f);
         GUILayout.Label($"角速度 {angularSpeed:F0} °/s");
         angularSpeed = GUILayout.HorizontalSlider(angularSpeed, 10f, 360f);
+
+        camControl = GUILayout.Toggle(camControl, "接管相机看向原点");
+        GUILayout.Label($"相机水平距离 {camDistance:F1} m");
+        camDistance = GUILayout.HorizontalSlider(camDistance, 1f, 100f);
+        GUILayout.Label($"相机垂直高度 {camHeight:F1} m");
+        camHeight = GUILayout.HorizontalSlider(camHeight, 0f, 50f);
 
         string stopText = selected >= 0 && selected < entries.Count
             ? $"停止（当前：{entries[selected].label}）"
