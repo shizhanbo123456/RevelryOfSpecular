@@ -81,14 +81,26 @@ public class SkillTest : MonoBehaviour
         new GameObject("[SkillTest] VfxManager").AddComponent<VfxManager>();
     }
 
-    // 同 AnimationTest：技能属性表依赖 InfoManager
+    // 同 AnimationTest：技能属性表依赖 InfoManager；武器锚点还依赖 InfoManager.SpringWeapon 预制体
     private static void EnsureInfoManager()
     {
-        if (Tool.InfoManager != null) return;
-        var go = new GameObject("[SkillTest] InfoManager");
-        var manager = go.AddComponent<InfoManager>();
-        int ground = LayerMask.NameToLayer("Ground");
-        manager.ground_layer = ground >= 0 ? ground : 0;
+        if (Tool.InfoManager == null)
+        {
+            var go = new GameObject("[SkillTest] InfoManager");
+            var manager = go.AddComponent<InfoManager>();
+            int ground = LayerMask.NameToLayer("Ground");
+            manager.ground_layer = ground >= 0 ? ground : 0;
+        }
+#if UNITY_EDITOR
+        // 自动补建的 InfoManager 没配 SpringWeapon，SpringWeapon.Attach 会返回 null 导致武器技能 NRE；编辑器下按名字搜索补上
+        if (Tool.InfoManager != null && Tool.InfoManager.SpringWeapon == null)
+        {
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("SpringWeapon t:Prefab");
+            if (guids.Length > 0)
+                Tool.InfoManager.SpringWeapon = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                    UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+        }
+#endif
     }
 
     private void BuildSkillIds()
@@ -126,6 +138,8 @@ public class SkillTest : MonoBehaviour
             go.name = "SkillTestEntity";
             entity = go.AddComponent<SkillTestEntity>();
             entity.OnCreate(1, new EntityType(EntityCategory.Character_Attack, 0), 1, EntityCamp.Attack);
+            if (entity.springWeapon == null)
+                status = "InfoManager.SpringWeapon 未配置，武器类技能（锚点依赖弹簧）会释放失败，空手/近战类不受影响";
         }
         catch (System.Exception ex)
         {
