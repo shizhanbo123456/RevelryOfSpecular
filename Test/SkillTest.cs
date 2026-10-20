@@ -127,10 +127,11 @@ public class SkillTest : MonoBehaviour
         tabStarts.Clear();
         var ids = SkillManager.GetRegisteredIds();
         foreach (int id in ids) skillIds.Add(id);
-        tabStarts.Add(IndexOfRange(0));
-        tabStarts.Add(IndexOfRange(50));
-        tabStarts.Add(IndexOfRange(100));
-        tabStarts.Add(IndexOfRange(180));
+        // 分页边界取各段枚举首项，段长调整时跟着走，不再手写 id
+        tabStarts.Add(IndexOfRange((int)SkillType.SkillFanIceCone));
+        tabStarts.Add(IndexOfRange((int)SkillType.SkillRockShield));
+        tabStarts.Add(IndexOfRange((int)SkillType.SkillZombieClawR));
+        tabStarts.Add(IndexOfRange((int)SkillType.SkillPunchLeft));
     }
 
     private int IndexOfRange(int minId)
