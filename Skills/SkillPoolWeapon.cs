@@ -322,8 +322,8 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.55f;
-        protected override SkillVfxKind VfxKind => SkillVfxKind.Bullet;
-        protected override int VfxIndex => 48;
+        protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
+        protected override int VfxIndex => (int)Weapon;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Stun, 1, 2f, caster);
         private const float HoverTime = 1.2f;
 
@@ -332,7 +332,7 @@ namespace Ros.Skill
             base.PlayVFX(context);
             // 命中后原地静止漂浮：纯表现，不参与判定
             Vector3 end = context.vectors[1];
-            VfxHelper.PlayOne(SkillVfxKind.Bullet, VfxIndex, TrialConstructor.Point(end, HoverTime));
+            VfxHelper.PlayOne(SkillVfxKind.Weapon, VfxIndex, TrialConstructor.Point(end, HoverTime));
         }
     }
 
