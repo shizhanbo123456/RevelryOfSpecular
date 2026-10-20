@@ -37,7 +37,6 @@ namespace Ros.Skill
             // 枪械（19~33）
             SkillManager.Register(new SkillBackVolley());
             SkillManager.Register(new SkillIceSweep());
-            SkillManager.Register(new SkillHeavyBolt());
             SkillManager.Register(new SkillRootShot());
             SkillManager.Register(new SkillDriftOrb());
             SkillManager.Register(new SkillTripleWaveIce());
@@ -50,6 +49,7 @@ namespace Ros.Skill
             SkillManager.Register(new SkillRainBarrage());
             SkillManager.Register(new SkillDashSpeed());
             SkillManager.Register(new SkillAllyShieldEight());
+            SkillManager.Register(new SkillShieldFour());
 
             // 魔法球（34~49）
             SkillManager.Register(new SkillSplitShot());
@@ -531,29 +531,13 @@ namespace Ros.Skill
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 3f, caster);
     }
 
-    public class SkillHeavyBolt : ShotSkillBase
-    {
-        public override int Id => (int)SkillType.SkillHeavyBolt;
-        public override float CastRange => 16f;
-        public override float CD => 8f;
-        public override int Store => 8;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
-        protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
-        protected override int Shots => 1;
-        protected override float SpreadDeg => 0f;
-        protected override float BulletLife => 0.4f;
-        protected override float DamageRate => 1.6f;
-        protected override float Knockback => 2f;
-        protected override int VfxIndex => 27;
-    }
-
     public class SkillRootShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillRootShot;
         public override float CastRange => 14f;
         public override float CD => 9f;
         public override int Store => 6;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 2);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -568,7 +552,7 @@ namespace Ros.Skill
         public override float CastRange => 12f;
         public override float CD => 8f;
         public override int Store => 6;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 3);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -583,7 +567,7 @@ namespace Ros.Skill
         public override float CastRange => 13f;
         public override float CD => 12f;
         public override int Store => 4;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 4);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 3;
         protected override float SpreadDeg => 25f;
@@ -601,7 +585,7 @@ namespace Ros.Skill
         public override float CastRange => 12f;
         public override float CD => 10f;
         public override int Store => 5;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 5);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 5;
         protected override float SpreadDeg => 35f;
@@ -617,7 +601,7 @@ namespace Ros.Skill
         public override float CastRange => 18f;
         public override float CD => 12f;
         public override int Store => 5;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 6);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -633,7 +617,7 @@ namespace Ros.Skill
         public override float CastRange => 12f;
         public override float CD => 12f;
         public override int Store => 4;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 7);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 0f;
@@ -655,7 +639,7 @@ namespace Ros.Skill
         public override float CastRange => 14f;
         public override float CD => 14f;
         public override int Store => 4;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 9);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 8);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 2;
         protected override float SpreadDeg => 10f;
@@ -679,7 +663,7 @@ namespace Ros.Skill
         public override float CastRange => 13f;
         public override float CD => 15f;
         public override int Store => 3;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 9);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 3;
         protected override float SpreadDeg => 0f;
@@ -705,7 +689,7 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillPullSmash;
         public override float CD => 20f;
         public override int Store => 2;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 11);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 10);
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         private const float PullRadius = 8f;
         private const float PullTime = 0.5f;
@@ -751,7 +735,7 @@ namespace Ros.Skill
         public override float CastRange => 14f;
         public override float CD => 14f;
         public override int Store => 4;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 11);
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 4;
         protected override float SpreadDeg => 0f;
@@ -774,7 +758,7 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillDashSpeed;
         public override float CD => 16f;
         public override int Store => 4;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 13);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 12);
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -799,7 +783,7 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillAllyShieldEight;
         public override float CD => 25f;
         public override int Store => 3;
-        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 14);
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 13);
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         private const float Radius = 10f;
 
@@ -824,6 +808,30 @@ namespace Ros.Skill
                 if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
                 GiveEffect(ally, EffectType.Shield, 8, 60f, caster);
             }
+        }
+
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+    }
+
+    public class SkillShieldFour : SkillBase
+    {
+        public override int Id => (int)SkillType.SkillShieldFour;
+        public override float CD => 30f;
+        public override int Store => 3;
+        public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Gun, 14);
+        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
+        public override SkillContext SkillLogic(EntityData entity)
+        {
+            var context = new SkillContext();
+            context.AddInts(entity.id);
+            return context;
+        }
+
+        protected override void OnCast(SkillContext context)
+        {
+            var caster = FindEntity((ushort)context.ints[0]);
+            GiveEffect(caster, EffectType.Shield, 4, 10f, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

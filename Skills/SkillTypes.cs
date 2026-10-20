@@ -1,4 +1,4 @@
-namespace Ros.Skill
+﻿namespace Ros.Skill
 {
     // 技能 id 唯一来源：值由枚举顺序自动分配（禁止手写数字），全工程引用技能 id 一律读这里
     // 段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3
@@ -31,7 +31,6 @@ namespace Ros.Skill
         // ===== 枪械 15 =====
         SkillBackVolley,
         SkillIceSweep,
-        SkillHeavyBolt,
         SkillRootShot,
         SkillDriftOrb,
         SkillTripleWaveIce,
@@ -44,6 +43,7 @@ namespace Ros.Skill
         SkillRainBarrage,
         SkillDashSpeed,
         SkillAllyShieldEight,
+        SkillShieldFour,
 
         // ===== 魔法球 16 =====
         SkillSplitShot,

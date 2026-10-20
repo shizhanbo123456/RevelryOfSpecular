@@ -120,7 +120,7 @@ public static class Config
     public const int weapon_id_spear_min = (int)SkillType.SkillBoomerangWeapon;    // 长枪 8 把
     public const int weapon_id_spear_max = (int)SkillType.SkillIceFanTiny;
     public const int weapon_id_gun_min = (int)SkillType.SkillBackVolley;          // 枪械 15 把
-    public const int weapon_id_gun_max = (int)SkillType.SkillAllyShieldEight;
+    public const int weapon_id_gun_max = (int)SkillType.SkillShieldFour;
     public const int weapon_id_magic_min = (int)SkillType.SkillSplitShot;         // 魔法球 16 个
     public const int weapon_id_magic_max = (int)SkillType.SkillAllyShieldTwentyFive;
 
