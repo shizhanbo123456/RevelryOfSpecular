@@ -404,6 +404,12 @@ public abstract class EntityData : MonoBehaviour
 
     public void ProcessHit(AttackData attack, int damage, DamageType damageType, Vector3 hitOrigin, Vector3? floatPos = null)
     {
+        // 闪避：带闪避 Buff 时本次命中全部闪避（没有闪避率），不结算伤害、不进入受击
+        if (effectController != null && effectController.HasEffect(EffectType.DodgeBoost))
+        {
+            OnDamaged(0f, damageType: DamageType.Evade, hitPos: floatPos ?? hitOrigin);
+            return;
+        }
         EndureType endure = GetEndureLevel();
         bool enterHit = anim!=null && (attack.breakEndure ? (endure == EndureType.None || endure == EndureType.Common) : endure == EndureType.None);
         if (enterHit && FlightMode) enterHit = false; // 飞行免疫：不受击飞/被打断（伤害照常结算）

@@ -726,7 +726,7 @@ namespace Ros.Skill
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 var target = Utils.TargetSelect.TargetBuffer[i];
-                if (target != null) target.SetMotion(new MotionAttract(center, PullTime));
+                if (target != null) target.SetMotion(new MotionAttract(center, PullTime)); // 牵引点 = 施放瞬间的位置
             }
             Timer.AddTimer(0, _ =>
             {
@@ -897,8 +897,20 @@ namespace Ros.Skill
         protected override int VfxIndex => 1;
         private const float PullDuration = 1.2f;
 
-        protected override Action<EntityData> HitAction(EntityData caster)
-            => target => { if (target != null) target.SetMotion(new MotionAttract(caster != null ? caster.transform.position : target.transform.position, PullDuration)); };
+        // 命中后把目标持续拉向「正在飞的子弹」：服务器子弹没有 Transform，用轨迹+出生时间算实时位置
+        protected override void ShootWave(EntityData caster, SkillContext context, int wave)
+        {
+            if (caster == null || Tool.BattleManager == null) return;
+            BulletTrajectory trajectory = TrajectoryFor(context, wave, 0, 1, 0f);
+            float spawn = Time.time;
+            var attack = BuildAttack(caster, DamageRate, BulletRadius, onHit: target =>
+            {
+                if (target == null) return;
+                target.SetMotion(new MotionAttract(
+                    () => trajectory.Lerp(Mathf.Clamp01((Time.time - spawn) / BulletLife)), PullDuration));
+            });
+            Tool.BattleManager.ShootBullet(caster, attack, trajectory, BulletLife);
+        }
     }
 
     public class SkillStaticBarrage : ShotSkillBase
@@ -1150,7 +1162,7 @@ namespace Ros.Skill
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 var target = Utils.TargetSelect.TargetBuffer[i];
-                if (target != null) target.SetMotion(new MotionAttract(center, PullTime));
+                if (target != null) target.SetMotion(new MotionAttract(center, PullTime)); // 牵引点 = 施放瞬间的位置
             }
             Timer.AddTimer(0, _ =>
             {
