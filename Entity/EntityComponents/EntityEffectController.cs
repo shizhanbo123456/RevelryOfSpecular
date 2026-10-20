@@ -323,13 +323,13 @@ public class EntityEffectController
         {
             case EffectType.Burning:
             case EffectType.PaleFire:
-                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * rt.level, FindEntity(rt.sourceId), fixedDamage: true, damageType: DamageType.DoT);
+                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
                 break;
             case EffectType.Poison:
             {
                 if (owner == null) break;
                 float stat = SourcePower(rt);
-                owner.OnDamaged(Config.poison_damage_ratio * stat * rt.level, FindEntity(rt.sourceId), fixedDamage: true, damageType: DamageType.DoT);
+                owner.OnDamaged(Config.poison_damage_ratio * stat * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
                 break;
             }
             case EffectType.DeathStroll:
@@ -341,7 +341,7 @@ public class EntityEffectController
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_stroll_radius, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
                 {
-                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * rt.level, owner, fixedDamage: true, damageType: DamageType.DoT);
+                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * rt.level, owner, fixedDamage: true);
                 }
                 break;
             }

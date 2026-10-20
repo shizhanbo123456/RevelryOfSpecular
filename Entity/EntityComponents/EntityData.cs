@@ -468,9 +468,8 @@ public abstract class EntityData : MonoBehaviour
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
-        // 伤害被完全吸收/免疫时按「无效」飘字，但闪避等已有明确类型的不覆盖
-        DamageType shownType = finalDamage <= 0f &&
-                               (damageType == DamageType.Normal || damageType == DamageType.ShieldAbsorb)
+        // 伤害被完全吸收/免疫时按「无效」飘字；闪避等已有明确类型的不覆盖
+        DamageType shownType = finalDamage <= 0f && damageType == DamageType.Normal
             ? DamageType.Invalid
             : damageType;
         SendDamageEvent(finalDamage, shownType, hitPos);
@@ -478,7 +477,7 @@ public abstract class EntityData : MonoBehaviour
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
-            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false, damageType: DamageType.Reflect);
+            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();
     }

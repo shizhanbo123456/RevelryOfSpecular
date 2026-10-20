@@ -917,10 +917,7 @@ public class BattlePage : PageBase
                 label.m_type.selectedIndex = 2;
                 break;
             case DamageType.Normal:
-            case DamageType.ShieldAbsorb:
-            case DamageType.Reflect:
-            case DamageType.DoT:
-                label.m_type.selectedIndex = 0; // 普通页（护盾吸收/反伤/DoT 暂无专用样式）
+                label.m_type.selectedIndex = 0; // 普通页
                 label.m_num_common.text = value.ToString();
                 break;
             default:
