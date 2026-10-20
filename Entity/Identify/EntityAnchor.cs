@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public enum EntityAnchor
 {
@@ -33,14 +33,15 @@ public struct EntityAnchorInfo
 {
     public Transform transform;
     public Vector3 position;
-    // 只取位置：骨骼旋转不允许读取（动画状态相关，双端必然不一致）
+    public Quaternion rotation;
 
     public static EntityAnchorInfo operator +(EntityAnchorInfo info, Vector3 offset)
     {
         return new EntityAnchorInfo()
         {
             transform = null,
-            position = info.position + offset
+            position = info.position + offset,
+            rotation = info.rotation
         };
     }
 }
@@ -52,13 +53,13 @@ public static class EntityAnchorExtensions
         {
             switch (anchor)
             {
-                case EntityAnchor.ModelRootPosition: return anim.GetBoneTransform(HumanBodyBones.Hips).ToAnchorInfo();
-                case EntityAnchor.Head: return anim.GetBoneTransform(HumanBodyBones.Head).ToAnchorInfo();
-                case EntityAnchor.LeftHand: return anim.GetBoneTransform(HumanBodyBones.LeftHand).ToAnchorInfo();
-                case EntityAnchor.RightHand: return anim.GetBoneTransform(HumanBodyBones.RightHand).ToAnchorInfo();
-                case EntityAnchor.LeftFoot: return anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo();
-                case EntityAnchor.RightFoot: return anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo();
-                case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo();
+                case EntityAnchor.ModelRootPosition: return anim.GetBoneTransform(HumanBodyBones.Hips).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.Head: return anim.GetBoneTransform(HumanBodyBones.Head).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.LeftHand: return anim.GetBoneTransform(HumanBodyBones.LeftHand).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.RightHand: return anim.GetBoneTransform(HumanBodyBones.RightHand).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.LeftFoot: return anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.RightFoot: return anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo(model.transform.rotation);
+                case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo(model.transform.rotation);
                 case EntityAnchor.Camera: return EntityAnchor.ModelRootPosition.GetTransform(model, anim, springWeapon) + (model.yRange.y*0.5f + 0.5f) * Vector3.up;
 
                 case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 0.5f;
@@ -78,11 +79,12 @@ public static class EntityAnchorExtensions
             case EntityAnchor.WeaponSlot7:
             case EntityAnchor.WeaponSlot8:
                 int weaponSlotIndex = (int)anchor - (int)EntityAnchor.WeaponSlot1;
-                springWeapon.GetPos(weaponSlotIndex, out var v, out _);
+                springWeapon.GetPos(weaponSlotIndex, out var v, out var q);
                 return new EntityAnchorInfo()
                 {
                     transform = null,
-                    position = v
+                    position = v,
+                    rotation = q
                 };
             case EntityAnchor.LabelFallBack: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.75f) * Vector3.up;
 
@@ -92,6 +94,25 @@ public static class EntityAnchorExtensions
         }
         throw new System.Exception("Unknown anchor: " + anchor);
     }
+    // 骨骼锚点专用：旋转取骨骼所属实体（模型根），不取骨骼自身动画旋转
+    private static EntityAnchorInfo ToAnchorInfo(this Transform transform, Quaternion entityRotation, Vector3 offset = default)
+    {
+        if(offset.sqrMagnitude<float.Epsilon)
+        {
+            return new EntityAnchorInfo()
+            {
+                transform = transform,
+                position = transform.position,
+                rotation = entityRotation
+            };
+        }
+        return new EntityAnchorInfo()
+        {
+            transform = null,
+            position = transform.position + offset,
+            rotation = entityRotation
+        };
+    }
     private static EntityAnchorInfo ToAnchorInfo(this Transform transform,Vector3 offset = default)
     {
         if(offset.sqrMagnitude<float.Epsilon)
@@ -99,13 +120,15 @@ public static class EntityAnchorExtensions
             return new EntityAnchorInfo()
             {
                 transform = transform,
-                position = transform.position
+                position = transform.position,
+                rotation = transform.rotation
             };
         }
         return new EntityAnchorInfo()
         {
             transform = null,
-            position = transform.position + offset
+            position = transform.position + offset,
+            rotation = transform.rotation
         };
     }
 }
