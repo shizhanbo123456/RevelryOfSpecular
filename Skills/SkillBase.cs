@@ -1,15 +1,11 @@
-using Ros.Transport;
+﻿using Ros.Transport;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using Ros.Skill.Utils;
 
 namespace Ros.Skill
 {
-    public enum ProjectilePattern { Line, Point, Bezier, SkyFall }
-
     public enum SkillVfxKind { None, Bullet, RangeMagic, MagicCircle, Shield, Buff, Weapon }
 
     public abstract class SkillBase
@@ -48,14 +44,6 @@ namespace Ros.Skill
 
         // 按 id 找实体（服务器权威容器；客户端查不到返回 null）
         protected static EntityData FindEntity(ushort id) => BattleManager.GetEntity(id);
-
-        // 弹道终点 = 实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
-        protected static Vector3 ShotAim(Vector3 origin, Vector3 frozenOrigin, Vector3 frozenDest)
-        {
-            Vector3 offset = frozenDest - frozenOrigin;
-            offset.y = 0f;
-            return origin + offset;
-        }
 
         // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
         public void BeginCast(EntityData entity, int skillId)
@@ -100,11 +88,6 @@ namespace Ros.Skill
         {
             if (target == null || target.effectController == null) return;
             target.effectController.AddEffect(type, level, duration, source);
-        }
-
-        protected static Action<EntityData> PullTo(Vector3 to, float speed = 16f)
-        {
-            return target => { if (target != null) target.SetMotion(new MotionToPoint(to, speed)); };
         }
 
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)

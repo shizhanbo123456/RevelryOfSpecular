@@ -1,4 +1,4 @@
-using Ros.Transport;
+﻿using Ros.Transport;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -53,13 +53,6 @@ namespace Ros.Skill.Utils
             if (frontSector)
                 return BattleManager.EntityContainer.GetNearestEnemyInFront(entity, radius, Config.default_skill_auto_target_sector_half_angle);
             return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
-        }
-
-        public static EntityData GetNearestAlly(EntityData entity, float radius = Config.default_skill_auto_target_radius)
-        {
-            if (entity == null) return null;
-            return BattleManager.EntityContainer.GetNearestInCamp(
-                entity.transform.position, radius, entity.camp, entity.id);
         }
 
         public static void SetEntitiesInCampToBuffer(EntityCamp camp)

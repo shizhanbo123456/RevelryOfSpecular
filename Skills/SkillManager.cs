@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
@@ -64,6 +64,6 @@ public static class SkillManager
     private static void RegisterAll()
     {
         s_map.Clear();
-        SkillPools.RegisterAll(); // 旧技能包已整体作废（见 SkillPool*.cs 的 #if false），新技能在 SkillPools 注册
+        SkillPools.RegisterAll(); // 新技能统一在 SkillPools 注册
     }
 }
