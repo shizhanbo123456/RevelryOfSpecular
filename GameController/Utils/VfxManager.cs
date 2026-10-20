@@ -52,7 +52,8 @@ public class VfxManager : MonoBehaviour
         BulletPlayer.RotationMode rotation = BulletPlayer.RotationMode.Tangent)
     {
         if (vfxPrefab == null || trajectory == null) return null;
-        var obj = Instantiate(vfxPrefab);
+        // 必须实例化时就给到起点：世界空间的粒子在 playOnAwake 的瞬间就会按预制体位置喷一帧，之后再摆位置会留下原点残影
+        var obj = Instantiate(vfxPrefab, trajectory.Lerp(0f), vfxPrefab.transform.rotation);
         BulletPlayer.Create(obj, trajectory, lifeTime, rotation);
         return obj;
     }
