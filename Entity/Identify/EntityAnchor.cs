@@ -33,15 +33,14 @@ public struct EntityAnchorInfo
 {
     public Transform transform;
     public Vector3 position;
-    public Quaternion rotation;
+    // 只取位置：骨骼旋转不允许读取（动画状态相关，双端必然不一致）
 
     public static EntityAnchorInfo operator +(EntityAnchorInfo info, Vector3 offset)
     {
         return new EntityAnchorInfo()
         {
             transform = null,
-            position = info.position + offset,
-            rotation = info.rotation
+            position = info.position + offset
         };
     }
 }
@@ -79,12 +78,11 @@ public static class EntityAnchorExtensions
             case EntityAnchor.WeaponSlot7:
             case EntityAnchor.WeaponSlot8:
                 int weaponSlotIndex = (int)anchor - (int)EntityAnchor.WeaponSlot1;
-                springWeapon.GetPos(weaponSlotIndex, out var v, out var q);
+                springWeapon.GetPos(weaponSlotIndex, out var v, out _);
                 return new EntityAnchorInfo()
                 {
                     transform = null,
-                    position = v,
-                    rotation = q
+                    position = v
                 };
             case EntityAnchor.LabelFallBack: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.75f) * Vector3.up;
 
@@ -101,15 +99,13 @@ public static class EntityAnchorExtensions
             return new EntityAnchorInfo()
             {
                 transform = transform,
-                position = transform.position,
-                rotation = transform.rotation
+                position = transform.position
             };
         }
         return new EntityAnchorInfo()
         {
             transform = null,
-            position = transform.position + offset,
-            rotation = transform.rotation
+            position = transform.position + offset
         };
     }
 }
