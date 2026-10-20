@@ -766,7 +766,7 @@ public class BattlePage : PageBase
     private void OnDamageDisplay(SCDamage d)
     {
         if (d == null) return;
-        ShowDamage(d.value, (ushort)d.targetId, d.hasHitPos, d.hitPos);
+        ShowDamage(d.value, (DamageType)d.type, (ushort)d.targetId, d.hasHitPos, d.hitPos);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -884,7 +884,7 @@ public class BattlePage : PageBase
         barOwners.Clear();
     }
 
-    private void ShowDamage(int encoded, ushort targetId, bool hasHitPos, Vector3 hitPos)
+    private void ShowDamage(int value, DamageType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
         Vector3 anchor;
         if (hasHitPos)
@@ -906,19 +906,26 @@ public class BattlePage : PageBase
         var scatterPx = new Vector2(Random.Range(-50f, 50f), Random.Range(-10f, 10f));
 
         var label = UI_DamageLabel.CreateInstance();
-        if (encoded == 0)
+        switch (type)
         {
-            label.m_type.selectedIndex = 2; // 无效文本已在 FGUI 中配置
-        }
-        else if (encoded > 0)
-        {
-            label.m_type.selectedIndex = 0;
-            label.m_num_common.text = encoded.ToString();
-        }
-        else
-        {
-            label.m_type.selectedIndex = 1;
-            label.m_num_strike.text = (-encoded).ToString();
+            case DamageType.Crit:
+                label.m_type.selectedIndex = 1; // FGUI 暴击页
+                label.m_num_strike.text = value.ToString();
+                break;
+            case DamageType.Invalid:
+            case DamageType.Evade: // FGUI 暂只有「无效」页，闪避沿用该页，待补页
+                label.m_type.selectedIndex = 2;
+                break;
+            case DamageType.Normal:
+            case DamageType.ShieldAbsorb:
+            case DamageType.Reflect:
+            case DamageType.DoT:
+                label.m_type.selectedIndex = 0; // 普通页（护盾吸收/反伤/DoT 暂无专用样式）
+                label.m_num_common.text = value.ToString();
+                break;
+            default:
+                Debug.LogError($"[伤害飘字] 未处理的伤害类型：{(int)type}");
+                break;
         }
         Root.AddChild(label);
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置

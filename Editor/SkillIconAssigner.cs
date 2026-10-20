@@ -1,3 +1,4 @@
+#if false // 图标分配表针对旧技能枚举，等新技能定稿后按新技能重写
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -159,3 +160,4 @@ public static class SkillIconAssigner
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 }
+#endif

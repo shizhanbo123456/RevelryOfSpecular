@@ -64,9 +64,6 @@ public static class SkillManager
     private static void RegisterAll()
     {
         s_map.Clear();
-        SkillPoolCrystal.RegisterAll();   // 水晶掉落（武器技能 0~49）
-        SkillPoolDefense.RegisterAll();   // 防守方角色专属 50~73（被动不占 id）
-        SkillPoolNonPlayer.RegisterAll(); // 非玩家单位 100~179
-        SkillPoolUnarmed.RegisterAll();   // 空手攻击 180~182
+        SkillPools.RegisterAll(); // 旧技能包已整体作废（见 SkillPool*.cs 的 #if false），新技能在 SkillPools 注册
     }
 }

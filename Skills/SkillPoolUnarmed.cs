@@ -1,3 +1,4 @@
+#if false // 旧技能包：仅作 API 参考，不参与编译；新技能在 SkillPools 注册
 using Ros.Transport;
 using UnityEngine;
 
@@ -88,3 +89,4 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // 近战无特效
     }
 }
+#endif

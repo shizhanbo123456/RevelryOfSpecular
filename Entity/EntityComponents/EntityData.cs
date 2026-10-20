@@ -402,7 +402,7 @@ public abstract class EntityData : MonoBehaviour
         return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 
-    public void ProcessHit(AttackData attack, int damage, bool isCrit, Vector3 hitOrigin, Vector3? floatPos = null)
+    public void ProcessHit(AttackData attack, int damage, DamageType damageType, Vector3 hitOrigin, Vector3? floatPos = null)
     {
         EndureType endure = GetEndureLevel();
         bool enterHit = anim!=null && (attack.breakEndure ? (endure == EndureType.None || endure == EndureType.Common) : endure == EndureType.None);
@@ -416,8 +416,8 @@ public abstract class EntityData : MonoBehaviour
         }
         EntityData attacker = null;
         if (BattleManager.EntityContainer.Entities.TryGetObject(attack.shooter, out var shooter)) attacker = shooter;
-        OnDamaged(damage, attacker, isCrit: isCrit, hitPos: floatPos ?? hitOrigin);
-        Tool.BattleManager.OnHitPassive(attacker, this, isCrit); // 攻击方被动（暴击麻痹），放在伤害结算之后
+        OnDamaged(damage, attacker, damageType: damageType, hitPos: floatPos ?? hitOrigin);
+        Tool.BattleManager.OnHitPassive(attacker, this, damageType); // 攻击方被动（暴击麻痹），放在伤害结算之后
     }
 
     //击飞
@@ -447,7 +447,7 @@ public abstract class EntityData : MonoBehaviour
     }
 
     // 受伤计算（hitPos = 命中位置，飘字优先显示在命中处；DoT/反伤等无范围伤害传 null 回退实体头顶）
-    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, bool isCrit = false, Vector3? hitPos = null)
+    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, DamageType damageType = DamageType.Normal, Vector3? hitPos = null)
     {
         if (!Alive) return;
         if (BattleManager.IsGmInvincible(id)) return; // GM 无敌：伤害按 0 处理（见 BattleManagerGm）
@@ -468,23 +468,27 @@ public abstract class EntityData : MonoBehaviour
         finalDamage = Mathf.Max(0f, finalDamage);
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
-        SendDamageEvent(finalDamage, isCrit, hitPos);
+        // 伤害被完全吸收/免疫时按「无效」飘字，但闪避等已有明确类型的不覆盖
+        DamageType shownType = finalDamage <= 0f &&
+                               (damageType == DamageType.Normal || damageType == DamageType.ShieldAbsorb)
+            ? DamageType.Invalid
+            : damageType;
+        SendDamageEvent(finalDamage, shownType, hitPos);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
-            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
+            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false, damageType: DamageType.Reflect);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
-    private void SendDamageEvent(float finalDamage, bool isCrit, Vector3? hitPos)
+    private void SendDamageEvent(float finalDamage, DamageType damageType, Vector3? hitPos)
     {
-        int display = Mathf.RoundToInt(finalDamage);
-        if (isCrit) display = -display;
         var d = new SCDamage()
         {
-            value = display,
+            value = Mathf.RoundToInt(finalDamage),
+            type = (int)damageType,
             targetId = id,
             hasHitPos = hitPos.HasValue,
             hitPos = hitPos ?? Vector3.zero,

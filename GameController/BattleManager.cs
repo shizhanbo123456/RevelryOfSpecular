@@ -729,9 +729,10 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 子弹（统一攻击实体）
-    public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime = 0f)
+    public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime = 0f,
+        float damageWindowFrom = 0f, float damageWindowTo = 1f, float damageInterval = 0f)
     {
-        AddBullet(attack, trajectory, lifeTime);
+        AddBullet(attack, trajectory, lifeTime, damageWindowFrom, damageWindowTo, damageInterval);
     }
     #endregion
 

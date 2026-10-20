@@ -1,3 +1,4 @@
+#if false // 旧技能包：仅作 API 参考，不参与编译；新技能在 SkillPools 注册
 using System;
 using Ros.Transport;
 using UnityEngine;
@@ -1900,3 +1901,4 @@ namespace Ros.Skill
     }
     #endregion
 }
+#endif

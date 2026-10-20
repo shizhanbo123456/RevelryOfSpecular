@@ -21,7 +21,8 @@ public partial class BattleManager
     private readonly List<Bullet> activeBullets = new();
     private static readonly EntityData[] s_bulletBuffer = new EntityData[16];
 
-    private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime)
+    private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime,
+        float damageWindowFrom = 0f, float damageWindowTo = 1f, float damageInterval = 0f)
     {
         if (attack == null || trajectory == null) return;
         activeBullets.Add(new Bullet()
@@ -30,7 +31,10 @@ public partial class BattleManager
             trajectory = trajectory,
             lifeTime = lifeTime > 0f ? lifeTime : trajectory.Duration, // 未传时长则用轨迹自带的
             spawnTime = Time.time,
-            hitIds = new HashSet<ushort>(),
+            damageWindowFrom = Mathf.Clamp01(damageWindowFrom),
+            damageWindowTo = Mathf.Clamp01(damageWindowTo),
+            damageInterval = damageInterval,
+            lastHitTime = new Dictionary<ushort, float>(),
         });
     }
 
@@ -46,11 +50,13 @@ public partial class BattleManager
                 activeBullets.RemoveAt(i);
                 continue;
             }
-            TryHitBullet(b, b.trajectory.Lerp(t / b.lifeTime));
+            float progress = t / b.lifeTime;
+            if (progress < b.damageWindowFrom || progress > b.damageWindowTo) continue; // 窗口外只飞不判定
+            TryHitBullet(b, b.trajectory.Lerp(progress), now);
         }
     }
 
-    private void TryHitBullet(Bullet b, Vector3 pos)
+    private void TryHitBullet(Bullet b, Vector3 pos, float now)
     {
         var attack = b.attack;
 #if UNITY_EDITOR
@@ -62,12 +68,15 @@ public partial class BattleManager
             var e = s_bulletBuffer[i];
             if (!e.Alive) continue;
             if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
-            if (!b.hitIds.Add(e.id)) continue; // 同一发子弹对同一目标只结算一次
+            // 同一目标按伤害间隔冷却重复结算；间隔 <=0 时一目标只结算一次
+            if (b.lastHitTime.TryGetValue(e.id, out float lastHit) &&
+                (b.damageInterval <= 0f || now - lastHit < b.damageInterval)) continue;
+            b.lastHitTime[e.id] = now;
 
-            int damage = attack.GetDamage(out bool isCrit);
+            int damage = attack.GetDamage(out DamageType type);
             // 击飞方向取子弹上一帧位置：高速弹一帧穿过目标时，用当前位置算方向会反转
             Vector3 floatPos = new Vector3(e.transform.position.x, b.LastPosition.y, e.transform.position.z);
-            e.ProcessHit(attack, damage, isCrit, b.LastPosition, floatPos);
+            e.ProcessHit(attack, damage, type, b.LastPosition, floatPos);
             if (attack.addEffectEvent != null && e.effectController != null)
             {
                 attack.addEffectEvent.Invoke(e.effectController);

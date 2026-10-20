@@ -42,16 +42,16 @@ public class AttackData
         };
     }
 
-    public int GetDamage(out bool isCrit)
+    public int GetDamage(out DamageType type)
     {
-        isCrit = false;
+        type = DamageType.Normal;
         if (attribute == null) return 0;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
         final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤
         final *= outDamageMultiplier;                            // 出伤乘区
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
-            isCrit = true;
+            type = DamageType.Crit;
             final *= attribute.critDamage; // 暴击伤害为倍率
         }
         if (final < 1f) return 1;

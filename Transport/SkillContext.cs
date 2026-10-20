@@ -7,6 +7,7 @@ namespace Ros.Transport
     {
         public List<int> ints = new();
         public List<Vector3> vectors = new();
+        public List<float> floats = new();
 
         public void AddInts(params int[] values)
         {
@@ -16,6 +17,11 @@ namespace Ros.Transport
         public void AddVectors(params Vector3[] values)
         {
             foreach (var v in values) vectors.Add(v);
+        }
+
+        public void AddFloats(params float[] values)
+        {
+            foreach (var v in values) floats.Add(v);
         }
     }
 
@@ -45,6 +51,16 @@ namespace Ros.Transport
                     if (!Vector3Serializer.Serialize(v, result, ref indexStart)) return false;
                 }
             }
+
+            int floatCount = value.floats != null ? value.floats.Count : 0;
+            if (!IntSerializer.Serialize(floatCount, result, ref indexStart)) return false;
+            if (value.floats != null)
+            {
+                foreach (var v in value.floats)
+                {
+                    if (!FloatSerializer.Serialize(v, result, ref indexStart)) return false;
+                }
+            }
             return true;
         }
 
@@ -61,6 +77,11 @@ namespace Ros.Transport
             for (int i = 0; i < vectorCount; i++)
             {
                 context.vectors.Add(Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex));
+            }
+            int floatCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            for (int i = 0; i < floatCount; i++)
+            {
+                context.floats.Add(FloatSerializer.Deserialize(data, ref indexStart, invalidIndex));
             }
             return context;
         }
