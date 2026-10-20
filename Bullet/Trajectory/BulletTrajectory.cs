@@ -20,8 +20,7 @@ public abstract class BulletTrajectory
         pos = Vector3.zero;
         rot = Quaternion.identity;
         // 服务器：实体容器
-        if (Tool.BattleManager != null &&
-            BattleManager.EntityContainer.Entities.TryGetObject(entityId, out var entity) &&
+        if (BattleManager.EntityContainer.Entities.TryGetObject(entityId, out var entity) &&
             entity != null)
         {
             pos = entity.transform.position;

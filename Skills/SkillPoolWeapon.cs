@@ -179,7 +179,7 @@ namespace Ros.Skill
         }
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 360f / 4f, Turns);
+            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 360f / 4f, Turns, BulletLife);
     }
 
     // 后撤闪避（短暂闪避 buff）后向前一发
@@ -386,7 +386,7 @@ namespace Ros.Skill
         }
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 90f, 1.25f);
+            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 90f, 1.25f, BulletLife);
     }
 
     public class SkillShortDash : SkillBase

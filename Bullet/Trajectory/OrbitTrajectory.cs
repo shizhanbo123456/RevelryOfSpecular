@@ -10,7 +10,8 @@ public class OrbitTrajectory : BulletTrajectory
     private readonly float turns;
     private readonly float height;
 
-    public OrbitTrajectory(ushort centerId, Vector3 fallbackCenter, float radius, float startAngleDeg, float turns, float height = 0f)
+    public OrbitTrajectory(ushort centerId, Vector3 fallbackCenter, float radius, float startAngleDeg, float turns,
+        float duration, float height = 0f)
     {
         this.centerId = centerId;
         this.fallbackCenter = fallbackCenter;
@@ -18,6 +19,7 @@ public class OrbitTrajectory : BulletTrajectory
         this.startAngleDeg = startAngleDeg;
         this.turns = turns;
         this.height = height;
+        Duration = duration; // 不给默认值会让表现按 1s 归一化，转速与持续时间都和判定对不上
     }
 
     public override Vector3 Lerp(float factor)
