@@ -235,8 +235,7 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayOne(SkillVfxKind.Bullet, 13, CreateTrajectory(context, 0));
-            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 8, context.vectors[1], 0.8f);
+            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, 9, CreateTrajectory(context, 0));
         }
     }
     #endregion

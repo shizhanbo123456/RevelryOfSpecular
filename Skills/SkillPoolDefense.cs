@@ -1,4 +1,4 @@
-using Ros.Skill.Utils;
+﻿using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
 
@@ -239,7 +239,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.5f);
+        public override void PlayVFX(SkillContext context) { } // 1019：无特效
     }
 
     public class SkillDeathStrollCast : SkillBase
@@ -292,7 +292,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 2f);
+        public override void PlayVFX(SkillContext context) { } // 1019：无特效
     }
     #endregion
 
@@ -451,7 +451,7 @@ namespace Ros.Skill
                 if (TargetSelect.TargetBuffer[i] != null) TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], 1f);
+        public override void PlayVFX(SkillContext context) { } // 1019 标为「由 buff 承担」，本技能不挂 buff
     }
 
     public class SkillDetonatePlague : SkillBase
@@ -492,7 +492,7 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context)
         {
             for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 17, (ushort)context.ints[i]);
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 30, (ushort)context.ints[i]);
         }
     }
     #endregion

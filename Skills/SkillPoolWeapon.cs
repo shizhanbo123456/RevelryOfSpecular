@@ -98,7 +98,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.45f;
-        protected override int VfxIndex => 3;
+        protected override int VfxIndex => 19;
         protected override int WaveCount => 3;
         protected override float WaveInterval => 0.12f;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Stun, 1, 2f, caster);
@@ -115,7 +115,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 21;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 2f, caster);
     }
 
@@ -130,7 +130,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.55f;
-        protected override int VfxIndex => 0;
+        protected override int VfxIndex => 22;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.AttrStrengthDecrease, 2, 20f, caster);
     }
 
@@ -145,7 +145,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 39;
         protected override int WaveCount => 2;
         protected override float WaveInterval => 0.18f;
         protected override int ShotsOfWave(int wave) => wave == 0 ? 1 : 2;
@@ -194,7 +194,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 41;
         private const float BackDash = 0.25f;
 
         protected override void OnCast(SkillContext context)
@@ -218,7 +218,7 @@ namespace Ros.Skill
         protected override int Shots => 6;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.9f;
-        protected override int VfxIndex => 0;
+        protected override int VfxIndex => 57;
         private const float Radius = 6f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -409,7 +409,7 @@ namespace Ros.Skill
             if (caster != null) caster.SetMotion(new MotionDash(0.25f, 11f));
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // 1019：无特效（纯位移）
     }
 
     public class SkillShieldTen : SkillBase
@@ -460,7 +460,7 @@ namespace Ros.Skill
             StrikeSphere(caster, context.vectors[0], 1.4f, BuildAttack(caster, 1.2f, 1.4f, knockback: 7f));
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 7, context.vectors[0], 0.8f);
+        public override void PlayVFX(SkillContext context) { } // 1019：无特效（飞踢）
     }
 
     public class SkillIceFanTiny : ShotSkillBase
@@ -474,7 +474,7 @@ namespace Ros.Skill
         protected override int Shots => 4;
         protected override float SpreadDeg => 8f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 9;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 2f, caster);
     }
     #endregion
@@ -492,7 +492,7 @@ namespace Ros.Skill
         protected override int Shots => 6;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.9f;
-        protected override int VfxIndex => 45;
+        protected override int VfxIndex => 11;
         private const float BehindMin = 1.5f;
         private const float BehindMax = 3.5f;
 
@@ -524,7 +524,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.45f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 20;
         protected override int WaveCount => 4;
         protected override float WaveInterval => 0.1f;
         protected override float SpreadOfWave(int wave) => (wave - 1.5f) * 8f;
@@ -544,7 +544,7 @@ namespace Ros.Skill
         protected override float BulletLife => 0.4f;
         protected override float DamageRate => 1.6f;
         protected override float Knockback => 2f;
-        protected override int VfxIndex => 45;
+        protected override int VfxIndex => 27;
     }
 
     public class SkillRootShot : ShotSkillBase
@@ -558,7 +558,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.45f;
-        protected override int VfxIndex => 45;
+        protected override int VfxIndex => 28;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Root, 1, 3f, caster);
     }
 
@@ -574,7 +574,7 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 1.6f;
         protected override float Knockback => 5f;
-        protected override int VfxIndex => 1;
+        protected override int VfxIndex => 29;
     }
 
     public class SkillTripleWaveIce : ShotSkillBase
@@ -588,7 +588,7 @@ namespace Ros.Skill
         protected override int Shots => 3;
         protected override float SpreadDeg => 25f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 45;
         protected override int WaveCount => 3;
         protected override float WaveInterval => 0.2f;
         protected override int ShotsOfWave(int wave) => 3 + wave * 2;
@@ -606,7 +606,7 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 35f;
         protected override float BulletLife => 0.45f;
-        protected override int VfxIndex => 44;
+        protected override int VfxIndex => 46;
         protected override int WaveCount => 3;
         protected override float WaveInterval => 0.12f;
     }
@@ -623,7 +623,7 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.25f;
         protected override float DamageRate => 1.2f;
-        protected override int VfxIndex => 45;
+        protected override int VfxIndex => 47;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Silence, 1, 12f, caster);
     }
 
@@ -638,7 +638,8 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 1.1f;
-        protected override int VfxIndex => 22;
+        protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
+        protected override int VfxIndex => 2;
         private const float Ring = 4f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -846,7 +847,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.6f;
-        protected override int VfxIndex => 36;
+        protected override int VfxIndex => 0;
         private const int SplitCount = 5;
         private const float SplitSpread = 30f;
         private const int SplitVfx = 36;
@@ -924,7 +925,7 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 3f;
         protected override float DamageInterval => 1f;
-        protected override int VfxIndex => 0;
+        protected override int VfxIndex => 2;
         private const float Ring = 2.6f;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -952,7 +953,7 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 25f;
         protected override float BulletLife => 0.55f;
-        protected override int VfxIndex => 18;
+        protected override int VfxIndex => 3;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 4f, caster);
     }
 
@@ -968,7 +969,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.4f;
-        protected override int VfxIndex => 10;
+        protected override int VfxIndex => 4;
         protected override int WaveCount => 6;
         protected override float WaveInterval => 0.1f;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Poison, 3, 5f, caster);
@@ -1044,7 +1045,7 @@ namespace Ros.Skill
             if (points.Length < 2) return;
             var trajectory = new PolylineTrajectory(points);
             trajectory.Duration = JumpLife * (points.Length - 1);
-            VfxHelper.PlayOne(SkillVfxKind.Bullet, 3, trajectory);
+            VfxHelper.PlayOne(SkillVfxKind.Bullet, 5, trajectory);
         }
     }
 
@@ -1059,7 +1060,7 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.4f;
-        protected override int VfxIndex => 15;
+        protected override int VfxIndex => 8;
         protected override int WaveCount => 5;
         protected override float WaveInterval => 0.1f;
         protected override float SpreadOfWave(int wave) => (wave - 2f) * 10f;
@@ -1077,11 +1078,11 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.6f;
-        protected override int VfxIndex => 1;
+        protected override int VfxIndex => 12;
         protected override int WaveCount => 6;
         protected override float WaveInterval => 0.12f;
         private const float FireRange = 8f;
-        private const int CircleVfx = 6;
+        private const int CircleVfx = 7;
 
         public override void PlayVFX(SkillContext context)
         {
@@ -1109,7 +1110,7 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 28f;
         protected override float BulletLife => 0.5f;
-        protected override int VfxIndex => 1;
+        protected override int VfxIndex => 14;
         private const float HookTime = 0.35f;
 
         protected override void OnCast(SkillContext context)
@@ -1127,7 +1128,6 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 7, context.vectors[0], 0.6f);
             base.PlayVFX(context);
         }
     }
@@ -1175,7 +1175,6 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context)
         {
             VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], PullTime);
-            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[0], 1f), PullTime, 1, false);
         }
     }
 
@@ -1192,7 +1191,8 @@ namespace Ros.Skill
         protected override float BulletLife => 3f;
         protected override float DamageRate => 0.5f;
         protected override float DamageInterval => 0.6f;
-        protected override int VfxIndex => 57;
+        protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
+        protected override int VfxIndex => 3;
         private const float Ring = 3f;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -1218,7 +1218,8 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 1.1f;
-        protected override int VfxIndex => 31;
+        protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
+        protected override int VfxIndex => 4;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Silence, 1, 10f, caster);
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -1239,13 +1240,12 @@ namespace Ros.Skill
         protected override float BulletLife => 0.35f;
         protected override float BulletRadius => 0.8f;
         protected override float Knockback => 7f;
-        protected override int VfxIndex => 15;
+        protected override int VfxIndex => 7;
         protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Burning, 3, 10f, caster);
 
         public override void PlayVFX(SkillContext context)
         {
             base.PlayVFX(context);
-            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 5, context.vectors[0], 0.8f);
         }
     }
 
