@@ -155,10 +155,9 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
-            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : 0;
-            if (slot < 0) slot = 0;
-            Vector3 origin = GetWeaponFloatPosition(entity, slot).position;
-            context.AddInts(entity.id, slot);
+            // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
+            Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
+            context.AddInts(entity.id);
             context.AddVectors(origin, TargetSelect.AimPos(entity, CastRange));
             return context;
         }
@@ -210,10 +209,9 @@ namespace Ros.Skill
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
-            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : 0;
-            if (slot < 0) slot = 0;
-            Vector3 origin = GetWeaponFloatPosition(entity, slot).position;
-            context.AddInts(entity.id, slot);
+            // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
+            Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
+            context.AddInts(entity.id);
             context.AddVectors(origin, TargetSelect.AimPos(entity, CastRange));
             return context;
         }
