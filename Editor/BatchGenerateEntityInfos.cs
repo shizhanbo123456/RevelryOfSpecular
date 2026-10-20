@@ -10,7 +10,7 @@ public static class BatchGenerateEntityInfosMenu
 {
     private const string AttrRoot = "Assets/Files/Info/Attribute";
 
-    [MenuItem("Tools/配置生成/生成全部实体属性 Info（47 个）", false, 0)]
+    [MenuItem("Tools/配置/生成实体Info", false, 0)]
     private static void Generate()
     {
         if (!EditorUtility.DisplayDialog(

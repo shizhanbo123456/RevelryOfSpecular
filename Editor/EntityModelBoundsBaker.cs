@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 public static class EntityModelBoundsBaker
 {
     private const string PrefabFolder = "Assets/Files/Prefabs/Entity";
-    private const string MenuPathBake = "Tools/实体/计算并录入模型 Bounds";
+    private const string MenuPathBake = "Tools/实体/预处理模型Bounds";
     private const string MenuPathPreview = "Tools/实体/预览模型 Bounds（不写入）";
 
     private enum BakeResult

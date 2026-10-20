@@ -3,7 +3,7 @@ using UnityEngine;
 
 public static class AnimCullingModeSetter
 {
-    private const string MenuPath = "Tools/动画/选中物体 Animator 统一配置（不剔除 + 关根运动）";
+    private const string MenuPath = "Tools/动画/调整动画CullingMode";
 
     [MenuItem(MenuPath, false, 100)]
     private static void ConfigureAnimators()

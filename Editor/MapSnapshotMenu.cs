@@ -9,7 +9,7 @@ public static class MapSnapshotMenu
     private const int PixelSize = 4096;
     private const float CaptureHeight = 1000f;
 
-    [MenuItem("Tools/截图/俯视地图截图 x0-1000 z0-1000")]
+    [MenuItem("Tools/截图/生成地图截图")]
     public static void Capture()
     {
         Directory.CreateDirectory(Path.Combine(Application.dataPath, "Files/Map"));
