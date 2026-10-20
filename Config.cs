@@ -230,7 +230,6 @@ public static class Config
 
     #region 防守方技能参数（占位初值，待策划定稿）
     public const float mushroom_infect_duration = 60f;
-    public const float infinite_view_distance = 99999f;
     public const float death_stroll_radius = 4f;
     public const float death_stroll_dot_ratio = 1.5f; // 死灵漫步光环每跳 = max(施加者力/魔) × 此系数 × 等级
     public const float death_stroll_speed_up = 1.3f;
@@ -253,27 +252,42 @@ public static class Config
 
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
     {
-        { EffectType.BeaconReduce, (SkillVfxKind.Shield, 0) },      // S1 红（守护点减伤叠层）
-        { EffectType.TowerShield, (SkillVfxKind.Shield, 1) },       // S2 橙构筑（塔身）
-        { EffectType.PopeGuard, (SkillVfxKind.Shield, 2) },         // S3 白厚实（守护点）
-        { EffectType.Shield, (SkillVfxKind.Shield, 5) },            // S6 黄（光盾）
-        { EffectType.Stun, (SkillVfxKind.Buff, 20) },               // BF21 麻痹黄
-        { EffectType.TowerBlaze, (SkillVfxKind.Buff, 11) },         // BF12 火焰（塔身）
-        { EffectType.Burning, (SkillVfxKind.Buff, 11) },            // BF12 火焰（燃烧 DoT）
-        { EffectType.EyeMark, (SkillVfxKind.Buff, 15) },            // BF16 黄色周身泛光
-        { EffectType.PaleLight, (SkillVfxKind.Buff, 15) },          // BF16（光标记复用）
-        { EffectType.PaleDark, (SkillVfxKind.Buff, 0) },            // BF1 紫雾（暗标记）
-        { EffectType.DeathStroll, (SkillVfxKind.Buff, 3) },         // BF4 血色缠绕
-        { EffectType.Silence, (SkillVfxKind.Buff, 4) },             // BF5 黑色缠绕
-        { EffectType.Mire, (SkillVfxKind.Buff, 25) },               // BF26 水花
-        { EffectType.Reflect, (SkillVfxKind.MagicCircle, 8) },      // MC9 红色防御增益
-        { EffectType.Root, (SkillVfxKind.MagicCircle, 2) },         // MC3 深红禁锢圆环
-        { EffectType.PlagueMark, (SkillVfxKind.Buff, 18) },         // BF19 自然（瘟疫标记）
-        { EffectType.Poison, (SkillVfxKind.Buff, 18) },             // BF19 自然（中毒复用）
-        { EffectType.Freeze, (SkillVfxKind.Buff, 12) },             // BF13 冻结
-        { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 26) },       // BF27 雪（减速）
-        { EffectType.AnimSpeedUp, (SkillVfxKind.Buff, 27) },        // BF28 环绕风（加速）
-        { EffectType.PlagueBless, (SkillVfxKind.Buff, 28) },        // BF29 绿色祝福（攻占瘟疫树）
+        { EffectType.BeaconReduce, (SkillVfxKind.Shield, 0) },
+        { EffectType.TowerShield, (SkillVfxKind.MagicCircle, 8) },
+        { EffectType.PopeGuard, (SkillVfxKind.Shield, 12) },
+        { EffectType.Shield, (SkillVfxKind.Shield, 2) },
+        { EffectType.Stun, (SkillVfxKind.Buff, 20) },
+        { EffectType.TowerBlaze, (SkillVfxKind.MagicCircle, 3) },
+        { EffectType.Burning, (SkillVfxKind.Buff, 11) },
+        { EffectType.EyeMark, (SkillVfxKind.Buff, 23) },
+        { EffectType.PaleLight, (SkillVfxKind.Buff, 15) },
+        { EffectType.PaleDark, (SkillVfxKind.Buff, 4) },
+        { EffectType.PaleFire, (SkillVfxKind.Buff, 3) },
+        { EffectType.PaleIce, (SkillVfxKind.Buff, 14) },
+        { EffectType.PaleThunder, (SkillVfxKind.Buff, 20) },
+        { EffectType.DeathStroll, (SkillVfxKind.Buff, 29) },
+        { EffectType.DeathCurse, (SkillVfxKind.Buff, 0) },
+        { EffectType.Silence, (SkillVfxKind.Buff, 2) },
+        { EffectType.Mire, (SkillVfxKind.Buff, 17) },
+        { EffectType.Reflect, (SkillVfxKind.MagicCircle, 6) },
+        { EffectType.Root, (SkillVfxKind.Buff, 19) },
+        { EffectType.PlagueMark, (SkillVfxKind.Buff, 30) },
+        { EffectType.Poison, (SkillVfxKind.Buff, 13) },
+        { EffectType.Freeze, (SkillVfxKind.Buff, 12) },
+        { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 17) },
+        { EffectType.AnimSpeedUp, (SkillVfxKind.Buff, 27) },
+        { EffectType.PlagueBless, (SkillVfxKind.MagicCircle, 9) },
+        { EffectType.ZombieScreamBoost, (SkillVfxKind.MagicCircle, 9) },
+
+        { EffectType.AttrStrengthBoost, (SkillVfxKind.MagicCircle, 0) },
+        { EffectType.AttrMagicBoost, (SkillVfxKind.MagicCircle, 0) },
+        { EffectType.AttrCritRateBoost, (SkillVfxKind.MagicCircle, 1) },
+        { EffectType.AttrCritDamageBoost, (SkillVfxKind.MagicCircle, 1) },
+        { EffectType.AttrStrengthDecrease, (SkillVfxKind.MagicCircle, 5) },
+        { EffectType.AttrMagicDecrease, (SkillVfxKind.MagicCircle, 5) },
+        { EffectType.AttrCritRateDecrease, (SkillVfxKind.MagicCircle, 5) },
+        { EffectType.AttrCritDamageDecrease, (SkillVfxKind.MagicCircle, 5) },
+        { EffectType.AttrKnockbackBoost, (SkillVfxKind.MagicCircle, 8) },
     };
 
     #endregion

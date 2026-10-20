@@ -187,8 +187,8 @@ namespace Ros.Skill
             Utils.TargetSelect.SetEntitiesInCampToBuffer(caster.camp); // 己方全体
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
-                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.InfiniteView, 1, Config.buff_duration_buff,
-                    caster);
+                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrViewDistanceBoost, 10,
+                    Config.buff_duration_buff, caster);
             }
         }
 

@@ -17,7 +17,6 @@ public enum EffectType
     AttrKnockbackDecrease,      // 击退抗性降低
     AttrViewDistanceBoost,      // 可见距离提升（按 20% 规则）
     AttrViewDistanceDecrease,   // 可见距离降低
-    InfiniteView,               // 无限视野（特例：固定值 Config.infinite_view_distance，不走 20% 规则）
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
     Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
@@ -42,6 +41,11 @@ public enum EffectType
     PaleDark,           // 苍白之暗（叠层，满 10 转化雷）
     EyeMark,            // 白眼标记（小地图常显）
 
+    // ---- 苍白转化产物（PC103 被动转化出的独立 Buff）----
+    PaleFire,           // 苍白之火
+    PaleIce,            // 苍白之冰
+    PaleThunder,        // 苍白之雷
+
     // ---- 视野/信息（客户端表现逻辑）----
     Fog,                // 迷雾（苍白舞者大招）
     MinimapLost,        // 小地图失联（夜间进攻方）
@@ -55,6 +59,9 @@ public enum EffectType
     YzCy,               // 愈战愈勇（增伤/减伤乘区，按层数）
     TowerBlaze,         // 灵火（塔攻击附加爆炸：攻击生成时查询）
     DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT）
+    DeathCurse,         // 死灵诅咒（叠层：DoT + 受伤增加）
+    ZombieScreamBoost,  // 僵尸嘶吼增益
+    DodgeBoost,         // 闪避提升（属性侧暂无闪避字段）
     MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
     PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
 
@@ -68,7 +75,7 @@ public static class EffectTypeExt
     {
         EffectType.AttrStrengthBoost or EffectType.AttrMagicBoost or
         EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or EffectType.AttrKnockbackBoost or
-        EffectType.AttrViewDistanceBoost or EffectType.InfiniteView or
+        EffectType.AttrViewDistanceBoost or
         EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
         EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or EffectType.AttrKnockbackDecrease or
         EffectType.AttrViewDistanceDecrease => true,
@@ -94,7 +101,9 @@ public static class EffectTypeExt
         EffectType.Burning or EffectType.Poison or
         EffectType.Mire or EffectType.AnimSlowDown or EffectType.MinimapLost or
         EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
-        EffectType.EyeMark or EffectType.Fog or EffectType.MushroomInfect => true,
+        EffectType.EyeMark or EffectType.Fog or EffectType.MushroomInfect or
+        EffectType.PaleFire or EffectType.PaleIce or EffectType.PaleThunder or
+        EffectType.DeathCurse => true,
         _ => false,
     };
 }
@@ -380,10 +389,9 @@ public class EntityEffectController
         owner.floatingAttribute = attr;
     }
 
-    // 属性增减幅度内部定死：无限视野 = Config 固定值；其余 = 对应属性初始值 × 20% × 等级（方向由 Boost/Decrease 表达）
+    // 属性增减幅度内部定死：对应属性初始值 × 20% × 等级（方向由 Boost/Decrease 表达）
     private float AttributeDeltaOf(EffectType type, int level)
     {
-        if (type == EffectType.InfiniteView) return Config.infinite_view_distance;
         var field = FieldFromType(type);
         float baseValue = field switch
         {
@@ -435,8 +443,7 @@ public class EntityEffectController
             case EffectType.AttrKnockbackBoost:
             case EffectType.AttrKnockbackDecrease: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistanceBoost:
-            case EffectType.AttrViewDistanceDecrease:
-            case EffectType.InfiniteView: return EntityAttributeDelta.Field.ViewDistance;
+            case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
             default:
                 Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");
                 return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
