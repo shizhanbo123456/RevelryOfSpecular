@@ -19,13 +19,13 @@ public enum EffectType
     AttrViewDistanceDecrease,   // 可见距离降低
 
     // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
-    Stun,               // 麻痹（鹿铠被动/麻痹弹/苍白之雷）
-    Freeze,             // 冰冻（冻结弹/冰锥术/冰霜新星/苍白之冰）
+    Stun,               // 麻痹（鹿铠被动/麻痹弹）
+    Freeze,             // 冰冻（冻结弹/冰锥术/冰霜新星）
     Root,               // 定身（捕获投掷/束缚钉）
     Silence,            // 沉默（教皇主动1：仅禁技能，非强控）
 
     // ---- DoT（固定数值，1s 间隔，吃护盾/减伤、不吃增减伤）----
-    Burning,            // 燃烧（燃烧弹/苍白之火）
+    Burning,            // 燃烧（燃烧弹）
     Poison,             // 中毒（毒珠/瘟疫引爆，叠层）
 
     // ---- 护盾/减伤/反伤 ----
@@ -41,10 +41,10 @@ public enum EffectType
     PaleDark,           // 苍白之暗（叠层，满 10 转化雷）
     EyeMark,            // 白眼标记（小地图常显）
 
-    // ---- 苍白转化产物（PC103 被动转化出的独立 Buff）----
-    PaleFire,           // 苍白之火
-    PaleIce,            // 苍白之冰
-    PaleThunder,        // 苍白之雷
+    // ---- 苍白转化产物（PC103 被动转化出的独立 Buff，行为沿用同类通用 Buff）----
+    PaleFire,           // 苍白之火（DoT，同燃烧）
+    PaleIce,            // 苍白之冰（强控，同冰冻）
+    PaleThunder,        // 苍白之雷（强控，同麻痹）
 
     // ---- 视野/信息（客户端表现逻辑）----
     Fog,                // 迷雾（苍白舞者大招）
@@ -82,12 +82,13 @@ public static class EffectTypeExt
         _ => false,
     };
 
-    public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root;
+    public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root
+        or EffectType.PaleIce or EffectType.PaleThunder;
 
-    public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison;
+    public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire;
 
     //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
-    public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.DeathStroll;
+    public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire or EffectType.DeathStroll;
 
     public static bool IsShield(this EffectType type) => type is EffectType.Shield or EffectType.TowerShield;
 
@@ -269,7 +270,8 @@ public class EntityEffectController
         return Mathf.Max(1, Mathf.FloorToInt(receivedDamage * rt.level * Config.reflect_rate));
     }
 
-    public bool IsActionBlocked() => HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) || HasEffect(EffectType.Root);
+    public bool IsActionBlocked() => HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) || HasEffect(EffectType.Root)
+        || HasEffect(EffectType.PaleIce) || HasEffect(EffectType.PaleThunder);
 
     public bool IsSilenced() => HasEffect(EffectType.Silence);
 
@@ -320,6 +322,7 @@ public class EntityEffectController
         switch (rt.type)
         {
             case EffectType.Burning:
+            case EffectType.PaleFire:
                 if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
                 break;
             case EffectType.Poison:
