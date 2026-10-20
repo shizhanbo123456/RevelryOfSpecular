@@ -174,6 +174,16 @@ public class SkillTest : MonoBehaviour
         }
     }
 
+    // 技能自带位移（冲刺/后撤/牵引）会把测试实体推走：一键回原点，并清掉残余位移与速度
+    private void ResetEntityToOrigin()
+    {
+        if (entity == null) { status = "测试实体未生成，无法复位"; return; }
+        entity.motion = null;
+        entity.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0f, yaw, 0f));
+        if (entity.rb != null) entity.rb.velocity = Vector3.zero;
+        status = "测试实体已复位到原点";
+    }
+
     // 靶子：关重力并置运动学，位置留给 Inspector 手调；阵营 Defense 供技能索敌命中
     private void SpawnDummy()
     {
@@ -220,6 +230,7 @@ public class SkillTest : MonoBehaviour
         yaw = GUILayout.HorizontalSlider(yaw, 0f, 360f);
 
         if (GUILayout.Button($"添加测试敌人（当前 {dummies.Count} 个）")) SpawnDummy();
+        if (GUILayout.Button("复位己方实体到原点")) ResetEntityToOrigin();
 
         camControl = GUILayout.Toggle(camControl, "接管相机看向原点");
         GUILayout.Label($"相机水平距离 {camDistance:F1} m");
