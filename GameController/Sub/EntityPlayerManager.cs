@@ -407,6 +407,7 @@ public class EntityPlayerManager : ClientSubManager
         }
         else
         {
+            Debug.LogError($"客户端实体缺少图形：{info.type}（id={info.entityId}），已用空物体占位");
             go = new GameObject($"Entity_{info.entityId}");
             go.transform.SetParent(displayRoot);
         }
@@ -533,6 +534,7 @@ public class EntityPlayerManager : ClientSubManager
             case SkillVfxKind.MagicCircle:
                 return vfx.Play(vfx.GetMagicCircleVfx(index), trajectory);
             default:
+                Debug.LogError($"[Buff特效] 未处理的特效类别：{kind}（Config.buff_vfx 配置错误）");
                 return null;
         }
     }

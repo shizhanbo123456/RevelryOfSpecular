@@ -428,10 +428,10 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientUseSkillLocal, SendTo.ExcludeSender, Delivery.Strive, skillId, context);
     }
 
-    //聊天转发给所有人（含发送者）：发送者本地已回显，收到自己的一律忽略
+    //聊天广播：发送者本地已回显，不回送
     public void SendChat(SCChat chat)
     {
-        CallFuncRpc(ClientReceiveChatLocal, SendTo.Everyone, Delivery.Reliable, chat);
+        CallFuncRpc(ClientReceiveChatLocal, SendTo.ExcludeSender, Delivery.Reliable, chat);
     }
 
     //GM 指令回包（服务器帧率 / 服务器时间等）

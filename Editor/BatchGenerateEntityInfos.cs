@@ -4,16 +4,8 @@ using Ros.Info;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// 批量生成实体属性 Info（数据源占位资产，默认值来自类字段默认值，后续在 Inspector 调数值）。
-/// 数量依据策划案 10.3 清单（2026-09-08 拍板）：
-///   Attacker 18 (PlayerCharacterInfo) / Defenser 6 (PlayerCharacterInfo) /
-///   Zombie 1（21 种为外观变体，属性共用，强弱走「僵尸刷新等级」）/ EliteZombie 14 /
-///   Beacon 2 (外围+中心) / Crystal 1 / Tower 4 (按 type.value 索引) / PlagueTree 1
-///   感染蘑菇仅为表现物，不需要属性 Info。合计 47。
-/// 已存在的资产跳过不覆盖（可重复执行）。
-/// 菜单位置：Tools/配置生成/
-/// </summary>
+// 批量生成实体属性 Info（占位资产，数值后续在 Inspector 调；已存在的跳过，可重复执行）
+// 数量口径见策划案 10.3 清单；菜单位置：Tools/配置生成/
 public static class BatchGenerateEntityInfosMenu
 {
     private const string AttrRoot = "Assets/Files/Info/Attribute";
@@ -58,7 +50,6 @@ public static class BatchGenerateEntityInfosMenu
         Debug.Log(log.ToString());
     }
 
-    /// <summary>批量生成 prefix_00 ~ prefix_{count-1}。</summary>
     private static void GenerateRange<T>(string folder, string prefix, int count,
         StringBuilder log, ref int created, ref int skipped) where T : EntityAttributeInfo, new()
     {

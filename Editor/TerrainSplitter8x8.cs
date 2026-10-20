@@ -3,16 +3,8 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// 地形拆分工具：把选中的 Terrain 均分为 8×8 = 64 个子 Terrain。
-/// - 高度：原高度图逐块切片（分辨率 = (原分辨率-1)/8+1），相邻块共享边界采样点，无接缝；
-/// - 贴图：alphamap 逐块切片（分辨率 = 原/8），TerrainLayer 资产直接引用原资产不复制；
-/// - 树：按世界位置归入对应子 Terrain（位置转为子地形内归一化坐标，原型引用同一预制体）；
-/// - 草：detail 逐层切片（分辨率 = 原/8），原型配置逐字段克隆；
-/// - 原 Terrain 完全不动：本工具只读它，产出全部是新建的 TerrainData 资产与场景对象。
-/// 使用：Hierarchy 选中带 Terrain 的物体 → Tools/Terrain/拆分为 8×8 子地形。
-/// 产出：Assets/TerrainChunks/<地形名>/ 下 64 个 TerrainData 资产 + 场景中 <地形名>_8x8 父物体（64 个子物体）。
-/// </summary>
+// 把选中的 Terrain 均分为 8×8 子地形：高度/贴图/树/草各自切片，相邻高程块共享边界采样点；原 Terrain 只读不动
+// 用法：Hierarchy 选中地形 → Tools/Terrain/拆分为 8×8 子地形，产出 Assets/TerrainChunks/<地形名>/ + 场景 _8x8 父物体
 public static class TerrainSplitter8x8
 {
     private const int Grid = 8;
@@ -71,10 +63,13 @@ public static class TerrainSplitter8x8
         int detailLayerCount = srcDetailRes > 0 ? srcData.detailPrototypes.Length : 0;
 
         // 自检日志：贴图链路出问题时按这条日志定位断点
-        Debug.Log($"[TerrainSplitter] 源地形数据: terrainLayers={srcData.terrainLayers?.Length} " +
+        string layerCountText = srcData.terrainLayers == null ? "null" : srcData.terrainLayers.Length.ToString();
+        string detailProtoText = srcData.detailPrototypes == null ? "null" : srcData.detailPrototypes.Length.ToString();
+        string treeProtoText = srcData.treePrototypes == null ? "null" : srcData.treePrototypes.Length.ToString();
+        Debug.Log($"[TerrainSplitter] 源地形数据: terrainLayers={layerCountText} " +
                   $"alphaRes={srcAlphaRes} baseMapRes={srcData.baseMapResolution} heightRes={srcHRes} " +
-                  $"detailRes={srcDetailRes} detailProtos={srcData.detailPrototypes?.Length} " +
-                  $"trees={srcData.treeInstances.Length} treeProtos={srcData.treePrototypes?.Length} " +
+                  $"detailRes={srcDetailRes} detailProtos={detailProtoText} " +
+                  $"trees={srcData.treeInstances.Length} treeProtos={treeProtoText} " +
                   $"material={(src.materialTemplate ? src.materialTemplate.name : "默认")} drawInstanced={src.drawInstanced} " +
                   $"hasAlphas={hasAlphas}");
         if (!hasAlphas)
@@ -334,7 +329,6 @@ public static class TerrainSplitter8x8
         }
     }
 
-    /// <summary>读取某个 TerrainData 资产的控制贴图像素并打印各通道最大值（对照诊断用）。</summary>
     private static void LogSavedControlTexture(string assetPath, string label)
     {
         if (string.IsNullOrEmpty(assetPath)) return;

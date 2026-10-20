@@ -3,13 +3,8 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// 清除角色模型工具：递归遍历 Assets/Files/Info/Entity 下所有预制体，
-/// 清除每个预制体的全部子物体（只保留根物体及其组件）。
-/// 流程：打开预览窗口（可逐个勾选排除）→ 二次确认弹窗 → 执行清除（带进度条）。
-/// 注意：直接修改预制体资产文件，不可 Undo，操作前请确保 Git 已提交。
-/// 菜单位置：Tools/清除角色模型/
-/// </summary>
+// 清除 Assets/Files/Info/Entity 下所有预制体的子物体（只保留根物体及组件）；直接改资产、不可 Undo，先提交 Git
+// 菜单位置：Tools/清除角色模型/，流程 = 预览勾选 → 二次确认 → 执行
 public static class BatchClearCharacterModelsMenu
 {
     public const string RootFolder = "Assets/Files/Info/Entity";
@@ -22,7 +17,6 @@ public static class BatchClearCharacterModelsMenu
     }
 }
 
-/// <summary>预览窗口：列出所有待清除的预制体，支持逐个排除。</summary>
 public class BatchClearPreviewWindow : EditorWindow
 {
     private class Item

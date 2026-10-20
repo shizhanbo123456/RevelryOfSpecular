@@ -141,7 +141,17 @@ public class VfxManager : MonoBehaviour
     #region//Local
     private GameObject GetVFX(System.Collections.Generic.List<GameObject> list, int index)
     {
-        if (list == null || index < 0 || index >= list.Count) return null;
+        if (list == null)
+        {
+            Debug.LogError("[Vfx] 特效列表未配置（AssetsManager 缺失或启动自检未通过）");
+            return null;
+        }
+        if (index < 0 || index >= list.Count)
+        {
+            Debug.LogError($"[Vfx] 特效下标越界：{index}（该类共 {list.Count} 个），请核对《特效清单与分配表》");
+            return null;
+        }
+        if (list[index] == null) Debug.LogError($"[Vfx] 特效预制体为空：下标 {index}");
         return list[index];
     }
     #endregion

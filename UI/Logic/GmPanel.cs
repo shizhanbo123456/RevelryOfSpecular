@@ -6,12 +6,8 @@ using Ros.Transport;
 using Ros.UI.Main;
 using UnityEngine;
 
-// GM 面板：一级菜单=组，二级菜单=该组下的"子功能"（路径第二段）。
-// Item 列表显示当前子功能下的所有指令：每条指令前插一行栏目标题（标题=该指令最深层名字；二级指令即其二级名），
-// 栏目标题用 GmItem 的"分隔栏"页。按钮默认行为 = 收集本指令控件值 → 按行顺序填 CSGm → 发包。
-// 显示哪些指令由枚举项上的 [GmStatus] 决定：未联网=Offline 项 / 已联网未开战=Lobby 项 / 对局中=Battle 项。
-// 但当前状态不可用只是不再给参数行，改为只留一行"空置"（标题照常显示），指令不再整条隐藏。
-// 待正式工程核对：GmItem 内容页名（文本/按钮/滑动条/输入框/下拉框/分隔栏/空置）、菜单 button_list 的 item 类型。
+// GM 面板：一级=组、二级=子功能；指令按 [GmStatus] 过滤，当前状态不可用的只留一行"空置"（标题照常显示）
+// 按钮默认行为 = 收集本指令控件值 → 按行顺序填 CSGm → 发包；待核对 GmItem 内容页名与菜单 button_list 的 item 类型
 public class GmPanel
 {
     private readonly UI_GmPanel panel;

@@ -51,9 +51,8 @@ public class SpringWeapon : MonoBehaviour
 
     public const int slotCount = 8;
 
-    // 将 SpringWeapon 预制体挂到 host（客户端表现体）根物体下：X/Z 与旋转跟随实体自身，Scale=模型高度/2。
-    // 高度（局部 Y）由调用方每帧抬到根骨骼(Hips)高度（无骨骼回退模型中心），见 EntityPlayerManager。
-    // 不在此处 Init：锚点快照的是世界坐标，必须由调用方在宿主定位后自行调用 Init，否则弹簧从旧位置飞向角色
+    // 挂在宿主根物体下（X/Z 与旋转跟随实体、Scale=模型高度/2），局部 Y 由调用方每帧抬到 Hips
+    // 不在此处 Init：锚点快照世界坐标，须等宿主定位后再调，否则弹簧从旧位置飞向角色
     public static SpringWeapon Attach(GameObject host)
     {
         var prefab = Tool.InfoManager != null ? Tool.InfoManager.SpringWeapon : null;

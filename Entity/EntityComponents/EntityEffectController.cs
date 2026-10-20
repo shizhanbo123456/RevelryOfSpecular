@@ -349,6 +349,13 @@ public class EntityEffectController
     #endregion
 
     #region//Local
+    // Health / WeaponSlotCount 不允许被 Buff 修改，走到这里属效果配置错误
+    private static float UnsupportedAttrField(EntityAttributeDelta.Field field)
+    {
+        Debug.LogError($"[Buff] 属性通道不支持 {field}（该属性不可被 Buff 修改）");
+        return 0f;
+    }
+
     private static bool IsMoveSpeedEffect(EffectType type) =>
         type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll or EffectType.GmSpeedUp;
 
@@ -377,7 +384,8 @@ public class EntityEffectController
     private float AttributeDeltaOf(EffectType type, int level)
     {
         if (type == EffectType.InfiniteView) return Config.infinite_view_distance;
-        float baseValue = FieldFromType(type) switch
+        var field = FieldFromType(type);
+        float baseValue = field switch
         {
             EntityAttributeDelta.Field.Strength => owner.baseAttribute.strength,
             EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic,
@@ -385,7 +393,7 @@ public class EntityEffectController
             EntityAttributeDelta.Field.CritDamage => owner.baseAttribute.critDamage,
             EntityAttributeDelta.Field.KnockbackResistance => owner.baseAttribute.knockbackResistance,
             EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance,
-            _ => 0f,
+            _ => UnsupportedAttrField(field),
         };
         float amount = baseValue * Config.buff_attr_ratio * level;
         return type.IsNegative() ? -amount : amount;

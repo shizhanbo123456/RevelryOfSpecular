@@ -6,8 +6,7 @@ public class MotionToPoint : MotionBase
     private readonly float moveSpeed;
     private Vector3 dir;
 
-    /// <param name="dest">目标点。</param>
-    /// <param name="speed">位移速度（米/秒），时长由 Enter 时的实际距离推出。</param>
+    // speed 单位米/秒，时长由 Enter 时的实际距离推出
     public MotionToPoint(Vector3 dest, float speed)
     {
         this.dest = dest;

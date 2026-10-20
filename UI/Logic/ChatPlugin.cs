@@ -137,12 +137,13 @@ public class ChatPlugin
         if (Time.time - lastSendTime < SendInterval) return; // 1s 冷却
         lastSendTime = Time.time;
 
+        var self = GetLocalMember();
         entries.Add(new ChatEntry()
         {
             isSelf = true,
             senderClientId = EnsInstance.LocalClientId,
             camp = GetMyCamp(),
-            characterIndex = GetLocalMember()?.characterIndex ?? -1,
+            characterIndex = self != null ? self.characterIndex : -1,
             name = GetMyName(),
             content = content,
         });
@@ -199,7 +200,9 @@ public class ChatPlugin
 
     private SCLobbyInfo.LobbyMemberInfo GetLocalMember()
     {
-        return NetworkManager.LatestLobbyInfo?.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
+        var info = NetworkManager.LatestLobbyInfo;
+        if (info == null || info.members == null) return null;
+        return info.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
     }
 
     private int GetMyCamp()
@@ -211,7 +214,8 @@ public class ChatPlugin
             if (loading.Camp == EntityCamp.Defense) return 1;
             return 2; // 观战方玩家（无战斗实体）
         }
-        return GetLocalMember()?.camp ?? 2;
+        var member = GetLocalMember();
+        return member != null ? member.camp : 2;
     }
 
     private string GetMyName()

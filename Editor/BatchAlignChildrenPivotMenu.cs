@@ -4,13 +4,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-/// <summary>
-/// 批量调整子物体位置：对每个选中的物体（场景实例或 .prefab 资产），
-/// 计算其所有子物体 mesh 的合并世界包围盒，然后把所有直接子物体
-/// 按相同的位移量整体平移，使包围盒中心对齐到物体自身位置（根节点不动）。
-/// 所有子物体共享同一位移，拼合模型不会发生部件错位。
-/// 菜单位置：Tools/批量调整子物体位置/
-/// </summary>
+// 把选中物体（场景实例或 .prefab）的直接子物体按同一位移整体平移，使合并包围盒中心对齐根物体位置
+// 菜单位置：Tools/批量调整子物体位置/
 public static class BatchAlignChildrenPivotMenu
 {
     private const string MenuPath = "Tools/批量调整子物体位置/包围盒中心对齐到物体位置";
@@ -89,7 +84,6 @@ public static class BatchAlignChildrenPivotMenu
         return false;
     }
 
-    /// <summary>对单个场景物体执行对齐。返回是否实际发生了位移。</summary>
     private static bool TryAlign(GameObject root, StringBuilder log, ref int changedCount, string tag)
     {
         if (!TryComputeBoundsDelta(root, out Vector3 delta))
@@ -117,10 +111,7 @@ public static class BatchAlignChildrenPivotMenu
         return true;
     }
 
-    /// <summary>
-    /// 计算使子物体合并世界包围盒中心对齐到根物体位置所需的位移量。
-    /// 仅统计"子物体"上的 mesh（根物体自身挂的 mesh 不计入）。
-    /// </summary>
+    // 位移量 = 根位置 − 子物体合并包围盒中心；根自身挂的 mesh 不计入
     private static bool TryComputeBoundsDelta(GameObject root, out Vector3 delta)
     {
         delta = Vector3.zero;
@@ -132,7 +123,6 @@ public static class BatchAlignChildrenPivotMenu
         return true;
     }
 
-    /// <summary>合并根物体所有子孙节点上 mesh 的世界包围盒（根自身除外）。</summary>
     private static bool TryGetChildrenWorldBounds(GameObject root, out Bounds bounds)
     {
         bounds = new Bounds();
@@ -155,7 +145,7 @@ public static class BatchAlignChildrenPivotMenu
         return has;
     }
 
-    /// <summary>把 mesh 的局部 bounds 经矩阵变换到世界空间（8 个角点逐一 encapsulate，支持旋转/缩放）。</summary>
+    // 8 个角点逐一 encapsulate，支持旋转与缩放
     private static void EncapsulateMesh(ref Bounds acc, ref bool has, Mesh mesh, Matrix4x4 l2w)
     {
         Bounds local = mesh.bounds;

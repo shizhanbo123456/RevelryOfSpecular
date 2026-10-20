@@ -152,9 +152,8 @@ public class CameraController : MonoBehaviour
         pitchOffset = Mathf.Clamp(pitchOffset, pitchClamp.x, pitchClamp.y);
     }
 
-    // 自动取景：遍历可见实体（水平中间 80% 内，俯仰近似为 0 的水平视野测试），
-    // 量出覆盖所有模型上下边界的俯仰跨度 [上限, 下限]；0 偏转（正看锚点）即可覆盖时不干预（自然回正），
-    // 装不下时经 SetPitch 给出最小修正偏转并按遍历周期续期；两侧都装不下时中心取上限与下限的平均值
+    // 自动取景：把所有可见模型的上下边界压进水平视野中间 80%，0 偏转够用时不干预（自然回正）
+    // 装不下经 SetPitch 给最小修正并按周期续期；两侧都装不下取上下限平均
     private void UpdateAutoPitch()
     {
         var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
@@ -219,9 +218,8 @@ public class CameraController : MonoBehaviour
         // 否则 0 偏转已完整覆盖：不刷新，自然回正
     }
 
-    // LateUpdate 改完相机变换后，worldToCameraMatrix 不会立即刷新（Unity 在渲染时才重算），
-    // 导致同帧 WorldToScreenPoint 仍用上一帧矩阵——平滑相机一直在动，血条/名字就会差一帧震颤。
-    // 强制刷新当前矩阵，让随后的投影回调拿到本帧相机，消除震颤。
+    // Unity 要到渲染才重算 worldToCameraMatrix，同帧 WorldToScreenPoint 会用上一帧矩阵（血条/名字差一帧震颤）
+    // 故改完变换后手动重置，让随后的投影回调拿到本帧相机
     private void NotifyCameraUpdated()
     {
         if (WorldCamera != null) WorldCamera.ResetWorldToCameraMatrix();

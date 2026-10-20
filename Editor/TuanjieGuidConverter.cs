@@ -2,11 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 
-/// <summary>
-/// 团结引擎 GUID 转换工具
-/// 使用方式：将此文件放入 Assets/Editor/ 目录，用团结引擎打开项目，
-/// 点击菜单 Tools -> 转换GUID，等待完成后关闭团结引擎，再用标准 Unity 打开
-/// </summary>
+// 团结引擎 GUID 转换：放到 Assets/Editor/，用团结引擎打开项目 → Tools/转换GUID → 关闭后再用标准 Unity 打开
 public class TuanjieGuidConverter
 {
     [MenuItem("Tools/转换GUID")]

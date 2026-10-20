@@ -4,12 +4,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-/// <summary>
-/// 批量旋转子物体编辑器工具。
-/// 对所有选中的物体（场景实例或 Project 窗口中的 .prefab 资产）的每个"直接子物体"，
-/// 绕其自身局部 X/Y/Z 轴旋转 +90° 或 -90°（共 6 个菜单项）。
-/// 菜单位置：Tools/批量旋转子物体/
-/// </summary>
+// 选中物体（场景实例或 .prefab）的每个直接子物体绕自身局部 X/Y/Z 轴旋转 ±90°（6 个菜单项）
+// 菜单位置：Tools/批量旋转子物体/
 public static class BatchRotateChildrenMenu
 {
     private const string MenuRoot = "Tools/批量旋转子物体";

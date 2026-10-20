@@ -279,7 +279,7 @@ public class BattlePage : PageBase
             spectatePendingSince = 0f;
         }
         if (spectateTargetEntityId != -1 && Tool.CameraController != null
-            && Tool.ClientLogicManager?.EntityPlayers != null)
+            && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
         {
             var anchor = Tool.ClientLogicManager.EntityPlayers.GetOrCreateCameraAnchor((ushort)spectateTargetEntityId);
             if (anchor != null && Tool.CameraController.lookTarget != anchor)
@@ -635,7 +635,7 @@ public class BattlePage : PageBase
     private void EnsureMinimapMapLoader()
     {
         var minimap = panel.m_Minimap;
-        if (minimap?.m_mask == null) return;
+        if (minimap == null || minimap.m_mask == null) return;
         if (minimapMapLoader != null && !minimapMapLoader.isDisposed && minimapMapLoader.parent == minimap.m_mask) return;
         minimapMapLoader = new GLoader();
         minimapMapLoader.fill = FillType.Scale; // 地形图与目标区域同为正方形，直接拉伸铺满

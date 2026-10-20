@@ -2,7 +2,7 @@ namespace Ros.Transport
 {
     public class SCBattleEvent
     {
-        /// <summary>事件类型：语义判别唯一依据；icon 档位与条目版式由客户端按类型映射（FGUI 表现不进协议）</summary>
+        // 事件语义的唯一判别依据；icon 档位与条目版式由客户端按类型映射，不进协议
         public static class Type
         {
             public const byte PlayerKill = 0;          // 玩家击杀玩家：textId=击杀者名, textId2=受害者名
@@ -17,11 +17,7 @@ namespace Ros.Transport
             public const byte Notice = 9;              // 纯文字提示：textId=NoticeMessageMap 消息 id
         }
 
-        /// <summary>
-        /// 文本 id 规则（文本统一用数字传输）：
-        /// &lt;PlayerNameBase = NoticeMessageMap 消息 id；
-        /// &gt;=PlayerNameBase = 玩家名（clientId = id - PlayerNameBase）
-        /// </summary>
+        // 文本 id：<10000 查 NoticeMessageMap；≥10000 为玩家名（clientId = id - PlayerNameBase）
         public const int PlayerNameBase = 10000;
 
         public byte type;

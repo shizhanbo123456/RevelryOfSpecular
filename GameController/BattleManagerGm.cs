@@ -3,9 +3,8 @@ using Ros.Gm;
 using Ros.Transport;
 using UnityEngine;
 
-// GM 指令的服务器执行体：NetworkManager.ServerReceiveGmLocal → ExecuteGm。
-// 只处理"联网项"；纯客户端项（雾气/地形/存档/调试/收集-面数/敌方对话/结算演示）在 GmPanel 里本地做。
-// 无权限校验（开发工具，按用户口径所有客户端都能发）。
+// GM 指令的服务器执行体：NetworkManager.ServerReceiveGmLocal → ExecuteGm，只处理"联网项"
+// 纯客户端项（雾气/地形/存档/调试/敌方对话/结算演示）在 GmPanel 本地做；无权限校验（开发工具）
 public partial class BattleManager
 {
     // 无敌实体（EntityData.OnDamaged 命中即按 0 伤害）
