@@ -43,10 +43,11 @@ namespace Ros.Skill
         protected SkillContext ShotContext(EntityData entity, bool seed = false, bool aim = true)
         {
             var context = new SkillContext();
+            Vector3 origin = OriginPos(entity, OriginAnchor, OriginOffset);
             context.AddInts(entity.id);
             if (seed) context.AddInts(SkillSeed.New());
-            context.AddVectors(OriginPos(entity, OriginAnchor, OriginOffset));
-            if (aim) context.AddVectors(AimPoint(entity));
+            context.AddVectors(origin);
+            if (aim) context.AddVectors(AimPoint(entity, origin));
             return context;
         }
 
@@ -54,11 +55,22 @@ namespace Ros.Skill
         protected virtual bool AutoAim => false;
         protected virtual float ForwardAimDistance => CastRange > 0f ? CastRange : 8f;
 
-        // 未锁定的落点：默认正前方 ForwardAimDistance；自身周围之类由技能覆盖
-        protected virtual Vector3 AimPoint(EntityData entity)
-            => AutoAim
-                ? Utils.TargetSelect.AimPos(entity, CastRange)
-                : entity.transform.position + entity.transform.forward * ForwardAimDistance;
+        // 落点高度规则：不索敌 = 与起点同高（水平射出）；索敌 = 目标体中心（不锁脚）。
+        // 专门做上下变化的技能（天降/头顶/贝塞尔等）自己覆盖这里或轨迹。
+        protected virtual Vector3 AimPoint(EntityData entity, Vector3 origin)
+        {
+            Vector3 forward = entity.transform.forward;
+            var target = AutoAim ? Utils.TargetSelect.GetNearestEnemy(entity, ForwardAimDistance) : null;
+            if (target == null)
+                return new Vector3(origin.x + forward.x * ForwardAimDistance, origin.y,
+                    origin.z + forward.z * ForwardAimDistance);
+            Vector3 body = Utils.TargetSelect.BodyPos(target);
+            Vector3 flat = body - entity.transform.position;
+            flat.y = 0f;
+            Vector3 dir = flat.sqrMagnitude > 0.0001f ? flat.normalized : forward;
+            return new Vector3(origin.x + dir.x * ForwardAimDistance, body.y,
+                origin.z + dir.z * ForwardAimDistance);
+        }
 
         protected override void OnCast(SkillContext context)
         {

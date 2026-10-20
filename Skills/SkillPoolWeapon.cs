@@ -636,7 +636,7 @@ namespace Ros.Skill
         protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
         protected override int VfxIndex => 2;
 
-        protected override Vector3 AimPoint(EntityData entity) => entity.transform.position; // 落点中心是自己脚下
+        protected override Vector3 AimPoint(EntityData entity, Vector3 origin) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 4f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -689,7 +689,7 @@ namespace Ros.Skill
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
 
-        protected override Vector3 AimPoint(EntityData entity) => entity.transform.position; // 落点中心是自己脚下
+        protected override Vector3 AimPoint(EntityData entity, Vector3 origin) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 3f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)

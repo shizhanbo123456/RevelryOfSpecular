@@ -137,6 +137,10 @@ namespace Ros.Skill.Utils
             return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
         }
 
+        // 体中心（脚部以上）：索敌取点用这个，不能锁 transform.position（那是脚）
+        public static Vector3 BodyPos(EntityData entity)
+            => EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
+
         public static Vector3 AimPos(EntityData entity, float castRange,bool normalizeDistance = true, bool forceHorizontal = true)
         {
             // 索敌与终点距离统一用技能自身 CastRange（真实攻击距离），再不行才用视野
@@ -147,24 +151,15 @@ namespace Ros.Skill.Utils
             {
                 return entity.transform.position + entity.transform.forward * searchRadius;
             }
-            else
-            {
-                if (normalizeDistance)
-                {
-                    var offset = target.transform.position - entity.transform.position;
-                    if (forceHorizontal)
-                        offset.y = 0;
-                    Vector3 dir = offset.normalized;
-                    return entity.transform.position + dir * searchRadius;
-                }
-                else
-                {
-                    var dest = target.transform.position;
-                    if (forceHorizontal)
-                        dest.y = entity.transform.position.y;
-                    return dest;
-                }
-            }
+            Vector3 body = BodyPos(target);
+            Vector3 offset = body - entity.transform.position;
+            if (forceHorizontal)
+                offset.y = 0;
+            Vector3 dir = offset.sqrMagnitude > 0.0001f ? offset.normalized : entity.transform.forward;
+            if (!normalizeDistance) return body; // 自身位置即落点：取体中心
+            // 方向水平、高度取目标体中心（不落到脚上）
+            return new Vector3(entity.transform.position.x + dir.x * searchRadius, body.y,
+                entity.transform.position.z + dir.z * searchRadius);
         }
     }
     public static class TrialConstructor
