@@ -1,9 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-#if UNITY_EDITOR
-[AddComponentMenu("Landscape/LandscapeSpawns")]
-#endif
 public class LandscapeSpawns : MonoBehaviour
 {
     [Header("地形（在 Inspector 中指定；右键菜单生成水晶/僵尸点位时用于贴合表面）")]
