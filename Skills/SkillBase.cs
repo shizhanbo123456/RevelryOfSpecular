@@ -37,18 +37,6 @@ namespace Ros.Skill
         #region 框架工具（攻击结算 / 特效播放）
         private static readonly EntityData[] s_hitBuffer = new EntityData[16];
 
-        protected EntityAnchorInfo GetWeaponFloatPosition(EntityData entity, int slot)
-        {
-            if (!Weapon.IsValid) return EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
-            return ((EntityAnchor)((int)EntityAnchor.WeaponSlot1 + slot)).GetTransform(entity.ModelInfo,entity.anim,entity.springWeapon);
-        }
-
-        protected EntityAnchorInfo GetWeaponFloatPosition(EntityData entity)
-        {
-            int slot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-            return GetWeaponFloatPosition(entity, slot < 0 ? 0 : slot);
-        }
-
         protected static EntityAnchorInfo HandPos(EntityData entity, bool leftHand = false)
         {
             if (entity == null) return default;
@@ -60,15 +48,6 @@ namespace Ros.Skill
 
         // 按 id 找实体（服务器权威容器；客户端查不到返回 null）
         protected static EntityData FindEntity(ushort id) => BattleManager.GetEntity(id);
-
-        // 双端取弹道起点：服务器按实体武器槽/中上锚点，客户端按视图镜像同一规则
-        protected Vector3 ShotOrigin(ushort casterId, int slot)
-        {
-            EntityData caster = BattleManager.GetEntity(casterId);
-            if (caster != null) return GetWeaponFloatPosition(caster, slot).position;
-            var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
-            return players != null && players.TryGetShotOrigin(casterId, slot, Weapon.IsValid, out var pos) ? pos : Vector3.zero;
-        }
 
         // 弹道终点 = 实时起点 + 前摇冻结的「起点→终点」偏移（Y 清零，敌人可闪避、动画位移生效）
         protected static Vector3 ShotAim(Vector3 origin, Vector3 frozenOrigin, Vector3 frozenDest)
