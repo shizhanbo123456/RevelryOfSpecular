@@ -1,9 +1,10 @@
-#if false // 旧技能包：仅作 API 参考，不参与编译；新技能在 SkillPools 注册
+﻿using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
 
 namespace Ros.Skill
 {
+    // 空手攻击：左拳 / 右拳 / 原地砸击（近战无弹道，砸击带范围魔法表现）
     public static class SkillPoolUnarmed
     {
         public static void RegisterAll()
@@ -20,8 +21,8 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_L;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -33,10 +34,10 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius,
-                BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
+                BuildAttack(caster, 1f, Config.melee_hit_radius));
         }
 
-        public override void PlayVFX(SkillContext context) { } // 近战无特效
+        public override void PlayVFX(SkillContext context) { }
     }
 
     public class SkillPunchRight : SkillBase
@@ -45,8 +46,8 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -58,10 +59,10 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius,
-                BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
+                BuildAttack(caster, 1f, Config.melee_hit_radius));
         }
 
-        public override void PlayVFX(SkillContext context) { } // 近战无特效
+        public override void PlayVFX(SkillContext context) { }
     }
 
     public class SkillPunchSmash : SkillBase
@@ -70,12 +71,13 @@ namespace Ros.Skill
         public override float CastRange => 2f;
         public override float CD => Config.unarmed_skill_cd;
         public override int Store => -1;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
+            context.AddVectors(entity.transform.position);
             return context;
         }
 
@@ -83,10 +85,10 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             StrikeSphere(caster, caster.transform.position, Config.melee_hit_radius,
-                BuildAttack(caster, rate: 1f, radius: Config.melee_hit_radius));
+                BuildAttack(caster, 1f, Config.melee_hit_radius));
         }
 
-        public override void PlayVFX(SkillContext context) { } // 近战无特效
+        public override void PlayVFX(SkillContext context)
+            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 6, context.vectors[0], 0.6f);
     }
 }
-#endif

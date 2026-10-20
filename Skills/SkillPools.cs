@@ -1,11 +1,14 @@
 namespace Ros.Skill
 {
-    // 新技能包注册入口：技能按拥有者/武器类别拆分文件后，统一在这里登记
+    // 新技能包注册入口：按拥有者类型分文件，统一在这里登记
     public static class SkillPools
     {
         public static void RegisterAll()
         {
-            // 技能定稿后在此注册，例如 SkillPoolWeapon.RegisterAll();
+            SkillPoolWeapon.RegisterAll();   // 武器技能 50（刀 / 长枪 / 枪械 / 魔法球）
+            SkillPoolDefense.RegisterAll();  // 防守方 6 角色 × 主动1 / 主动2 / 大招
+            SkillPoolNpc.RegisterAll();      // 僵尸 / 防御塔 / 瘟疫树
+            SkillPoolUnarmed.RegisterAll();  // 空手左拳 / 右拳 / 砸击
         }
     }
 }

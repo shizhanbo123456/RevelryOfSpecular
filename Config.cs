@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
@@ -115,14 +115,14 @@ public static class Config
     public const float skill_exp_damage_bonus = 0.1f;
 
     #region 武器技能 id 区间（水晶掉武器按水晶类型从对应区间随机；段长 = 武器数量，段长与顺序不可随意调整）
-    public const int weapon_id_melee_min = (int)SkillType.SkillKnife01;      // 近战刀 11 把
-    public const int weapon_id_melee_max = (int)SkillType.SkillKnife11;
-    public const int weapon_id_spear_min = (int)SkillType.SkillSpear01;      // 长枪 8 把
-    public const int weapon_id_spear_max = (int)SkillType.SkillSpear08;
-    public const int weapon_id_gun_min = (int)SkillType.SkillGun01;          // 枪械 15 把
-    public const int weapon_id_gun_max = (int)SkillType.SkillGun15;
-    public const int weapon_id_magic_min = (int)SkillType.SkillOrb01;        // 魔法球 16 个
-    public const int weapon_id_magic_max = (int)SkillType.SkillOrb16;
+    public const int weapon_id_melee_min = (int)SkillType.SkillFanIceCone;         // 近战刀 11 把
+    public const int weapon_id_melee_max = (int)SkillType.SkillSkyfallWeapon;
+    public const int weapon_id_spear_min = (int)SkillType.SkillBoomerangWeapon;    // 长枪 8 把
+    public const int weapon_id_spear_max = (int)SkillType.SkillIceFanTiny;
+    public const int weapon_id_gun_min = (int)SkillType.SkillBackVolley;          // 枪械 15 把
+    public const int weapon_id_gun_max = (int)SkillType.SkillAllyShieldEight;
+    public const int weapon_id_magic_min = (int)SkillType.SkillSplitShot;         // 魔法球 16 个
+    public const int weapon_id_magic_max = (int)SkillType.SkillAllyShieldTwentyFive;
 
     public static int GetRandomWeaponId(int crystalValue)
     {
@@ -154,49 +154,49 @@ public static class Config
     public const int entity_id_max = 30000;
     public const float melee_hit_radius = 0.7f;
     public const float unarmed_skill_cd = 0.1f;
-    public const int unarmed_punch_left = (int)SkillType.SkillUnarmed01;
-    public const int unarmed_punch_right = (int)SkillType.SkillUnarmed02;
-    public const int unarmed_attack_smash = (int)SkillType.SkillUnarmed03;
+    public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
+    public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
+    public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;
     public const float anim_move_speed_up = 1.3f;
     public const float anim_move_speed_down = 0.6f;
     public const float anim_move_speed_mire = 0.5f;
-    // 初始技能表（阶段占位）：技能名与归属定稿前按「类别槽位 / 角色槽位」登记，保持原有的分配结构
+    // 初始技能表：进攻方按 4 类武器的基础技能循环，防守方按角色（主动1 / 主动2 / 大招）固定，非玩家按单位类别
     public static readonly Dictionary<EntityType, int[]> initial_skills = new()
     {
         // ===== 进攻方角色（18 人，每角色 1 个天生攻击技能）=====
         // 策划案 4.1「不做定位区分」；暂时按 4 类武器的基础技能循环分配，待角色池定稿后调整
-        { EntityType.Attack(0), new[] { (int)SkillType.SkillKnife01 } },
-        { EntityType.Attack(1), new[] { (int)SkillType.SkillSpear01 } },
-        { EntityType.Attack(2), new[] { (int)SkillType.SkillGun01 } },
-        { EntityType.Attack(3), new[] { (int)SkillType.SkillOrb01 } },
-        { EntityType.Attack(4), new[] { (int)SkillType.SkillKnife01 } },
-        { EntityType.Attack(5), new[] { (int)SkillType.SkillSpear01 } },
-        { EntityType.Attack(6), new[] { (int)SkillType.SkillGun01 } },
-        { EntityType.Attack(7), new[] { (int)SkillType.SkillOrb01 } },
-        { EntityType.Attack(8), new[] { (int)SkillType.SkillKnife01 } },
-        { EntityType.Attack(9), new[] { (int)SkillType.SkillSpear01 } },
-        { EntityType.Attack(10), new[] { (int)SkillType.SkillGun01 } },
-        { EntityType.Attack(11), new[] { (int)SkillType.SkillOrb01 } },
-        { EntityType.Attack(12), new[] { (int)SkillType.SkillKnife01 } },
-        { EntityType.Attack(13), new[] { (int)SkillType.SkillSpear01 } },
-        { EntityType.Attack(14), new[] { (int)SkillType.SkillGun01 } },
-        { EntityType.Attack(15), new[] { (int)SkillType.SkillOrb01 } },
-        { EntityType.Attack(16), new[] { (int)SkillType.SkillKnife01 } },
-        { EntityType.Attack(17), new[] { (int)SkillType.SkillSpear01 } },
+        { EntityType.Attack(0), new[] { (int)SkillType.SkillFanIceCone } },
+        { EntityType.Attack(1), new[] { (int)SkillType.SkillBoomerangWeapon } },
+        { EntityType.Attack(2), new[] { (int)SkillType.SkillBackVolley } },
+        { EntityType.Attack(3), new[] { (int)SkillType.SkillSplitShot } },
+        { EntityType.Attack(4), new[] { (int)SkillType.SkillFanIceCone } },
+        { EntityType.Attack(5), new[] { (int)SkillType.SkillBoomerangWeapon } },
+        { EntityType.Attack(6), new[] { (int)SkillType.SkillBackVolley } },
+        { EntityType.Attack(7), new[] { (int)SkillType.SkillSplitShot } },
+        { EntityType.Attack(8), new[] { (int)SkillType.SkillFanIceCone } },
+        { EntityType.Attack(9), new[] { (int)SkillType.SkillBoomerangWeapon } },
+        { EntityType.Attack(10), new[] { (int)SkillType.SkillBackVolley } },
+        { EntityType.Attack(11), new[] { (int)SkillType.SkillSplitShot } },
+        { EntityType.Attack(12), new[] { (int)SkillType.SkillFanIceCone } },
+        { EntityType.Attack(13), new[] { (int)SkillType.SkillBoomerangWeapon } },
+        { EntityType.Attack(14), new[] { (int)SkillType.SkillBackVolley } },
+        { EntityType.Attack(15), new[] { (int)SkillType.SkillSplitShot } },
+        { EntityType.Attack(16), new[] { (int)SkillType.SkillFanIceCone } },
+        { EntityType.Attack(17), new[] { (int)SkillType.SkillBoomerangWeapon } },
 
         // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招）=====
-        { EntityType.Defense(0), new[] { (int)SkillType.SkillDefense01, (int)SkillType.SkillDefense02, (int)SkillType.SkillDefense03 } },  // PC104 鹿铠怪人
-        { EntityType.Defense(1), new[] { (int)SkillType.SkillDefense04, (int)SkillType.SkillDefense05, (int)SkillType.SkillDefense06 } },  // NP114 白眼伯爵
-        { EntityType.Defense(2), new[] { (int)SkillType.SkillDefense07, (int)SkillType.SkillDefense08, (int)SkillType.SkillDefense09 } },  // PC106 死灵漫步者
-        { EntityType.Defense(3), new[] { (int)SkillType.SkillDefense10, (int)SkillType.SkillDefense11, (int)SkillType.SkillDefense12 } },  // NP134 蒙面教皇
-        { EntityType.Defense(4), new[] { (int)SkillType.SkillDefense13, (int)SkillType.SkillDefense14, (int)SkillType.SkillDefense15 } },  // PC102 瘟疫使者
-        { EntityType.Defense(5), new[] { (int)SkillType.SkillDefense16, (int)SkillType.SkillDefense17, (int)SkillType.SkillDefense18 } },  // PC103 苍白舞者
+        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillMushroomInfect, (int)SkillType.SkillTowerBlazeCast } },      // PC104 鹿铠怪人
+        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillInfiniteVision, (int)SkillType.SkillForceNight } },            // NP114 白眼伯爵
+        { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // PC106 死灵漫步者
+        { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // NP134 蒙面教皇
+        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillAbsorbOre, (int)SkillType.SkillDetonatePlague } },       // PC102 瘟疫使者
+        { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },           // PC103 苍白舞者
 
-        // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退；store 均为 -1 无限制）=====
-        { EntityType.Zombie(0), new[] { (int)SkillType.SkillNpc01, (int)SkillType.SkillNpc02, (int)SkillType.SkillNpc03 } },        // 普通僵尸：爪击右 / 爪击左 / 嘶吼
-        { EntityType.EliteZombie(0), new[] { (int)SkillType.SkillNpc04, (int)SkillType.SkillNpc05, (int)SkillType.SkillNpc06 } },   // 精英僵尸
-        { EntityType.Tower(0), new[] { (int)SkillType.SkillNpc07 } },          // 防御塔：孢子喷射
-        { EntityType.PlagueTree(0), new[] { (int)SkillType.SkillNpc08 } },     // 瘟疫树：孢子喷发
+        // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退）=====
+        { EntityType.Zombie(0), new[] { (int)SkillType.SkillZombieClawR, (int)SkillType.SkillZombieClawL } },                       // 普通僵尸：爪击右 / 爪击左
+        { EntityType.EliteZombie(0), new[] { (int)SkillType.SkillEliteZombieClawR, (int)SkillType.SkillEliteZombieClawL, (int)SkillType.SkillEliteZombieScream } }, // 精英僵尸
+        { EntityType.Tower(0), new[] { (int)SkillType.SkillTowerSporeShotA, (int)SkillType.SkillTowerSporeShotB, (int)SkillType.SkillTowerSporeShotC } }, // 防御塔：三种孢子
+        { EntityType.PlagueTree(0), new[] { (int)SkillType.SkillPlagueTreeSpore } },     // 瘟疫树：孢子喷发
     };
 
     public static List<int> GetInitialSkills(EntityType character)

@@ -1,48 +1,53 @@
-#if false // 旧技能包：仅作 API 参考，不参与编译；新技能在 SkillPools 注册
+using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
-using Ros.Skill.Utils;
 
 namespace Ros.Skill
 {
+    // 防守方 6 角色 × （主动1 / 主动2 / 大招），行为沿用策划案第五章，持续表现按《特效清单分别表1019》
     public static class SkillPoolDefense
     {
         public static void RegisterAll()
         {
-            SkillManager.Register(new SkillRockShield());        // 50 PC104 岩石护盾
-            SkillManager.Register(new SkillMushroomInfect());    // 51 PC104 蘑菇感染
-            SkillManager.Register(new SkillTowerBlazeCast());    // 52 PC104 灵火（大招）
-            SkillManager.Register(new SkillEyeMark());           // 54 NP114 白眼标记
-            SkillManager.Register(new SkillInfiniteVision());    // 55 NP114 无限视野
-            SkillManager.Register(new SkillForceNight());        // 56 NP114 立即进入夜晚（大招）
-            SkillManager.Register(new SkillSummonZombies());     // 58 PC106 召唤一小波僵尸
-            SkillManager.Register(new SkillDeathStrollCast());   // 59 PC106 死灵漫步
-            SkillManager.Register(new SkillSummonElites());      // 60 PC106 召唤多个精英僵尸（大招）
-            SkillManager.Register(new SkillSilenceCast());       // 62 NP134 沉默
-            SkillManager.Register(new SkillMireCast());          // 63 NP134 泥沼
-            SkillManager.Register(new SkillReflectCast());       // 64 NP134 反伤（大招）
-            SkillManager.Register(new SkillPlagueMarkCast());    // 66 PC102 瘟疫标记
-            SkillManager.Register(new SkillAbsorbOre());         // 67 PC102 吸收矿石
-            SkillManager.Register(new SkillDetonatePlague());    // 68 PC102 引爆瘟疫标记（大招）
-            SkillManager.Register(new SkillPaleLightCast());     // 70 PC103 苍白之光
-            SkillManager.Register(new SkillPaleDarkCast());      // 71 PC103 苍白之暗
-            SkillManager.Register(new SkillFogCast());           // 72 PC103 迷雾（大招）
+            SkillManager.Register(new SkillRockShield());      // PC104 岩石护盾
+            SkillManager.Register(new SkillMushroomInfect());  // PC104 蘑菇感染
+            SkillManager.Register(new SkillTowerBlazeCast());  // PC104 灵火
+
+            SkillManager.Register(new SkillEyeMark());         // NP114 白眼标记
+            SkillManager.Register(new SkillInfiniteVision());  // NP114 无限视野
+            SkillManager.Register(new SkillForceNight());      // NP114 立即入夜
+
+            SkillManager.Register(new SkillSummonZombies());   // PC106 召唤僵尸
+            SkillManager.Register(new SkillDeathStrollCast()); // PC106 死灵漫步
+            SkillManager.Register(new SkillSummonElites());    // PC106 召唤精英
+
+            SkillManager.Register(new SkillSilenceCast());     // NP134 沉默
+            SkillManager.Register(new SkillMireCast());        // NP134 泥沼
+            SkillManager.Register(new SkillReflectCast());     // NP134 反伤
+
+            SkillManager.Register(new SkillPlagueMarkCast());  // PC102 瘟疫标记
+            SkillManager.Register(new SkillAbsorbOre());       // PC102 吸收矿石
+            SkillManager.Register(new SkillDetonatePlague());  // PC102 引爆瘟疫
+
+            SkillManager.Register(new SkillPaleLightCast());   // PC103 苍白之光
+            SkillManager.Register(new SkillPaleDarkCast());    // PC103 苍白之暗
+            SkillManager.Register(new SkillFogCast());         // PC103 迷雾
         }
     }
 
-    #region PC104 鹿铠怪人（50~52）
+    #region PC104 鹿铠怪人
     public class SkillRockShield : SkillBase
     {
         public override int Id => (int)SkillType.SkillRockShield;
-        public override float CD => 15f;
-        public override int Store => 8;
-
+        public override float CD => 12f;
+        public override int Store => 5;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var tower = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
+            var tower = TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (tower != null) context.AddInts(tower.id);
             return context;
@@ -51,32 +56,31 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.TowerShield, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerShield, 1,
                     Config.buff_duration_buff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            if (context.ints.Count > 1) VfxHelper.PlayFollow(SkillVfxKind.Shield, 1, (ushort)context.ints[1]); // S2
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 8, (ushort)context.ints[i]);
         }
     }
 
     public class SkillMushroomInfect : SkillBase
     {
         public override int Id => (int)SkillType.SkillMushroomInfect;
-        public override float CD => 12f;
-        public override int Store => 5;
-
+        public override float CastRange => Config.absorb_crystal_radius;
+        public override float CD => 15f;
+        public override int Store => 4;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var crystal = Utils.TargetSelect.SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
+            var crystal = TargetSelect.SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
                 Config.defense_ally_cast_radius);
             if (crystal != null) context.AddInts(crystal.id);
             return context;
@@ -85,15 +89,12 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.MushroomInfect, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.MushroomInfect, 1,
                     Config.mushroom_infect_duration, caster);
-            }
         }
 
-        public override void PlayVFX(SkillContext context) { } // 表现 = 模型替换，不走特效
+        public override void PlayVFX(SkillContext context) { } // 表现 = 模型替换
     }
 
     public class SkillTowerBlazeCast : SkillBase
@@ -101,51 +102,46 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillTowerBlazeCast;
         public override float CD => 60f;
         public override int Store => 2;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Towers); // 全场防御塔
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Towers);
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.TowerBlaze, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerBlaze, 1,
                     Config.buff_duration_debuff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 11, (ushort)context.ints[shotTarget]); // BF12 塔身
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 3, (ushort)context.ints[i]);
         }
     }
     #endregion
 
-    #region NP114 白眼伯爵（54~56）
+    #region NP114 白眼伯爵
     public class SkillEyeMark : SkillBase
     {
         public override int Id => (int)SkillType.SkillEyeMark;
         public override float CD => 18f;
         public override int Store => 6;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            EntityData markTarget = null;
-            if (Tool.BattleManager != null) markTarget = Tool.BattleManager.GetTopHarvester(); // 进攻方采集量最高者
+            var markTarget = Tool.BattleManager != null ? Tool.BattleManager.GetTopHarvester() : null;
             if (markTarget != null) context.AddInts(markTarget.id);
             return context;
         }
@@ -153,17 +149,15 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.EyeMark, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.EyeMark, 1,
                     Config.buff_duration_buff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            if (context.ints.Count > 1) VfxHelper.PlayFollow(SkillVfxKind.Buff, 15, (ushort)context.ints[1]); // BF16
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 23, (ushort)context.ints[i]);
         }
     }
 
@@ -172,8 +166,8 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillInfiniteVision;
         public override float CD => 45f;
         public override int Store => 3;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -185,15 +179,13 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            Utils.TargetSelect.SetEntitiesInCampToBuffer(caster.camp); // 己方全体
-            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
-            {
-                GiveEffect(Utils.TargetSelect.TargetBuffer[i], EffectType.AttrViewDistanceBoost, 10,
+            TargetSelect.SetEntitiesInCampToBuffer(caster.camp);
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
+                GiveEffect(TargetSelect.TargetBuffer[i], EffectType.AttrViewDistanceBoost, 10,
                     Config.buff_duration_buff, caster);
-            }
         }
 
-        public override void PlayVFX(SkillContext context) { } // 无特效
+        public override void PlayVFX(SkillContext context) { } // 视野变化本身即表现
     }
 
     public class SkillForceNight : SkillBase
@@ -201,8 +193,8 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillForceNight;
         public override float CD => 60f;
         public override int Store => 2;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -212,42 +204,42 @@ namespace Ros.Skill
 
         protected override void OnCast(SkillContext context)
         {
-            if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.SetCycleTime(0f); // 周期值 0 = 午夜，即夜晚起点
+            if (Tool.EnvironmentManager != null) Tool.EnvironmentManager.SetCycleTime(0f);
         }
 
         public override void PlayVFX(SkillContext context) { } // 昼夜切换本身即表现
     }
     #endregion
 
-    #region PC106 死灵漫步者（58~60）
+    #region PC106 死灵漫步者
     public class SkillSummonZombies : SkillBase
     {
         public override int Id => (int)SkillType.SkillSummonZombies;
         public override float CD => 20f;
         public override int Store => 5;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position); // 召唤点 = 施放者位置（客户端在法阵处播特效）
+            context.AddVectors(entity.transform.position);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null) return;
+            if (caster == null || Tool.BattleManager == null) return;
             for (int i = 0; i < Config.summon_zombie_count; i++)
             {
                 var type = EntityType.Zombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
-                if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_zombie_level,
-                    caster.transform.position + Utils.TargetSelect.SummonOffset(i), EntityCamp.Zombie);
+                Tool.BattleManager.SpawnEntity(type, Config.summon_zombie_level,
+                    caster.transform.position + TargetSelect.SummonOffset(i), EntityCamp.Zombie);
             }
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.5f); // MC7
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 1.5f);
     }
 
     public class SkillDeathStrollCast : SkillBase
@@ -255,8 +247,8 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillDeathStrollCast;
         public override float CD => 40f;
         public override int Store => 3;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -270,7 +262,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.DeathStroll, 1, Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 3, (ushort)context.ints[0]); // BF4
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 29, (ushort)context.ints[0]);
     }
 
     public class SkillSummonElites : SkillBase
@@ -278,8 +270,8 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSummonElites;
         public override float CD => 60f;
         public override int Store => 1;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -291,54 +283,49 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null) return;
+            if (caster == null || Tool.BattleManager == null) return;
             for (int i = 0; i < Config.summon_elite_count; i++)
             {
-                // 种类范围是精英僵尸自己的 14 种，不是普通僵尸的 21 种外观变体
                 var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
-                if (Tool.BattleManager != null) Tool.BattleManager.SpawnEntity(type, Config.summon_elite_level,
-                    caster.transform.position + Utils.TargetSelect.SummonOffset(i, 3f), EntityCamp.Zombie);
+                Tool.BattleManager.SpawnEntity(type, Config.summon_elite_level,
+                    caster.transform.position + TargetSelect.SummonOffset(i, 3f), EntityCamp.Zombie);
             }
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 2f); // MC7
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.MagicCircle, 6, context.vectors[0], 2f);
     }
     #endregion
 
-    #region NP134 蒙面教皇（62~64）
+    #region NP134 蒙面教皇
     public class SkillSilenceCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillSilenceCast;
         public override float CastRange => 8f;
         public override float CD => 15f;
         public override int Store => 6;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Silence, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Silence, 1,
                     Config.buff_duration_control, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 4, (ushort)context.ints[shotTarget]); // BF5
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 2, (ushort)context.ints[i]);
         }
     }
 
@@ -347,33 +334,29 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillMireCast;
         public override float CD => 20f;
         public override int Store => 5;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全场敌方
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Mire, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Mire, 1,
                     Config.buff_duration_debuff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 25, (ushort)context.ints[shotTarget]); // BF26 水花
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 17, (ushort)context.ints[i]);
         }
     }
 
@@ -382,71 +365,63 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillReflectCast;
         public override float CD => 60f;
         public override int Store => 2;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons); // 所有守护点
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons);
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Reflect, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Reflect, 1,
                     Config.buff_duration_buff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 8, (ushort)context.ints[shotTarget]); // MC9
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 6, (ushort)context.ints[i]);
         }
     }
     #endregion
 
-    #region PC102 瘟疫使者（66~68）
+    #region PC102 瘟疫使者
     public class SkillPlagueMarkCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillPlagueMarkCast;
         public override float CastRange => 8f;
         public override float CD => 2f;
         public override int Store => 12;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.PlagueMark, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.PlagueMark, 1,
                     Config.buff_duration_buff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 18, (ushort)context.ints[shotTarget]); // BF19
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 30, (ushort)context.ints[i]);
         }
     }
 
@@ -456,8 +431,8 @@ namespace Ros.Skill
         public override float CastRange => 6f;
         public override float CD => 30f;
         public override int Store => 2;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -469,17 +444,14 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            // 「矿石」即可采集水晶：直接造成巨量伤害 = 击败水晶，走概率产出流程
-            Utils.TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
+            // 「矿石」即可采集水晶：巨量伤害直接击碎，走原有产出流程
+            TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
                 caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
-            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
-            {
-                if (Utils.TargetSelect.TargetBuffer[i] != null) Utils.TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
-            }
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
+                if (TargetSelect.TargetBuffer[i] != null) TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], 1f); // RM2
+        public override void PlayVFX(SkillContext context) => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], 1f);
     }
 
     public class SkillDetonatePlague : SkillBase
@@ -487,22 +459,18 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillDetonatePlague;
         public override float CD => 30f;
         public override int Store => 1;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            // 目标 = 全场带「瘟疫标记」的敌人
-            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp));
-            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
+            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
             {
-                var marked = Utils.TargetSelect.TargetBuffer[i];
-                if (marked != null && marked.effectController != null
-                    && marked.effectController.GetLevel(EffectType.PlagueMark) > 0)
-                {
+                var marked = TargetSelect.TargetBuffer[i];
+                if (marked != null && marked.effectController != null && marked.effectController.GetLevel(EffectType.PlagueMark) > 0)
                     context.AddInts(marked.id);
-                }
             }
             return context;
         }
@@ -510,125 +478,63 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
+            for (int i = 1; i < context.ints.Count; i++)
             {
-                var target = BattleManager.GetEntity((ushort)context.ints[i + 1]);
+                var target = BattleManager.GetEntity((ushort)context.ints[i]);
                 if (target == null || target.effectController == null) continue;
                 int level = target.effectController.GetLevel(EffectType.PlagueMark);
                 if (level <= 0) continue;
-                target.OnDamaged(level * Config.plague_detonate_damage, caster); // 按层数结算
+                target.OnDamaged(level * Config.plague_detonate_damage, caster);
                 target.effectController.RemoveEffect(EffectType.PlagueMark);
             }
-            // 伤害归属用 cid（避免未使用告警）
-            _ = cid;
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 17, (ushort)context.ints[shotTarget]); // BF18 黑绿喷发
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 17, (ushort)context.ints[i]);
         }
     }
     #endregion
 
-    #region PC103 苍白舞者（70~72）
-    public class SkillPaleLightCast : SkillBase
+    #region PC103 苍白舞者
+    public class SkillPaleLightCast : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPaleLightCast;
         public override float CastRange => 20f;
         public override float CD => 1f;
         public override int Store => 12;
-
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            int shotSlot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-            if (shotSlot < 0) shotSlot = 0;
-            Vector3 shotOrigin = GetWeaponFloatPosition(entity, shotSlot).position;
-            context.AddInts(entity.id, shotSlot);
-            foreach (var shotDest in Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg))
-                context.AddVectors(shotOrigin, shotDest);
-            return context;
-        }
-
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
-        {
-            Vector3 shotOrigin = ShotOrigin((ushort)context.ints[0], context.ints[1]);
-            return TrialConstructor.Line(shotOrigin, ShotAim(shotOrigin, context.vectors[index * 2], context.vectors[index * 2 + 1]), duration);
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
-                addEffect: ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, caster));
-            if (Tool.BattleManager == null) return;
-            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
-                Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, shotIndex));
-        }
-
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
-                VfxHelper.PlayOne(SkillVfxKind.Bullet, 2, CreateTrajectory(context, shotIndex)); // B2
-        }
-
-        private const int shots = 5;
-        private const float spreadDeg = 12f;
-        private const float radius = 0.4f;
-        private const float duration = 1.2f;
+        protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
+        protected override int Shots => 5;
+        protected override float SpreadDeg => 12f;
+        protected override float BulletLife => 1.2f;
+        protected override bool UseMagic => true;
+        protected override float BulletRadius => 0.4f;
+        protected override int VfxIndex => 2;
+        protected override System.Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, caster);
     }
 
-    public class SkillPaleDarkCast : SkillBase
+    public class SkillPaleDarkCast : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPaleDarkCast;
         public override float CastRange => 20f;
         public override float CD => 2f;
         public override int Store => 12;
+        protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
+        protected override int Shots => 5;
+        protected override float SpreadDeg => 12f;
+        protected override float BulletLife => 1.4f;
+        protected override bool UseMagic => true;
+        protected override float BulletRadius => 0.4f;
+        protected override int VfxIndex => 1;
+        protected override System.Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, caster);
 
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
-        public override SkillContext SkillLogic(EntityData entity)
+        protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
-            var context = new SkillContext();
-            int shotSlot = entity.skillController != null ? entity.skillController.CastingSlotIndex : -1;
-            if (shotSlot < 0) shotSlot = 0;
-            Vector3 shotOrigin = GetWeaponFloatPosition(entity, shotSlot).position;
-            context.AddInts(entity.id, shotSlot);
-            foreach (var shotDest in Utils.SpreadStyle.FanDests(entity.transform.position, Utils.TargetSelect.AimPos(entity,CastRange), shots, spreadDeg))
-                context.AddVectors(shotOrigin, shotDest);
-            return context;
+            Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
+            Vector3 dest = FanDest(origin, context.vectors[1], shotIndex, shotsInWave, spread);
+            return TrialConstructor.Arc(origin, dest, BulletLife);
         }
-
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
-        {
-            Vector3 shotOrigin = ShotOrigin((ushort)context.ints[0], context.ints[1]);
-            return TrialConstructor.Arc(shotOrigin, ShotAim(shotOrigin, context.vectors[index * 2], context.vectors[index * 2 + 1]), duration);
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            var attack = BuildAttack(caster, rate: 1f, radius: radius, useMagic: true,
-                addEffect: ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, caster));
-            if (Tool.BattleManager == null) return;
-            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
-                Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, shotIndex));
-        }
-
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int shotIndex = 0; shotIndex < context.vectors.Count / 2; shotIndex++)
-                VfxHelper.PlayOne(SkillVfxKind.Bullet, 1, CreateTrajectory(context, shotIndex)); // B1
-        }
-
-        private const int shots = 5;
-        private const float spreadDeg = 12f;
-        private const float radius = 0.4f;
-        private const float duration = 1.4f;
     }
 
     public class SkillFogCast : SkillBase
@@ -636,35 +542,30 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillFogCast;
         public override float CD => 50f;
         public override int Store => 2;
-
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            Utils.TargetSelect.SetEntitiesInCampToBuffer(Utils.TargetSelect.HostileOf(entity.camp)); // 全体敌方
-            foreach (var shotTarget in Utils.TargetSelect.TargetBuffer)
-                if (shotTarget != null) context.AddInts(shotTarget.id);
+            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ushort cid = caster != null ? caster.id : (ushort)0;
-            for (int i = 0; i < (context.ints.Count - 1); i++)
-            {
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i + 1]), EffectType.Fog, 1,
+            for (int i = 1; i < context.ints.Count; i++)
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Fog, 1,
                     Config.buff_duration_buff, caster);
-            }
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            for (int shotTarget = 1; shotTarget < context.ints.Count; shotTarget++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 6, (ushort)context.ints[shotTarget]); // BF7 紫雾喷发
+            for (int i = 1; i < context.ints.Count; i++)
+                VfxHelper.PlayFollow(SkillVfxKind.Buff, 6, (ushort)context.ints[i]);
         }
     }
     #endregion
 }
-#endif
