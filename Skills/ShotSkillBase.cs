@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
@@ -44,9 +44,19 @@ namespace Ros.Skill
             var context = new SkillContext();
             Vector3 origin = OriginPos(entity, OriginAnchor, OriginOffset);
             context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(origin, Utils.TargetSelect.AimPos(entity, CastRange));
+            context.AddVectors(origin, AimPoint(entity));
             return context;
         }
+
+        // 文档标 [索敌] 的技能覆盖为 true，其余一律朝自身面向
+        protected virtual bool AutoAim => false;
+        protected virtual float ForwardAimDistance => CastRange > 0f ? CastRange : 8f;
+
+        // 未锁定的落点：默认正前方 ForwardAimDistance；自身周围之类由技能覆盖
+        protected virtual Vector3 AimPoint(EntityData entity)
+            => AutoAim
+                ? Utils.TargetSelect.AimPos(entity, CastRange)
+                : entity.transform.position + entity.transform.forward * ForwardAimDistance;
 
         protected override void OnCast(SkillContext context)
         {

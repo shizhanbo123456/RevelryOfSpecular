@@ -235,6 +235,7 @@ namespace Ros.Skill
     public class SkillThrowWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillThrowWeapon;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 10f;
         public override float CD => 5f;
         public override int Store => 10;
@@ -266,6 +267,7 @@ namespace Ros.Skill
     public class SkillSkyfallWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallWeapon;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 12f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -313,6 +315,7 @@ namespace Ros.Skill
     public class SkillBackstabWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackstabWeapon;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 11f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -534,6 +537,7 @@ namespace Ros.Skill
     public class SkillRootShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillRootShot;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 9f;
         public override int Store => 6;
@@ -624,6 +628,8 @@ namespace Ros.Skill
         protected override float BulletLife => 1.1f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
         protected override int VfxIndex => 2;
+
+        protected override Vector3 AimPoint(EntityData entity) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 4f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -636,6 +642,7 @@ namespace Ros.Skill
     public class SkillOrbitWeaponVolley : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponVolley;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 14f;
         public override int Store => 4;
@@ -672,6 +679,8 @@ namespace Ros.Skill
         protected override float WaveInterval => 0.25f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
+
+        protected override Vector3 AimPoint(EntityData entity) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 3f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -843,6 +852,7 @@ namespace Ros.Skill
     public class SkillSplitShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSplitShot;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         public override float CD => 12f;
         public override int Store => 5;
@@ -1106,6 +1116,7 @@ namespace Ros.Skill
     public class SkillHookFan : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillHookFan;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 16f;
         public override int Store => 3;
@@ -1214,6 +1225,7 @@ namespace Ros.Skill
     public class SkillSkyfallSilence : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallSilence;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         public override float CD => 16f;
         public override int Store => 3;
@@ -1256,6 +1268,7 @@ namespace Ros.Skill
     public class SkillBackArcWeapons : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackArcWeapons;
+        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 13f;
         public override float CD => 16f;
         public override int Store => 3;
