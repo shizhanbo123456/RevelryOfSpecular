@@ -61,11 +61,7 @@ namespace Ros.Skill
                     Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 8, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillMushroomInfect : SkillBase
@@ -121,11 +117,7 @@ namespace Ros.Skill
                     Config.buff_duration_debuff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 3, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 
@@ -154,11 +146,7 @@ namespace Ros.Skill
                     Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 23, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillInfiniteVision : SkillBase
@@ -262,7 +250,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.DeathStroll, 1, Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 29, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillSummonElites : SkillBase
@@ -322,11 +310,7 @@ namespace Ros.Skill
                     Config.buff_duration_control, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 2, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillMireCast : SkillBase
@@ -353,11 +337,7 @@ namespace Ros.Skill
                     Config.buff_duration_debuff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 17, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillReflectCast : SkillBase
@@ -384,11 +364,7 @@ namespace Ros.Skill
                     Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 6, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 
@@ -418,11 +394,7 @@ namespace Ros.Skill
                     Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 30, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillAbsorbOre : SkillBase
@@ -489,11 +461,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 30, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 
@@ -561,11 +529,7 @@ namespace Ros.Skill
                     Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Buff, 6, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 }

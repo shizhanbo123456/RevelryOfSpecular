@@ -357,7 +357,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.AnimSpeedUp, 1, 20f, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillOrbitWeaponKnockback : ShotSkillBase
@@ -433,7 +433,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.Shield, 10, 60f, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Shield, 2, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillFlyingKick : SkillBase
@@ -791,7 +791,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.AnimSpeedUp, 2, 10f, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.Buff, 27, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillAllyShieldEight : SkillBase
@@ -826,11 +826,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Shield, 2, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 
@@ -1307,11 +1303,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 1, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillAllyShieldTwentyFive : SkillBase
@@ -1339,11 +1331,7 @@ namespace Ros.Skill
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Shield, 25, 30f, caster);
         }
 
-        public override void PlayVFX(SkillContext context)
-        {
-            for (int i = 1; i < context.ints.Count; i++)
-                VfxHelper.PlayFollow(SkillVfxKind.Shield, 2, (ushort)context.ints[i]);
-        }
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 }

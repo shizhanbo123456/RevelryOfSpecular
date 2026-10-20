@@ -138,7 +138,7 @@ namespace Ros.Skill
             GiveEffect(caster, EffectType.ZombieScreamBoost, 1, Config.buff_duration_buff, caster);
         }
 
-        public override void PlayVFX(SkillContext context) => VfxHelper.PlayFollow(SkillVfxKind.MagicCircle, 9, (ushort)context.ints[0]);
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
     #endregion
 
