@@ -39,12 +39,14 @@ namespace Ros.Skill
         protected virtual Action<EntityEffectController> HitEffect(EntityData caster) => null;
         protected virtual Action<EntityData> HitAction(EntityData caster) => null;
 
-        public override SkillContext SkillLogic(EntityData entity)
+        // 包内容由子类决定：显式声明要不要 seed / aim；需要别的内容就自己写 SkillLogic
+        protected SkillContext ShotContext(EntityData entity, bool seed = false, bool aim = true)
         {
             var context = new SkillContext();
-            Vector3 origin = OriginPos(entity, OriginAnchor, OriginOffset);
-            context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(origin, AimPoint(entity));
+            context.AddInts(entity.id);
+            if (seed) context.AddInts(SkillSeed.New());
+            context.AddVectors(OriginPos(entity, OriginAnchor, OriginOffset));
+            if (aim) context.AddVectors(AimPoint(entity));
             return context;
         }
 

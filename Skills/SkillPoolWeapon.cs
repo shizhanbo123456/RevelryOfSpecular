@@ -75,6 +75,7 @@ namespace Ros.Skill
     public class SkillFanIceCone : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFanIceCone;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 6f;
         public override int Store => 10;
@@ -90,6 +91,7 @@ namespace Ros.Skill
     public class SkillTripleThunderCone : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillTripleThunderCone;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 7f;
         public override int Store => 8;
@@ -107,6 +109,7 @@ namespace Ros.Skill
     public class SkillFreezeShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFreezeShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 6f;
         public override int Store => 10;
@@ -122,6 +125,7 @@ namespace Ros.Skill
     public class SkillStrengthBreakShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillStrengthBreakShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 8f;
         public override int Store => 8;
@@ -137,6 +141,7 @@ namespace Ros.Skill
     public class SkillDoubleFanShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillDoubleFanShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 7f;
         public override int Store => 8;
@@ -157,6 +162,7 @@ namespace Ros.Skill
     public class SkillOrbitBlades : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillOrbitBlades;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 10f;
         public override int Store => 5;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 5);
@@ -170,14 +176,6 @@ namespace Ros.Skill
         private const float Radius = 2.2f;
         private const float Turns = 1.5f;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(entity.transform.position);
-            return context;
-        }
-
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 360f / 4f, Turns, BulletLife);
     }
@@ -186,6 +184,7 @@ namespace Ros.Skill
     public class SkillBackstepShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackstepShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 9f;
         public override int Store => 6;
@@ -211,6 +210,7 @@ namespace Ros.Skill
     public class SkillLeapScatter : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillLeapScatter;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, seed: true, aim: false);
         public override float CD => 14f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Knife, 7);
@@ -235,6 +235,7 @@ namespace Ros.Skill
     public class SkillThrowWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillThrowWeapon;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 10f;
         public override float CD => 5f;
@@ -252,6 +253,7 @@ namespace Ros.Skill
     public class SkillFanWeaponThrow : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFanWeaponThrow;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 10f;
         public override float CD => 8f;
         public override int Store => 6;
@@ -267,6 +269,7 @@ namespace Ros.Skill
     public class SkillSkyfallWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallWeapon;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 12f;
         public override float CD => 10f;
@@ -292,6 +295,7 @@ namespace Ros.Skill
     public class SkillBoomerangWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBoomerangWeapon;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 9f;
         public override float CD => 9f;
         public override int Store => 6;
@@ -315,6 +319,7 @@ namespace Ros.Skill
     public class SkillBackstabWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackstabWeapon;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 11f;
         public override float CD => 10f;
@@ -366,6 +371,7 @@ namespace Ros.Skill
     public class SkillOrbitWeaponKnockback : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponKnockback;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 12f;
         public override int Store => 4;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.Spear, 3);
@@ -379,14 +385,6 @@ namespace Ros.Skill
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
         private const float Radius = 2f;
-
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(entity.transform.position);
-            return context;
-        }
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 90f, 1.25f, BulletLife);
@@ -469,6 +467,7 @@ namespace Ros.Skill
     public class SkillIceFanTiny : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillIceFanTiny;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 6f;
         public override int Store => 9;
@@ -487,6 +486,7 @@ namespace Ros.Skill
     public class SkillBackVolley : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackVolley;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, seed: true);
         public override float CastRange => 14f;
         public override float CD => 10f;
         public override int Store => 6;
@@ -519,6 +519,7 @@ namespace Ros.Skill
     public class SkillIceSweep : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillIceSweep;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 9f;
         public override int Store => 6;
@@ -537,6 +538,7 @@ namespace Ros.Skill
     public class SkillRootShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillRootShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 9f;
@@ -553,6 +555,7 @@ namespace Ros.Skill
     public class SkillDriftOrb : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillDriftOrb;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 8f;
         public override int Store => 6;
@@ -568,6 +571,7 @@ namespace Ros.Skill
     public class SkillTripleWaveIce : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillTripleWaveIce;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 12f;
         public override int Store => 4;
@@ -586,6 +590,7 @@ namespace Ros.Skill
     public class SkillForwardSpray : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillForwardSpray;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -602,6 +607,7 @@ namespace Ros.Skill
     public class SkillSilenceBolt : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSilenceBolt;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 18f;
         public override float CD => 12f;
         public override int Store => 5;
@@ -618,6 +624,7 @@ namespace Ros.Skill
     public class SkillSkyfallVolley : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallVolley;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 12f;
         public override int Store => 4;
@@ -642,6 +649,7 @@ namespace Ros.Skill
     public class SkillOrbitWeaponVolley : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponVolley;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 14f;
@@ -667,6 +675,7 @@ namespace Ros.Skill
     public class SkillOrbitWeaponRain : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponRain;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 15f;
         public override int Store => 3;
@@ -741,6 +750,7 @@ namespace Ros.Skill
     public class SkillRainBarrage : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillRainBarrage;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 14f;
         public override int Store => 4;
@@ -852,6 +862,7 @@ namespace Ros.Skill
     public class SkillSplitShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSplitShot;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         public override float CD => 12f;
@@ -901,6 +912,7 @@ namespace Ros.Skill
     public class SkillPullBolt : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPullBolt;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 15f;
         public override float CD => 14f;
         public override int Store => 4;
@@ -931,6 +943,7 @@ namespace Ros.Skill
     public class SkillStaticBarrage : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillStaticBarrage;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 18f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 2);
@@ -942,14 +955,6 @@ namespace Ros.Skill
         protected override int VfxIndex => 2;
         private const float Ring = 2.6f;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(entity.transform.position);
-            return context;
-        }
-
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => TrialConstructor.Point(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 12)[shotIndex], BulletLife);
 
@@ -959,6 +964,7 @@ namespace Ros.Skill
     public class SkillFanFreeze : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFanFreeze;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 10f;
         public override int Store => 5;
@@ -975,6 +981,7 @@ namespace Ros.Skill
     public class SkillSweepPoison : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSweepPoison;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 12f;
         public override int Store => 4;
@@ -1066,6 +1073,7 @@ namespace Ros.Skill
     public class SkillSweepBurn : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSweepBurn;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 14f;
         public override int Store => 4;
@@ -1085,6 +1093,7 @@ namespace Ros.Skill
     public class SkillCircleVolley : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillCircleVolley;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 18f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 7);
@@ -1116,6 +1125,7 @@ namespace Ros.Skill
     public class SkillHookFan : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillHookFan;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         public override float CD => 16f;
@@ -1197,6 +1207,7 @@ namespace Ros.Skill
     public class SkillSixOrbs : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSixOrbs;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 18f;
         public override int Store => 3;
         public override WeaponRef Weapon => new WeaponRef(WeaponCategory.MagicOrb, 10);
@@ -1210,14 +1221,6 @@ namespace Ros.Skill
         protected override int VfxIndex => 3;
         private const float Ring = 3f;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id, SkillSeed.New());
-            context.AddVectors(entity.transform.position);
-            return context;
-        }
-
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => TrialConstructor.Point(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 6)[shotIndex], BulletLife);
     }
@@ -1225,6 +1228,7 @@ namespace Ros.Skill
     public class SkillSkyfallSilence : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallSilence;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         public override float CD => 16f;
@@ -1246,6 +1250,7 @@ namespace Ros.Skill
     public class SkillBlastKnockback : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBlastKnockback;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 4f;
         public override float CD => 14f;
         public override int Store => 4;
@@ -1268,6 +1273,7 @@ namespace Ros.Skill
     public class SkillBackArcWeapons : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackArcWeapons;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 13f;
         public override float CD => 16f;

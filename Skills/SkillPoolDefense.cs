@@ -469,6 +469,7 @@ namespace Ros.Skill
     public class SkillPaleLightCast : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPaleLightCast;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 20f;
         public override float CD => 1f;
         public override int Store => 12;
@@ -485,6 +486,7 @@ namespace Ros.Skill
     public class SkillPaleDarkCast : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPaleDarkCast;
+        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 20f;
         public override float CD => 2f;
         public override int Store => 12;
