@@ -51,9 +51,9 @@ public partial class BattleManager
     {
         var list = Tool.LandscapeSpawns.neutralStatueSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置候选点则不刷新
-        // 天使 / 恶魔雕像行为一致，每次刷新随机其一（value 决定外观与模板）
-        int variant = Random.Range(0, Config.neutral_statue_variant_count);
-        SpawnEntity(EntityType.NeutralStatue(variant), 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
+        // 白天刷天使雕像、夜晚刷恶魔雕像（两者行为一致，只有外观与 value 不同）
+        EntityType statue = EnvironmentManager.IsDay ? EntityType.AngelStatue : EntityType.DemonStatue;
+        SpawnEntity(statue, 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
 
         // 中立雕像刷新播报（首次出生与重生都算刷新）
         Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
