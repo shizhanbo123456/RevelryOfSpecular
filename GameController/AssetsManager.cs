@@ -38,6 +38,7 @@ public class AssetsManager : MonoBehaviour
     #region UI 图标
     public List<Texture2D> AttackCharacterIcons = new();
     public List<Texture2D> DefenseCharacterIcons = new();
+    public List<Texture> SkillIcons = new();
     public Texture MapTexture;
     public Texture MapArea;
     #endregion
