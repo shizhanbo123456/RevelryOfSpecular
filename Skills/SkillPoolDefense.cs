@@ -428,7 +428,7 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
-    // 瘟疫污染：给场上现有矿石（可采集珊瑚）挂污染，矿石被摧毁时把瘟疫标记扩散给附近进攻方
+    // 瘟疫污染：给场上现有珊瑚挂污染，珊瑚被摧毁时把瘟疫标记扩散给附近进攻方
     public class SkillPlaguePollute : SkillBase
     {
         public override int Id => (int)SkillType.SkillPlaguePollute;
@@ -447,7 +447,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的矿石
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的珊瑚
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
                 GiveEffect(TargetSelect.TargetBuffer[i], EffectType.PlaguePollute, 1, -1f, caster);
         }

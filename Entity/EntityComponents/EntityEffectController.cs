@@ -69,7 +69,7 @@ public enum EffectType
 
     // ---- 标记（无自身效果，供其它逻辑读取）----
     NightMark,          // 黑夜标记（白眼伯爵主动2：不出现在敌方小地图）
-    PlaguePollute,      // 瘟疫污染（瘟疫使者主动2：矿石被打碎时扩散瘟疫标记）
+    PlaguePollute,      // 瘟疫污染（瘟疫使者主动2：珊瑚被摧毁时扩散瘟疫标记）
 }
 
 public static class EffectTypeExt

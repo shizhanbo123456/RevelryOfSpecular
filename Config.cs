@@ -240,7 +240,7 @@ public static class Config
     public const float power_suppress_vfx_life = 1f;
     public const float night_mark_duration = 8f;
     public const float plague_mark_duration = 30f;   // 瘟疫标记持续时长（主动1 与 瘟疫污染扩散共用）
-    public const float plague_pollute_radius = 8f;   // 矿石被打碎时的瘟疫标记扩散半径
+    public const float plague_pollute_radius = 8f;   // 珊瑚被摧毁时的瘟疫标记扩散半径
     #endregion
 
     #region 技能参数补充（占位初值，待策划定稿）

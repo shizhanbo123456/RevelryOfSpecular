@@ -99,7 +99,7 @@
 | 60 | 泥沼 | SkillMireCast | 无 | 全场敌人挂 Mire |
 | 61 | 反伤 | SkillReflectCast | 无 | 守护点挂 Reflect |
 | 62 | 瘟疫标记 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
-| 63 | 瘟疫污染 | SkillPlaguePollute | 无 | 场上现有矿石挂 PlaguePollute；矿石被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
+| 63 | 瘟疫污染 | SkillPlaguePollute | 无 | 场上现有珊瑚挂 PlaguePollute；珊瑚被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
 | 64 | 引爆瘟疫 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
 | 65 | 苍白之光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
 | 66 | 苍白之暗 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
@@ -139,7 +139,7 @@
 | Burning 燃烧 | Buff[11] 火焰 | 燃烧弹 |
 | EyeMark 白眼标记 | Buff[23] 宇宙 | 白眼伯爵 主动1 |
 | NightMark 黑夜标记 | Buff[30] 紫色祝福（与 PlagueMark 共用） | 白眼伯爵 主动2 |
-| PlaguePollute 瘟疫污染 | Buff[22] | 瘟疫使者 主动2（挂矿石） |
+| PlaguePollute 瘟疫污染 | Buff[22] | 瘟疫使者 主动2（挂珊瑚） |
 | PaleLight 苍白之光 | Buff[15] 黄色泛光 | 苍白舞者 主动1 |
 | PaleDark 苍白之暗 | Buff[4] 黑色缠绕 | 苍白舞者 主动2 |
 | PaleFire 苍白之火 | Buff[3] 血色缠绕 | 苍白舞者被动：光暗双 8 层转化 |
