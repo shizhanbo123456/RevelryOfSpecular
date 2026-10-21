@@ -114,12 +114,29 @@ public class ConfigManager : MonoBehaviour
         return value;
     }
 
+    public static float ParseFloat(string[] rowData, int col)
+    {
+        string raw = Cell(rowData, col);
+        if (!float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+            throw new FormatException($"第 {col} 列不是数值：「{raw}」");
+        return value;
+    }
+
     public static EntityCategory ParseCategory(string[] rowData, int col)
     {
         int raw = ParseInt(rowData, col);
         if (!Enum.IsDefined(typeof(EntityCategory), raw))
             throw new FormatException($"第 {col} 列的实体类型 {raw} 未在 EntityCategory 中定义");
         return (EntityCategory)raw;
+    }
+
+    // 升级路线只允许 LevelUpType 的 0~4（生命/力量/魔法/暴击率/暴击伤害）
+    public static int ParseUpgrade(string[] rowData, int col)
+    {
+        int value = ParseInt(rowData, col);
+        if (value < 0 || value > 4)
+            throw new FormatException($"第 {col} 列的升级类型 {value} 超出 0~4");
+        return value;
     }
 
     public static float? ParseFloatOrNull(string[] rowData, int col)
@@ -278,17 +295,17 @@ public class ConfigManager : MonoBehaviour
         public EntityCategory category;
         public int value;
         public string name;
-        public float? health;
-        public int? strength;
-        public int? magic;
-        public int? critRate;
-        public float? critDamage;
-        public float? viewDistance;
-        public int? weaponSlotCount;
-        public int? upgradeA;
-        public int? upgradeB;
-        public int? upgradeC;
-        public int? unlockLevel;
+        public float health;
+        public int strength;
+        public int magic;
+        public int critRate;
+        public float critDamage;
+        public float viewDistance;
+        public int weaponSlotCount;
+        public int upgradeA;
+        public int upgradeB;
+        public int upgradeC;
+        public int unlockLevel;
         public List<int> initialSkills;
 
         public EntityConfig(string[] rowData)
@@ -296,17 +313,17 @@ public class ConfigManager : MonoBehaviour
             category = ParseCategory(rowData, 0);
             value = ParseInt(rowData, 1);
             name = ParseString(rowData, 2);
-            health = ParseFloatOrNull(rowData, 3);
-            strength = ParseIntOrNull(rowData, 4);
-            magic = ParseIntOrNull(rowData, 5);
-            critRate = ParseIntOrNull(rowData, 6);
-            critDamage = ParseFloatOrNull(rowData, 7);
-            viewDistance = ParseFloatOrNull(rowData, 8);
-            weaponSlotCount = ParseIntOrNull(rowData, 9);
-            upgradeA = ParseIntOrNull(rowData, 10);
-            upgradeB = ParseIntOrNull(rowData, 11);
-            upgradeC = ParseIntOrNull(rowData, 12);
-            unlockLevel = ParseIntOrNull(rowData, 13);
+            health = ParseFloat(rowData, 3);
+            strength = ParseInt(rowData, 4);
+            magic = ParseInt(rowData, 5);
+            critRate = ParseInt(rowData, 6);
+            critDamage = ParseFloat(rowData, 7);
+            viewDistance = ParseFloat(rowData, 8);
+            weaponSlotCount = ParseInt(rowData, 9);
+            upgradeA = ParseUpgrade(rowData, 10);
+            upgradeB = ParseUpgrade(rowData, 11);
+            upgradeC = ParseUpgrade(rowData, 12);
+            unlockLevel = ParseInt(rowData, 13);
             initialSkills = ParseIntList(rowData, 14);
         }
 
@@ -317,6 +334,46 @@ public class ConfigManager : MonoBehaviour
         }
 
         public static EntityConfig Get(EntityType type) => GetOrLog(content, type, FileName);
+
+        // 僵尸/精英僵尸/水晶雕像/贤者雕像只配一行，副键精确匹配不到时回退到该类副键 0
+        public static EntityConfig GetByCategory(EntityType type)
+        {
+            if (content.TryGetValue(type, out EntityConfig config)) return config;
+            if (content.TryGetValue(new EntityType(type.category, 0), out config)) return config;
+
+            Debug.LogError($"[配表] {FileName} 中没有实体类型 {type}，副键 0 也未配置");
+            return default;
+        }
+
+        public EntityAttribute GetAttribute(int level)
+        {
+            var attr = new EntityAttribute
+            {
+                health = health,
+                strength = strength,
+                magic = magic,
+                critRate = critRate,
+                critDamage = critDamage,
+                viewDistance = viewDistance,
+                weaponSlotCount = weaponSlotCount,
+            };
+
+            level = Mathf.Max(1, level);
+            for (int lv = 2; lv <= level; lv++)
+            {
+                int step = (lv - 2) % 3;
+                int upgrade = step == 0 ? upgradeA : step == 1 ? upgradeB : upgradeC;
+                switch (upgrade)
+                {
+                    case 0: attr.health += attr.health * 0.25f; break;
+                    case 1: attr.strength += (int)(attr.strength * 0.25f); break;
+                    case 2: attr.magic += (int)(attr.magic * 0.25f); break;
+                    case 3: attr.critRate += (int)(attr.critRate * 0.1f); break;
+                    case 4: attr.critDamage += attr.critDamage * 0.2f; break;
+                }
+            }
+            return attr;
+        }
     }
     #endregion
 

@@ -495,9 +495,7 @@ public class BattlePage : PageBase
     {
         int saveIndex = GetLocalSaveIndex(camp);
         if (saveIndex < 0 || Tool.InfoManager == null || Tool.SaveManager == null) return 0;
-        var characterInfo = Tool.InfoManager.GetPlayerCharacterInfo(saveIndex);
-        if (characterInfo == null) return 0;
-        return characterInfo.GetAttribute(Tool.SaveManager.GetCharacterLevel(saveIndex)).weaponSlotCount;
+        return Tool.InfoManager.GetPlayerCharacterInfo(saveIndex).GetAttribute(Tool.SaveManager.GetCharacterLevel(saveIndex)).weaponSlotCount;
     }
 
     private void OnScoreUpdate(SCScoreInfo info)
@@ -1046,21 +1044,37 @@ public class BattlePage : PageBase
         return $"{s / 60:D2}:{s % 60:D2}";
     }
 
+    private static Texture ResolveSkillIcon(int skillId)
+    {
+        if (skillId < 0) return null;
+
+        var config = ConfigManager.SkillConfig.Get(skillId);
+        if (!config.iconIndex.HasValue) return null;
+
+        var icons = Tool.AssetsManager != null ? Tool.AssetsManager.SkillIcons : null;
+        int index = config.iconIndex.Value;
+        if (icons == null || index < 0 || index >= icons.Count)
+        {
+            Debug.LogError($"[技能图标] 技能 {skillId} 的图标编号 {index} 越界（SkillIcons 数量 {(icons == null ? 0 : icons.Count)}）");
+            return null;
+        }
+        return icons[index];
+    }
+
     private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
     {
-        var info = slot.skillId >= 0 && Tool.InfoManager != null ? Tool.InfoManager.GetSkillInfo(slot.skillId) : null;
+        Texture iconTexture = ResolveSkillIcon(slot.skillId);
 
-        var iconSprite = info != null ? info.icon : null;
         if (item.m_loader_icon != null)
         {
-            item.m_loader_icon.texture = iconSprite != null ? new NTexture(iconSprite) : null;
-            item.m_loader_icon.visible = iconSprite != null;
+            item.m_loader_icon.texture = iconTexture != null ? new NTexture(iconTexture) : null;
+            item.m_loader_icon.visible = iconTexture != null;
         }
         //底图与技能图标一并设置（同一张图，底图在后/图标在前由 prefab 层级保证）
         if (item.m_loader_iconBase != null)
         {
-            item.m_loader_iconBase.texture = iconSprite != null ? new NTexture(iconSprite) : null;
-            item.m_loader_iconBase.visible = iconSprite != null;
+            item.m_loader_iconBase.texture = iconTexture != null ? new NTexture(iconTexture) : null;
+            item.m_loader_iconBase.visible = iconTexture != null;
         }
 
 

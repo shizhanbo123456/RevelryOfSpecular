@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Ros.Info;
 using UnityEngine;
 
 public class InfoManager : MonoBehaviour
@@ -12,33 +11,6 @@ public class InfoManager : MonoBehaviour
     public int entity_layer;
 
     public int ground_layer;
-
-    #region 角色属性配置（Info）
-    public List<PlayerCharacterInfo> AttackCharacterInfoList = new();
-    public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
-    public EntityAttributeInfo ZombieInfo;
-    public List<EntityAttributeInfo> EliteZombieInfoList = new();
-    public EntityAttributeInfo SageStatueInfo;
-    public EntityAttributeInfo KingStatueInfo;
-    public EntityAttributeInfo CoralSmallInfo;
-    public EntityAttributeInfo CoralLargeInfo;
-    public List<EntityAttributeInfo> CrystalStatueInfoList = new();
-    public EntityAttributeInfo NeutralStatueInfo;
-    #endregion
-
-    #region 技能配置
-    public List<SkillInfo> SkillInfoList = new();
-
-    public SkillInfo GetSkillInfo(int id)
-    {
-        if (SkillInfoList == null) return null;
-        foreach (var info in SkillInfoList)
-        {
-            if (info != null && info.id == id) return info;
-        }
-        return null;
-    }
-    #endregion
 
     #region 服务器实体模板（只含组件，无图形；下标语义与 AssetsManager 的图形列表保持一致）
     public List<GameObject> AttackCharacterTemplates = new();
@@ -91,47 +63,24 @@ public class InfoManager : MonoBehaviour
     private static GameObject FirstTemplate(List<GameObject> list) => list.Count > 0 ? list[0] : null;
     #endregion
 
-    #region 属性获取
+    #region 属性（数据源：StreamingAssets/ConfigData/entity.csv）
     public EntityAttribute GetAttribute(EntityType type, int level)
     {
-        var info = GetAttributeInfo(type);
-        return info != null ? info.GetAttribute(level) : new EntityAttribute();
+        return ConfigManager.EntityConfig.GetByCategory(type).GetAttribute(level);
     }
 
-    public PlayerCharacterInfo GetPlayerCharacterInfo(int globalIndex)
+    public ConfigManager.EntityConfig GetEntityConfig(EntityType type)
     {
-        if (globalIndex < 0) return null;
+        return ConfigManager.EntityConfig.GetByCategory(type);
+    }
+
+    // 全局角色下标：0~17 进攻方，18~23 防守方
+    public ConfigManager.EntityConfig GetPlayerCharacterInfo(int globalIndex)
+    {
         if (globalIndex < Config.attack_character_count)
-        {
-            return globalIndex < AttackCharacterInfoList.Count ? AttackCharacterInfoList[globalIndex] : null;
-        }
-        int defIndex = globalIndex - Config.attack_character_count;
-        return defIndex < DefenseCharacterInfoList.Count ? DefenseCharacterInfoList[defIndex] : null;
-    }
+            return ConfigManager.EntityConfig.Get(EntityType.Attack(globalIndex));
 
-    public EntityAttributeInfo GetAttributeInfo(EntityType type)
-    {
-        switch (type.category)
-        {
-            case EntityCategory.Character_Attack:
-                if (type.value >= 0 && type.value < AttackCharacterInfoList.Count) return AttackCharacterInfoList[type.value];
-                break;
-            case EntityCategory.Character_Defense:
-                if (type.value >= 0 && type.value < DefenseCharacterInfoList.Count) return DefenseCharacterInfoList[type.value];
-                break;
-            case EntityCategory.Zombie: return ZombieInfo;
-            case EntityCategory.EliteZombie:
-                if (EliteZombieInfoList.Count > 0) return EliteZombieInfoList[type.value % EliteZombieInfoList.Count];
-                break;
-            case EntityCategory.GuardStatue:
-                return type.value < Config.sage_statue_count ? SageStatueInfo : KingStatueInfo;
-            case EntityCategory.Coral:
-                return type.value <= 0 ? CoralSmallInfo : CoralLargeInfo;
-            case EntityCategory.CrystalStatue:
-                return type.value >= 0 && type.value < CrystalStatueInfoList.Count ? CrystalStatueInfoList[type.value] : null;
-            case EntityCategory.NeutralStatue: return NeutralStatueInfo;
-        }
-        return null;
+        return ConfigManager.EntityConfig.Get(EntityType.Defense(globalIndex - Config.attack_character_count));
     }
     #endregion
 }

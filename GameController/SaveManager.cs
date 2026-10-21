@@ -41,8 +41,8 @@ public class SaveManager : MonoBehaviour
 
     public bool IsUnlockedByPlayerLevel(int characterIndex)
     {
-        var info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(characterIndex) : null;
-        return info == null || playerLevel >= info.unlockPlayerLevel;
+        if (Tool.InfoManager == null) return true;
+        return playerLevel >= Tool.InfoManager.GetPlayerCharacterInfo(characterIndex).unlockLevel;
     }
     #endregion
 
@@ -82,7 +82,7 @@ public class SaveManager : MonoBehaviour
         while (characterExp.Count < CharacterTotalCount) characterExp.Add(0);
         while (characterUnlocked.Count < CharacterTotalCount)
         {
-            characterUnlocked.Add(false); // 解锁由角色 SO 的 unlockPlayerLevel 判定，存档标记默认全 false
+            characterUnlocked.Add(false); // 解锁由配表 entity.csv 的解锁等级判定，存档标记默认全 false
         }
     }
 

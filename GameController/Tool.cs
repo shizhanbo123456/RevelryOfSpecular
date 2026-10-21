@@ -159,17 +159,6 @@ public class Tool : MonoBehaviour
             e++;
         }
 
-        e += CheckList("InfoManager.AttackCharacterInfoList", m.AttackCharacterInfoList, Config.attack_character_count);
-        e += CheckList("InfoManager.DefenseCharacterInfoList", m.DefenseCharacterInfoList, Config.defense_character_count);
-        e += CheckObject("InfoManager.ZombieInfo", m.ZombieInfo);
-        e += CheckList("InfoManager.EliteZombieInfoList", m.EliteZombieInfoList, Config.elite_zombie_variant_count);
-        e += CheckObject("InfoManager.SageStatueInfo", m.SageStatueInfo);
-        e += CheckObject("InfoManager.KingStatueInfo", m.KingStatueInfo);
-        e += CheckObject("InfoManager.CoralSmallInfo", m.CoralSmallInfo);
-        e += CheckObject("InfoManager.CoralLargeInfo", m.CoralLargeInfo);
-        e += CheckList("InfoManager.CrystalStatueInfoList", m.CrystalStatueInfoList, Config.crystal_statue_count);
-        e += CheckObject("InfoManager.NeutralStatueInfo", m.NeutralStatueInfo);
-
         e += CheckList("InfoManager.AttackCharacterTemplates", m.AttackCharacterTemplates, Config.attack_character_count);
         e += CheckList("InfoManager.DefenseCharacterTemplates", m.DefenseCharacterTemplates, Config.defense_character_count);
         e += CheckList("InfoManager.ZombieTemplates", m.ZombieTemplates, Config.zombie_variant_count);
@@ -179,59 +168,6 @@ public class Tool : MonoBehaviour
         e += CheckList("InfoManager.CoralLargeTemplates", m.CoralLargeTemplates, 0);
         e += CheckList("InfoManager.CrystalStatueTemplates", m.CrystalStatueTemplates, Config.crystal_statue_count);
         e += CheckList("InfoManager.NeutralStatueTemplates", m.NeutralStatueTemplates, Config.neutral_statue_variant_count);
-
-        e += CheckSkillInfos();
-        return e;
-    }
-
-    private static int CheckSkillInfos()
-    {
-        var list = InfoManager.SkillInfoList;
-        if (list == null)
-        {
-            Debug.LogError("[启动自检] InfoManager.SkillInfoList 为 null（未初始化）");
-            return 1;
-        }
-
-        int e = 0;
-        var configured = new HashSet<int>();
-        var duplicated = new HashSet<int>();
-        for (int i = 0; i < list.Count; i++)
-        {
-            var info = list[i];
-            if (info == null)
-            {
-                Debug.LogError($"[启动自检] InfoManager.SkillInfoList[{i}] 为空（资产可能已被删除）");
-                e++;
-                continue;
-            }
-            if (!configured.Add(info.id)) duplicated.Add(info.id);
-        }
-        if (duplicated.Count > 0)
-        {
-            var ids = new List<int>(duplicated);
-            ids.Sort();
-            Debug.LogError($"[启动自检] InfoManager.SkillInfoList 重复 id：{string.Join(", ", ids)}");
-            e++;
-        }
-
-        List<int> registered = SkillManager.GetRegisteredIds();
-        var missing = new List<int>();
-        var extra = new List<int>();
-        foreach (int id in registered) if (!configured.Contains(id)) missing.Add(id);
-        foreach (int id in configured) if (!registered.Contains(id)) extra.Add(id);
-        missing.Sort();
-        extra.Sort();
-        if (missing.Count > 0)
-        {
-            Debug.LogError($"[启动自检] InfoManager.SkillInfoList 缺失技能 id：{string.Join(", ", missing)}");
-            e++;
-        }
-        if (extra.Count > 0)
-        {
-            Debug.LogWarning($"[启动自检] InfoManager.SkillInfoList 配置了未注册的技能 id：{string.Join(", ", extra)}");
-            e++;
-        }
         return e;
     }
 

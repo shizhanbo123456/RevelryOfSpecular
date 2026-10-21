@@ -85,20 +85,15 @@ public class HomePage : PageBase
     private void RefreshLists()
     {
         var charPanel = panel.m_characterList;
-        var infoList = Tool.InfoManager == null ? null
-            : defenseTab ? Tool.InfoManager.DefenseCharacterInfoList : Tool.InfoManager.AttackCharacterInfoList;
-        charPanel.m_characterList.numItems = infoList != null ? infoList.Count : 0;
+        charPanel.m_characterList.numItems = defenseTab ? Config.defense_character_count : Config.attack_character_count;
     }
 
     private void RenderCharacter(int index, GObject obj)
     {
         var head = (UI_RoleHead)obj;
-        var infoList = Tool.InfoManager != null
-            ? (defenseTab ? Tool.InfoManager.DefenseCharacterInfoList : Tool.InfoManager.AttackCharacterInfoList)
-            : null;
-        var info = infoList != null && index < infoList.Count ? infoList[index] : null;
-        string name = info != null && !string.IsNullOrEmpty(info.Name) ? info.Name : (defenseTab ? $"防守角色 {index}" : $"进攻角色 {index}");
         int saveIndex = defenseTab ? Config.attack_character_count + index : index;
+        ConfigManager.EntityConfig info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(saveIndex) : default;
+        string name = !string.IsNullOrEmpty(info.name) ? info.name : (defenseTab ? $"防守角色 {index}" : $"进攻角色 {index}");
         int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
         bool unlocked = Tool.SaveManager == null || Tool.SaveManager.IsCharacterUnlocked(saveIndex);
         int selected = defenseTab ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
@@ -138,17 +133,10 @@ public class HomePage : PageBase
     {
         int selectedIndex = defenseTab ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
         int saveIndex = defenseTab ? Config.attack_character_count + selectedIndex : selectedIndex;
-        var info = Tool.InfoManager == null ? null
-            : Tool.InfoManager.GetPlayerCharacterInfo(saveIndex);
+        ConfigManager.EntityConfig info = Tool.InfoManager != null ? Tool.InfoManager.GetPlayerCharacterInfo(saveIndex) : default;
         int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
 
         var attrList = panel.m_characterList.m_attrList;
-        if (info == null)
-        {
-            attrList.itemRenderer = (i, obj) => ((UI_AttrItem)obj).m_attrValue.text = "-";
-            attrList.numItems = StatKeys.Length;
-            return;
-        }
         var attr = info.GetAttribute(level);
         var baseAttr = info.GetAttribute(1);
         var nextAttr = level < Config.save_max_level ? info.GetAttribute(level + 1) : null;
