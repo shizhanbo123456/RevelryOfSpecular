@@ -106,15 +106,27 @@ namespace Ros.Gm
         [GmLabel("其它-调试")]
         [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]
         Other_Debug,
-        [GmLabel("其它-收集-模型网格面数")]
+        [GmLabel("其它-性能-模型网格面数")]
         [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]
         Other_Collect_MeshFaces,
-        [GmLabel("其它-收集-服务器帧率")]
+        [GmLabel("其它-性能-服务器帧率")]
         [GmStatus(GmStatusType.Lobby | GmStatusType.Battle)]
         Other_Collect_ServerFps,
-        [GmLabel("其它-收集-服务器时间")]
+        [GmLabel("其它-性能-服务器时间")]
         [GmStatus(GmStatusType.Lobby | GmStatusType.Battle)]
         Other_Collect_ServerTime,
+        [GmLabel("其它-战斗数据-僵尸数量")]
+        [GmStatus(GmStatusType.Battle)]
+        Other_CombatData_ZombieCount,
+        [GmLabel("其它-战斗数据-僵尸刷新等级")]
+        [GmStatus(GmStatusType.Battle)]
+        Other_CombatData_ZombieSpawnLevel,
+        [GmLabel("其它-战斗数据-白天时长")]
+        [GmStatus(GmStatusType.Battle)]
+        Other_CombatData_DayDuration,
+        [GmLabel("其它-战斗数据-夜晚时长")]
+        [GmStatus(GmStatusType.Battle)]
+        Other_CombatData_NightDuration,
         [GmLabel("其它-敌方对话")]
         [GmStatus(GmStatusType.Lobby | GmStatusType.Battle)]
         Other_EnemyDialog,

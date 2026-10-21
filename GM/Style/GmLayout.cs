@@ -318,6 +318,26 @@ namespace Ros.Gm
                 new Button(string.Empty, "刷新"),
                 new Label("服务器时间", string.Empty)
             });
+            layoutStyle.Add(GmEnum.Other_CombatData_ZombieCount, new()
+            {
+                new Button(string.Empty, "刷新"),
+                new Label("僵尸数量", string.Empty)
+            });
+            layoutStyle.Add(GmEnum.Other_CombatData_ZombieSpawnLevel, new()
+            {
+                new Button(string.Empty, "刷新"),
+                new Label("僵尸刷新等级", string.Empty)
+            });
+            layoutStyle.Add(GmEnum.Other_CombatData_DayDuration, new()
+            {
+                new Button(string.Empty, "刷新"),
+                new Label("白天时长", string.Empty)
+            });
+            layoutStyle.Add(GmEnum.Other_CombatData_NightDuration, new()
+            {
+                new Button(string.Empty, "刷新"),
+                new Label("夜晚时长", string.Empty)
+            });
             layoutStyle.Add(GmEnum.Other_EnemyDialog, new()
             {
                 new Button(string.Empty, "敌方对话")

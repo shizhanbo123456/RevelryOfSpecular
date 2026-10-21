@@ -27,9 +27,13 @@ public class GmPanel
     private const float panelOpenPressWindow = 1f;
     private int pressCount;
     private float firstPressTime;
-    private string meshFacesText = string.Empty;   // 收集-模型网格面数：点刷新时算一次，渲染时读缓存
-    private string serverFpsText = string.Empty;   // 收集-服务器帧率：服务器回包后填
-    private string serverTimeText = string.Empty;  // 收集-服务器时间：服务器回包后填
+    private string meshFacesText = string.Empty;   // 性能-模型网格面数：点刷新时算一次，渲染时读缓存
+    private string serverFpsText = string.Empty;   // 性能-服务器帧率：服务器回包后填
+    private string serverTimeText = string.Empty;  // 性能-服务器时间：服务器回包后填
+    private string zombieCountText = string.Empty;   // 战斗数据-僵尸数量：服务器回包后填
+    private string zombieLevelText = string.Empty;   // 战斗数据-僵尸刷新等级：服务器回包后填
+    private string dayDurationText = string.Empty;   // 战斗数据-白天时长：服务器回包后填
+    private string nightDurationText = string.Empty; // 战斗数据-夜晚时长：服务器回包后填
 
     // 开关类指令的本地状态（服务端按目标状态设置；本地只用于按钮标题与切换）
     private readonly HashSet<GmEnum> toggleOn = new();
@@ -558,7 +562,7 @@ public class GmPanel
         item.m_content_btn.title = ButtonTitle(range.Value.cmd, rowIndex - range.Value.start, row.buttonTitle);
     }
 
-    // 服务器回包（目前只有帧率/时间）：填缓存并重画该指令的数据行
+    // 服务器回包（性能 / 战斗数据）：填缓存并重画该指令的数据行
     private void OnGmResult(SCGm gm)
     {
         if (gm == null) return;
@@ -566,6 +570,10 @@ public class GmPanel
         {
             case GmEnum.Other_Collect_ServerFps: serverFpsText = $"{gm.int1} FPS"; break;
             case GmEnum.Other_Collect_ServerTime: serverTimeText = gm.float1.ToString("0.0"); break;
+            case GmEnum.Other_CombatData_ZombieCount: zombieCountText = gm.int1.ToString(); break;
+            case GmEnum.Other_CombatData_ZombieSpawnLevel: zombieLevelText = gm.int1.ToString(); break;
+            case GmEnum.Other_CombatData_DayDuration: dayDurationText = gm.float1.ToString("0.0") + " s"; break;
+            case GmEnum.Other_CombatData_NightDuration: nightDurationText = gm.float1.ToString("0.0") + " s"; break;
             default: return;
         }
         if (!panel.visible) return;
@@ -602,6 +610,30 @@ public class GmPanel
         {
             item.m_content.selectedPage = "文本";
             item.m_content_text.text = serverTimeText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_CombatData_ZombieCount && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = zombieCountText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_CombatData_ZombieSpawnLevel && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = zombieLevelText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_CombatData_DayDuration && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = dayDurationText;
+            return true;
+        }
+        if (cmd == GmEnum.Other_CombatData_NightDuration && index == 1)
+        {
+            item.m_content.selectedPage = "文本";
+            item.m_content_text.text = nightDurationText;
             return true;
         }
         return false;

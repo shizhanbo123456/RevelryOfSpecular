@@ -85,7 +85,7 @@ public partial class BattleManager
                     break;
                 }
 
-            // ===== 其它（收集）=====
+            // ===== 其它（性能）=====
             case GmEnum.Other_Collect_ServerFps:
             case GmEnum.Other_Collect_ServerTime:
                 Tool.NetworkManager.SendGm(clientId, new SCGm()
@@ -95,6 +95,27 @@ public partial class BattleManager
                     float1 = UnityEngine.Time.time,
                 });
                 break;
+
+            // ===== 其它（战斗数据）=====
+            case GmEnum.Other_CombatData_ZombieCount:
+                Tool.NetworkManager.SendGm(clientId, new SCGm { type = gm.type, int1 = zombieCount });
+                break;
+            case GmEnum.Other_CombatData_ZombieSpawnLevel:
+                Tool.NetworkManager.SendGm(clientId, new SCGm { type = gm.type, int1 = GetZombieSpawnLevel() });
+                break;
+            case GmEnum.Other_CombatData_DayDuration:
+            case GmEnum.Other_CombatData_NightDuration:
+                {
+                    var env = Tool.EnvironmentManager;
+                    if (env == null) break;
+                    bool isDay = gm.type == GmEnum.Other_CombatData_DayDuration;
+                    Tool.NetworkManager.SendGm(clientId, new SCGm
+                    {
+                        type = gm.type,
+                        float1 = isDay ? env.dayDuration : env.nightDuration,
+                    });
+                    break;
+                }
         }
     }
 
