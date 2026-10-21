@@ -35,32 +35,7 @@ public class EntityPlayerManager : ClientSubManager
         private bool springInited;        // 弹簧仅初始化一次，避免每帧重置把武器重新吸附到抖动位姿
         public Transform cameraAnchor;    // 相机注视点 = EntityAnchor.Camera；旋转取实体根，供相机偏航同步
 
-        // 蘑菇感染表现（仅水晶实体）：服务器不存在蘑菇实体，「蘑菇感染」是水晶上的 Buff；
-        // 客户端按同步 Buff 显隐切换（水晶/蘑菇模型均无动画，直接显隐，见策划案 11.3）
-        public Renderer[] crystalRenderers; // 水晶模型渲染器（CreateView 时缓存）
-        public GameObject mushroomVisual;   // 蘑菇模型（首次感染时懒实例化）
-        private bool mushroomized;
-
         public readonly Dictionary<int, GameObject> buffVfx = new();
-
-        public void SetMushroomized(bool on)
-        {
-            if (mushroomized == on) return;
-            mushroomized = on;
-            if (crystalRenderers != null)
-            {
-                foreach (var r in crystalRenderers) if (r != null) r.enabled = !on;
-            }
-            if (on && mushroomVisual == null)
-            {
-                var assets = Tool.AssetsManager;
-                if (assets != null && assets.MushroomGraphics.Count > 0)
-                {
-                    mushroomVisual = Instantiate(assets.MushroomGraphics[Random.Range(0, assets.MushroomGraphics.Count)], transform, false);
-                }
-            }
-            if (mushroomVisual != null) mushroomVisual.SetActive(on);
-        }
 
         private void OnDestroy()
         {
@@ -400,11 +375,6 @@ public class EntityPlayerManager : ClientSubManager
         view.modelInfo = go.GetComponentInChildren<EntityModelInfo>();
         if (view.modelInfo == null) Debug.LogError($"客户端实体缺少 EntityModelInfo：{info.type}（id={info.entityId}）");
         view.springWeapon = SpringWeapon.Attach(go);
-        // 水晶实体：缓存模型渲染器，供「蘑菇感染」Buff 显隐换模（水晶/蘑菇均无动画，直接显隐）
-        if (info.type.category == EntityCategory.Crystal)
-        {
-            view.crystalRenderers = go.GetComponentsInChildren<Renderer>(true);
-        }
         view.animator = go.GetComponentInChildren<Animator>();
         if (view.animator != null)
         {
@@ -551,21 +521,6 @@ public class EntityPlayerManager : ClientSubManager
         // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正
         // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
         if (info.includeRuntime || info.hasBuffs) ApplyBuffVfx(view, info.buffs);
-
-        // 蘑菇感染表现：完整同步时按 Buff 列表切换水晶/蘑菇模型（仅水晶缓存了 crystalRenderers）
-        if ((info.includeRuntime || info.hasBuffs) && view.crystalRenderers != null)
-        {
-            bool infected = false;
-            foreach (var b in info.buffs)
-            {
-                if (b != null && b.type == (int)EffectType.MushroomInfect)
-                {
-                    infected = true;
-                    break;
-                }
-            }
-            view.SetMushroomized(infected);
-        }
 
         // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
         var selfLoading = ClientLoadingManager.Current;

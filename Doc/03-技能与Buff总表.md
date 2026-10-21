@@ -87,7 +87,7 @@
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
 | 50 | 岩石护盾 | SkillRockShield | 无（护盾 buff 自带） | 附近防御塔挂 TowerShield |
-| 51 | 蘑菇感染 | SkillMushroomInfect | 无（模型替换） | MushroomInfect |
+| 51 | 蘑菇感染（效果已移除，待重做） | SkillMushroomInfect | 无 | 无 |
 | 52 | 灵火 | SkillTowerBlazeCast | 无 | 全场塔挂 TowerBlaze |
 | 53 | 白眼标记 | SkillEyeMark | 无 | EyeMark（小地图常显） |
 | 54 | 无限视野 | SkillInfiniteVision | 无 | 10 级可见距离提升 |
@@ -161,7 +161,7 @@
 | AttrStrengthDecrease / AttrMagicDecrease / AttrCritRateDecrease / AttrCritDamageDecrease | MC[5] 深绿护盾 | 属性削弱类 |
 | AttrKnockbackBoost 击退抗性提升 | MC[8] 红色防御增益 | 复活后的击退抗性提升等 |
 
-### 2.1 明确无特效 / 非特效的状态（9）
+### 2.1 明确无特效 / 非特效的状态（8）
 
 | 状态 | 处理 |
 | --- | --- |
@@ -170,7 +170,6 @@
 | DodgeBoost 闪避提升 | 无特效（属性侧暂无闪避字段） |
 | YzCy 愈战愈勇 | 无特效（策划案明确无外观） |
 | MinimapLost 小地图失联 | 小地图 UI 逻辑，非特效 |
-| MushroomInfect 蘑菇感染 | 模型替换，非特效 |
 | GmSpeedUp GM 极速 | 无特效 |
 | Fog 迷雾 | 由技能本体挂 Buff[6] 紫雾喷发（不在 `buff_vfx` 表内） |
 

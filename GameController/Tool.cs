@@ -247,8 +247,6 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.TowerGraphics", m.TowerGraphics, Config.tower_count);
         e += CheckObject("AssetsManager.PlagueTreeGraphic", m.PlagueTreeGraphic);
 
-        e += CheckList("AssetsManager.MushroomGraphics", m.MushroomGraphics, 0); // 变体数未定稿，只查空项
-
         e += CheckList("AssetsManager.BulletVFX", m.BulletVFX, vfx_bullet_count);
         e += CheckList("AssetsManager.ShieldVFX", m.ShieldVFX, vfx_shield_count);
         e += CheckList("AssetsManager.RangeMagicVFX", m.RangeMagicVFX, vfx_range_magic_count);

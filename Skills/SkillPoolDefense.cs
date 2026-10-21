@@ -64,10 +64,10 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
+    // 蘑菇感染：效果已移除，保留技能位与 id，待重做
     public class SkillMushroomInfect : SkillBase
     {
         public override int Id => (int)SkillType.SkillMushroomInfect;
-        public override float CastRange => Config.absorb_crystal_radius;
         public override float CD => 15f;
         public override int Store => 4;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
@@ -76,21 +76,12 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var crystal = TargetSelect.SelectNearest(BattleManager.EntityContainer.Crystals, entity.transform.position,
-                Config.defense_ally_cast_radius);
-            if (crystal != null) context.AddInts(crystal.id);
             return context;
         }
 
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.MushroomInfect, 1,
-                    Config.mushroom_infect_duration, caster);
-        }
+        protected override void OnCast(SkillContext context) { }
 
-        public override void PlayVFX(SkillContext context) { } // 表现 = 模型替换
+        public override void PlayVFX(SkillContext context) { }
     }
 
     public class SkillTowerBlazeCast : SkillBase

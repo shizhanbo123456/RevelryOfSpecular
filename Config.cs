@@ -230,7 +230,6 @@ public static class Config
     #endregion
 
     #region 防守方技能参数（占位初值，待策划定稿）
-    public const float mushroom_infect_duration = 60f;
     public const float death_stroll_radius = 4f;
     public const float death_stroll_dot_ratio = 1.5f; // 死灵漫步光环每跳 = max(施加者力/魔) × 此系数 × 等级
     public const float death_stroll_speed_up = 1.3f;

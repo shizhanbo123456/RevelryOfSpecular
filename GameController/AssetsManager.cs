@@ -17,7 +17,6 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> CrystalGraphics = new();
     public List<GameObject> TowerGraphics = new();
     public GameObject PlagueTreeGraphic;
-    public List<GameObject> MushroomGraphics = new();
     #endregion
 
     #region 特效（编号与《特效清单与分配表.md》对应）

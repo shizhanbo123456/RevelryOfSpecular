@@ -62,7 +62,6 @@ public enum EffectType
     DeathCurse,         // 死灵诅咒（叠层：DoT + 受伤增加）
     ZombieScreamBoost,  // 僵尸嘶吼增益
     DodgeBoost,         // 闪避提升（属性侧暂无闪避字段）
-    MushroomInfect,     // 蘑菇感染（鹿铠主动2：水晶上的 Buff，服务器只存剩余时间；客户端按同步 Buff 显隐换模，存在时被进攻方摧毁无产出）
     PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
 
     // ---- GM（仅调试指令用）----
@@ -102,7 +101,7 @@ public static class EffectTypeExt
         EffectType.Burning or EffectType.Poison or
         EffectType.Mire or EffectType.AnimSlowDown or EffectType.MinimapLost or
         EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
-        EffectType.EyeMark or EffectType.Fog or EffectType.MushroomInfect or
+        EffectType.EyeMark or EffectType.Fog or
         EffectType.PaleFire or EffectType.PaleIce or EffectType.PaleThunder or
         EffectType.DeathCurse => true,
         _ => false,
