@@ -253,7 +253,7 @@ public partial class BattleManager
                     : Config.revive_night_progress_per_second;
                 var mults = Config.revive_progress_multiplier_by_death;
                 float mult = mults[Mathf.Min(Mathf.Max(rs.deathCount - 1, 0), mults.Length - 1)];
-                rs.progress += dt * rate * mult * AttackReviveFactor; // PC102 被动「进攻方复活速度减慢」
+                rs.progress += dt * rate * mult * AttackReviveFactor; // 瘟疫使者 被动「进攻方复活速度减慢」
             }
             else
             {

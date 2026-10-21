@@ -178,12 +178,12 @@ public static class Config
         { EntityType.Attack(17), new[] { (int)SkillType.SkillBoomerangWeapon } },
 
         // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招）=====
-        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillTowerBlazeCast } },      // PC104 鹿铠怪人
-        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillNightMark, (int)SkillType.SkillForceNight } },                 // NP114 白眼伯爵
-        { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // PC106 死灵漫步者
-        { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // NP134 蒙面教皇
-        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillPlaguePollute, (int)SkillType.SkillDetonatePlague } },    // PC102 瘟疫使者
-        { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },           // PC103 苍白舞者
+        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillTowerBlazeCast } },      // 鹿铠怪人
+        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillNightMark, (int)SkillType.SkillForceNight } },                 // 白眼伯爵
+        { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // 死灵漫步者
+        { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // 蒙面教皇
+        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillPlaguePollute, (int)SkillType.SkillDetonatePlague } },    // 瘟疫使者
+        { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },           // 苍白舞者
 
         // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退）=====
         { EntityType.Zombie(0), new[] { (int)SkillType.SkillZombieClawR, (int)SkillType.SkillZombieClawL } },                       // 普通僵尸：爪击右 / 爪击左
@@ -302,12 +302,12 @@ public static class Config
     #endregion
 
     #region 防守方角色下标（type.value，顺序同策划案第五章与 initial_skills）
-    public const int defense_index_deer_knight = 0;    // PC104 鹿铠怪人
-    public const int defense_index_count_eye = 1;      // NP114 白眼伯爵
-    public const int defense_index_death_stroller = 2; // PC106 死灵漫步者
-    public const int defense_index_masked_pope = 3;    // NP134 蒙面教皇
-    public const int defense_index_plague_bringer = 4; // PC102 瘟疫使者
-    public const int defense_index_pale_dancer = 5;    // PC103 苍白舞者
+    public const int defense_index_deer_knight = 0;    // 鹿铠怪人
+    public const int defense_index_count_eye = 1;      // 白眼伯爵
+    public const int defense_index_death_stroller = 2; // 死灵漫步者
+    public const int defense_index_masked_pope = 3;    // 蒙面教皇
+    public const int defense_index_plague_bringer = 4; // 瘟疫使者
+    public const int defense_index_pale_dancer = 5;    // 苍白舞者
     #endregion
 
     #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）

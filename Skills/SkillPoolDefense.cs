@@ -9,33 +9,33 @@ namespace Ros.Skill
     {
         public static void RegisterAll()
         {
-            SkillManager.Register(new SkillRockShield());      // PC104 岩石护盾
-            SkillManager.Register(new SkillPowerSuppress());   // PC104 怪力压制
-            SkillManager.Register(new SkillTowerBlazeCast());  // PC104 灵火
+            SkillManager.Register(new SkillRockShield());      // 鹿铠怪人 岩石护盾
+            SkillManager.Register(new SkillPowerSuppress());   // 鹿铠怪人 怪力压制
+            SkillManager.Register(new SkillTowerBlazeCast());  // 鹿铠怪人 灵火
 
-            SkillManager.Register(new SkillEyeMark());         // NP114 白眼标记
-            SkillManager.Register(new SkillNightMark());       // NP114 黑夜标记
-            SkillManager.Register(new SkillForceNight());      // NP114 立即入夜
+            SkillManager.Register(new SkillEyeMark());         // 白眼伯爵 白眼标记
+            SkillManager.Register(new SkillNightMark());       // 白眼伯爵 黑夜标记
+            SkillManager.Register(new SkillForceNight());      // 白眼伯爵 立即入夜
 
-            SkillManager.Register(new SkillSummonZombies());   // PC106 召唤僵尸
-            SkillManager.Register(new SkillDeathStrollCast()); // PC106 死灵漫步
-            SkillManager.Register(new SkillSummonElites());    // PC106 召唤精英
+            SkillManager.Register(new SkillSummonZombies());   // 死灵漫步者 召唤僵尸
+            SkillManager.Register(new SkillDeathStrollCast()); // 死灵漫步者 死灵漫步
+            SkillManager.Register(new SkillSummonElites());    // 死灵漫步者 召唤精英
 
-            SkillManager.Register(new SkillSilenceCast());     // NP134 沉默
-            SkillManager.Register(new SkillMireCast());        // NP134 泥沼
-            SkillManager.Register(new SkillReflectCast());     // NP134 反伤
+            SkillManager.Register(new SkillSilenceCast());     // 蒙面教皇 沉默
+            SkillManager.Register(new SkillMireCast());        // 蒙面教皇 泥沼
+            SkillManager.Register(new SkillReflectCast());     // 蒙面教皇 反伤
 
-            SkillManager.Register(new SkillPlagueMarkCast());  // PC102 瘟疫标记
-            SkillManager.Register(new SkillPlaguePollute());   // PC102 瘟疫污染
-            SkillManager.Register(new SkillDetonatePlague());  // PC102 引爆瘟疫
+            SkillManager.Register(new SkillPlagueMarkCast());  // 瘟疫使者 瘟疫标记
+            SkillManager.Register(new SkillPlaguePollute());   // 瘟疫使者 瘟疫污染
+            SkillManager.Register(new SkillDetonatePlague());  // 瘟疫使者 引爆瘟疫
 
-            SkillManager.Register(new SkillPaleLightCast());   // PC103 苍白之光
-            SkillManager.Register(new SkillPaleDarkCast());    // PC103 苍白之暗
-            SkillManager.Register(new SkillFogCast());         // PC103 迷雾
+            SkillManager.Register(new SkillPaleLightCast());   // 苍白舞者 苍白之光
+            SkillManager.Register(new SkillPaleDarkCast());    // 苍白舞者 苍白之暗
+            SkillManager.Register(new SkillFogCast());         // 苍白舞者 迷雾
         }
     }
 
-    #region PC104 鹿铠怪人
+    #region 鹿铠怪人
     public class SkillRockShield : SkillBase
     {
         public override int Id => (int)SkillType.SkillRockShield;
@@ -151,7 +151,7 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region NP114 白眼伯爵
+    #region 白眼伯爵
     public class SkillEyeMark : SkillBase
     {
         public override int Id => (int)SkillType.SkillEyeMark;
@@ -226,7 +226,7 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region PC106 死灵漫步者
+    #region 死灵漫步者
     public class SkillSummonZombies : SkillBase
     {
         public override int Id => (int)SkillType.SkillSummonZombies;
@@ -313,7 +313,7 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region NP134 蒙面教皇
+    #region 蒙面教皇
     public class SkillSilenceCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillSilenceCast;
@@ -399,7 +399,7 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region PC102 瘟疫使者
+    #region 瘟疫使者
     public class SkillPlagueMarkCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillPlagueMarkCast;
@@ -494,7 +494,7 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region PC103 苍白舞者
+    #region 苍白舞者
     public class SkillPaleLightCast : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillPaleLightCast;

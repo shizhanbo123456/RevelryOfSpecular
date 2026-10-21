@@ -213,7 +213,7 @@ namespace Ros.Gm
             });
             layoutStyle.Add(GmEnum.Player_Skill_PassiveEnable, new()
             {
-                // 按钮顺序 = 防守方被动下标 0~4（苍白舞者 PC103 的被动是"双高转火"类，不在此列）
+                // 按钮顺序 = 防守方被动下标 0~4（苍白舞者的被动是"双高转火"类，不在此列）
                 new Button(string.Empty, "鹿铠怪人"),
                 new Button(string.Empty, "白眼伯爵"),
                 new Button(string.Empty, "死灵漫步者"),

@@ -55,7 +55,7 @@ public partial class BattleManager
     #region 事件驱动被动
     public void OnHitPassive(EntityData attacker, EntityData target, DamageType type)
     {
-        // PC104 被动「攻击暴击时附加轻微麻痹」：目标已死则不再挂状态
+        // 鹿铠怪人 被动「攻击暴击时附加轻微麻痹」：目标已死则不再挂状态
         if (type != DamageType.Crit || attacker == null || target == null || !target.Alive) return;
         if (attacker.type != EntityType.Defense(Config.defense_index_deer_knight)) return;
         if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration, attacker);

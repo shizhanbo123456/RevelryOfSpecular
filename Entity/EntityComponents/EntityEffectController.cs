@@ -41,7 +41,7 @@ public enum EffectType
     PaleDark,           // 苍白之暗（叠层，满 10 转化雷）
     EyeMark,            // 白眼标记（小地图常显）
 
-    // ---- 苍白转化产物（PC103 被动转化出的独立 Buff，行为沿用同类通用 Buff）----
+    // ---- 苍白转化产物（苍白舞者被动转化出的独立 Buff，行为沿用同类通用 Buff）----
     PaleFire,           // 苍白之火（DoT，同燃烧）
     PaleIce,            // 苍白之冰（强控，同冰冻）
     PaleThunder,        // 苍白之雷（强控，同麻痹）
@@ -182,7 +182,7 @@ public class EntityEffectController
         else if (type.IsControl()) ApplyControl();
         else if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
 
-        // 苍白之光/暗叠层后判定转化（PC103 被动：满层转冰/雷、双高转火，见 BattleManagerPassive）；转化出的控制/燃烧归属原施加者
+        // 苍白之光/暗叠层后判定转化（苍白舞者被动：满层转冰/雷、双高转火，见 BattleManagerPassive）；转化出的控制/燃烧归属原施加者
         if (type == EffectType.PaleLight || type == EffectType.PaleDark)
         {
             if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner, FindEntity(rt.sourceId));
