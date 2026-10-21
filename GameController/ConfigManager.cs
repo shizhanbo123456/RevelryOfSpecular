@@ -6,7 +6,7 @@ using System.Text;
 using UnityEngine;
 
 // 配表读取：Assets/StreamingAssets/ConfigData/*.csv
-// 改数据值、改行顺序不需要改代码；改列（增删/换序/改名）会在表头校验时报错，需同步改本文件
+// 全部按列号读写，不认列名；改数据值、改行顺序不需要改代码，改列（增删/换序/改名）需同步改本文件
 [DefaultExecutionOrder(-200)]
 public class ConfigManager : MonoBehaviour
 {
@@ -94,104 +94,104 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 单元格解析
-    public static string ParseString(string[] rowData, int col, string colName) => Cell(rowData, col, colName);
+    #region 单元格解析（按列号取，列号含义由各表字段顺序决定）
+    public static string ParseString(string[] rowData, int col) => Cell(rowData, col);
 
-    public static int ParseInt(string[] rowData, int col, string colName)
+    public static int ParseInt(string[] rowData, int col)
     {
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
-            throw new FormatException($"列「{colName}」不是整数：「{raw}」");
+            throw new FormatException($"第 {col} 列不是整数：「{raw}」");
         return value;
     }
 
-    public static int? ParseIntOrNull(string[] rowData, int col, string colName)
+    public static int? ParseIntOrNull(string[] rowData, int col)
     {
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (raw.Length == 0) return null;
         if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
-            throw new FormatException($"列「{colName}」不是整数：「{raw}」");
+            throw new FormatException($"第 {col} 列不是整数：「{raw}」");
         return value;
     }
 
-    public static float? ParseFloatOrNull(string[] rowData, int col, string colName)
+    public static float? ParseFloatOrNull(string[] rowData, int col)
     {
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (raw.Length == 0) return null;
         if (!float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
-            throw new FormatException($"列「{colName}」不是数值：「{raw}」");
+            throw new FormatException($"第 {col} 列不是数值：「{raw}」");
         return value;
     }
 
-    public static bool? ParseBoolOrNull(string[] rowData, int col, string colName)
+    public static bool? ParseBoolOrNull(string[] rowData, int col)
     {
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         return raw switch
         {
             "" => null,
             "1" => true,
             "0" => false,
-            _ => throw new FormatException($"列「{colName}」只能填 1/0 或留空：「{raw}」"),
+            _ => throw new FormatException($"第 {col} 列只能填 1/0 或留空：「{raw}」"),
         };
     }
 
-    public static List<int> ParseIntList(string[] rowData, int col, string colName)
+    public static List<int> ParseIntList(string[] rowData, int col)
     {
         var result = new List<int>();
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (raw.Length == 0) return result;
 
         foreach (string token in raw.Split('|'))
         {
             if (!int.TryParse(token.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
-                throw new FormatException($"列「{colName}」含非法整数：「{token}」");
+                throw new FormatException($"第 {col} 列含非法整数：「{token}」");
             result.Add(value);
         }
         return result;
     }
 
-    public static List<float> ParseFloatList(string[] rowData, int col, string colName)
+    public static List<float> ParseFloatList(string[] rowData, int col)
     {
         var result = new List<float>();
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (raw.Length == 0) return result;
 
         foreach (string token in raw.Split('|'))
         {
             if (!float.TryParse(token.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
-                throw new FormatException($"列「{colName}」含非法数值：「{token}」");
+                throw new FormatException($"第 {col} 列含非法数值：「{token}」");
             result.Add(value);
         }
         return result;
     }
 
     // 多个 Buff 用 | 分隔，单个 Buff 为 类型;等级;持续时间
-    public static List<BuffEntry> ParseBuffList(string[] rowData, int col, string colName)
+    public static List<BuffEntry> ParseBuffList(string[] rowData, int col)
     {
         var result = new List<BuffEntry>();
-        string raw = Cell(rowData, col, colName);
+        string raw = Cell(rowData, col);
         if (raw.Length == 0) return result;
 
         foreach (string group in raw.Split('|'))
         {
             string[] parts = group.Split(';');
             if (parts.Length != 3)
-                throw new FormatException($"列「{colName}」的 Buff 需为 类型;等级;持续时间：「{group}」");
+                throw new FormatException($"第 {col} 列的 Buff 需为 类型;等级;持续时间：「{group}」");
 
             if (!int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int type) ||
                 !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int level) ||
                 !float.TryParse(parts[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float duration))
-                throw new FormatException($"列「{colName}」的 Buff 数值非法：「{group}」");
+                throw new FormatException($"第 {col} 列的 Buff 数值非法：「{group}」");
 
             result.Add(new BuffEntry { type = type, level = level, duration = duration });
         }
         return result;
     }
 
-    private static string Cell(string[] rowData, int col, string colName)
+    private static string Cell(string[] rowData, int col)
     {
-        if (col >= rowData.Length)
-            throw new FormatException($"缺少列「{colName}」（该行只有 {rowData.Length} 列）");
+        if (col < 0 || col >= rowData.Length)
+            throw new FormatException($"缺少第 {col} 列（该行只有 {rowData.Length} 列）");
         return rowData[col].Trim();
     }
 
@@ -222,13 +222,21 @@ public class ConfigManager : MonoBehaviour
 
         return content.Count;
     }
+
+    internal static TRow GetOrLog<TKey, TRow>(Dictionary<TKey, TRow> content, TKey key, string fileName)
+    {
+        if (content.TryGetValue(key, out TRow row)) return row;
+
+        Debug.LogError($"[配表] {fileName} 中没有主键「{key}」，请检查配表是否漏配");
+        return default;
+    }
     #endregion
 
-    #region 愈战愈勇层数表
+    #region 愈战愈勇层数表：0 层数 / 1 死亡次数 / 2 buff层数
     public struct BattleFuryLayerConfig
     {
         public const string FileName = "battle_fury_layer.csv";
-        private static readonly string[] ExpectedHeader = { "愈战愈勇层数表", "死亡次数", "buff层数" };
+        private const int ColumnCount = 3;
         public static readonly Dictionary<int, BattleFuryLayerConfig> content = new();
 
         public int key;
@@ -237,16 +245,18 @@ public class ConfigManager : MonoBehaviour
 
         public BattleFuryLayerConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            deathCount = ParseIntOrNull(rowData, 1, ExpectedHeader[1]);
-            buffLayerCount = ParseIntOrNull(rowData, 2, ExpectedHeader[2]);
+            key = ParseInt(rowData, 0);
+            deathCount = ParseIntOrNull(rowData, 1);
+            buffLayerCount = ParseIntOrNull(rowData, 2);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new BattleFuryLayerConfig(row), row => row.key);
         }
+
+        public static BattleFuryLayerConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -254,11 +264,7 @@ public class ConfigManager : MonoBehaviour
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private static readonly string[] ExpectedHeader =
-        {
-            "角色信息表", "姓名", "生命", "力量", "魔法", "暴击率", "暴击伤害", "视野", "技能槽数",
-            "升级A", "升级B", "升级C", "解锁等级", "初始技能列表", "品质",
-        };
+        private const int ColumnCount = 15;
         public static readonly Dictionary<string, EntityConfig> content = new();
 
         public string key;
@@ -279,28 +285,30 @@ public class ConfigManager : MonoBehaviour
 
         public EntityConfig(string[] rowData)
         {
-            key = ParseString(rowData, 0, ExpectedHeader[0]);
-            name = ParseString(rowData, 1, ExpectedHeader[1]);
-            health = ParseFloatOrNull(rowData, 2, ExpectedHeader[2]);
-            strength = ParseIntOrNull(rowData, 3, ExpectedHeader[3]);
-            magic = ParseIntOrNull(rowData, 4, ExpectedHeader[4]);
-            critRate = ParseIntOrNull(rowData, 5, ExpectedHeader[5]);
-            critDamage = ParseFloatOrNull(rowData, 6, ExpectedHeader[6]);
-            viewDistance = ParseFloatOrNull(rowData, 7, ExpectedHeader[7]);
-            weaponSlotCount = ParseIntOrNull(rowData, 8, ExpectedHeader[8]);
-            upgradeA = ParseIntOrNull(rowData, 9, ExpectedHeader[9]);
-            upgradeB = ParseIntOrNull(rowData, 10, ExpectedHeader[10]);
-            upgradeC = ParseIntOrNull(rowData, 11, ExpectedHeader[11]);
-            unlockLevel = ParseIntOrNull(rowData, 12, ExpectedHeader[12]);
-            initialSkills = ParseIntList(rowData, 13, ExpectedHeader[13]);
-            quality = ParseString(rowData, 14, ExpectedHeader[14]);
+            key = ParseString(rowData, 0);
+            name = ParseString(rowData, 1);
+            health = ParseFloatOrNull(rowData, 2);
+            strength = ParseIntOrNull(rowData, 3);
+            magic = ParseIntOrNull(rowData, 4);
+            critRate = ParseIntOrNull(rowData, 5);
+            critDamage = ParseFloatOrNull(rowData, 6);
+            viewDistance = ParseFloatOrNull(rowData, 7);
+            weaponSlotCount = ParseIntOrNull(rowData, 8);
+            upgradeA = ParseIntOrNull(rowData, 9);
+            upgradeB = ParseIntOrNull(rowData, 10);
+            upgradeC = ParseIntOrNull(rowData, 11);
+            unlockLevel = ParseIntOrNull(rowData, 12);
+            initialSkills = ParseIntList(rowData, 13);
+            quality = ParseString(rowData, 14);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new EntityConfig(row), row => row.key);
         }
+
+        public static EntityConfig Get(string key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -308,11 +316,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private static readonly string[] ExpectedHeader =
-        {
-            "技能表", "名称", "技能描述", "图标编号", "品质", "技能类型", "技能标签", "CD", "存储上限",
-            "武器分类", "武器细分id", "技能数值来源分类", "击退力度", "Buff",
-        };
+        private const int ColumnCount = 14;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -332,27 +336,29 @@ public class ConfigManager : MonoBehaviour
 
         public SkillConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            name = ParseString(rowData, 1, ExpectedHeader[1]);
-            description = ParseString(rowData, 2, ExpectedHeader[2]);
-            iconIndex = ParseIntOrNull(rowData, 3, ExpectedHeader[3]);
-            quality = ParseString(rowData, 4, ExpectedHeader[4]);
-            skillType = ParseString(rowData, 5, ExpectedHeader[5]);
-            skillTag = ParseString(rowData, 6, ExpectedHeader[6]);
-            cd = ParseFloatOrNull(rowData, 7, ExpectedHeader[7]);
-            storeLimit = ParseIntOrNull(rowData, 8, ExpectedHeader[8]);
-            weaponCategory = ParseIntOrNull(rowData, 9, ExpectedHeader[9]);
-            weaponSubId = ParseIntOrNull(rowData, 10, ExpectedHeader[10]);
-            valueSource = ParseIntOrNull(rowData, 11, ExpectedHeader[11]);
-            knockback = ParseFloatOrNull(rowData, 12, ExpectedHeader[12]);
-            buffs = ParseBuffList(rowData, 13, ExpectedHeader[13]);
+            key = ParseInt(rowData, 0);
+            name = ParseString(rowData, 1);
+            description = ParseString(rowData, 2);
+            iconIndex = ParseIntOrNull(rowData, 3);
+            quality = ParseString(rowData, 4);
+            skillType = ParseString(rowData, 5);
+            skillTag = ParseString(rowData, 6);
+            cd = ParseFloatOrNull(rowData, 7);
+            storeLimit = ParseIntOrNull(rowData, 8);
+            weaponCategory = ParseIntOrNull(rowData, 9);
+            weaponSubId = ParseIntOrNull(rowData, 10);
+            valueSource = ParseIntOrNull(rowData, 11);
+            knockback = ParseFloatOrNull(rowData, 12);
+            buffs = ParseBuffList(rowData, 13);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new SkillConfig(row), row => row.key);
         }
+
+        public static SkillConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -360,11 +366,7 @@ public class ConfigManager : MonoBehaviour
     public struct EffectConfig
     {
         public const string FileName = "effect.csv";
-        private static readonly string[] ExpectedHeader =
-        {
-            "buff表", "名称", "描述", "叠加模式", "禁止移动输入", "禁止技能输入", "冻结动画",
-            "霸体等级覆盖", "正面效果", "特殊计算效果",
-        };
+        private const int ColumnCount = 10;
         public static readonly Dictionary<int, EffectConfig> content = new();
 
         public int key;
@@ -380,23 +382,25 @@ public class ConfigManager : MonoBehaviour
 
         public EffectConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            name = ParseString(rowData, 1, ExpectedHeader[1]);
-            description = ParseString(rowData, 2, ExpectedHeader[2]);
-            stackMode = ParseIntOrNull(rowData, 3, ExpectedHeader[3]);
-            lockMoveInput = ParseBoolOrNull(rowData, 4, ExpectedHeader[4]);
-            lockSkillInput = ParseBoolOrNull(rowData, 5, ExpectedHeader[5]);
-            freezeAnimation = ParseBoolOrNull(rowData, 6, ExpectedHeader[6]);
-            superArmorOverride = ParseIntOrNull(rowData, 7, ExpectedHeader[7]);
-            positive = ParseBoolOrNull(rowData, 8, ExpectedHeader[8]);
-            specialCalculate = ParseIntOrNull(rowData, 9, ExpectedHeader[9]);
+            key = ParseInt(rowData, 0);
+            name = ParseString(rowData, 1);
+            description = ParseString(rowData, 2);
+            stackMode = ParseIntOrNull(rowData, 3);
+            lockMoveInput = ParseBoolOrNull(rowData, 4);
+            lockSkillInput = ParseBoolOrNull(rowData, 5);
+            freezeAnimation = ParseBoolOrNull(rowData, 6);
+            superArmorOverride = ParseIntOrNull(rowData, 7);
+            positive = ParseBoolOrNull(rowData, 8);
+            specialCalculate = ParseIntOrNull(rowData, 9);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new EffectConfig(row), row => row.key);
         }
+
+        public static EffectConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -404,7 +408,7 @@ public class ConfigManager : MonoBehaviour
     public struct ExpCharacterConfig
     {
         public const string FileName = "exp_character.csv";
-        private static readonly string[] ExpectedHeader = { "角色经验表", "升级所需经验" };
+        private const int ColumnCount = 2;
         public static readonly Dictionary<int, ExpCharacterConfig> content = new();
 
         public int key;
@@ -412,15 +416,17 @@ public class ConfigManager : MonoBehaviour
 
         public ExpCharacterConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            exp = ParseIntOrNull(rowData, 1, ExpectedHeader[1]);
+            key = ParseInt(rowData, 0);
+            exp = ParseIntOrNull(rowData, 1);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new ExpCharacterConfig(row), row => row.key);
         }
+
+        public static ExpCharacterConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -428,7 +434,7 @@ public class ConfigManager : MonoBehaviour
     public struct ExpPlayerConfig
     {
         public const string FileName = "exp_player.csv";
-        private static readonly string[] ExpectedHeader = { "角色经验表", "所需经验" };
+        private const int ColumnCount = 2;
         public static readonly Dictionary<int, ExpPlayerConfig> content = new();
 
         public int key;
@@ -436,15 +442,17 @@ public class ConfigManager : MonoBehaviour
 
         public ExpPlayerConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            exp = ParseIntOrNull(rowData, 1, ExpectedHeader[1]);
+            key = ParseInt(rowData, 0);
+            exp = ParseIntOrNull(rowData, 1);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new ExpPlayerConfig(row), row => row.key);
         }
+
+        public static ExpPlayerConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -452,7 +460,7 @@ public class ConfigManager : MonoBehaviour
     public struct ReviveTimeConfig
     {
         public const string FileName = "revive_time.csv";
-        private static readonly string[] ExpectedHeader = { "复活次数-时间表", "第x次复活", "进攻方复活时间", "防守方复活时间" };
+        private const int ColumnCount = 4;
         public static readonly Dictionary<int, ReviveTimeConfig> content = new();
 
         public int key;
@@ -462,17 +470,19 @@ public class ConfigManager : MonoBehaviour
 
         public ReviveTimeConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            reviveIndex = ParseIntOrNull(rowData, 1, ExpectedHeader[1]);
-            attackReviveSeconds = ParseIntOrNull(rowData, 2, ExpectedHeader[2]);
-            defenseReviveSeconds = ParseIntOrNull(rowData, 3, ExpectedHeader[3]);
+            key = ParseInt(rowData, 0);
+            reviveIndex = ParseIntOrNull(rowData, 1);
+            attackReviveSeconds = ParseIntOrNull(rowData, 2);
+            defenseReviveSeconds = ParseIntOrNull(rowData, 3);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new ReviveTimeConfig(row), row => row.key);
         }
+
+        public static ReviveTimeConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -480,7 +490,7 @@ public class ConfigManager : MonoBehaviour
     public struct GlobalVariableConfig
     {
         public const string FileName = "global_variables.csv";
-        private static readonly string[] ExpectedHeader = { "全局参数表", "功能描述", "ints", "floats" };
+        private const int ColumnCount = 4;
         public static readonly Dictionary<string, GlobalVariableConfig> content = new();
 
         public string key;
@@ -490,17 +500,19 @@ public class ConfigManager : MonoBehaviour
 
         public GlobalVariableConfig(string[] rowData)
         {
-            key = ParseString(rowData, 0, ExpectedHeader[0]);
-            description = ParseString(rowData, 1, ExpectedHeader[1]);
-            ints = ParseIntList(rowData, 2, ExpectedHeader[2]);
-            floats = ParseFloatList(rowData, 3, ExpectedHeader[3]);
+            key = ParseString(rowData, 0);
+            description = ParseString(rowData, 1);
+            ints = ParseIntList(rowData, 2);
+            floats = ParseFloatList(rowData, 3);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
         }
+
+        public static GlobalVariableConfig Get(string key) => GetOrLog(content, key, FileName);
     }
     #endregion
 
@@ -508,7 +520,7 @@ public class ConfigManager : MonoBehaviour
     public struct NoticeConfig
     {
         public const string FileName = "notice.csv";
-        private static readonly string[] ExpectedHeader = { "提示消息", "提示文本" };
+        private const int ColumnCount = 2;
         public static readonly Dictionary<int, NoticeConfig> content = new();
 
         public int key;
@@ -516,15 +528,17 @@ public class ConfigManager : MonoBehaviour
 
         public NoticeConfig(string[] rowData)
         {
-            key = ParseInt(rowData, 0, ExpectedHeader[0]);
-            text = ParseString(rowData, 1, ExpectedHeader[1]);
+            key = ParseInt(rowData, 0);
+            text = ParseString(rowData, 1);
         }
 
         public static int Load(ConfigTable table)
         {
-            table.RequireHeader(ExpectedHeader);
+            table.RequireColumnCount(ColumnCount);
             return Fill(table, content, row => new NoticeConfig(row), row => row.key);
         }
+
+        public static NoticeConfig Get(int key) => GetOrLog(content, key, FileName);
     }
     #endregion
 }
@@ -532,45 +546,30 @@ public class ConfigManager : MonoBehaviour
 public class ConfigTable
 {
     public readonly string fileName;
-    public readonly string[] header;
-    public readonly List<string[]> rows = new();
+    public readonly int columnCount;
+    public readonly List<string[]> rows;
 
     public ConfigTable(string fileName, List<string[]> lines)
     {
         this.fileName = fileName;
         if (lines.Count == 0) throw new FormatException($"[配表] {fileName} 没有任何数据行");
 
-        header = lines[0];
-        for (int i = 1; i < lines.Count; i++) rows.Add(lines[i]);
+        columnCount = lines[0].Length;
+        rows = lines.GetRange(1, lines.Count - 1);
     }
 
-    // 列名比对只取括号前的内容，括号内的说明可以随便改
-    public void RequireHeader(params string[] expected)
+    public void RequireColumnCount(int expected)
     {
-        if (header.Length != expected.Length)
-            throw new FormatException($"[配表] {fileName} 列数不符：期望 {expected.Length} 列，实际 {header.Length} 列（{string.Join("|", header)}）");
-
-        for (int i = 0; i < expected.Length; i++)
-        {
-            string actual = HeaderName(header[i]);
-            if (actual != expected[i])
-                throw new FormatException($"[配表] {fileName} 第 {i} 列名为「{actual}」，代码期望「{expected[i]}」：改列需同步改代码");
-        }
+        if (columnCount != expected)
+            throw new FormatException($"[配表] {fileName} 列数为 {columnCount}，代码按 {expected} 列读取：改列需同步改本文件");
     }
 
     public string[] RequireRow(int index)
     {
         string[] row = rows[index];
-        if (row.Length != header.Length)
-            throw new FormatException($"[配表] {fileName} 第 {index + 2} 行：列数不符，期望 {header.Length} 列，实际 {row.Length} 列");
+        if (row.Length != columnCount)
+            throw new FormatException($"[配表] {fileName} 第 {index + 2} 行：列数为 {row.Length}，表头为 {columnCount} 列");
         return row;
-    }
-
-    private static string HeaderName(string raw)
-    {
-        int cut = raw.IndexOf('（');
-        if (cut < 0) cut = raw.IndexOf('(');
-        return (cut < 0 ? raw : raw.Substring(0, cut)).Trim();
     }
 }
 
