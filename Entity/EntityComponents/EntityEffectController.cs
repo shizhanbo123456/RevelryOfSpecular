@@ -5,55 +5,55 @@ using UnityEngine;
 public enum EffectType
 {
     //防守方专有
-    TowerShield,        // 岩石护盾
-    TowerBlaze,         // 灵火
-    PopeGuard,          // 教皇守护
-    PlagueMark,         // 瘟疫标记
-    PaleLight,          // 苍白之光
-    PaleDark,           // 苍白之暗
-    PaleFire,           // 苍白之火
-    PaleIce,            // 苍白之冰
-    PaleThunder,        // 苍白之雷
-    EyeMark,            // 白眼标记
-    NightMark,          // 黑夜标记
-    PlaguePollute,      // 瘟疫污染
-    DeathStroll,        // 死灵漫步
-    DeathCurse,         // 死灵诅咒
-    Mire,               // 泥沼
-    Fog,                // 迷雾
+    TowerShield = 0,                // 岩石护盾
+    TowerBlaze = 1,                 // 灵火
+    PopeGuard = 2,                  // 教皇守护
+    PlagueMark = 3,                 // 瘟疫标记
+    PaleLight = 4,                  // 苍白之光
+    PaleDark = 5,                   // 苍白之暗
+    PaleFire = 6,                   // 苍白之火
+    PaleIce = 7,                    // 苍白之冰
+    PaleThunder = 8,                // 苍白之雷
+    EyeMark = 9,                    // 白眼标记
+    NightMark = 10,                 // 黑夜标记
+    PlaguePollute = 11,             // 瘟疫污染
+    DeathStroll = 12,               // 死灵漫步
+    DeathCurse = 13,                // 死灵诅咒
+    Mire = 14,                      // 泥沼
+    Fog = 15,                       // 迷雾
 
     //特殊来源
-    GmSpeedUp,          // GM极速
-    PlagueBless,        // 瘟疫祝福
-    YzCy,               // 愈战愈勇
-    BeaconReduce,       // 副守护点减伤
-    MinimapLost,        // 小地图失联
+    GmSpeedUp = 16,                 // GM极速
+    PlagueBless = 17,               // 瘟疫祝福
+    YzCy = 18,                      // 愈战愈勇
+    BeaconReduce = 19,              // 副守护点减伤
+    MinimapLost = 20,               // 小地图失联
 
     //通用
-    Shield,             // 护盾
-    DodgeBoost,         // 闪避
-    Stun,               // 麻痹
-    Freeze,             // 冰冻
-    Root,               // 定身
-    Silence,            // 沉默
-    ZombieScreamBoost,  // 嘶吼增益
-    Burning,            // 燃烧
-    Poison,             // 中毒
-    Reflect,            // 反伤
+    Shield = 21,                    // 护盾
+    DodgeBoost = 22,                // 闪避
+    Stun = 23,                      // 麻痹
+    Freeze = 24,                    // 冰冻
+    Root = 25,                      // 定身
+    Silence = 26,                   // 沉默
+    ZombieScreamBoost = 27,         // 嘶吼增益
+    Burning = 28,                   // 燃烧
+    Poison = 29,                    // 中毒
+    Reflect = 30,                   // 反伤
 
     //通用（纯属性改变类）
-    AttrStrengthBoost,          // 力量提升
-    AttrStrengthDecrease,       // 力量降低
-    AttrMagicBoost,             // 魔法提升
-    AttrMagicDecrease,          // 魔法降低
-    AttrCritRateBoost,          // 暴击率提升
-    AttrCritRateDecrease,       // 暴击率降低
-    AttrCritDamageBoost,        // 暴击伤害提升
-    AttrCritDamageDecrease,     // 暴击伤害降低
-    AttrViewDistanceBoost,      // 可见距离提升
-    AttrViewDistanceDecrease,   // 可见距离降低
-    SpeedUp,        // 加速
-    SlowDown,       // 减速
+    AttrStrengthBoost = 31,         // 力量提升
+    AttrStrengthDecrease = 32,      // 力量降低
+    AttrMagicBoost = 33,            // 魔法提升
+    AttrMagicDecrease = 34,         // 魔法降低
+    AttrCritRateBoost = 35,         // 暴击率提升
+    AttrCritRateDecrease = 36,      // 暴击率降低
+    AttrCritDamageBoost = 37,       // 暴击伤害提升
+    AttrCritDamageDecrease = 38,    // 暴击伤害降低
+    AttrViewDistanceBoost = 39,     // 可见距离提升
+    AttrViewDistanceDecrease = 40,  // 可见距离降低
+    SpeedUp = 41,                   // 加速
+    SlowDown = 42,                  // 减速
 }
 
 public static class EffectTypeExt
