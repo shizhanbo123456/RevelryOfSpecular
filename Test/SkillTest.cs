@@ -13,7 +13,7 @@ public class SkillTest : MonoBehaviour
     private static readonly PropertyInfo CastAnimProp =
         typeof(SkillBase).GetProperty("CastAnim", BindingFlags.Instance | BindingFlags.NonPublic);
 
-    private static readonly string[] TabNames = { "水晶武器", "防守方", "非玩家单位", "空手" };
+    private static readonly string[] TabNames = { "珊瑚武器", "防守方", "非玩家单位", "空手" };
 
     private readonly List<int> skillIds = new();
     private readonly List<int> tabStarts = new();

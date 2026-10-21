@@ -245,7 +245,7 @@ public partial class BattleManager
                     SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(),
                         LandscapeSpawns.RandomOf(spawns.zombieSpawnPositions), EntityCamp.Zombie);
                 break;
-            case GmEntityType.Crystal: GmSpawnCrystals(count); break;
+            case GmEntityType.Coral: GmSpawnCorals(count); break;
             case GmEntityType.Neutral:
                 // 中立单位（瘟疫树）场上最多 1 个，已有就不再刷
                 foreach (var e in EntityContainer.Entities)
@@ -260,21 +260,22 @@ public partial class BattleManager
         }
     }
 
-    // 水晶：与 TickCrystalSpawn 共用 crystalAtPoint 占用簿记，只刷当前空着的刷新点
-    private void GmSpawnCrystals(int count)
+    // 珊瑚：与 TickCoralSpawn 共用 coralAtPoint 占用簿记，只刷当前空着的刷新点
+    private void GmSpawnCorals(int count)
     {
-        if (crystalAtPoint == null || crystalAtPoint.Length == 0) return;
-        var points = Tool.LandscapeSpawns.crystalSpawnPositions;
+        if (coralAtPoint == null || coralAtPoint.Length == 0) return;
+        var points = Tool.LandscapeSpawns.coralSpawnPositions;
         int spawned = 0;
-        for (int i = 0; i < crystalAtPoint.Length && spawned < count; i++)
+        for (int i = 0; i < coralAtPoint.Length && spawned < count; i++)
         {
-            ushort existing = crystalAtPoint[i];
-            if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) continue; // 该点已有水晶
+            ushort existing = coralAtPoint[i];
+            if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) continue; // 该点已有珊瑚
             Vector3 pos = i < points.Count ? points[i] : Landscape.MapCenter;
-            ushort id = SpawnEntity(EntityType.Crystal(i % Config.crystal_graphics_count), 1, pos, EntityCamp.Prop);
+            EntityType type = Random.value < Config.coral_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+            ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
             if (id == 0) continue;
-            crystalAtPoint[i] = id;
-            if (GetEntity(id) is CrystalEntityData crystal) crystal.spawnPointIndex = i;
+            coralAtPoint[i] = id;
+            if (GetEntity(id) is CoralEntityData coral) coral.spawnPointIndex = i;
             spawned++;
         }
     }
@@ -308,7 +309,7 @@ public partial class BattleManager
     private static EntityCategory GmCategoryOf(GmEntityType type) => type switch
     {
         GmEntityType.EliteZombie => EntityCategory.EliteZombie,
-        GmEntityType.Crystal => EntityCategory.Crystal,
+        GmEntityType.Coral => EntityCategory.Coral,
         GmEntityType.Neutral => EntityCategory.PlagueTree,
         GmEntityType.Tower => EntityCategory.Tower,
         _ => EntityCategory.Zombie,

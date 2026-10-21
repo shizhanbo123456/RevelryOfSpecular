@@ -9,8 +9,8 @@ namespace Ros.Gm
         Zombie,
         [GmLabel("精英僵尸")]
         EliteZombie,
-        [GmLabel("水晶")]
-        Crystal,
+        [GmLabel("珊瑚")]
+        Coral,
         [GmLabel("中立单位")]
         Neutral,
         [GmLabel("防御塔")]

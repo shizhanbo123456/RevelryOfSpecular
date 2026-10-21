@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class AssetsManager : MonoBehaviour
 {
@@ -14,7 +15,9 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> ZombieGraphics = new();
     public List<GameObject> EliteZombieGraphics = new();
     public List<GameObject> BeaconGraphics = new();
-    public List<GameObject> CrystalGraphics = new();
+    [FormerlySerializedAs("CrystalGraphics")]
+    public List<GameObject> CoralSmallGraphics = new();
+    public List<GameObject> CoralLargeGraphics = new();
     public List<GameObject> TowerGraphics = new();
     public GameObject PlagueTreeGraphic;
     #endregion
@@ -61,9 +64,9 @@ public class AssetsManager : MonoBehaviour
             case EntityCategory.Beacon:
                 if (BeaconGraphics.Count > 0) graphic = BeaconGraphics[type.value < Config.outer_beacon_count ? 0 : (BeaconGraphics.Count > 1 ? 1 : 0)];
                 break;
-            case EntityCategory.Crystal:
-                // 下标 = 水晶外观下标（0~11）；k/k+4/k+8 为一类，类别 = 下标 % 4；配置不足时取模循环
-                if (CrystalGraphics.Count > 0) graphic = CrystalGraphics[Mathf.Max(0, type.value) % CrystalGraphics.Count];
+            case EntityCategory.Coral:
+                // 小/大珊瑚各用自己列表，列表内随机取一个变体（每个实体创建时只取一次）
+                graphic = RandomOf(type.value <= 0 ? CoralSmallGraphics : CoralLargeGraphics);
                 break;
             case EntityCategory.Tower:
                 // 4 种外观按实例编号选用（Config.tower_count = 4）；配置不足时取模循环
@@ -73,6 +76,8 @@ public class AssetsManager : MonoBehaviour
         }
         return graphic != null;
     }
+
+    private static GameObject RandomOf(List<GameObject> list) => list.Count > 0 ? list[Random.Range(0, list.Count)] : null;
 
     public bool TryGetWeaponPrefab(WeaponRef weapon, out GameObject prefab)
     {

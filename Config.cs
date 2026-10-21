@@ -27,15 +27,15 @@ public static class Config
     #endregion
 
     #region 资源与中立单位
-    public const int crystal_type_count = 4;
-    public const int crystal_variant_count = 3;
-    public const int crystal_graphics_count = crystal_type_count * crystal_variant_count;
+    public const int coral_size_count = 2;              // 0 = 小珊瑚，1 = 大珊瑚
     public const int tower_count = 4;
     public const float tower_attack_range = 20f;
-    public const float crystal_spawn_checks_per_second = 10f;
-    public const float crystal_spawn_min_dist = 40f;
-    public const float crystal_spawn_max_dist = 80f;
-    public const float crystal_skill_drop_chance = 0.15f;
+    public const float coral_spawn_checks_per_second = 10f;
+    public const float coral_spawn_min_dist = 40f;
+    public const float coral_spawn_max_dist = 80f;
+    public const float coral_large_chance = 0.3f;       // 刷新时出大珊瑚的概率
+    public const float coral_small_drop_chance = 0.2f;  // 小珊瑚被摧毁时的掉武器概率
+    public const float coral_large_drop_chance = 1f;    // 大珊瑚被摧毁时的掉武器概率
 
     #region 瘟疫树（中立争抢单位）
     public const float plague_tree_first_spawn_delay = 30f;
@@ -114,7 +114,7 @@ public static class Config
     #region 武器与技能
     public const float skill_exp_damage_bonus = 0.1f;
 
-    #region 武器技能 id 区间（水晶掉武器按水晶类型从对应区间随机；段长 = 武器数量，段长与顺序不可随意调整）
+    #region 武器技能 id 区间（珊瑚掉武器全段随机；段长 = 武器数量，段长与顺序不可随意调整）
     public const int weapon_id_melee_min = (int)SkillType.SkillFanIceCone;         // 近战刀 11 把
     public const int weapon_id_melee_max = (int)SkillType.SkillSkyfallWeapon;
     public const int weapon_id_spear_min = (int)SkillType.SkillBoomerangWeapon;    // 长枪 8 把
@@ -124,17 +124,10 @@ public static class Config
     public const int weapon_id_magic_min = (int)SkillType.SkillSplitShot;         // 魔法球 16 个
     public const int weapon_id_magic_max = (int)SkillType.SkillAllyShieldTwentyFive;
 
-    public static int GetRandomWeaponId(int crystalValue)
+    public static int GetRandomWeaponId()
     {
-        int k = crystalValue % crystal_type_count;
-        if (k < 0) k += crystal_type_count;
-        return k switch
-        {
-            0 => Random.Range(weapon_id_melee_min, weapon_id_melee_max + 1),
-            1 => Random.Range(weapon_id_spear_min, weapon_id_spear_max + 1),
-            2 => Random.Range(weapon_id_gun_min, weapon_id_gun_max + 1),
-            _ => Random.Range(weapon_id_magic_min, weapon_id_magic_max + 1),
-        };
+        // 四段在 SkillType 里连续（刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 = 50），整段随机即全武器均匀随机
+        return Random.Range(weapon_id_melee_min, weapon_id_magic_max + 1);
     }
     #endregion
     #endregion
@@ -244,8 +237,8 @@ public static class Config
     public const float chain_jump_radius = 6f;
     public const float chain_jump_duration = 0.6f;
     public const float airstrike_radius = 3f;
-    public const float absorb_crystal_radius = 6f;
-    public const float absorb_crystal_damage = 999999f;
+    public const float absorb_coral_radius = 6f;
+    public const float absorb_coral_damage = 999999f;
     #endregion
 
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()

@@ -16,13 +16,14 @@ public static class BatchGenerateEntityInfosMenu
         if (!EditorUtility.DisplayDialog(
                 "生成实体属性 Info",
                 "将在 Assets/Files/Info/Attribute 下批量生成占位 Info：\n" +
-                "进攻角色 18 / 防守角色 6 / 僵尸 1 / 精英僵尸 14 / 守护点 2 / 水晶 1 / 防御塔 4 / 瘟疫树 1\n\n" +
+                "进攻角色 18 / 防守角色 6 / 僵尸 1 / 精英僵尸 14 / 守护点 2 / 珊瑚 2 / 防御塔 4 / 瘟疫树 1\n\n" +
                 "已存在的同名资产会跳过不覆盖。是否继续？",
                 "生成", "取消"))
             return;
 
         // 缺失的分类文件夹
         EnsureFolder("Beacon");
+        EnsureFolder("Coral");
         EnsureFolder("Tower");
         EnsureFolder("PlagueTree");
 
@@ -39,7 +40,11 @@ public static class BatchGenerateEntityInfosMenu
 
         Create<EntityAttributeInfo>("Beacon", "beacon_outer", log, ref created, ref skipped);  // 外围守护点（BeaconInfo）
         Create<EntityAttributeInfo>("Beacon", "beacon_core", log, ref created, ref skipped);   // 中心守护点（CoreBeaconInfo）
-        Create<EntityAttributeInfo>("Crystal", "crystal", log, ref created, ref skipped);
+        var coralSmall = Create<EntityAttributeInfo>("Coral", "coral_small", log, ref created, ref skipped); // 小珊瑚（CoralSmallInfo）
+        var coralLarge = Create<EntityAttributeInfo>("Coral", "coral_large", log, ref created, ref skipped); // 大珊瑚（CoralLargeInfo）
+        // 占位数值（小 1000 / 大 3000）：只在新建时写入，已存在的资产不覆盖，后续在 Inspector 调整
+        if (coralSmall != null) { coralSmall.baseAttribute.health = 1000f; EditorUtility.SetDirty(coralSmall); }
+        if (coralLarge != null) { coralLarge.baseAttribute.health = 3000f; EditorUtility.SetDirty(coralLarge); }
         GenerateRange<EntityAttributeInfo>("Tower", "tower", 4, log, ref created, ref skipped); // 防御塔 4 种，按 type.value 索引
         Create<EntityAttributeInfo>("PlagueTree", "plague_tree", log, ref created, ref skipped);
 
@@ -57,7 +62,7 @@ public static class BatchGenerateEntityInfosMenu
             Create<T>(folder, $"{prefix}_{i:D2}", log, ref created, ref skipped);
     }
 
-    private static void Create<T>(string folder, string name,
+    private static T Create<T>(string folder, string name,
         StringBuilder log, ref int created, ref int skipped) where T : EntityAttributeInfo, new()
     {
         string path = $"{AttrRoot}/{folder}/{name}.asset";
@@ -66,7 +71,7 @@ public static class BatchGenerateEntityInfosMenu
         {
             skipped++;
             log.AppendLine($"[跳过] {path}");
-            return;
+            return null;
         }
 
         var info = ScriptableObject.CreateInstance<T>();
@@ -74,6 +79,7 @@ public static class BatchGenerateEntityInfosMenu
         AssetDatabase.CreateAsset(info, path);
         created++;
         log.AppendLine($"[新建] {path}");
+        return info;
     }
 
     private static void EnsureFolder(string folderName)

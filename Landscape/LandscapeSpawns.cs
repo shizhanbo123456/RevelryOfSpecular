@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class LandscapeSpawns : MonoBehaviour
 {
-    [Header("地形（在 Inspector 中指定；右键菜单生成水晶/僵尸点位时用于贴合表面）")]
+    [Header("地形（在 Inspector 中指定；右键菜单生成珊瑚/僵尸点位时用于贴合表面）")]
     [SerializeField] private Terrain terrain;
 
     [Header("地形块列表（拆分后的 64 个子地形物体；供 TerrainChunkCuller 按相机方形可见距离显隐）")]
@@ -29,7 +30,7 @@ public class LandscapeSpawns : MonoBehaviour
             return;
         }
         // 坐标类点位（Vector3）
-        SnapListToSurface(crystalSpawnPositions);
+        SnapListToSurface(coralSpawnPositions);
         SnapListToSurface(zombieSpawnPositions);
         // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
         SnapTransformsToSurface(beaconSpawnPositions);
@@ -69,11 +70,13 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("守护点出生点（前 3 个外围 + 最后 1 个中心）")]
     public List<Transform> beaconSpawnPositions = new();
 
-    [Header("水晶刷新位置列表（Vector3，由右键菜单生成）")]
-    public List<Vector3> crystalSpawnPositions = new();
+    [Header("珊瑚刷新位置列表（Vector3，由右键菜单生成）")]
+    [FormerlySerializedAs("crystalSpawnPositions")]
+    public List<Vector3> coralSpawnPositions = new();
 
-    [Tooltip("右键菜单「随机生成水晶刷新点」单次生成的数量；生成时会先清空 crystalSpawnPositions")]
-    [Min(1)] public int crystalGenerateCount = 100;
+    [Tooltip("右键菜单「随机生成珊瑚刷新点」单次生成的数量；生成时会先清空 coralSpawnPositions")]
+    [FormerlySerializedAs("crystalGenerateCount")]
+    [Min(1)] public int coralGenerateCount = 100;
 
     [Header("防御塔位置列表（防御塔被摧毁后不会复活）")]
     public List<Transform> towerSpawnPositions = new();
@@ -99,8 +102,9 @@ public class LandscapeSpawns : MonoBehaviour
     public Transform cameraPreviewPos;
 
     [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
-    [Tooltip("由菜单生成的坐标点位（水晶刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
-    [Min(0.1f)] public float crystalGizmoRadius = 1f;
+    [Tooltip("由菜单生成的坐标点位（珊瑚刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
+    [FormerlySerializedAs("crystalGizmoRadius")]
+    [Min(0.1f)] public float coralGizmoRadius = 1f;
 
     [Tooltip("其余 Transform 锚点（守护点/防御塔/瘟疫树/双方出生-复活位置）的 Gizmos 球半径")]
     [Min(0.1f)] public float otherGizmoRadius = 1f;
@@ -145,10 +149,10 @@ public class LandscapeSpawns : MonoBehaviour
         Boundary,
     }
 
-    [ContextMenu("随机生成水晶刷新点（清空后重建）")]
-    public void GenerateCrystalSpawnPositions()
+    [ContextMenu("随机生成珊瑚刷新点（清空后重建）")]
+    public void GenerateCoralSpawnPositions()
     {
-        GeneratePointsOnTerrain(crystalSpawnPositions, crystalGenerateCount, DensityBias.Center, "水晶刷新点");
+        GeneratePointsOnTerrain(coralSpawnPositions, coralGenerateCount, DensityBias.Center, "珊瑚刷新点");
     }
 
     [ContextMenu("随机生成僵尸出生点（清空后重建）")]
@@ -251,7 +255,7 @@ public class LandscapeSpawns : MonoBehaviour
     private bool IsNearExistingPoint(Vector3 pos)
     {
         return NearIn(beaconSpawnPositions, pos)
-            || NearIn(crystalSpawnPositions, pos)
+            || NearIn(coralSpawnPositions, pos)
             || NearIn(towerSpawnPositions, pos)
             || NearIn(plagueTreeSpawnPositions, pos)
             || NearIn(zombieSpawnPositions, pos)
@@ -285,9 +289,9 @@ public class LandscapeSpawns : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // 菜单生成的坐标点位（Vector3 列表）——与水晶共用 crystalGizmoRadius
-        DrawPoints(crystalSpawnPositions, new Color(0.25f, 0.80f, 1.00f), crystalGizmoRadius); // 水晶：青
-        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), crystalGizmoRadius);  // 僵尸：橙
+        // 菜单生成的坐标点位（Vector3 列表）——与珊瑚共用 coralGizmoRadius
+        DrawPoints(coralSpawnPositions, new Color(0.25f, 0.80f, 1.00f), coralGizmoRadius); // 珊瑚：青
+        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), coralGizmoRadius);  // 僵尸：橙
 
         // Transform 锚点——共用 otherGizmoRadius
         DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);     // 守护点：绿

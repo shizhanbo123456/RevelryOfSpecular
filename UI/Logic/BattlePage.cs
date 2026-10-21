@@ -599,7 +599,7 @@ public class BattlePage : PageBase
                 if (IsOwnEntity(entity.entityId)) return 0;
                 return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
             case EntityCategory.PlagueTree: return 3;
-            case EntityCategory.Crystal: return 4;
+            case EntityCategory.Coral: return 4;
             case EntityCategory.Tower: return 5;
             case EntityCategory.Zombie: return 6;
             case EntityCategory.EliteZombie: return 7;

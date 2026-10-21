@@ -417,11 +417,11 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            // 「矿石」即可采集水晶：巨量伤害直接击碎，走原有产出流程
-            TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Crystals,
-                caster != null ? caster.transform.position : context.vectors[0], Config.absorb_crystal_radius);
+            // 「矿石」即可采集珊瑚：巨量伤害直接击碎，走原有产出流程
+            TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Corals,
+                caster != null ? caster.transform.position : context.vectors[0], Config.absorb_coral_radius);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
-                if (TargetSelect.TargetBuffer[i] != null) TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_crystal_damage, caster);
+                if (TargetSelect.TargetBuffer[i] != null) TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_coral_damage, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // 1019 标为「由 buff 承担」，本技能不挂 buff

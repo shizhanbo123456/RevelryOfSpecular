@@ -4,8 +4,8 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    private ushort[] crystalAtPoint = System.Array.Empty<ushort>();
-    private float crystalSpawnAccumulator;
+    private ushort[] coralAtPoint = System.Array.Empty<ushort>();
+    private float coralSpawnAccumulator;
     private static readonly List<Vector3> s_playerPosScratch = new();
 
     private float plagueTreeRespawnTime = -1f;
@@ -23,9 +23,9 @@ public partial class BattleManager
             SpawnEntity(core ? EntityType.CoreBeacon : EntityType.Beacon(i), 1, beaconAnchor.position, EntityCamp.Defense);
         }
 
-        // 水晶：不再开局全量生成（策划案第七章改为按玩家邻近动态生成，见 TickCrystalSpawn）；
-        // 这里只按刷新点数量重建"哪一点有水晶"的占用记录
-        ResetCrystalSpawnState(spawns.crystalSpawnPositions.Count);
+        // 珊瑚：不再开局全量生成（按玩家邻近动态生成，见 TickCoralSpawn）；
+        // 这里只按刷新点数量重建"哪一点有珊瑚"的占用记录
+        ResetCoralSpawnState(spawns.coralSpawnPositions.Count);
 
         // 防御塔（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
         for (int i = 0; i < spawns.towerSpawnPositions.Count; i++)
@@ -75,39 +75,39 @@ public partial class BattleManager
         });
     }
 
-    #region 水晶（按玩家邻近动态生成）
-    private void ResetCrystalSpawnState(int pointCount)
+    #region 珊瑚（按玩家邻近动态生成）
+    private void ResetCoralSpawnState(int pointCount)
     {
-        if (crystalAtPoint == null || crystalAtPoint.Length != pointCount)
-            crystalAtPoint = pointCount > 0 ? new ushort[pointCount] : System.Array.Empty<ushort>();
+        if (coralAtPoint == null || coralAtPoint.Length != pointCount)
+            coralAtPoint = pointCount > 0 ? new ushort[pointCount] : System.Array.Empty<ushort>();
         else
-            System.Array.Clear(crystalAtPoint, 0, pointCount);
-        crystalSpawnAccumulator = 0f;
+            System.Array.Clear(coralAtPoint, 0, pointCount);
+        coralSpawnAccumulator = 0f;
     }
 
-    public void NotifyCrystalDestroyed(CrystalEntityData crystal)
+    public void NotifyCoralDestroyed(CoralEntityData coral)
     {
-        if (crystal == null || crystalAtPoint == null) return;
-        int idx = crystal.spawnPointIndex;
-        if (idx >= 0 && idx < crystalAtPoint.Length && crystalAtPoint[idx] == crystal.id) crystalAtPoint[idx] = 0;
+        if (coral == null || coralAtPoint == null) return;
+        int idx = coral.spawnPointIndex;
+        if (idx >= 0 && idx < coralAtPoint.Length && coralAtPoint[idx] == coral.id) coralAtPoint[idx] = 0;
     }
 
-    private void TickCrystalSpawn(float dt)
+    private void TickCoralSpawn(float dt)
     {
-        int count = crystalAtPoint != null ? crystalAtPoint.Length : 0;
+        int count = coralAtPoint != null ? coralAtPoint.Length : 0;
         if (count == 0) return;
 
-        float rate = Config.crystal_spawn_checks_per_second;
+        float rate = Config.coral_spawn_checks_per_second;
         // 累计检测次数；上限压到"1 秒的量"，避免掉帧后单帧爆发式生成
-        crystalSpawnAccumulator = Mathf.Min(crystalSpawnAccumulator + dt * rate, rate);
-        while (crystalSpawnAccumulator >= 1f)
+        coralSpawnAccumulator = Mathf.Min(coralSpawnAccumulator + dt * rate, rate);
+        while (coralSpawnAccumulator >= 1f)
         {
-            crystalSpawnAccumulator -= 1f;
-            TrySpawnOneCrystal(count);
+            coralSpawnAccumulator -= 1f;
+            TrySpawnOneCoral(count);
         }
     }
 
-    private void TrySpawnOneCrystal(int count)
+    private void TrySpawnOneCoral(int count)
     {
         // 收集全部存活玩家位置（玩家数很少，一次收集供本次检测复用；阵亡/复活等待中返回 null）
         s_playerPosScratch.Clear();
@@ -119,12 +119,12 @@ public partial class BattleManager
         }
         if (s_playerPosScratch.Count == 0) return;
 
-        var points = Tool.LandscapeSpawns.crystalSpawnPositions;
+        var points = Tool.LandscapeSpawns.coralSpawnPositions;
         Vector3 center = s_playerPosScratch[Random.Range(0, s_playerPosScratch.Count)];
 
-        float minDist = Config.crystal_spawn_min_dist;
+        float minDist = Config.coral_spawn_min_dist;
         float minSq = minDist * minDist;
-        float maxSq = Config.crystal_spawn_max_dist * Config.crystal_spawn_max_dist;
+        float maxSq = Config.coral_spawn_max_dist * Config.coral_spawn_max_dist;
 
         // 在"位于所选玩家的环带内、且 minDist 内无任何玩家"的候选点中均匀随机取一个（蓄水池抽样，零分配）
         int picked = -1;
@@ -142,15 +142,16 @@ public partial class BattleManager
         }
         if (picked < 0) return;
 
-        // 该点已有水晶（且实体仍在）→ 不处理
-        ushort existing = crystalAtPoint[picked];
+        // 该点已有珊瑚（且实体仍在）→ 不处理
+        ushort existing = coralAtPoint[picked];
         if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) return;
 
         Vector3 pos = points[picked];
-        ushort id = SpawnEntity(EntityType.Crystal(picked % Config.crystal_graphics_count), 1, pos, EntityCamp.Prop);
+        EntityType type = Random.value < Config.coral_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+        ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
         if (id == 0) return;
-        crystalAtPoint[picked] = id;
-        if (GetEntity(id) is CrystalEntityData crystal) crystal.spawnPointIndex = picked;
+        coralAtPoint[picked] = id;
+        if (GetEntity(id) is CoralEntityData coral) coral.spawnPointIndex = picked;
     }
 
     private static bool IsAnyPlayerWithin(Vector3 pos, float radius)

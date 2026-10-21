@@ -164,7 +164,8 @@ public class Tool : MonoBehaviour
         e += CheckList("InfoManager.EliteZombieInfoList", m.EliteZombieInfoList, Config.elite_zombie_variant_count);
         e += CheckObject("InfoManager.BeaconInfo", m.BeaconInfo);
         e += CheckObject("InfoManager.CoreBeaconInfo", m.CoreBeaconInfo);
-        e += CheckObject("InfoManager.CrystalInfo", m.CrystalInfo);
+        e += CheckObject("InfoManager.CoralSmallInfo", m.CoralSmallInfo);
+        e += CheckObject("InfoManager.CoralLargeInfo", m.CoralLargeInfo);
         e += CheckList("InfoManager.TowerInfoList", m.TowerInfoList, Config.tower_count);
         e += CheckObject("InfoManager.PlagueTreeInfo", m.PlagueTreeInfo);
 
@@ -173,7 +174,8 @@ public class Tool : MonoBehaviour
         e += CheckList("InfoManager.ZombieTemplates", m.ZombieTemplates, Config.zombie_variant_count);
         e += CheckList("InfoManager.EliteZombieTemplates", m.EliteZombieTemplates, Config.elite_zombie_variant_count);
         e += CheckList("InfoManager.BeaconTemplates", m.BeaconTemplates, beacon_type_count);
-        e += CheckList("InfoManager.CrystalTemplates", m.CrystalTemplates, Config.crystal_graphics_count);
+        e += CheckList("InfoManager.CoralSmallTemplates", m.CoralSmallTemplates, 0);
+        e += CheckList("InfoManager.CoralLargeTemplates", m.CoralLargeTemplates, 0);
         e += CheckList("InfoManager.TowerTemplates", m.TowerTemplates, Config.tower_count);
         e += CheckObject("InfoManager.PlagueTreeTemplate", m.PlagueTreeTemplate);
 
@@ -243,7 +245,8 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.ZombieGraphics", m.ZombieGraphics, Config.zombie_variant_count);
         e += CheckList("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, Config.elite_zombie_variant_count);
         e += CheckList("AssetsManager.BeaconGraphics", m.BeaconGraphics, beacon_type_count);
-        e += CheckList("AssetsManager.CrystalGraphics", m.CrystalGraphics, Config.crystal_graphics_count);
+        e += CheckList("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, 0);
+        e += CheckList("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, 0);
         e += CheckList("AssetsManager.TowerGraphics", m.TowerGraphics, Config.tower_count);
         e += CheckObject("AssetsManager.PlagueTreeGraphic", m.PlagueTreeGraphic);
 

@@ -90,8 +90,8 @@ public abstract class EntityData : MonoBehaviour
                 return target.AddComponent<ZombieEntityData>();
             case EntityCategory.Beacon:
                 return target.AddComponent<BeaconEntityData>();
-            case EntityCategory.Crystal:
-                return target.AddComponent<CrystalEntityData>();
+            case EntityCategory.Coral:
+                return target.AddComponent<CoralEntityData>();
             case EntityCategory.Tower:
                 return target.AddComponent<TowerEntityData>();
             case EntityCategory.PlagueTree:
@@ -189,7 +189,7 @@ public abstract class EntityData : MonoBehaviour
     private const float nav_corner_radius = 0.3f;
     private const float nav_repath_interval = 0.25f;
 
-    private NavMeshPath navPath; // 懒创建：水晶/守护点等不寻路的实体不必付这份开销
+    private NavMeshPath navPath; // 懒创建：珊瑚/守护点等不寻路的实体不必付这份开销
     private Vector3[] navCorners;
     private float navNextRepathTime;
 

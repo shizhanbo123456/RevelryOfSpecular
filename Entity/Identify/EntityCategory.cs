@@ -5,7 +5,7 @@ public enum EntityCategory
     Zombie,
     EliteZombie,
     Beacon,
-    Crystal,
+    Coral,
     Tower,
     PlagueTree,
 }

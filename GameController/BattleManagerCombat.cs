@@ -147,7 +147,7 @@ public partial class BattleManager
         }
 
         // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent；
-        // 无动画实体（水晶/守护点/防御塔等）立即销毁。见 TickDying
+        // 无动画实体（珊瑚/守护点/防御塔等）立即销毁。见 TickDying
         BeginDying(entity);
 
         // 守护点的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
@@ -195,16 +195,18 @@ public partial class BattleManager
         EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
     }
 
-    public void TryDropCrystalWeapon(EntityData crystal)
+    public void TryDropCoralWeapon(EntityData coral)
     {
-        var killer = crystal.lastAttacker;
+        var killer = coral.lastAttacker;
         if (killer == null) return;
         if (!EntityOwnerClient.TryGetValue(killer.id, out var clientId)) return;
         if (!PlayerEntityId.TryGetValue(clientId, out var playerId)) return;
         if (!EntityContainer.Entities.TryGetObject(playerId, out var player) || player.skillController == null) return;
-        if (UnityEngine.Random.value > Config.crystal_skill_drop_chance) return;
 
-        int weaponId = Config.GetRandomWeaponId(crystal.type.value); // 类别由函数内部按 % crystal_type_count 推出
+        float chance = coral.type.value <= 0 ? Config.coral_small_drop_chance : Config.coral_large_drop_chance;
+        if (UnityEngine.Random.value > chance) return;
+
+        int weaponId = Config.GetRandomWeaponId(); // 全部武器均匀随机
         int slotMax = player.floatingAttribute.weaponSlotCount;
         var sc = player.skillController;
         if (sc.GetSkillIds().Contains(weaponId))

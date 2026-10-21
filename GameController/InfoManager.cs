@@ -20,7 +20,8 @@ public class InfoManager : MonoBehaviour
     public List<EntityAttributeInfo> EliteZombieInfoList = new();
     public EntityAttributeInfo BeaconInfo;
     public EntityAttributeInfo CoreBeaconInfo;
-    public EntityAttributeInfo CrystalInfo;
+    public EntityAttributeInfo CoralSmallInfo;
+    public EntityAttributeInfo CoralLargeInfo;
     public List<EntityAttributeInfo> TowerInfoList = new();
     public EntityAttributeInfo PlagueTreeInfo;
     #endregion
@@ -45,7 +46,8 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> ZombieTemplates = new();
     public List<GameObject> EliteZombieTemplates = new();
     public List<GameObject> BeaconTemplates = new();
-    public List<GameObject> CrystalTemplates = new();
+    public List<GameObject> CoralSmallTemplates = new();
+    public List<GameObject> CoralLargeTemplates = new();
     public List<GameObject> TowerTemplates = new();
     public GameObject PlagueTreeTemplate;
     [Space]
@@ -71,9 +73,9 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.Beacon:
                 if (BeaconTemplates.Count > 0) template = BeaconTemplates[type.value < Config.outer_beacon_count ? 0 : (BeaconTemplates.Count > 1 ? 1 : 0)];
                 break;
-            case EntityCategory.Crystal:
-                // 下标 = 水晶外观下标（0~11），取模容错；与 AssetsManager.TryGetGraphic 一致
-                if (CrystalTemplates.Count > 0) template = CrystalTemplates[Mathf.Max(0, type.value) % CrystalTemplates.Count];
+            case EntityCategory.Coral:
+                // 服务器模板只承载组件：小/大珊瑚各取自己列表的首个
+                template = FirstTemplate(type.value <= 0 ? CoralSmallTemplates : CoralLargeTemplates);
                 break;
             case EntityCategory.Tower:
                 if (TowerTemplates.Count > 0) template = TowerTemplates[type.value % TowerTemplates.Count];
@@ -82,6 +84,8 @@ public class InfoManager : MonoBehaviour
         }
         return template != null;
     }
+
+    private static GameObject FirstTemplate(List<GameObject> list) => list.Count > 0 ? list[0] : null;
     #endregion
 
     #region 属性获取
@@ -118,7 +122,8 @@ public class InfoManager : MonoBehaviour
                 break;
             case EntityCategory.Beacon:
                 return type.value < Config.outer_beacon_count ? BeaconInfo : CoreBeaconInfo;
-            case EntityCategory.Crystal: return CrystalInfo;
+            case EntityCategory.Coral:
+                return type.value <= 0 ? CoralSmallInfo : CoralLargeInfo;
             case EntityCategory.Tower:
                 return type.value >= 0 && type.value < TowerInfoList.Count ? TowerInfoList[type.value] : null;
             case EntityCategory.PlagueTree: return PlagueTreeInfo;

@@ -80,14 +80,14 @@ public partial class BattleManager : EnsBehaviour
     {
         public static readonly ChunkSearcher<EntityData> Entities = new(d => d.transform.position);
         public static readonly ChunkSearcher<EntityData> Beacons = new(d => d.transform.position);
-        public static readonly ChunkSearcher<EntityData> Crystals = new(d => d.transform.position);
+        public static readonly ChunkSearcher<EntityData> Corals = new(d => d.transform.position);
         public static readonly ChunkSearcher<EntityData> Towers = new(d => d.transform.position);
 
         public static void Clear()
         {
             Entities.Clear();
             Beacons.Clear();
-            Crystals.Clear();
+            Corals.Clear();
             Towers.Clear();
         }
 
@@ -276,8 +276,8 @@ public partial class BattleManager : EnsBehaviour
             case EntityCategory.Beacon:
                 EntityContainer.Beacons.Add(data.id, data);
                 break;
-            case EntityCategory.Crystal:
-                EntityContainer.Crystals.Add(data.id, data);
+            case EntityCategory.Coral:
+                EntityContainer.Corals.Add(data.id, data);
                 break;
             case EntityCategory.Tower:
                 EntityContainer.Towers.Add(data.id, data);
@@ -290,7 +290,7 @@ public partial class BattleManager : EnsBehaviour
     {
         EntityContainer.Entities.Remove(data.id);
         EntityContainer.Beacons.Remove(data.id);
-        EntityContainer.Crystals.Remove(data.id);
+        EntityContainer.Corals.Remove(data.id);
         EntityContainer.Towers.Remove(data.id);
         if (IsZombieCategory(data.type.category)) zombieCount--;
     }
@@ -804,7 +804,7 @@ public partial class BattleManager : EnsBehaviour
             Debug.Log($"{(AIClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp} id={entityId}");
         }
 
-        // 对局世界：守护点×4 / 水晶 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
+        // 对局世界：守护点×4 / 珊瑚 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
         UpdateCoreBeaconReduce(); // 初始分层减伤 = 存活外围数 × 25%
 
@@ -877,7 +877,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kTickDyingTag = "BattleManager.TickDying";
     private const string kUpdateAITag = "BattleManager.UpdateAI";
     private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
-    private const string kCrystalSpawnTag = "BattleManager.CrystalSpawn";
+    private const string kCoralSpawnTag = "BattleManager.CoralSpawn";
     private const string kSyncEntitiesTag = "BattleManager.SyncEntitiesToClients";
     private const string kSyncMinimapTag = "BattleManager.SyncMinimap";
     private const string kVisionStateTag = "BattleManager.VisionState";
@@ -927,7 +927,7 @@ public partial class BattleManager : EnsBehaviour
         }
         Profiler.EndSample(); // kEntityUpdateTag
 
-        // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与水晶重生
+        // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与珊瑚刷新
         Profiler.BeginSample(kTickMovementTag);
         TickMovement();
         Profiler.EndSample();
@@ -996,9 +996,9 @@ public partial class BattleManager : EnsBehaviour
         }
         Profiler.EndSample(); // kZombieRefreshTag
 
-        // 水晶邻近生成：按 Config.crystal_spawn_checks_per_second 每秒若干次检测（随机玩家 → 40~80m 环带内刷新点）
-        Profiler.BeginSample(kCrystalSpawnTag);
-        TickCrystalSpawn(UnityEngine.Time.deltaTime);
+        // 珊瑚邻近生成：按 Config.coral_spawn_checks_per_second 每秒若干次检测（随机玩家 → 40~80m 环带内刷新点）
+        Profiler.BeginSample(kCoralSpawnTag);
+        TickCoralSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample();
 
         // 视野锚点逐帧刷新（观战跟随 / 死亡冻结），供实体同步与小地图使用
