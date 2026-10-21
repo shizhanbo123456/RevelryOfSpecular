@@ -4,8 +4,8 @@ using UnityEngine;
 
 public enum EffectType
 {
-    // ---- 属性修改（重算轨道，无特效；Boost = 提升 / Decrease = 削弱成对，幅度内部定死，见 RecomputeAttributes）----
-    AttrStrengthBoost,          // 力量提升（激励法阵等）
+    // ---- 属性修改（重算轨道，无特效；Boost / Decrease 成对，幅度 = 对应属性初始值 × Config.buff_attr_ratio × 等级）----
+    AttrStrengthBoost,          // 力量提升
     AttrStrengthDecrease,       // 力量降低
     AttrMagicBoost,             // 魔法提升
     AttrMagicDecrease,          // 魔法降低
@@ -15,61 +15,61 @@ public enum EffectType
     AttrCritDamageDecrease,     // 暴击伤害降低
     AttrKnockbackBoost,         // 击退抗性提升
     AttrKnockbackDecrease,      // 击退抗性降低
-    AttrViewDistanceBoost,      // 可见距离提升（按 20% 规则）
+    AttrViewDistanceBoost,      // 可见距离提升
     AttrViewDistanceDecrease,   // 可见距离降低
 
-    // ---- 控制类（强控：动画速度 0、霸体失效、打断位移与攻击）----
-    Stun,               // 麻痹（鹿铠被动/麻痹弹）
-    Freeze,             // 冰冻（冻结弹/冰锥术/冰霜新星）
-    Root,               // 定身（捕获投掷/束缚钉）
-    Silence,            // 沉默（教皇主动1：仅禁技能，非强控）
+    // ---- 控制类（强控：动画播放速度置 0、霸体失效、无法移动与施法）----
+    Stun,               // 麻痹
+    Freeze,             // 冰冻
+    Root,               // 定身
+    Silence,            // 沉默（只禁技能，不暂停动画、不禁移动）
 
-    // ---- DoT（固定数值，1s 间隔，吃护盾/减伤、不吃增减伤）----
-    Burning,            // 燃烧（燃烧弹）
-    Poison,             // 中毒（毒珠/瘟疫引爆，叠层）
+    // ---- DoT（固定间隔 1s 一跳，吃护盾/减伤、不吃增减伤；叠层提高每跳伤害）----
+    Burning,            // 燃烧（每跳 = Config.burning_damage_per_tick × 等级）
+    Poison,             // 中毒（每跳 = max(力量, 魔力) × Config.poison_damage_ratio × 等级）
 
     // ---- 护盾/减伤/反伤 ----
-    Shield,             // 护盾（光盾）
-    TowerShield,        // 岩石护盾（鹿铠主动1，附近防御塔或自己）
-    BeaconReduce,       // 副守护点减伤（每存活外围点 25%，叠层）
-    PopeGuard,          // 教皇守护（教皇被动，入夜守护点减伤）
-    Reflect,            // 反伤（教皇大招，守护点）
+    Shield,             // 护盾（值 = 生命上限 × Config.shield_health_ratio × 等级，受击扣减、扣完移除）
+    TowerShield,        // 护盾（同 Shield，独立计算、与 Shield 一起吸收）
+    BeaconReduce,       // 减伤（每层 25%，层层相加）
+    PopeGuard,          // 减伤（+30%）
+    Reflect,            // 反伤（实际受伤 × 等级 × 10%，向下取整、最少 1）
 
-    // ---- 标记（无自身效果，供读取层数/客户端表现）----
-    PlagueMark,         // 瘟疫标记（叠层，引爆用）
-    PaleLight,          // 苍白之光（叠层，满 10 转化冰）
-    PaleDark,           // 苍白之暗（叠层，满 10 转化雷）
+    // ---- 标记（自身无效果，供读取层数/客户端表现）----
+    PlagueMark,         // 瘟疫标记（叠层，引爆时按层结算伤害）
+    PaleLight,          // 苍白之光（叠层，满 10 层转为苍白之冰）
+    PaleDark,           // 苍白之暗（叠层，满 10 层转为苍白之雷）
     EyeMark,            // 白眼标记（小地图常显）
 
-    // ---- 苍白转化产物（苍白舞者被动转化出的独立 Buff，行为沿用同类通用 Buff）----
-    PaleFire,           // 苍白之火（DoT，同燃烧）
+    // ---- 苍白产物（独立类型，行为同同类通用 Buff，可与通用类并存）----
+    PaleFire,           // 苍白之火（DoT，每跳同燃烧）
     PaleIce,            // 苍白之冰（强控，同冰冻）
     PaleThunder,        // 苍白之雷（强控，同麻痹）
 
     // ---- 视野/信息（客户端表现逻辑）----
-    Fog,                // 迷雾（苍白舞者大招）
-    MinimapLost,        // 小地图失联（夜间进攻方）
+    Fog,                // 迷雾
+    MinimapLost,        // 小地图失联（不在敌方小地图显示点位）
 
-    // ---- 动画移速（载体 = 动画状态机移动状态播放速度，移速属性已删除，见策划案 11.3）----
-    AnimSpeedUp,        // 加速（激励弹）
-    AnimSlowDown,       // 减速（通用，破甲重弹）
-    Mire,               // 泥沼（教皇主动2，全场敌方）
+    // ---- 动画移速（载体 = 动画状态机移动状态的播放速度）----
+    AnimSpeedUp,        // 加速（× Config.anim_move_speed_up）
+    AnimSlowDown,       // 减速（× Config.anim_move_speed_down）
+    Mire,               // 泥沼（× Config.anim_move_speed_mire）
 
     // ---- 特殊 ----
-    YzCy,               // 愈战愈勇（增伤/减伤乘区，按层数）
-    TowerBlaze,         // 灵火（塔攻击附加爆炸：攻击生成时查询）
-    DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT）
+    YzCy,               // 愈战愈勇（出伤 ×(1 + 10% × 层)，受伤 ×1 / (1 + 10% × 层)）
+    TowerBlaze,         // 灵火（攻击附加范围爆炸）
+    DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT + 移速 × Config.death_stroll_speed_up）
     DeathCurse,         // 死灵诅咒（叠层：DoT + 受伤增加）
-    ZombieScreamBoost,  // 僵尸嘶吼增益
-    DodgeBoost,         // 闪避提升（属性侧暂无闪避字段）
-    PlagueBless,        // 瘟疫祝福（攻占瘟疫树奖励：+75% 出伤 / −25% 受伤，见 Config.plague_bless_*）
+    ZombieScreamBoost,  // 嘶吼增益
+    DodgeBoost,         // 闪避（命中判定全闪避，无数值概率）
+    PlagueBless,        // 瘟疫祝福（出伤 +75%、受伤 −25%）
 
     // ---- GM（仅调试指令用）----
-    GmSpeedUp,          // GM「极速」：动画移速倍率 = Config.gm_speed_multiplier
+    GmSpeedUp,          // 极速（动画移速 × Config.gm_speed_multiplier）
 
-    // ---- 标记（无自身效果，供其它逻辑读取）----
-    NightMark,          // 黑夜标记（白眼伯爵主动2：不出现在敌方小地图）
-    PlaguePollute,      // 瘟疫污染（瘟疫使者主动2：珊瑚被摧毁时扩散瘟疫标记）
+    // ---- 标记（自身无效果，供其它逻辑读取）----
+    NightMark,          // 黑夜标记（自身不出现在敌方小地图）
+    PlaguePollute,      // 瘟疫污染（被摧毁时向周围扩散瘟疫标记）
 }
 
 public static class EffectTypeExt
