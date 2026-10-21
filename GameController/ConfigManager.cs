@@ -114,6 +114,14 @@ public class ConfigManager : MonoBehaviour
         return value;
     }
 
+    public static EntityCategory ParseCategory(string[] rowData, int col)
+    {
+        int raw = ParseInt(rowData, col);
+        if (!Enum.IsDefined(typeof(EntityCategory), raw))
+            throw new FormatException($"第 {col} 列的实体类型 {raw} 未在 EntityCategory 中定义");
+        return (EntityCategory)raw;
+    }
+
     public static float? ParseFloatOrNull(string[] rowData, int col)
     {
         string raw = Cell(rowData, col);
@@ -260,14 +268,15 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 角色信息表
+    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
         private const int ColumnCount = 15;
-        public static readonly Dictionary<string, EntityConfig> content = new();
+        public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
-        public string key;
+        public EntityCategory category;
+        public int value;
         public string name;
         public float? health;
         public int? strength;
@@ -281,34 +290,33 @@ public class ConfigManager : MonoBehaviour
         public int? upgradeC;
         public int? unlockLevel;
         public List<int> initialSkills;
-        public string quality;
 
         public EntityConfig(string[] rowData)
         {
-            key = ParseString(rowData, 0);
-            name = ParseString(rowData, 1);
-            health = ParseFloatOrNull(rowData, 2);
-            strength = ParseIntOrNull(rowData, 3);
-            magic = ParseIntOrNull(rowData, 4);
-            critRate = ParseIntOrNull(rowData, 5);
-            critDamage = ParseFloatOrNull(rowData, 6);
-            viewDistance = ParseFloatOrNull(rowData, 7);
-            weaponSlotCount = ParseIntOrNull(rowData, 8);
-            upgradeA = ParseIntOrNull(rowData, 9);
-            upgradeB = ParseIntOrNull(rowData, 10);
-            upgradeC = ParseIntOrNull(rowData, 11);
-            unlockLevel = ParseIntOrNull(rowData, 12);
-            initialSkills = ParseIntList(rowData, 13);
-            quality = ParseString(rowData, 14);
+            category = ParseCategory(rowData, 0);
+            value = ParseInt(rowData, 1);
+            name = ParseString(rowData, 2);
+            health = ParseFloatOrNull(rowData, 3);
+            strength = ParseIntOrNull(rowData, 4);
+            magic = ParseIntOrNull(rowData, 5);
+            critRate = ParseIntOrNull(rowData, 6);
+            critDamage = ParseFloatOrNull(rowData, 7);
+            viewDistance = ParseFloatOrNull(rowData, 8);
+            weaponSlotCount = ParseIntOrNull(rowData, 9);
+            upgradeA = ParseIntOrNull(rowData, 10);
+            upgradeB = ParseIntOrNull(rowData, 11);
+            upgradeC = ParseIntOrNull(rowData, 12);
+            unlockLevel = ParseIntOrNull(rowData, 13);
+            initialSkills = ParseIntList(rowData, 14);
         }
 
         public static int Load(ConfigTable table)
         {
             table.RequireColumnCount(ColumnCount);
-            return Fill(table, content, row => new EntityConfig(row), row => row.key);
+            return Fill(table, content, row => new EntityConfig(row), row => new EntityType(row.category, row.value));
         }
 
-        public static EntityConfig Get(string key) => GetOrLog(content, key, FileName);
+        public static EntityConfig Get(EntityType type) => GetOrLog(content, type, FileName);
     }
     #endregion
 
