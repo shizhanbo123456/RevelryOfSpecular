@@ -30,7 +30,7 @@ public enum EffectType
 
     // ---- 护盾/减伤/反伤 ----
     Shield,             // 护盾（光盾）
-    TowerShield,        // 岩石护盾（鹿铠主动1，塔身）
+    TowerShield,        // 岩石护盾（鹿铠主动1，附近防御塔或自己）
     BeaconReduce,       // 副守护点减伤（每存活外围点 25%，叠层）
     PopeGuard,          // 教皇守护（教皇被动，入夜守护点减伤）
     Reflect,            // 反伤（教皇大招，守护点）

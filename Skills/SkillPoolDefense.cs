@@ -39,9 +39,11 @@ namespace Ros.Skill
     public class SkillRockShield : SkillBase
     {
         public override int Id => (int)SkillType.SkillRockShield;
-        public override float CD => 12f;
+        public override float CD => 20f;
         public override int Store => 5;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
+        private const float ShieldDuration = 15f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -49,7 +51,7 @@ namespace Ros.Skill
             context.AddInts(entity.id);
             var tower = TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
                 Config.defense_ally_cast_radius);
-            if (tower != null) context.AddInts(tower.id);
+            context.AddInts(tower != null ? tower.id : entity.id); // 附近没塔就给自己
             return context;
         }
 
@@ -58,7 +60,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerShield, 1,
-                    Config.buff_duration_buff, caster);
+                    ShieldDuration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -91,6 +93,8 @@ namespace Ros.Skill
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
+        private const float BlazeDuration = 12f;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -105,7 +109,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerBlaze, 1,
-                    Config.buff_duration_debuff, caster);
+                    BlazeDuration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -210,10 +214,11 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
+            int level = Tool.BattleManager.GetZombieSpawnLevel(); // 跟随自然刷新等级
             for (int i = 0; i < Config.summon_zombie_count; i++)
             {
                 var type = EntityType.Zombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
-                Tool.BattleManager.SpawnEntity(type, Config.summon_zombie_level,
+                Tool.BattleManager.SpawnEntity(type, level,
                     caster.transform.position + TargetSelect.SummonOffset(i), EntityCamp.Zombie);
             }
         }
@@ -263,10 +268,11 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
+            int level = Tool.BattleManager.GetZombieSpawnLevel(); // 跟随自然刷新等级
             for (int i = 0; i < Config.summon_elite_count; i++)
             {
                 var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
-                Tool.BattleManager.SpawnEntity(type, Config.summon_elite_level,
+                Tool.BattleManager.SpawnEntity(type, level,
                     caster.transform.position + TargetSelect.SummonOffset(i, 3f), EntityCamp.Zombie);
             }
         }
@@ -280,9 +286,11 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSilenceCast;
         public override float CastRange => 8f;
-        public override float CD => 15f;
+        public override float CD => 30f;
         public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
+
+        private const float SilenceDuration = 12f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -298,7 +306,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Silence, 1,
-                    Config.buff_duration_control, caster);
+                    SilenceDuration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -308,7 +316,7 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillMireCast;
         public override float CD => 20f;
-        public override int Store => 5;
+        public override int Store => 1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -368,6 +376,8 @@ namespace Ros.Skill
         public override int Store => 12;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
+        private const float MarkDuration = 30f;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -382,7 +392,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.PlagueMark, 1,
-                    Config.buff_duration_buff, caster);
+                    MarkDuration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -505,6 +515,8 @@ namespace Ros.Skill
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
+        private const float FogDuration = 20f;
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -519,7 +531,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Fog, 1,
-                    Config.buff_duration_buff, caster);
+                    FogDuration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

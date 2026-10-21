@@ -86,19 +86,19 @@
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
-| 50 | 岩石护盾 | SkillRockShield | 无（护盾 buff 自带） | 附近防御塔挂 TowerShield |
+| 50 | 岩石护盾 | SkillRockShield | 无（护盾 buff 自带） | 附近防御塔挂 TowerShield；附近无塔则给自己 |
 | 51 | 蘑菇感染（效果已移除，待重做） | SkillMushroomInfect | 无 | 无 |
 | 52 | 灵火 | SkillTowerBlazeCast | 无 | 全场塔挂 TowerBlaze |
 | 53 | 白眼标记 | SkillEyeMark | 无 | EyeMark（小地图常显） |
 | 54 | 无限视野 | SkillInfiniteVision | 无 | 10 级可见距离提升 |
 | 55 | 立即入夜 | SkillForceNight | 无 | 无 |
-| 56 | 召唤僵尸 | SkillSummonZombies | 无 | 无 |
+| 56 | 召唤僵尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
 | 57 | 死灵漫步 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
-| 58 | 召唤精英 | SkillSummonElites | 无 | 无 |
-| 59 | 沉默 | SkillSilenceCast | 无 | 范围内敌人挂 Silence |
+| 58 | 召唤精英 | SkillSummonElites | 无 | 无（3 只精英僵尸，等级跟随自然刷新等级） |
+| 59 | 沉默 | SkillSilenceCast | 无 | 自身 8m 内敌人挂 Silence |
 | 60 | 泥沼 | SkillMireCast | 无 | 全场敌人挂 Mire |
 | 61 | 反伤 | SkillReflectCast | 无 | 守护点挂 Reflect |
-| 62 | 瘟疫标记 | SkillPlagueMarkCast | 无 | 敌人挂 PlagueMark |
+| 62 | 瘟疫标记 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
 | 63 | 吸收矿石 | SkillAbsorbOre | 无 | 无 |
 | 64 | 引爆瘟疫 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
 | 65 | 苍白之光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
