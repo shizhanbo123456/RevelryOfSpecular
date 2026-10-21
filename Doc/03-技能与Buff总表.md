@@ -161,13 +161,11 @@
 | AttrStrengthBoost / AttrMagicBoost | MC[0] 黄色力场 | 激励法阵等属性增益 |
 | AttrCritRateBoost / AttrCritDamageBoost | MC[1] 治愈绿 | 暴击 / 暴伤增益 |
 | AttrStrengthDecrease / AttrMagicDecrease / AttrCritRateDecrease / AttrCritDamageDecrease | MC[5] 深绿护盾 | 属性削弱类 |
-| AttrKnockbackBoost 击退抗性提升 | MC[8] 红色防御增益 | 复活后的击退抗性提升等 |
 
-### 2.1 明确无特效 / 非特效的状态（8）
+### 2.1 明确无特效 / 非特效的状态（7）
 
 | 状态 | 处理 |
 | --- | --- |
-| AttrKnockbackDecrease 击退抗性降低 | 无特效（1019 表未分配） |
 | AttrViewDistanceBoost / AttrViewDistanceDecrease 可见距离增减 | 无特效 |
 | DodgeBoost 闪避提升 | 无特效（属性侧暂无闪避字段） |
 | YzCy 愈战愈勇 | 无特效（策划案明确无外观） |
@@ -207,7 +205,7 @@ Skills文件夹：
 
 Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；**2026-10-17 重构后口径**）：
 1. **统一添加入口 `AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)`**：外部只给类型 / 等级 / 持续时间（<0 = 永久）+ 施加者实体，**不传任何数值**——强度全部由控制器内部定死（系数进 Config 通用 Buff region）。`source` 非空时克隆其 `floatingAttribute` 存为**施加者属性快照**（独立实例，施加者后续被减益不影响已挂 Buff），`sourceId` 由此自动取（DoT 击杀归属）；无施加者的强加（守护点减伤/愈战愈勇/小地图失联等）传 null。叠加语义：同类型重复添加 = **等级累加 + 时间刷新**，施加者与快照以最新一次为准。
-2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**6 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 击飞抗性 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达），没有固定数值特例；**武器槽位数不可被 Buff 改变**，生命值上限也只由升级路线改变。
+2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**5 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达），没有固定数值特例；**武器槽位数不可被 Buff 改变**，生命值上限也只由升级路线改变。
    **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，所以配置 SO 里只出现一个"生命值"项，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
    Add/Remove 时统一重算运行时属性（base 克隆 + Σ修改量，再把当前生命**夹回上限**——夹取不平移 = 不自动回血）；其它 Buff 一律不得触碰属性
 3. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口——受伤管线顺序 = 护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤；出伤乘区由攻击方在伤害计算时调用

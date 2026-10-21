@@ -430,7 +430,7 @@ public abstract class EntityData : MonoBehaviour
     private bool ApplyKnockback(AttackData attack, Vector3 hitOrigin)
     {
         if (rb == null) return false;
-        float v = attack.knockbackPower - floatingAttribute.knockbackResistance;
+        float v = attack.knockbackPower;
         if (v <= 0.01f) return false;
 
         Vector3 away = transform.position - hitOrigin;

@@ -50,8 +50,6 @@ public enum EffectType
     AttrCritRateDecrease,       // 暴击率降低
     AttrCritDamageBoost,        // 暴击伤害提升
     AttrCritDamageDecrease,     // 暴击伤害降低
-    AttrKnockbackBoost,         // 击退抗性提升
-    AttrKnockbackDecrease,      // 击退抗性降低
     AttrViewDistanceBoost,      // 可见距离提升
     AttrViewDistanceDecrease,   // 可见距离降低
     SpeedUp,        // 加速
@@ -63,10 +61,10 @@ public static class EffectTypeExt
     public static bool IsAttribute(this EffectType type) => type switch
     {
         EffectType.AttrStrengthBoost or EffectType.AttrMagicBoost or
-        EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or EffectType.AttrKnockbackBoost or
+        EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or
         EffectType.AttrViewDistanceBoost or
         EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
-        EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or EffectType.AttrKnockbackDecrease or
+        EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or
         EffectType.AttrViewDistanceDecrease => true,
         _ => false,
     };
@@ -86,7 +84,7 @@ public static class EffectTypeExt
     {
         EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
         EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or
-        EffectType.AttrKnockbackDecrease or EffectType.AttrViewDistanceDecrease or
+        EffectType.AttrViewDistanceDecrease or
         EffectType.Stun or EffectType.Freeze or EffectType.Root or EffectType.Silence or
         EffectType.Burning or EffectType.Poison or
         EffectType.Mire or EffectType.SlowDown or EffectType.MinimapLost or
@@ -392,7 +390,6 @@ public class EntityEffectController
             EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic,
             EntityAttributeDelta.Field.CritRate => owner.baseAttribute.critRate,
             EntityAttributeDelta.Field.CritDamage => owner.baseAttribute.critDamage,
-            EntityAttributeDelta.Field.KnockbackResistance => owner.baseAttribute.knockbackResistance,
             EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance,
             _ => UnsupportedAttrField(field),
         };
@@ -433,8 +430,6 @@ public class EntityEffectController
             case EffectType.AttrCritRateDecrease: return EntityAttributeDelta.Field.CritRate;
             case EffectType.AttrCritDamageBoost:
             case EffectType.AttrCritDamageDecrease: return EntityAttributeDelta.Field.CritDamage;
-            case EffectType.AttrKnockbackBoost:
-            case EffectType.AttrKnockbackDecrease: return EntityAttributeDelta.Field.KnockbackResistance;
             case EffectType.AttrViewDistanceBoost:
             case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
             default:

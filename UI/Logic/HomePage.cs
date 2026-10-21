@@ -8,7 +8,7 @@ public class HomePage : PageBase
     private readonly UI_HomePanel panel;
     private bool defenseTab;
 
-    private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "击退抗", "视野", "技能槽" };
+    private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "视野", "技能槽" };
     private const string GainGreen = "#6BD98C";  // 已取得的累计增益
     private const string NextGainOrange = "#FF9E47"; // 下一级将获得的增益
 
@@ -157,7 +157,6 @@ public class HomePage : PageBase
         float? nextMagic = nextAttr != null ? nextAttr.magic : (float?)null;
         float? nextCritRate = nextAttr != null ? nextAttr.critRate : (float?)null;
         float? nextCritDamage = nextAttr != null ? nextAttr.critDamage : (float?)null;
-        float? nextKnockbackResistance = nextAttr != null ? nextAttr.knockbackResistance : (float?)null;
         float? nextViewDistance = nextAttr != null ? nextAttr.viewDistance : (float?)null;
         float? nextWeaponSlotCount = nextAttr != null ? nextAttr.weaponSlotCount : (float?)null;
         string[] values =
@@ -167,7 +166,6 @@ public class HomePage : PageBase
             StatPart(attr.magic, baseAttr.magic, nextMagic),
             StatPart(attr.critRate, baseAttr.critRate, nextCritRate, "%"),
             StatPart(attr.critDamage, baseAttr.critDamage, nextCritDamage, "x"),
-            StatPart(attr.knockbackResistance, baseAttr.knockbackResistance, nextKnockbackResistance),
             StatPart(attr.viewDistance, baseAttr.viewDistance, nextViewDistance, "m"),
             StatPart(attr.weaponSlotCount, baseAttr.weaponSlotCount, nextWeaponSlotCount),
         };

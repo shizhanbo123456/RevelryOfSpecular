@@ -6,7 +6,6 @@ public class EntityAttribute
     public int magic = 100;
     public int critRate = 5;
     public float critDamage = 1.5f;
-    public float knockbackResistance = 0f;
     public float viewDistance = 80f;
     public int weaponSlotCount = 3;
 
@@ -19,7 +18,6 @@ public class EntityAttribute
             magic = magic,
             critRate = critRate,
             critDamage = critDamage,
-            knockbackResistance = knockbackResistance,
             viewDistance = viewDistance,
             weaponSlotCount = weaponSlotCount,
         };
@@ -34,7 +32,6 @@ public class EntityAttribute
             case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritDamage: critDamage += delta.value; break;
-            case EntityAttributeDelta.Field.KnockbackResistance: knockbackResistance += delta.value; break;
             case EntityAttributeDelta.Field.ViewDistance: viewDistance += delta.value; break;
             case EntityAttributeDelta.Field.WeaponSlotCount: weaponSlotCount += (int)delta.value; break;
         }
@@ -48,7 +45,7 @@ public class EntityAttributeDelta
     {
         Health,
         Strength, Magic, CritRate, CritDamage,
-        KnockbackResistance, ViewDistance, WeaponSlotCount,
+        ViewDistance, WeaponSlotCount,
     }
 
     public Field field;

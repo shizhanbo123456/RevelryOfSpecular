@@ -288,7 +288,6 @@ public static class Config
         { EffectType.AttrMagicDecrease, (SkillVfxKind.MagicCircle, 5) },
         { EffectType.AttrCritRateDecrease, (SkillVfxKind.MagicCircle, 5) },
         { EffectType.AttrCritDamageDecrease, (SkillVfxKind.MagicCircle, 5) },
-        { EffectType.AttrKnockbackBoost, (SkillVfxKind.MagicCircle, 8) },
     };
 
     #endregion
