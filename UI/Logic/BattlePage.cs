@@ -754,11 +754,11 @@ public class BattlePage : PageBase
         else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);       // 日出横幅
     }
 
-    // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 NoticeMessageMap
+    // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 notice.csv
     private static string ResolveEventText(int id)
     {
         if (id >= SCBattleEvent.PlayerNameBase) return GetUnitName(id - SCBattleEvent.PlayerNameBase);
-        return NoticeMessageMap.Get(id);
+        return ConfigManager.NoticeConfig.Get(id).text;
     }
 
     private void OnDamageDisplay(SCDamage d)

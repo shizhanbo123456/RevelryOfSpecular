@@ -14,10 +14,10 @@ namespace Ros.Transport
             public const byte Daybreak = 6;            // 天亮
             public const byte StatueDestroyed = 7;     // 雕像被摧毁：textId 区分哪一座（驱动对应血条）
             public const byte CrystalStatueDestroyed = 8;      // 水晶雕像被摧毁
-            public const byte Notice = 9;              // 纯文字提示：textId=NoticeMessageMap 消息 id
+            public const byte Notice = 9;              // 纯文字提示：textId=notice.csv 消息 id
         }
 
-        // 文本 id：<10000 查 NoticeMessageMap；≥10000 为玩家名（clientId = id - PlayerNameBase）
+        // 文本 id：<10000 查 notice.csv；≥10000 为玩家名（clientId = id - PlayerNameBase）
         public const int PlayerNameBase = 10000;
 
         public byte type;

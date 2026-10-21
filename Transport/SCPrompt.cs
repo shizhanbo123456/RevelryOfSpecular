@@ -1,6 +1,6 @@
 namespace Ros.Transport
 {
-    // 服务器 → 客户端：飘字提示（messageId = NoticeMessageMap 消息 id，客户端查表显示，颜色由 FGUI 预设）
+    // 服务器 → 客户端：飘字提示（messageId = notice.csv 消息 id，客户端查表显示，颜色由 FGUI 预设）
     public class SCPrompt
     {
         public int messageId;

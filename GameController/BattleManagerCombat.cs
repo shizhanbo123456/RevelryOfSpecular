@@ -226,7 +226,7 @@ public partial class BattleManager
         }
     }
 
-    // 战斗事件列表的纯文字提示（文本走 NoticeMessageMap）
+    // 战斗事件列表的纯文字提示（文本走 notice.csv）
     private void NotifyPlayer(short clientId, int messageId)
     {
         Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
