@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class AssetsManager : MonoBehaviour
 {
@@ -15,7 +14,6 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> ZombieGraphics = new();
     public List<GameObject> EliteZombieGraphics = new();
     public List<GameObject> BeaconGraphics = new();
-    [FormerlySerializedAs("CrystalGraphics")]
     public List<GameObject> CoralSmallGraphics = new();
     public List<GameObject> CoralLargeGraphics = new();
     public List<GameObject> TowerGraphics = new();

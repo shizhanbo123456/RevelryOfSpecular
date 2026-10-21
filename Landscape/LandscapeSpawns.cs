@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class LandscapeSpawns : MonoBehaviour
 {
@@ -71,11 +70,9 @@ public class LandscapeSpawns : MonoBehaviour
     public List<Transform> beaconSpawnPositions = new();
 
     [Header("珊瑚刷新位置列表（Vector3，由右键菜单生成）")]
-    [FormerlySerializedAs("crystalSpawnPositions")]
     public List<Vector3> coralSpawnPositions = new();
 
     [Tooltip("右键菜单「随机生成珊瑚刷新点」单次生成的数量；生成时会先清空 coralSpawnPositions")]
-    [FormerlySerializedAs("crystalGenerateCount")]
     [Min(1)] public int coralGenerateCount = 100;
 
     [Header("防御塔位置列表（防御塔被摧毁后不会复活）")]
@@ -103,7 +100,6 @@ public class LandscapeSpawns : MonoBehaviour
 
     [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
     [Tooltip("由菜单生成的坐标点位（珊瑚刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
-    [FormerlySerializedAs("crystalGizmoRadius")]
     [Min(0.1f)] public float coralGizmoRadius = 1f;
 
     [Tooltip("其余 Transform 锚点（守护点/防御塔/瘟疫树/双方出生-复活位置）的 Gizmos 球半径")]
