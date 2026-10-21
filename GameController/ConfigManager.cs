@@ -248,12 +248,11 @@ public class ConfigManager : MonoBehaviour
         return content.Count;
     }
 
-    internal static TRow GetOrLog<TKey, TRow>(Dictionary<TKey, TRow> content, TKey key, string fileName)
+    internal static TRow GetRequired<TKey, TRow>(Dictionary<TKey, TRow> content, TKey key, string fileName)
     {
         if (content.TryGetValue(key, out TRow row)) return row;
 
-        Debug.LogError($"[配表] {fileName} 中没有主键「{key}」，请检查配表是否漏配");
-        return default;
+        throw new FormatException($"[配表] {fileName} 中没有主键「{key}」，请检查配表是否漏配");
     }
 
     // 超出配表范围时退到不大于 key 的最大主键（如复活次数超过表尾、死亡次数超过层数表）
@@ -293,7 +292,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new BattleFuryLayerConfig(row), row => row.key);
         }
 
-        public static BattleFuryLayerConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static BattleFuryLayerConfig Get(int key) => GetRequired(content, key, FileName);
 
         public static BattleFuryLayerConfig GetClamped(int key) => GetClampedRow(content, key, FileName);
     }
@@ -347,16 +346,30 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new EntityConfig(row), row => new EntityType(row.category, row.value));
         }
 
-        public static EntityConfig Get(EntityType type) => GetOrLog(content, type, FileName);
+        public static EntityConfig Get(EntityType type) => GetRequired(content, type, FileName);
 
-        // 僵尸/精英僵尸/水晶雕像/贤者雕像只配一行，副键精确匹配不到时回退到该类副键 0
+        // 一行覆盖整类：先按类别规则归一化副键，再精确查；查不到直接抛，不做任何兜底
         public static EntityConfig GetByCategory(EntityType type)
         {
-            if (content.TryGetValue(type, out EntityConfig config)) return config;
-            if (content.TryGetValue(new EntityType(type.category, 0), out config)) return config;
+            var key = new EntityType(type.category, NormalizeValue(type));
+            if (content.TryGetValue(key, out EntityConfig config)) return config;
 
-            Debug.LogError($"[配表] {FileName} 中没有实体类型 {type}，副键 0 也未配置");
-            return default;
+            throw new FormatException($"[配表] {FileName} 缺少实体类型 ({key.category}, {key.value})：{type} 归一化后无对应行");
+        }
+
+        private static int NormalizeValue(EntityType type)
+        {
+            switch (type.category)
+            {
+                case EntityCategory.Zombie:
+                case EntityCategory.EliteZombie:
+                case EntityCategory.CrystalStatue:
+                    return 0;
+                case EntityCategory.GuardStatue:
+                    return type.value < Config.sage_statue_count ? 0 : Config.sage_statue_count;
+                default:
+                    return type.value;
+            }
         }
 
         public EntityAttribute GetAttribute(int level)
@@ -437,7 +450,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new SkillConfig(row), row => row.key);
         }
 
-        public static SkillConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static SkillConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 
@@ -479,7 +492,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new EffectConfig(row), row => row.key);
         }
 
-        public static EffectConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static EffectConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 
@@ -505,7 +518,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new ExpCharacterConfig(row), row => row.key);
         }
 
-        public static ExpCharacterConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static ExpCharacterConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 
@@ -531,7 +544,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new ExpPlayerConfig(row), row => row.key);
         }
 
-        public static ExpPlayerConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static ExpPlayerConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 
@@ -563,7 +576,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new ReviveTimeConfig(row), row => row.key);
         }
 
-        public static ReviveTimeConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static ReviveTimeConfig Get(int key) => GetRequired(content, key, FileName);
 
         public static ReviveTimeConfig GetClamped(int key) => GetClampedRow(content, key, FileName);
     }
@@ -595,7 +608,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
         }
 
-        public static GlobalVariableConfig Get(string key) => GetOrLog(content, key, FileName);
+        public static GlobalVariableConfig Get(string key) => GetRequired(content, key, FileName);
     }
     #endregion
 
@@ -621,7 +634,7 @@ public class ConfigManager : MonoBehaviour
             return Fill(table, content, row => new NoticeConfig(row), row => row.key);
         }
 
-        public static NoticeConfig Get(int key) => GetOrLog(content, key, FileName);
+        public static NoticeConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 }
