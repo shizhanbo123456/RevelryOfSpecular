@@ -32,9 +32,10 @@ public class ConfigManager : MonoBehaviour
         int expPlayer = ExpPlayerConfig.Load(ReadTable(dir, ExpPlayerConfig.FileName));
         int revive = ReviveTimeConfig.Load(ReadTable(dir, ReviveTimeConfig.FileName));
         int global = GlobalVariableConfig.Load(ReadTable(dir, GlobalVariableConfig.FileName));
+        int notice = NoticeConfig.Load(ReadTable(dir, NoticeConfig.FileName));
 
         Debug.Log($"[配表] {dir} 加载完成 | battle_fury_layer {battleFury} | entity {entity} | skill {skill} | effect {effect} | " +
-                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global}");
+                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice}");
     }
 
     #region 文件读取与拆分
@@ -499,6 +500,30 @@ public class ConfigManager : MonoBehaviour
         {
             table.RequireHeader(ExpectedHeader);
             return Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
+        }
+    }
+    #endregion
+
+    #region 提示消息表
+    public struct NoticeConfig
+    {
+        public const string FileName = "notice.csv";
+        private static readonly string[] ExpectedHeader = { "提示消息", "提示文本" };
+        public static readonly Dictionary<int, NoticeConfig> content = new();
+
+        public int key;
+        public string text;
+
+        public NoticeConfig(string[] rowData)
+        {
+            key = ParseInt(rowData, 0, ExpectedHeader[0]);
+            text = ParseString(rowData, 1, ExpectedHeader[1]);
+        }
+
+        public static int Load(ConfigTable table)
+        {
+            table.RequireHeader(ExpectedHeader);
+            return Fill(table, content, row => new NoticeConfig(row), row => row.key);
         }
     }
     #endregion
