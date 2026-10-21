@@ -180,7 +180,7 @@
 ## 三、实现口径
 
 Skills文件夹：
-**当前状态（2026-10-20 重写）**：旧技能包与旧图标工具已删除（历史见 git），现行代码只有新技能。新技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 塔孢子 3 + 树孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的值由枚举顺序自动分配（**禁止手写数字**），段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3，**段长与顺序不可调整**（`Config.weapon_id_*` 与 `WeaponRef` 依赖段连续）；技能与武器槽位的对应是临时顺序分配（槽位 = 武器段内偏移），调整时同步改池文件里的 `WeaponRef` 与枚举顺序。技能图标分配表（`Editor/SkillIconAssigner.cs`）也已删除，需按新技能重建。
+**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 塔孢子 3 + 树孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的值由枚举顺序自动分配（**禁止手写数字**），段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3，**段长与顺序不可调整**（`Config.weapon_id_*` 与 `WeaponRef` 依赖段连续）；技能与武器槽位的对应是临时顺序分配（槽位 = 武器段内偏移），调整时同步改池文件里的 `WeaponRef` 与枚举顺序。技能图标需按当前技能表重建（分配工具待重做）。
 [E]外部调用只向SkillManager传入技能id即可。
 技能双端执行模型：EntitySkillController.TryUseSkill是全部释放路径（技能槽/J键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型由技能的 `CastAnim` 声明；`HasCastAnim=false` 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，`CastAnim`/`HasCastAnim` 在技能上声明。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 
@@ -192,8 +192,8 @@ Skills文件夹：
 ⑤ **禁止给子弹加跨端回调**：分裂 / 弹跳 / 延时等二次效果，施放时就算好时刻与点位，两端到点各自创建——弹跳 = 起点 + 8 跳共 9 个点整串下发；分裂 = 母弹终点 + 按弹速与距离动态算出的时刻。
 包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B。
 
-**发射点（2026-10-20 起）**：只用实体骨骼锚点，**没有任何「漂浮武器槽位」发射点**（`GetWeaponFloatPosition` / `ShotOrigin` / 客户端 `TryGetShotOrigin` 已删除）。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；防御塔与瘟疫树也是 `UpCenter`（不走塔顶）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
-**索敌与落点（2026-10-20 起）**：文档 `[索敌]` 标记 = 覆盖 `AutoAim => true`，其余默认 `false`（朝自身面向）。落点统一走 `AimPoint(entity, origin)`：
+**发射点**：只用实体骨骼锚点，**没有「漂浮武器槽位」发射点**。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；防御塔与瘟疫树也是 `UpCenter`（不走塔顶）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
+**索敌与落点**：文档 `[索敌]` 标记 = 覆盖 `AutoAim => true`，其余默认 `false`（朝自身面向）。落点统一走 `AimPoint(entity, origin)`：
 - 不索敌：`origin + forward × ForwardAimDistance`，**高度 = 起点高度**（水平射出）；
 - 索敌：水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**落点高度 = 目标体中心**（不锁 `transform.position` / 脚部），距离取技能 `CastRange`；
 - 专门做上下变化的技能自己覆盖 `AimPoint`（「周围子弹天降」「周围创造武器落下」→ 自身脚下）或整段覆写 `TrajectoryFor`。
@@ -207,7 +207,7 @@ Skills文件夹：
 
 Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；**2026-10-17 重构后口径**）：
 1. **统一添加入口 `AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)`**：外部只给类型 / 等级 / 持续时间（<0 = 永久）+ 施加者实体，**不传任何数值**——强度全部由控制器内部定死（系数进 Config 通用 Buff region）。`source` 非空时克隆其 `floatingAttribute` 存为**施加者属性快照**（独立实例，施加者后续被减益不影响已挂 Buff），`sourceId` 由此自动取（DoT 击杀归属）；无施加者的强加（守护点减伤/愈战愈勇/小地图失联等）传 null。叠加语义：同类型重复添加 = **等级累加 + 时间刷新**，施加者与快照以最新一次为准。
-2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**6 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 击飞抗性 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达）；不再有固定数值特例（当前无技能使用可见距离 Buff）。`EntityAttributeDelta.Field` 里的武器槽位分支已删除——**武器槽位数不可被 Buff 改变**，生命值上限也只能由升级路线改变。
+2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**6 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 击飞抗性 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达），没有固定数值特例；**武器槽位数不可被 Buff 改变**，生命值上限也只由升级路线改变。
    **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，所以配置 SO 里只出现一个"生命值"项，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
    Add/Remove 时统一重算运行时属性（base 克隆 + Σ修改量，再把当前生命**夹回上限**——夹取不平移 = 不自动回血）；其它 Buff 一律不得触碰属性
 3. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口——受伤管线顺序 = 护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤；出伤乘区由攻击方在伤害计算时调用
