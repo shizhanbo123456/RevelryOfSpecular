@@ -54,7 +54,7 @@ public class SaveManager : MonoBehaviour
         int level = characterLevels[index];
         while (level < Config.save_max_level)
         {
-            int need = Config.level_up_exp[level - 1];
+            int need = ConfigManager.ExpCharacterConfig.Get(level + 1).exp;
             if (characterExp[index] < need) break;
             characterExp[index] -= need;
             level++;

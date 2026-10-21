@@ -246,18 +246,16 @@ public partial class BattleManager
 
             var rs = pair.Value;
             if (!PlayerCamps.TryGetValue(clientId, out var camp)) continue;
+
+            // 复活时长固定看配表（第几次复活 → 秒数），不再区分昼夜
+            var revive = ConfigManager.ReviveTimeConfig.GetClamped(Mathf.Max(1, rs.deathCount));
             if (camp == PlayerCampType.Attack)
             {
-                float rate = EnvironmentManager.IsDay
-                    ? Config.revive_day_progress_per_second
-                    : Config.revive_night_progress_per_second;
-                var mults = Config.revive_progress_multiplier_by_death;
-                float mult = mults[Mathf.Min(Mathf.Max(rs.deathCount - 1, 0), mults.Length - 1)];
-                rs.progress += dt * rate * mult * AttackReviveFactor; // 瘟疫使者 被动「进攻方复活速度减慢」
+                rs.progress += dt / revive.attackReviveSeconds * AttackReviveFactor; // 瘟疫使者 被动「进攻方复活速度减慢」
             }
             else
             {
-                rs.progress += dt / Config.defense_revive_duration;
+                rs.progress += dt / revive.defenseReviveSeconds;
             }
 
             if (rs.progress >= 1f)
@@ -304,9 +302,8 @@ public partial class BattleManager
         }
         if (data != null) data.aiControlled = AIClients.Contains(clientId);
 
-        // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）
-        var stacks = Config.battle_fury_stack_by_life;
-        int fury = stacks[Mathf.Min(rs.deathCount, stacks.Length - 1)];
+        // 愈战愈勇：第 n 条命层数（配表按死亡次数给出，永久 Buff）
+        int fury = ConfigManager.BattleFuryLayerConfig.GetClamped(rs.deathCount).buffLayerCount;
         if (fury > 0 && data != null)
         {
             if (data.effectController != null) data.effectController.AddEffect(EffectType.BattleFury, fury, float.MaxValue);
@@ -333,7 +330,7 @@ public partial class BattleManager
             entityId = entityId,
             progress = Mathf.Clamp01(rs.progress),
             ready = ready,
-            furyStack = Config.battle_fury_stack_by_life[Mathf.Min(rs.deathCount, Config.battle_fury_stack_by_life.Length - 1)],
+            furyStack = ConfigManager.BattleFuryLayerConfig.GetClamped(rs.deathCount).buffLayerCount,
         });
     }
 

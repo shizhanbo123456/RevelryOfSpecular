@@ -255,6 +255,18 @@ public class ConfigManager : MonoBehaviour
         Debug.LogError($"[配表] {fileName} 中没有主键「{key}」，请检查配表是否漏配");
         return default;
     }
+
+    // 超出配表范围时退到不大于 key 的最大主键（如复活次数超过表尾、死亡次数超过层数表）
+    internal static TRow GetClampedRow<TRow>(Dictionary<int, TRow> content, int key, string fileName)
+    {
+        if (content.TryGetValue(key, out TRow row)) return row;
+
+        for (int k = key - 1; k >= 0; k--)
+            if (content.TryGetValue(k, out row)) return row;
+
+        Debug.LogError($"[配表] {fileName} 中没有主键「{key}」，也没有更小的主键，请检查配表");
+        return default;
+    }
     #endregion
 
     #region 愈战愈勇层数表：0 层数 / 1 死亡次数 / 2 buff层数
@@ -265,14 +277,14 @@ public class ConfigManager : MonoBehaviour
         public static readonly Dictionary<int, BattleFuryLayerConfig> content = new();
 
         public int key;
-        public int? deathCount;
-        public int? buffLayerCount;
+        public int deathCount;
+        public int buffLayerCount;
 
         public BattleFuryLayerConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
-            deathCount = ParseIntOrNull(rowData, 1);
-            buffLayerCount = ParseIntOrNull(rowData, 2);
+            deathCount = ParseInt(rowData, 1);
+            buffLayerCount = ParseInt(rowData, 2);
         }
 
         public static int Load(ConfigTable table)
@@ -282,6 +294,8 @@ public class ConfigManager : MonoBehaviour
         }
 
         public static BattleFuryLayerConfig Get(int key) => GetOrLog(content, key, FileName);
+
+        public static BattleFuryLayerConfig GetClamped(int key) => GetClampedRow(content, key, FileName);
     }
     #endregion
 
@@ -391,8 +405,8 @@ public class ConfigManager : MonoBehaviour
         public string quality;
         public string skillType;
         public string skillTag;
-        public float? cd;
-        public int? storeLimit;
+        public float cd;
+        public int storeLimit;
         public int? weaponCategory;
         public int? weaponSubId;
         public int? valueSource;
@@ -408,8 +422,8 @@ public class ConfigManager : MonoBehaviour
             quality = ParseString(rowData, 4);
             skillType = ParseString(rowData, 5);
             skillTag = ParseString(rowData, 6);
-            cd = ParseFloatOrNull(rowData, 7);
-            storeLimit = ParseIntOrNull(rowData, 8);
+            cd = ParseFloat(rowData, 7);
+            storeLimit = ParseInt(rowData, 8);
             weaponCategory = ParseIntOrNull(rowData, 9);
             weaponSubId = ParseIntOrNull(rowData, 10);
             valueSource = ParseIntOrNull(rowData, 11);
@@ -477,12 +491,12 @@ public class ConfigManager : MonoBehaviour
         public static readonly Dictionary<int, ExpCharacterConfig> content = new();
 
         public int key;
-        public int? exp;
+        public int exp;
 
         public ExpCharacterConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
-            exp = ParseIntOrNull(rowData, 1);
+            exp = ParseInt(rowData, 1);
         }
 
         public static int Load(ConfigTable table)
@@ -503,12 +517,12 @@ public class ConfigManager : MonoBehaviour
         public static readonly Dictionary<int, ExpPlayerConfig> content = new();
 
         public int key;
-        public int? exp;
+        public int exp;
 
         public ExpPlayerConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
-            exp = ParseIntOrNull(rowData, 1);
+            exp = ParseInt(rowData, 1);
         }
 
         public static int Load(ConfigTable table)
@@ -529,16 +543,18 @@ public class ConfigManager : MonoBehaviour
         public static readonly Dictionary<int, ReviveTimeConfig> content = new();
 
         public int key;
-        public int? reviveIndex;
-        public int? attackReviveSeconds;
-        public int? defenseReviveSeconds;
+        public int reviveIndex;
+        public int attackReviveSeconds;
+        public int defenseReviveSeconds;
 
         public ReviveTimeConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
-            reviveIndex = ParseIntOrNull(rowData, 1);
-            attackReviveSeconds = ParseIntOrNull(rowData, 2);
-            defenseReviveSeconds = ParseIntOrNull(rowData, 3);
+            reviveIndex = ParseInt(rowData, 1);
+            attackReviveSeconds = ParseInt(rowData, 2);
+            defenseReviveSeconds = ParseInt(rowData, 3);
+            if (attackReviveSeconds <= 0 || defenseReviveSeconds <= 0)
+                throw new FormatException($"复活秒数必须大于 0（进攻 {attackReviveSeconds} / 防守 {defenseReviveSeconds}）");
         }
 
         public static int Load(ConfigTable table)
@@ -548,6 +564,8 @@ public class ConfigManager : MonoBehaviour
         }
 
         public static ReviveTimeConfig Get(int key) => GetOrLog(content, key, FileName);
+
+        public static ReviveTimeConfig GetClamped(int key) => GetClampedRow(content, key, FileName);
     }
     #endregion
 

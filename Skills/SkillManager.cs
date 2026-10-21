@@ -25,12 +25,12 @@ public static class SkillManager
 
     public static float GetSkillCD(int id)
     {
-        return s_map.TryGetValue(id, out var skill) ? skill.CD : 0f;
+        return ConfigManager.SkillConfig.Get(id).cd;
     }
 
     public static int GetSkillStore(int id)
     {
-        return s_map.TryGetValue(id, out var skill) ? skill.Store : -1;
+        return ConfigManager.SkillConfig.Get(id).storeLimit;
     }
 
     public static int GetSkillCount()

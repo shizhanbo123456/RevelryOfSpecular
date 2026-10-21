@@ -353,22 +353,34 @@ public partial class BattleManager
     //F 键切换雷达显示半径：在档位间循环并回应新值
     public void SwitchMinimapRadius(short clientId)
     {
-        var radii = Config.minimap_view_radii;
-        if (radii == null || radii.Length == 0) return;
+        var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+        if (radii == null || radii.Count == 0)
+        {
+            Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");
+            return;
+        }
         float current = GetMinimapRadius(clientId);
         int index = -1;
-        for (int i = 0; i < radii.Length; i++)
+        for (int i = 0; i < radii.Count; i++)
         {
             if (Mathf.Approximately(radii[i], current)) { index = i; break; }
         }
-        float next = radii[(index + 1) % radii.Length]; //未记录时 index=-1，落到第一档
+        float next = radii[(index + 1) % radii.Count]; //未记录时 index=-1，落到第一档
         minimapRadiusByClient[clientId] = next;
         Tool.NetworkManager.SendMinimapRadius(clientId, next);
     }
 
     private float GetMinimapRadius(short clientId)
     {
-        return minimapRadiusByClient.TryGetValue(clientId, out var r) ? r : Config.minimap_view_radius;
+        if (minimapRadiusByClient.TryGetValue(clientId, out var r)) return r;
+
+        var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+        if (radii == null || radii.Count == 0)
+        {
+            Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");
+            return 0f;
+        }
+        return radii[0];
     }
     #endregion
 

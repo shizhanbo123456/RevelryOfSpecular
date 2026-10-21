@@ -69,31 +69,17 @@ public static class EffectTypeExt
         _ => false,
     };
 
-    public static bool IsControl(this EffectType type) => type is EffectType.Stun or EffectType.Freeze or EffectType.Root
-        or EffectType.PaleIce or EffectType.PaleThunder;
+    public static bool IsControl(this EffectType type) => ConfigManager.EffectConfig.Get((int)type).lockMoveInput == true;
 
     public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire;
 
     //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
     public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire or EffectType.DeathStroll;
 
-    public static bool IsShield(this EffectType type) => type is EffectType.Shield or EffectType.StatueShield;
+    public static bool IsShield(this EffectType type) => ConfigManager.EffectConfig.Get((int)type).specialCalculate == 1;
 
-    //极性固定标注：负面白名单 + 全部属性削弱；其余一律正面（新增 Buff 按实际效果维护此表）
-    public static bool IsNegative(this EffectType type) => type switch
-    {
-        EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
-        EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or
-        EffectType.AttrViewDistanceDecrease or
-        EffectType.Stun or EffectType.Freeze or EffectType.Root or EffectType.Silence or
-        EffectType.Burning or EffectType.Poison or
-        EffectType.Mire or EffectType.SlowDown or EffectType.MinimapLost or
-        EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
-        EffectType.EyeMark or EffectType.Fog or
-        EffectType.PaleFire or EffectType.PaleIce or EffectType.PaleThunder or
-        EffectType.DeathCurse or EffectType.PlaguePollute => true,
-        _ => false,
-    };
+    //极性看配表 effect.csv 的「正面效果」列
+    public static bool IsNegative(this EffectType type) => ConfigManager.EffectConfig.Get((int)type).positive != true;
 }
 
 public class EntityEffectController

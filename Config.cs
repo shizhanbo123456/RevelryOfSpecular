@@ -16,9 +16,18 @@ public static class Config
     public const int save_max_level = 10; // 玩家存档等级上限
     public const int battle_max_level = 20; // 战斗期等级上限：生成实体时钳制，最高刷出 20 级
     public const int player_max_level = 50;
-    public static readonly int[] level_up_exp = { 50000, 60000, 90000, 120000, 160000, 200000, 250000, 300000, 360000 };
 
-    public static int GetPlayerLevelUpExp(int currentLevel) => 700 + 300 * Mathf.Max(1, currentLevel);
+    // 升到下一级所需经验；配表最大等级不足时停止升级并报错
+    public static int GetPlayerLevelUpExp(int currentLevel)
+    {
+        int level = currentLevel + 1;
+        if (!ConfigManager.ExpPlayerConfig.content.ContainsKey(level))
+        {
+            Debug.LogError($"[配表] exp_player.csv 缺少 {level} 级（player_max_level={player_max_level}）：玩家等级不再提升，请补齐配表");
+            return int.MaxValue;
+        }
+        return ConfigManager.ExpPlayerConfig.Get(level).exp;
+    }
     #endregion
 
     #region 守护雕像（防守目标）
@@ -81,23 +90,28 @@ public static class Config
     // （策划案 15 章：可见距离决定敌方模型可见性与小地图显示）。小地图不另设阈值。
     public const float minimap_sync_interval = 0.5f;
     public const float minimap_lost_duration = 99999f;
-    public const float minimap_view_radius = 100f;
-    // 雷达显示半径档位（F 键循环切换；minimap_view_radius 为默认档）
-    public static readonly float[] minimap_view_radii = { 100f, 200f, 300f };
+
+    // 雷达显示半径档位来自配表 global_variables（minimap_view_radius），首档即默认档
+    public static float minimap_view_radius
+    {
+        get
+        {
+            var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+            if (radii == null || radii.Count == 0)
+            {
+                Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");
+                return 0f;
+            }
+            return radii[0];
+        }
+    }
+
     // 客户端小地图点位超时：超过此时间未收到该实体点位包则隐藏（覆盖「离屏残留」与「夜间/致盲停传」两类情况）
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
     // 地形边长（米）：世界 x/z 范围 0~size；小地图地形底图与世界坐标的换算基准
     public const float map_terrain_size = 1000f;
-    #endregion
-
-    #region 复活与愈战愈勇
-    public const float revive_day_progress_per_second = 1f / 8f;
-    public const float revive_night_progress_per_second = 1f / 60f;
-    public static readonly float[] revive_progress_multiplier_by_death = { 1f, 0.8f, 0.6f, 0.4f, 0.3f, 0.2f, 0.2f };
-    public const float defense_revive_duration = 25f;
-    public static readonly int[] battle_fury_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）

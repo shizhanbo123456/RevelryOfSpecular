@@ -73,11 +73,29 @@ public class EnvironmentManager : MonoBehaviour
     private void Awake()
     {
         Tool.EnvironmentManager = this;
+        ApplyConfigDurations();
         skyExposureId = Shader.PropertyToID(SkyExposureProperty);
         lastDayDuration = dayDuration;
         lastNightDuration = nightDuration;
         fogVoidFallOffCurrent = fogEnabled ? FogVoidFallOffOn : FogVoidFallOffOff;
         ApplyVisual();
+    }
+
+    // 昼夜时长默认值来自配表 global_variables
+    private void ApplyConfigDurations()
+    {
+        var day = ConfigManager.GlobalVariableConfig.Get("day_duration");
+        var night = ConfigManager.GlobalVariableConfig.Get("night_duration");
+
+        if (day.ints == null || day.ints.Count == 0 || day.ints[0] <= 0 ||
+            night.ints == null || night.ints.Count == 0 || night.ints[0] <= 0)
+        {
+            Debug.LogError("[配表] global_variables.csv 的 day_duration / night_duration 必须填大于 0 的整数，已保留 Inspector 值");
+            return;
+        }
+
+        dayDuration = day.ints[0];
+        nightDuration = night.ints[0];
     }
 
     private void Update()
