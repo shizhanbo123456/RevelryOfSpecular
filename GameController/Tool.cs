@@ -42,6 +42,7 @@ public class Tool : MonoBehaviour
     public static Tool Instance { get; private set; }
 
     #region 管理器引用（由各管理器 Awake 注册）
+    public static ConfigManager ConfigManager;
     public static NetworkManager NetworkManager;
     public static BattleManager BattleManager;
     public static InfoManager InfoManager;
