@@ -4,7 +4,44 @@ using UnityEngine;
 
 public enum EffectType
 {
-    // ---- 属性修改（重算轨道，无特效；Boost / Decrease 成对，幅度 = 对应属性初始值 × Config.buff_attr_ratio × 等级）----
+    //防守方专有
+    TowerShield,        // 岩石护盾
+    TowerBlaze,         // 灵火
+    PopeGuard,          // 教皇守护
+    PlagueMark,         // 瘟疫标记
+    PaleLight,          // 苍白之光
+    PaleDark,           // 苍白之暗
+    PaleFire,           // 苍白之火
+    PaleIce,            // 苍白之冰
+    PaleThunder,        // 苍白之雷
+    EyeMark,            // 白眼标记
+    NightMark,          // 黑夜标记
+    PlaguePollute,      // 瘟疫污染
+    DeathStroll,        // 死灵漫步
+    DeathCurse,         // 死灵诅咒
+    Mire,               // 泥沼
+    Fog,                // 迷雾
+
+    //特殊来源
+    GmSpeedUp,          // GM极速
+    PlagueBless,        // 瘟疫祝福
+    YzCy,               // 愈战愈勇
+    BeaconReduce,       // 副守护点减伤
+    MinimapLost,        // 小地图失联
+
+    //通用
+    Shield,             // 护盾
+    DodgeBoost,         // 闪避
+    Stun,               // 麻痹
+    Freeze,             // 冰冻
+    Root,               // 定身
+    Silence,            // 沉默
+    ZombieScreamBoost,  // 嘶吼增益
+    Burning,            // 燃烧
+    Poison,             // 中毒
+    Reflect,            // 反伤
+
+    //通用（纯属性改变类）
     AttrStrengthBoost,          // 力量提升
     AttrStrengthDecrease,       // 力量降低
     AttrMagicBoost,             // 魔法提升
@@ -17,59 +54,8 @@ public enum EffectType
     AttrKnockbackDecrease,      // 击退抗性降低
     AttrViewDistanceBoost,      // 可见距离提升
     AttrViewDistanceDecrease,   // 可见距离降低
-
-    // ---- 控制类（强控：动画播放速度置 0、霸体失效、无法移动与施法）----
-    Stun,               // 麻痹
-    Freeze,             // 冰冻
-    Root,               // 定身
-    Silence,            // 沉默（只禁技能，不暂停动画、不禁移动）
-
-    // ---- DoT（固定间隔 1s 一跳，吃护盾/减伤、不吃增减伤；叠层提高每跳伤害）----
-    Burning,            // 燃烧（每跳 = Config.burning_damage_per_tick × 等级）
-    Poison,             // 中毒（每跳 = max(力量, 魔力) × Config.poison_damage_ratio × 等级）
-
-    // ---- 护盾/减伤/反伤 ----
-    Shield,             // 护盾（值 = 生命上限 × Config.shield_health_ratio × 等级，受击扣减、扣完移除）
-    TowerShield,        // 护盾（同 Shield，独立计算、与 Shield 一起吸收）
-    BeaconReduce,       // 减伤（每层 25%，层层相加）
-    PopeGuard,          // 减伤（+30%）
-    Reflect,            // 反伤（实际受伤 × 等级 × 10%，向下取整、最少 1）
-
-    // ---- 标记（自身无效果，供读取层数/客户端表现）----
-    PlagueMark,         // 瘟疫标记（叠层，引爆时按层结算伤害）
-    PaleLight,          // 苍白之光（叠层，满 10 层转为苍白之冰）
-    PaleDark,           // 苍白之暗（叠层，满 10 层转为苍白之雷）
-    EyeMark,            // 白眼标记（小地图常显）
-
-    // ---- 苍白产物（独立类型，行为同同类通用 Buff，可与通用类并存）----
-    PaleFire,           // 苍白之火（DoT，每跳同燃烧）
-    PaleIce,            // 苍白之冰（强控，同冰冻）
-    PaleThunder,        // 苍白之雷（强控，同麻痹）
-
-    // ---- 视野/信息（客户端表现逻辑）----
-    Fog,                // 迷雾
-    MinimapLost,        // 小地图失联（不在敌方小地图显示点位）
-
-    // ---- 动画移速（载体 = 动画状态机移动状态的播放速度）----
-    AnimSpeedUp,        // 加速（× Config.anim_move_speed_up）
-    AnimSlowDown,       // 减速（× Config.anim_move_speed_down）
-    Mire,               // 泥沼（× Config.anim_move_speed_mire）
-
-    // ---- 特殊 ----
-    YzCy,               // 愈战愈勇（出伤 ×(1 + 10% × 层)，受伤 ×1 / (1 + 10% × 层)）
-    TowerBlaze,         // 灵火（攻击附加范围爆炸）
-    DeathStroll,        // 死灵漫步（强制霸体 + 光环 DoT + 移速 × Config.death_stroll_speed_up）
-    DeathCurse,         // 死灵诅咒（叠层：DoT + 受伤增加）
-    ZombieScreamBoost,  // 嘶吼增益
-    DodgeBoost,         // 闪避（命中判定全闪避，无数值概率）
-    PlagueBless,        // 瘟疫祝福（出伤 +75%、受伤 −25%）
-
-    // ---- GM（仅调试指令用）----
-    GmSpeedUp,          // 极速（动画移速 × Config.gm_speed_multiplier）
-
-    // ---- 标记（自身无效果，供其它逻辑读取）----
-    NightMark,          // 黑夜标记（自身不出现在敌方小地图）
-    PlaguePollute,      // 瘟疫污染（被摧毁时向周围扩散瘟疫标记）
+    SpeedUp,        // 加速
+    SlowDown,       // 减速
 }
 
 public static class EffectTypeExt
@@ -103,7 +89,7 @@ public static class EffectTypeExt
         EffectType.AttrKnockbackDecrease or EffectType.AttrViewDistanceDecrease or
         EffectType.Stun or EffectType.Freeze or EffectType.Root or EffectType.Silence or
         EffectType.Burning or EffectType.Poison or
-        EffectType.Mire or EffectType.AnimSlowDown or EffectType.MinimapLost or
+        EffectType.Mire or EffectType.SlowDown or EffectType.MinimapLost or
         EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
         EffectType.EyeMark or EffectType.Fog or
         EffectType.PaleFire or EffectType.PaleIce or EffectType.PaleThunder or
@@ -288,8 +274,8 @@ public class EntityEffectController
     public float GetMoveAnimSpeedMultiplier()
     {
         float m = 1f;
-        if (HasEffect(EffectType.AnimSpeedUp)) m *= Config.anim_move_speed_up;
-        if (HasEffect(EffectType.AnimSlowDown)) m *= Config.anim_move_speed_down;
+        if (HasEffect(EffectType.SpeedUp)) m *= Config.anim_move_speed_up;
+        if (HasEffect(EffectType.SlowDown)) m *= Config.anim_move_speed_down;
         if (HasEffect(EffectType.Mire)) m *= Config.anim_move_speed_mire;
         if (HasEffect(EffectType.DeathStroll)) m *= Config.death_stroll_speed_up;
         if (HasEffect(EffectType.GmSpeedUp)) m *= Config.gm_speed_multiplier;
@@ -373,7 +359,7 @@ public class EntityEffectController
     }
 
     private static bool IsMoveSpeedEffect(EffectType type) =>
-        type is EffectType.AnimSpeedUp or EffectType.AnimSlowDown or EffectType.Mire or EffectType.DeathStroll or EffectType.GmSpeedUp;
+        type is EffectType.SpeedUp or EffectType.SlowDown or EffectType.Mire or EffectType.DeathStroll or EffectType.GmSpeedUp;
 
     private void ApplyAnimSpeedScale()
     {
