@@ -66,6 +66,10 @@ public enum EffectType
 
     // ---- GM（仅调试指令用）----
     GmSpeedUp,          // GM「极速」：动画移速倍率 = Config.gm_speed_multiplier
+
+    // ---- 标记（无自身效果，供其它逻辑读取）----
+    NightMark,          // 黑夜标记（白眼伯爵主动2：不出现在敌方小地图）
+    PlaguePollute,      // 瘟疫污染（瘟疫使者主动2：矿石被打碎时扩散瘟疫标记）
 }
 
 public static class EffectTypeExt
@@ -103,7 +107,7 @@ public static class EffectTypeExt
         EffectType.PlagueMark or EffectType.PaleLight or EffectType.PaleDark or
         EffectType.EyeMark or EffectType.Fog or
         EffectType.PaleFire or EffectType.PaleIce or EffectType.PaleThunder or
-        EffectType.DeathCurse => true,
+        EffectType.DeathCurse or EffectType.PlaguePollute => true,
         _ => false,
     };
 }
@@ -214,6 +218,7 @@ public class EntityEffectController
 
     public bool HasEffect(EffectType type) => effects.ContainsKey(type);
     public int GetLevel(EffectType type) => effects.TryGetValue(type, out var rt) ? rt.level : 0;
+    public ushort GetSourceId(EffectType type) => effects.TryGetValue(type, out var rt) ? rt.sourceId : (ushort)0;
     public float GetRemainTime(EffectType type) => effects.TryGetValue(type, out var rt) ? Mathf.Max(0f, rt.endTime - Time.time) : 0f;
     #endregion
 

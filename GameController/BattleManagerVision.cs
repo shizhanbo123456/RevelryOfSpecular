@@ -198,6 +198,12 @@ public partial class BattleManager
         return entity != null && entity.effectController != null && entity.effectController.HasEffect(EffectType.EyeMark);
     }
 
+    // 黑夜标记：敌对小地图上完全不下发（本阵营仍可见）
+    private static bool IsHiddenFromEnemyMinimap(EntityData entity)
+    {
+        return entity != null && entity.effectController != null && entity.effectController.HasEffect(EffectType.NightMark);
+    }
+
     private static bool IsCampMinimapLost(EntityCamp camp)
     {
         foreach (var member in EntityContainer.Entities)
@@ -277,6 +283,7 @@ public partial class BattleManager
                 AppendMinimapEntry(entity);
                 continue;
             }
+            if (IsHiddenFromEnemyMinimap(entity)) continue; // 黑夜标记：敌方小地图不显示
             if (IsMarkedOnMinimap(entity) || IsInCachedCampVision(entity.transform.position)) AppendMinimapEntry(entity);
         }
         Profiler.EndSample();

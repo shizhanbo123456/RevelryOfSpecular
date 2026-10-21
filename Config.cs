@@ -178,11 +178,11 @@ public static class Config
         { EntityType.Attack(17), new[] { (int)SkillType.SkillBoomerangWeapon } },
 
         // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招）=====
-        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillMushroomInfect, (int)SkillType.SkillTowerBlazeCast } },      // PC104 鹿铠怪人
-        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillInfiniteVision, (int)SkillType.SkillForceNight } },            // NP114 白眼伯爵
+        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillTowerBlazeCast } },      // PC104 鹿铠怪人
+        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillNightMark, (int)SkillType.SkillForceNight } },                 // NP114 白眼伯爵
         { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // PC106 死灵漫步者
         { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // NP134 蒙面教皇
-        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillAbsorbOre, (int)SkillType.SkillDetonatePlague } },       // PC102 瘟疫使者
+        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillPlaguePollute, (int)SkillType.SkillDetonatePlague } },    // PC102 瘟疫使者
         { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },           // PC103 苍白舞者
 
         // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退）=====
@@ -231,14 +231,22 @@ public static class Config
     public const float plague_detonate_damage = 20f;
     public const float defense_ally_cast_radius = 15f;
     public const float defense_nearby_radius = 8f;
+    public const int power_suppress_hits = 3;
+    public const float power_suppress_interval = 0.4f;
+    public const float power_suppress_radius = 3f;
+    public const float power_suppress_rate = 1f;
+    public const float power_suppress_slow_duration = 10f;
+    public const int power_suppress_vfx_index = 5;   // RangeMagic[5]
+    public const float power_suppress_vfx_life = 1f;
+    public const float night_mark_duration = 8f;
+    public const float plague_mark_duration = 30f;   // 瘟疫标记持续时长（主动1 与 瘟疫污染扩散共用）
+    public const float plague_pollute_radius = 8f;   // 矿石被打碎时的瘟疫标记扩散半径
     #endregion
 
     #region 技能参数补充（占位初值，待策划定稿）
     public const float chain_jump_radius = 6f;
     public const float chain_jump_duration = 0.6f;
     public const float airstrike_radius = 3f;
-    public const float absorb_coral_radius = 6f;
-    public const float absorb_coral_damage = 999999f;
     #endregion
 
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
@@ -263,6 +271,8 @@ public static class Config
         { EffectType.Reflect, (SkillVfxKind.MagicCircle, 6) },
         { EffectType.Root, (SkillVfxKind.Buff, 19) },
         { EffectType.PlagueMark, (SkillVfxKind.Buff, 30) },
+        { EffectType.PlaguePollute, (SkillVfxKind.Buff, 22) },
+        { EffectType.NightMark, (SkillVfxKind.Buff, 30) },
         { EffectType.Poison, (SkillVfxKind.Buff, 13) },
         { EffectType.Freeze, (SkillVfxKind.Buff, 12) },
         { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 17) },

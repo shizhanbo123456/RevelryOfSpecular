@@ -65,10 +65,10 @@
 
         // ===== 防守方 18（6 角色 × 主动1 / 主动2 / 大招，被动不占 id）=====
         SkillRockShield,
-        SkillMushroomInfect,
+        SkillPowerSuppress,
         SkillTowerBlazeCast,
         SkillEyeMark,
-        SkillInfiniteVision,
+        SkillNightMark,
         SkillForceNight,
         SkillSummonZombies,
         SkillDeathStrollCast,
@@ -77,7 +77,7 @@
         SkillMireCast,
         SkillReflectCast,
         SkillPlagueMarkCast,
-        SkillAbsorbOre,
+        SkillPlaguePollute,
         SkillDetonatePlague,
         SkillPaleLightCast,
         SkillPaleDarkCast,

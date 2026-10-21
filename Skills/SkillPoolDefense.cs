@@ -10,11 +10,11 @@ namespace Ros.Skill
         public static void RegisterAll()
         {
             SkillManager.Register(new SkillRockShield());      // PC104 岩石护盾
-            SkillManager.Register(new SkillMushroomInfect());  // PC104 蘑菇感染
+            SkillManager.Register(new SkillPowerSuppress());   // PC104 怪力压制
             SkillManager.Register(new SkillTowerBlazeCast());  // PC104 灵火
 
             SkillManager.Register(new SkillEyeMark());         // NP114 白眼标记
-            SkillManager.Register(new SkillInfiniteVision());  // NP114 无限视野
+            SkillManager.Register(new SkillNightMark());       // NP114 黑夜标记
             SkillManager.Register(new SkillForceNight());      // NP114 立即入夜
 
             SkillManager.Register(new SkillSummonZombies());   // PC106 召唤僵尸
@@ -26,7 +26,7 @@ namespace Ros.Skill
             SkillManager.Register(new SkillReflectCast());     // NP134 反伤
 
             SkillManager.Register(new SkillPlagueMarkCast());  // PC102 瘟疫标记
-            SkillManager.Register(new SkillAbsorbOre());       // PC102 吸收矿石
+            SkillManager.Register(new SkillPlaguePollute());   // PC102 瘟疫污染
             SkillManager.Register(new SkillDetonatePlague());  // PC102 引爆瘟疫
 
             SkillManager.Register(new SkillPaleLightCast());   // PC103 苍白之光
@@ -66,10 +66,10 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
-    // 蘑菇感染：效果已移除，保留技能位与 id，待重做
-    public class SkillMushroomInfect : SkillBase
+    // 怪力压制：自身位置连续 3 次范围攻击，命中挂 2 级减速
+    public class SkillPowerSuppress : SkillBase
     {
-        public override int Id => (int)SkillType.SkillMushroomInfect;
+        public override int Id => (int)SkillType.SkillPowerSuppress;
         public override float CD => 15f;
         public override int Store => 4;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
@@ -78,12 +78,47 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
+            context.AddVectors(entity.transform.position);
             return context;
         }
 
-        protected override void OnCast(SkillContext context) { }
+        protected override void OnCast(SkillContext context)
+        {
+            var caster = FindEntity((ushort)context.ints[0]);
+            if (caster == null) return;
+            for (int i = 0; i < Config.power_suppress_hits; i++)
+            {
+                int hit = i;
+                if (hit == 0) Smash(caster);
+                else Timer.AddTimer(hit, _ => Smash(caster), Config.power_suppress_interval * hit, 1, false);
+            }
+        }
 
-        public override void PlayVFX(SkillContext context) { }
+        private void Smash(EntityData caster)
+        {
+            if (caster == null || !caster.Alive) return;
+            Vector3 center = caster.transform.position;
+            var attack = BuildAttack(caster, Config.power_suppress_rate, Config.power_suppress_radius,
+                addEffect: ApplyEffect(EffectType.AnimSlowDown, 2, Config.power_suppress_slow_duration, caster));
+            StrikeSphere(caster, center, Config.power_suppress_radius, attack);
+        }
+
+        public override void PlayVFX(SkillContext context)
+        {
+            Vector3 center = context.vectors[0];
+            for (int i = 0; i < Config.power_suppress_hits; i++)
+            {
+                int hit = i;
+                if (hit == 0) PlaySmash(center);
+                else Timer.AddTimer(hit, _ => PlaySmash(center), Config.power_suppress_interval * hit, 1, false);
+            }
+        }
+
+        private static void PlaySmash(Vector3 center)
+        {
+            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, Config.power_suppress_vfx_index, center,
+                Config.power_suppress_vfx_life);
+        }
     }
 
     public class SkillTowerBlazeCast : SkillBase
@@ -144,11 +179,12 @@ namespace Ros.Skill
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
-    public class SkillInfiniteVision : SkillBase
+    // 黑夜标记：自身不出现在敌方小地图（世界模型与视野判定不受影响）
+    public class SkillNightMark : SkillBase
     {
-        public override int Id => (int)SkillType.SkillInfiniteVision;
-        public override float CD => 45f;
-        public override int Store => 3;
+        public override int Id => (int)SkillType.SkillNightMark;
+        public override float CD => 18f;
+        public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -161,14 +197,10 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null) return;
-            TargetSelect.SetEntitiesInCampToBuffer(caster.camp);
-            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
-                GiveEffect(TargetSelect.TargetBuffer[i], EffectType.AttrViewDistanceBoost, 10,
-                    Config.buff_duration_buff, caster);
+            GiveEffect(caster, EffectType.NightMark, 1, Config.night_mark_duration, caster);
         }
 
-        public override void PlayVFX(SkillContext context) { } // 视野变化本身即表现
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillForceNight : SkillBase
@@ -376,8 +408,6 @@ namespace Ros.Skill
         public override int Store => 12;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
-        private const float MarkDuration = 30f;
-
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -392,16 +422,16 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
                 GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.PlagueMark, 1,
-                    MarkDuration, caster);
+                    Config.plague_mark_duration, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
-    public class SkillAbsorbOre : SkillBase
+    // 瘟疫污染：给场上现有矿石（可采集珊瑚）挂污染，矿石被摧毁时把瘟疫标记扩散给附近进攻方
+    public class SkillPlaguePollute : SkillBase
     {
-        public override int Id => (int)SkillType.SkillAbsorbOre;
-        public override float CastRange => 6f;
+        public override int Id => (int)SkillType.SkillPlaguePollute;
         public override float CD => 30f;
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
@@ -410,21 +440,19 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            // 「矿石」即可采集珊瑚：巨量伤害直接击碎，走原有产出流程
-            TargetSelect.SetEntitiesInRangeToBuffer(BattleManager.EntityContainer.Corals,
-                caster != null ? caster.transform.position : context.vectors[0], Config.absorb_coral_radius);
+            if (caster == null) return;
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的矿石
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
-                if (TargetSelect.TargetBuffer[i] != null) TargetSelect.TargetBuffer[i].OnDamaged(Config.absorb_coral_damage, caster);
+                GiveEffect(TargetSelect.TargetBuffer[i], EffectType.PlaguePollute, 1, -1f, caster);
         }
 
-        public override void PlayVFX(SkillContext context) { } // 1019 标为「由 buff 承担」，本技能不挂 buff
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
     }
 
     public class SkillDetonatePlague : SkillBase

@@ -82,15 +82,15 @@
 
 ### 1.2 防守方 6 角色（50~67）
 
-> 这 18 个技能**都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
+> 这 18 个技能**除怪力压制（51，播 RangeMagic[5]）外都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
 | 50 | 岩石护盾 | SkillRockShield | 无（护盾 buff 自带） | 附近防御塔挂 TowerShield；附近无塔则给自己 |
-| 51 | 蘑菇感染（效果已移除，待重做） | SkillMushroomInfect | 无 | 无 |
+| 51 | 怪力压制 | SkillPowerSuppress | RangeMagic[5]（自身位置 ×3） | 命中挂 2 级 AnimSlowDown 10s |
 | 52 | 灵火 | SkillTowerBlazeCast | 无 | 全场塔挂 TowerBlaze |
 | 53 | 白眼标记 | SkillEyeMark | 无 | EyeMark（小地图常显） |
-| 54 | 无限视野 | SkillInfiniteVision | 无 | 10 级可见距离提升 |
+| 54 | 黑夜标记 | SkillNightMark | 无 | 自身挂 NightMark（不出现在敌方小地图） |
 | 55 | 立即入夜 | SkillForceNight | 无 | 无 |
 | 56 | 召唤僵尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
 | 57 | 死灵漫步 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
@@ -99,7 +99,7 @@
 | 60 | 泥沼 | SkillMireCast | 无 | 全场敌人挂 Mire |
 | 61 | 反伤 | SkillReflectCast | 无 | 守护点挂 Reflect |
 | 62 | 瘟疫标记 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
-| 63 | 吸收矿石 | SkillAbsorbOre | 无 | 无 |
+| 63 | 瘟疫污染 | SkillPlaguePollute | 无 | 场上现有矿石挂 PlaguePollute；矿石被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
 | 64 | 引爆瘟疫 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
 | 65 | 苍白之光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
 | 66 | 苍白之暗 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
@@ -138,6 +138,8 @@
 | TowerBlaze 灵火 | MC[3] 深红护盾 | 鹿铠怪人 大招 |
 | Burning 燃烧 | Buff[11] 火焰 | 燃烧弹 |
 | EyeMark 白眼标记 | Buff[23] 宇宙 | 白眼伯爵 主动1 |
+| NightMark 黑夜标记 | Buff[30] 紫色祝福（与 PlagueMark 共用） | 白眼伯爵 主动2 |
+| PlaguePollute 瘟疫污染 | Buff[22] | 瘟疫使者 主动2（挂矿石） |
 | PaleLight 苍白之光 | Buff[15] 黄色泛光 | 苍白舞者 主动1 |
 | PaleDark 苍白之暗 | Buff[4] 黑色缠绕 | 苍白舞者 主动2 |
 | PaleFire 苍白之火 | Buff[3] 血色缠绕 | 苍白舞者被动：光暗双 8 层转化 |
@@ -205,7 +207,7 @@ Skills文件夹：
 
 Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；**2026-10-17 重构后口径**）：
 1. **统一添加入口 `AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)`**：外部只给类型 / 等级 / 持续时间（<0 = 永久）+ 施加者实体，**不传任何数值**——强度全部由控制器内部定死（系数进 Config 通用 Buff region）。`source` 非空时克隆其 `floatingAttribute` 存为**施加者属性快照**（独立实例，施加者后续被减益不影响已挂 Buff），`sourceId` 由此自动取（DoT 击杀归属）；无施加者的强加（守护点减伤/愈战愈勇/小地图失联等）传 null。叠加语义：同类型重复添加 = **等级累加 + 时间刷新**，施加者与快照以最新一次为准。
-2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**6 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 击飞抗性 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达）；不再有固定数值特例（白眼伯爵「无限视野」= 施加 10 级 `AttrViewDistanceBoost`）。`EntityAttributeDelta.Field` 里的武器槽位分支已删除——**武器槽位数不可被 Buff 改变**，生命值上限也只能由升级路线改变。
+2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**6 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 击飞抗性 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达）；不再有固定数值特例（原白眼伯爵「无限视野」已改为「黑夜标记」，当前无技能使用可见距离 Buff）。`EntityAttributeDelta.Field` 里的武器槽位分支已删除——**武器槽位数不可被 Buff 改变**，生命值上限也只能由升级路线改变。
    **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，所以配置 SO 里只出现一个"生命值"项，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
    Add/Remove 时统一重算运行时属性（base 克隆 + Σ修改量，再把当前生命**夹回上限**——夹取不平移 = 不自动回血）；其它 Buff 一律不得触碰属性
 3. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口——受伤管线顺序 = 护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤；出伤乘区由攻击方在伤害计算时调用
