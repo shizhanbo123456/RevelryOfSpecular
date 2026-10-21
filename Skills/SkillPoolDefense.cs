@@ -99,7 +99,7 @@ namespace Ros.Skill
             if (caster == null || !caster.Alive) return;
             Vector3 center = caster.transform.position;
             var attack = BuildAttack(caster, Config.power_suppress_rate, Config.power_suppress_radius,
-                addEffect: ApplyEffect(EffectType.AnimSlowDown, 2, Config.power_suppress_slow_duration, caster));
+                addEffect: ApplyEffect(EffectType.SlowDown, 2, Config.power_suppress_slow_duration, caster));
             StrikeSphere(caster, center, Config.power_suppress_radius, attack);
         }
 

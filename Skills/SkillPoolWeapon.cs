@@ -85,7 +85,7 @@ namespace Ros.Skill
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 0.5f;
         protected override int VfxIndex => 18;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.AnimSlowDown, 1, 5f, caster);
+        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.SlowDown, 1, 5f, caster);
     }
 
     public class SkillTripleThunderCone : ShotSkillBase
@@ -155,7 +155,7 @@ namespace Ros.Skill
         protected override float WaveInterval => 0.18f;
         protected override int ShotsOfWave(int wave) => wave == 0 ? 1 : 2;
         protected override float SpreadOfWave(int wave) => wave == 0 ? 0f : 30f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.AnimSlowDown, 1, 4f, caster);
+        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.SlowDown, 1, 4f, caster);
     }
 
     // 四发剑气势力绕自身旋转
@@ -362,7 +362,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.AnimSpeedUp, 1, 20f, caster);
+            GiveEffect(caster, EffectType.SpeedUp, 1, 20f, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -791,7 +791,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             caster.SetMotion(new MotionDash(0.35f, 13f));
-            GiveEffect(caster, EffectType.AnimSpeedUp, 2, 10f, caster);
+            GiveEffect(caster, EffectType.SpeedUp, 2, 10f, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

@@ -275,8 +275,8 @@ public static class Config
         { EffectType.NightMark, (SkillVfxKind.Buff, 30) },
         { EffectType.Poison, (SkillVfxKind.Buff, 13) },
         { EffectType.Freeze, (SkillVfxKind.Buff, 12) },
-        { EffectType.AnimSlowDown, (SkillVfxKind.Buff, 17) },
-        { EffectType.AnimSpeedUp, (SkillVfxKind.Buff, 27) },
+        { EffectType.SlowDown, (SkillVfxKind.Buff, 17) },
+        { EffectType.SpeedUp, (SkillVfxKind.Buff, 27) },
         { EffectType.PlagueBless, (SkillVfxKind.MagicCircle, 9) },
         { EffectType.ZombieScreamBoost, (SkillVfxKind.MagicCircle, 9) },
 
