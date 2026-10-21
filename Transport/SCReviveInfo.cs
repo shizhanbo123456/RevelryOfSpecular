@@ -5,7 +5,7 @@ namespace Ros.Transport
         public ushort entityId;
         public float progress;
         public bool ready;
-        public int yzStack;
+        public int furyStack;
     }
 
     public struct SCReviveInfoSerializer
@@ -17,7 +17,7 @@ namespace Ros.Transport
             if (!UshortSerializer.Serialize(value.entityId, result, ref indexStart)) return false;
             if (!FloatSerializer.Serialize(value.progress, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.ready, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.yzStack, result, ref indexStart);
+            return IntSerializer.Serialize(value.furyStack, result, ref indexStart);
         }
 
         public static SCReviveInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -28,7 +28,7 @@ namespace Ros.Transport
                 entityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 progress = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                yzStack = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                furyStack = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }

@@ -168,7 +168,7 @@
 | --- | --- |
 | AttrViewDistanceBoost / AttrViewDistanceDecrease 可见距离增减 | 无特效 |
 | DodgeBoost 闪避提升 | 无特效（属性侧暂无闪避字段） |
-| YzCy 愈战愈勇 | 无特效（策划案明确无外观） |
+| BattleFury 愈战愈勇 | 无特效（策划案明确无外观） |
 | MinimapLost 小地图失联 | 小地图 UI 逻辑，非特效 |
 | GmSpeedUp GM 极速 | 无特效 |
 | Fog 迷雾 | 由技能本体挂 Buff[6] 紫雾喷发（不在 `buff_vfx` 表内） |

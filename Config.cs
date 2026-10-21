@@ -96,7 +96,7 @@ public static class Config
     public const float revive_night_progress_per_second = 1f / 60f;
     public static readonly float[] revive_progress_multiplier_by_death = { 1f, 0.8f, 0.6f, 0.4f, 0.3f, 0.2f, 0.2f };
     public const float defense_revive_duration = 25f;
-    public static readonly int[] yz_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
+    public static readonly int[] battle_fury_stack_by_life = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 5 };
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）

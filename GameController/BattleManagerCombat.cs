@@ -305,11 +305,11 @@ public partial class BattleManager
         if (data != null) data.aiControlled = AIClients.Contains(clientId);
 
         // 愈战愈勇：第 n 条命层数（序列见 Config，永久 Buff）
-        var stacks = Config.yz_stack_by_life;
-        int yz = stacks[Mathf.Min(rs.deathCount, stacks.Length - 1)];
-        if (yz > 0 && data != null)
+        var stacks = Config.battle_fury_stack_by_life;
+        int fury = stacks[Mathf.Min(rs.deathCount, stacks.Length - 1)];
+        if (fury > 0 && data != null)
         {
-            if (data.effectController != null) data.effectController.AddEffect(EffectType.YzCy, yz, float.MaxValue);
+            if (data.effectController != null) data.effectController.AddEffect(EffectType.BattleFury, fury, float.MaxValue);
         }
 
         rs.progress = 0f; // deathCount 保留，供下次倍率与叠层
@@ -333,7 +333,7 @@ public partial class BattleManager
             entityId = entityId,
             progress = Mathf.Clamp01(rs.progress),
             ready = ready,
-            yzStack = Config.yz_stack_by_life[Mathf.Min(rs.deathCount, Config.yz_stack_by_life.Length - 1)],
+            furyStack = Config.battle_fury_stack_by_life[Mathf.Min(rs.deathCount, Config.battle_fury_stack_by_life.Length - 1)],
         });
     }
 

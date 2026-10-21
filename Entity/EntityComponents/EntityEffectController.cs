@@ -25,7 +25,7 @@ public enum EffectType
     //特殊来源
     GmSpeedUp = 16,                 // GM极速
     PlagueBless = 17,               // 瘟疫祝福
-    YzCy = 18,                      // 愈战愈勇
+    BattleFury = 18,                // 愈战愈勇
     BeaconReduce = 19,              // 副守护点减伤
     MinimapLost = 20,               // 小地图失联
 
@@ -239,14 +239,14 @@ public class EntityEffectController
 
     public float GetOutDamageMultiplier()
     {
-        float m = 1f + GetLevel(EffectType.YzCy) * 0.1f;
+        float m = 1f + GetLevel(EffectType.BattleFury) * 0.1f;
         if (HasEffect(EffectType.PlagueBless)) m *= 1f + Config.plague_bless_damage_up;
         return m;
     }
 
     public float GetInDamageMultiplier()
     {
-        float m = 1f / (1f + GetLevel(EffectType.YzCy) * 0.1f);
+        float m = 1f / (1f + GetLevel(EffectType.BattleFury) * 0.1f);
         if (HasEffect(EffectType.PlagueBless)) m *= 1f - Config.plague_bless_damage_reduce;
         return m;
     }
