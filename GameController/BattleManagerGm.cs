@@ -61,7 +61,7 @@ public partial class BattleManager
             case GmEnum.Player_Teleport_ToCoordinate:
                 GmTeleport(clientId, new Vector3(gm.float1, Config.gm_teleport_height, gm.float2));
                 break;
-            case GmEnum.Player_Teleport_ToGuardPoint: GmTeleportToBeacon(clientId, gm.int1); break;
+            case GmEnum.Player_Teleport_ToGuardPoint: GmTeleportToStatue(clientId, gm.int1); break;
             case GmEnum.Player_Revive: GmRevive(clientId); break;
             case GmEnum.Player_Skill_GetSkill: GmAddSkill(clientId, gm.int1); break;
             case GmEnum.Player_Skill_DirectUseSkill: GmForceUseSkill(clientId, gm.int1); break;
@@ -202,19 +202,19 @@ public partial class BattleManager
         target.motion = null;
     }
 
-    private void GmTeleportToBeacon(short clientId, int beaconIndex)
+    private void GmTeleportToStatue(short clientId, int guardStatueIndex)
     {
-        foreach (var beacon in EntityContainer.Beacons)
+        foreach (var guardStatue in EntityContainer.GuardStatues)
         {
-            if (beacon == null) continue;
-            bool match = beaconIndex >= Config.outer_beacon_count
-                ? beacon.type == EntityType.CoreBeacon
-                : beacon.type.category == EntityCategory.Beacon && beacon.type.value == beaconIndex;
+            if (guardStatue == null) continue;
+            bool match = guardStatueIndex >= Config.sage_statue_count
+                ? guardStatue.type == EntityType.KingStatue
+                : guardStatue.type.category == EntityCategory.GuardStatue && guardStatue.type.value == guardStatueIndex;
             if (!match) continue;
-            GmTeleport(clientId, beacon.transform.position);
+            GmTeleport(clientId, guardStatue.transform.position);
             return;
         }
-        Debug.LogWarning($"[GM] 场上没有可用的守护点（{beaconIndex}），传送取消");
+        Debug.LogWarning($"[GM] 场上没有可用的雕像（{guardStatueIndex}），传送取消");
     }
 
     private void GmRevive(short clientId)
@@ -247,15 +247,15 @@ public partial class BattleManager
                 break;
             case GmEntityType.Coral: GmSpawnCorals(count); break;
             case GmEntityType.Neutral:
-                // 中立单位（瘟疫树）场上最多 1 个，已有就不再刷
+                // 中立单位（中立雕像）场上最多 1 个，已有就不再刷
                 foreach (var e in EntityContainer.Entities)
-                    if (e != null && e.Alive && e.type.category == EntityCategory.PlagueTree) return;
-                SpawnEntity(EntityType.PlagueTree0, 1, LandscapeSpawns.RandomOf(spawns.plagueTreeSpawnPositions), EntityCamp.Neutral);
+                    if (e != null && e.Alive && e.type.category == EntityCategory.NeutralStatue) return;
+                SpawnEntity(EntityType.AngelStatue, 1, LandscapeSpawns.RandomOf(spawns.neutralStatueSpawnPositions), EntityCamp.Neutral);
                 break;
-            case GmEntityType.Tower:
+            case GmEntityType.CrystalStatue:
                 for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.Tower(Random.Range(0, Config.tower_count)), 1,
-                        LandscapeSpawns.RandomOf(spawns.towerSpawnPositions), EntityCamp.Defense);
+                    SpawnEntity(EntityType.CrystalStatue(Random.Range(0, Config.crystal_statue_count)), 1,
+                        LandscapeSpawns.RandomOf(spawns.crystalStatueSpawnPositions), EntityCamp.Defense);
                 break;
         }
     }
@@ -310,8 +310,8 @@ public partial class BattleManager
     {
         GmEntityType.EliteZombie => EntityCategory.EliteZombie,
         GmEntityType.Coral => EntityCategory.Coral,
-        GmEntityType.Neutral => EntityCategory.PlagueTree,
-        GmEntityType.Tower => EntityCategory.Tower,
+        GmEntityType.Neutral => EntityCategory.NeutralStatue,
+        GmEntityType.CrystalStatue => EntityCategory.CrystalStatue,
         _ => EntityCategory.Zombie,
     };
 

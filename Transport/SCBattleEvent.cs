@@ -8,12 +8,12 @@ namespace Ros.Transport
             public const byte PlayerKill = 0;          // 玩家击杀玩家：textId=击杀者名, textId2=受害者名
             public const byte DeathUnattributed = 1;   // 玩家死亡无归属：textId=死者名
             public const byte PlayerRespawn = 2;       // 复活：textId=玩家名
-            public const byte PlagueTreeCaptured = 3;  // 攻占瘟疫树
-            public const byte PlagueTreeRespawn = 4;   // 瘟疫树刷新
+            public const byte NeutralStatueCaptured = 3;  // 攻占中立雕像
+            public const byte NeutralStatueRespawn = 4;   // 中立雕像刷新
             public const byte Nightfall = 5;           // 天黑
             public const byte Daybreak = 6;            // 天亮
-            public const byte BeaconDestroyed = 7;     // 守护点被摧毁：textId 区分哪一座（驱动对应血条）
-            public const byte TowerDestroyed = 8;      // 防御塔被摧毁
+            public const byte StatueDestroyed = 7;     // 雕像被摧毁：textId 区分哪一座（驱动对应血条）
+            public const byte CrystalStatueDestroyed = 8;      // 水晶雕像被摧毁
             public const byte Notice = 9;              // 纯文字提示：textId=NoticeMessageMap 消息 id
         }
 

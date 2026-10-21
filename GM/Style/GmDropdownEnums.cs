@@ -13,8 +13,8 @@ namespace Ros.Gm
         Coral,
         [GmLabel("中立单位")]
         Neutral,
-        [GmLabel("防御塔")]
-        Tower,
+        [GmLabel("水晶雕像")]
+        CrystalStatue,
     }
 
     // 立即结算方式
@@ -39,16 +39,16 @@ namespace Ros.Gm
         Radius,
     }
 
-    // 守护点（3 外围 + 1 核心）
-    public enum GmBeacon
+    // 雕像（3 外围 + 1 核心）
+    public enum GmStatue
     {
-        [GmLabel("外围守护点1")]
+        [GmLabel("贤者雕像1")]
         Outer0,
-        [GmLabel("外围守护点2")]
+        [GmLabel("贤者雕像2")]
         Outer1,
-        [GmLabel("外围守护点3")]
+        [GmLabel("贤者雕像3")]
         Outer2,
-        [GmLabel("核心守护点")]
+        [GmLabel("核心雕像")]
         Core,
     }
 

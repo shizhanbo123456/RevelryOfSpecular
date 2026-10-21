@@ -162,22 +162,22 @@ public class Tool : MonoBehaviour
         e += CheckList("InfoManager.DefenseCharacterInfoList", m.DefenseCharacterInfoList, Config.defense_character_count);
         e += CheckObject("InfoManager.ZombieInfo", m.ZombieInfo);
         e += CheckList("InfoManager.EliteZombieInfoList", m.EliteZombieInfoList, Config.elite_zombie_variant_count);
-        e += CheckObject("InfoManager.BeaconInfo", m.BeaconInfo);
-        e += CheckObject("InfoManager.CoreBeaconInfo", m.CoreBeaconInfo);
+        e += CheckObject("InfoManager.SageStatueInfo", m.SageStatueInfo);
+        e += CheckObject("InfoManager.KingStatueInfo", m.KingStatueInfo);
         e += CheckObject("InfoManager.CoralSmallInfo", m.CoralSmallInfo);
         e += CheckObject("InfoManager.CoralLargeInfo", m.CoralLargeInfo);
-        e += CheckList("InfoManager.TowerInfoList", m.TowerInfoList, Config.tower_count);
-        e += CheckObject("InfoManager.PlagueTreeInfo", m.PlagueTreeInfo);
+        e += CheckList("InfoManager.CrystalStatueInfoList", m.CrystalStatueInfoList, Config.crystal_statue_count);
+        e += CheckObject("InfoManager.NeutralStatueInfo", m.NeutralStatueInfo);
 
         e += CheckList("InfoManager.AttackCharacterTemplates", m.AttackCharacterTemplates, Config.attack_character_count);
         e += CheckList("InfoManager.DefenseCharacterTemplates", m.DefenseCharacterTemplates, Config.defense_character_count);
         e += CheckList("InfoManager.ZombieTemplates", m.ZombieTemplates, Config.zombie_variant_count);
         e += CheckList("InfoManager.EliteZombieTemplates", m.EliteZombieTemplates, Config.elite_zombie_variant_count);
-        e += CheckList("InfoManager.BeaconTemplates", m.BeaconTemplates, beacon_type_count);
+        e += CheckList("InfoManager.GuardStatueTemplates", m.GuardStatueTemplates, guard_statue_type_count);
         e += CheckList("InfoManager.CoralSmallTemplates", m.CoralSmallTemplates, 0);
         e += CheckList("InfoManager.CoralLargeTemplates", m.CoralLargeTemplates, 0);
-        e += CheckList("InfoManager.TowerTemplates", m.TowerTemplates, Config.tower_count);
-        e += CheckObject("InfoManager.PlagueTreeTemplate", m.PlagueTreeTemplate);
+        e += CheckList("InfoManager.CrystalStatueTemplates", m.CrystalStatueTemplates, Config.crystal_statue_count);
+        e += CheckList("InfoManager.NeutralStatueTemplates", m.NeutralStatueTemplates, Config.neutral_statue_variant_count);
 
         e += CheckSkillInfos();
         return e;
@@ -244,11 +244,11 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.DefenseCharacterGraphics", m.DefenseCharacterGraphics, Config.defense_character_count);
         e += CheckList("AssetsManager.ZombieGraphics", m.ZombieGraphics, Config.zombie_variant_count);
         e += CheckList("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, Config.elite_zombie_variant_count);
-        e += CheckList("AssetsManager.BeaconGraphics", m.BeaconGraphics, beacon_type_count);
+        e += CheckList("AssetsManager.GuardStatueGraphics", m.GuardStatueGraphics, guard_statue_type_count);
         e += CheckList("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, 0);
         e += CheckList("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, 0);
-        e += CheckList("AssetsManager.TowerGraphics", m.TowerGraphics, Config.tower_count);
-        e += CheckObject("AssetsManager.PlagueTreeGraphic", m.PlagueTreeGraphic);
+        e += CheckList("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, Config.crystal_statue_count);
+        e += CheckList("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, Config.neutral_statue_variant_count);
 
         e += CheckList("AssetsManager.BulletVFX", m.BulletVFX, vfx_bullet_count);
         e += CheckList("AssetsManager.ShieldVFX", m.ShieldVFX, vfx_shield_count);
@@ -279,7 +279,7 @@ public class Tool : MonoBehaviour
     private const float startupCheckDelay = 1f;
 
     // 以下数量在 Config 里没有对应常量，来源见注释
-    private const int beacon_type_count = 2;      // 守护点外形：外围矮信标 + 中心高信标（TryGetTemplate/TryGetGraphic 按此二分）
+    private const int guard_statue_type_count = 2;      // 雕像外形：贤者（外围）+ 国王（中心）（TryGetTemplate/TryGetGraphic 按此二分）
     private const int vfx_bullet_count = 60;      // 《特效清单与分配表》第二节：20 类 × 3 颜色
     private const int vfx_shield_count = 13;
     private const int vfx_range_magic_count = 10;

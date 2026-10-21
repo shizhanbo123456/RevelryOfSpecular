@@ -13,11 +13,11 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> DefenseCharacterGraphics = new();
     public List<GameObject> ZombieGraphics = new();
     public List<GameObject> EliteZombieGraphics = new();
-    public List<GameObject> BeaconGraphics = new();
+    public List<GameObject> GuardStatueGraphics = new();
     public List<GameObject> CoralSmallGraphics = new();
     public List<GameObject> CoralLargeGraphics = new();
-    public List<GameObject> TowerGraphics = new();
-    public GameObject PlagueTreeGraphic;
+    public List<GameObject> CrystalStatueGraphics = new();
+    public List<GameObject> NeutralStatueGraphics = new();
     #endregion
 
     #region 特效（编号与《特效清单与分配表.md》对应）
@@ -59,18 +59,21 @@ public class AssetsManager : MonoBehaviour
             case EntityCategory.EliteZombie:
                 if (EliteZombieGraphics.Count > 0) graphic = EliteZombieGraphics[type.value % EliteZombieGraphics.Count];
                 break;
-            case EntityCategory.Beacon:
-                if (BeaconGraphics.Count > 0) graphic = BeaconGraphics[type.value < Config.outer_beacon_count ? 0 : (BeaconGraphics.Count > 1 ? 1 : 0)];
+            case EntityCategory.GuardStatue:
+                if (GuardStatueGraphics.Count > 0) graphic = GuardStatueGraphics[type.value < Config.sage_statue_count ? 0 : (GuardStatueGraphics.Count > 1 ? 1 : 0)];
                 break;
             case EntityCategory.Coral:
                 // 小/大珊瑚各用自己列表，列表内随机取一个变体（每个实体创建时只取一次）
                 graphic = RandomOf(type.value <= 0 ? CoralSmallGraphics : CoralLargeGraphics);
                 break;
-            case EntityCategory.Tower:
-                // 4 种外观按实例编号选用（Config.tower_count = 4）；配置不足时取模循环
-                if (TowerGraphics.Count > 0) graphic = TowerGraphics[type.value % TowerGraphics.Count];
+            case EntityCategory.CrystalStatue:
+                // 4 种外观按实例编号选用（Config.crystal_statue_count = 4）；配置不足时取模循环
+                if (CrystalStatueGraphics.Count > 0) graphic = CrystalStatueGraphics[type.value % CrystalStatueGraphics.Count];
                 break;
-            case EntityCategory.PlagueTree: graphic = PlagueTreeGraphic; break;
+            case EntityCategory.NeutralStatue:
+                // 0 天使雕像 / 1 恶魔雕像，按 value 取对应外观
+                if (NeutralStatueGraphics.Count > 0) graphic = NeutralStatueGraphics[type.value % NeutralStatueGraphics.Count];
+                break;
         }
         return graphic != null;
     }

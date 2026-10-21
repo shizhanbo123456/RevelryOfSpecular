@@ -16,18 +16,18 @@ public static class BatchGenerateEntityInfosMenu
         if (!EditorUtility.DisplayDialog(
                 "生成实体属性 Info",
                 "将在 Assets/Files/Info/Attribute 下批量生成占位 Info：\n" +
-                "进攻角色 18 / 防守角色 6 / 僵尸 1 / 精英僵尸 14 / 守护点 2 / 珊瑚 2 / 防御塔 4 / 瘟疫树 1\n\n" +
+                "进攻角色 18 / 防守角色 6 / 僵尸 1 / 精英僵尸 14 / 雕像 2 / 珊瑚 2 / 水晶雕像 4 / 中立雕像 1\n\n" +
                 "已存在的同名资产会跳过不覆盖。是否继续？",
                 "生成", "取消"))
             return;
 
         // 缺失的分类文件夹
-        EnsureFolder("Beacon");
+        EnsureFolder("GuardStatue");
         EnsureFolder("Coral");
-        EnsureFolder("Tower");
-        EnsureFolder("PlagueTree");
+        EnsureFolder("CrystalStatue");
+        EnsureFolder("NeutralStatue");
 
-        // GiantInferences 空文件夹清理（其中 7 个预制体实为 瘟疫树1/防御塔4/信标2，归属 Entity 侧）
+        // GiantInferences 空文件夹清理（其中 7 个预制体实为 中立雕像1/水晶雕像4/信标2，归属 Entity 侧）
         TryDeleteEmptyFolder("GiantInfections");
 
         int created = 0, skipped = 0;
@@ -38,15 +38,15 @@ public static class BatchGenerateEntityInfosMenu
         GenerateRange<EntityAttributeInfo>("Zombie", "zombie", 1, log, ref created, ref skipped); // 21 种外观共用，强弱走刷新等级
         GenerateRange<EntityAttributeInfo>("EliteZombie", "elite_zombie", 14, log, ref created, ref skipped);
 
-        Create<EntityAttributeInfo>("Beacon", "beacon_outer", log, ref created, ref skipped);  // 外围守护点（BeaconInfo）
-        Create<EntityAttributeInfo>("Beacon", "beacon_core", log, ref created, ref skipped);   // 中心守护点（CoreBeaconInfo）
+        Create<EntityAttributeInfo>("GuardStatue", "statue_outer", log, ref created, ref skipped);  // 贤者雕像（SageStatueInfo）
+        Create<EntityAttributeInfo>("GuardStatue", "statue_core", log, ref created, ref skipped);   // 国王雕像（KingStatueInfo）
         var coralSmall = Create<EntityAttributeInfo>("Coral", "coral_small", log, ref created, ref skipped); // 小珊瑚（CoralSmallInfo）
         var coralLarge = Create<EntityAttributeInfo>("Coral", "coral_large", log, ref created, ref skipped); // 大珊瑚（CoralLargeInfo）
         // 占位数值（小 1000 / 大 3000）：只在新建时写入，已存在的资产不覆盖，后续在 Inspector 调整
         if (coralSmall != null) { coralSmall.baseAttribute.health = 1000f; EditorUtility.SetDirty(coralSmall); }
         if (coralLarge != null) { coralLarge.baseAttribute.health = 3000f; EditorUtility.SetDirty(coralLarge); }
-        GenerateRange<EntityAttributeInfo>("Tower", "tower", 4, log, ref created, ref skipped); // 防御塔 4 种，按 type.value 索引
-        Create<EntityAttributeInfo>("PlagueTree", "plague_tree", log, ref created, ref skipped);
+        GenerateRange<EntityAttributeInfo>("CrystalStatue", "crystalStatue", 4, log, ref created, ref skipped); // 水晶雕像 4 种，按 type.value 索引
+        Create<EntityAttributeInfo>("NeutralStatue", "neutral_statue", log, ref created, ref skipped);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -104,6 +104,6 @@ public static class BatchGenerateEntityInfosMenu
         if (AssetDatabase.FindAssets("", new[] { path }).Length > 0) return;
 
         AssetDatabase.DeleteAsset(path);
-        Debug.Log($"[清理] 空文件夹 {path} 已删除（其中预制体归属 Entity 侧的 瘟疫树/防御塔/信标）");
+        Debug.Log($"[清理] 空文件夹 {path} 已删除（其中预制体归属 Entity 侧的 中立雕像/水晶雕像/信标）");
     }
 }

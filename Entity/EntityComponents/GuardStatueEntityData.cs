@@ -1,11 +1,11 @@
-public class BeaconEntityData : EntityData
+public class GuardStatueEntityData : EntityData
 {
     protected override void OnDamageApplied(float finalDamage, EntityData attacker)
     {
         var battle = Tool.BattleManager;
         if (battle == null) return;
 
-        battle.AddBeaconDamage(finalDamage);
+        battle.AddStatueDamage(finalDamage);
         if (attacker == null || finalDamage <= 0f) return;
         if (battle.EntityOwnerClient.TryGetValue(attacker.id, out var harvester))
         {
@@ -16,6 +16,6 @@ public class BeaconEntityData : EntityData
     public override void OnKilled()
     {
         base.OnKilled();
-        if (Tool.BattleManager != null) Tool.BattleManager.UpdateCoreBeaconReduce();
+        if (Tool.BattleManager != null) Tool.BattleManager.UpdateKingStatueReduce();
     }
 }

@@ -5,8 +5,8 @@ using UnityEngine;
 public enum EffectType
 {
     //防守方专有
-    TowerShield = 0,                // 岩石护盾
-    TowerBlaze = 1,                 // 灵火
+    StatueShield = 0,                // 岩石护盾
+    StatueBlaze = 1,                 // 灵火
     PopeGuard = 2,                  // 教皇守护
     PlagueMark = 3,                 // 瘟疫标记
     PaleLight = 4,                  // 苍白之光
@@ -26,7 +26,7 @@ public enum EffectType
     GmSpeedUp = 16,                 // GM极速
     PlagueBless = 17,               // 瘟疫祝福
     BattleFury = 18,                // 愈战愈勇
-    BeaconReduce = 19,              // 副守护点减伤
+    StatueReduce = 19,              // 分层减伤（每存活贤者雕像 25%）
     MinimapLost = 20,               // 小地图失联
 
     //通用
@@ -77,7 +77,7 @@ public static class EffectTypeExt
     //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
     public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire or EffectType.DeathStroll;
 
-    public static bool IsShield(this EffectType type) => type is EffectType.Shield or EffectType.TowerShield;
+    public static bool IsShield(this EffectType type) => type is EffectType.Shield or EffectType.StatueShield;
 
     //极性固定标注：负面白名单 + 全部属性削弱；其余一律正面（新增 Buff 按实际效果维护此表）
     public static bool IsNegative(this EffectType type) => type switch
@@ -211,13 +211,13 @@ public class EntityEffectController
     {
         float sum = 0f;
         if (effects.TryGetValue(EffectType.Shield, out var s)) sum += s.shieldValue;
-        if (effects.TryGetValue(EffectType.TowerShield, out var t)) sum += t.shieldValue;
+        if (effects.TryGetValue(EffectType.StatueShield, out var t)) sum += t.shieldValue;
         return sum;
     }
 
     public void ConsumeShield(float amount)
     {
-        foreach (var type in new[] { EffectType.Shield, EffectType.TowerShield })
+        foreach (var type in new[] { EffectType.Shield, EffectType.StatueShield })
         {
             if (amount <= 0f) break;
             if (!effects.TryGetValue(type, out var rt)) continue;
@@ -232,7 +232,7 @@ public class EntityEffectController
     public float GetDamageReduceRate()
     {
         float rate = 0f;
-        if (effects.TryGetValue(EffectType.BeaconReduce, out var b)) rate += b.level * 0.25f;
+        if (effects.TryGetValue(EffectType.StatueReduce, out var b)) rate += b.level * 0.25f;
         if (HasEffect(EffectType.PopeGuard)) rate += Config.pope_guard_reduce_rate;
         return Mathf.Clamp01(rate);
     }

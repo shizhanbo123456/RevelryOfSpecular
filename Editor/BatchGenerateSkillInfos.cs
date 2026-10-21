@@ -20,7 +20,7 @@ public static class BatchGenerateSkillInfosMenu
         (SkillType.SkillBackVolley, SkillType.SkillShieldFour, "Gun"),
         (SkillType.SkillSplitShot, SkillType.SkillAllyShieldTwentyFive, "MagicOrb"),
         (SkillType.SkillRockShield, SkillType.SkillFogCast, "Defense"),
-        (SkillType.SkillZombieClawR, SkillType.SkillPlagueTreeSpore, "Npc"),
+        (SkillType.SkillZombieClawR, SkillType.SkillNeutralStatueSpore, "Npc"),
         (SkillType.SkillPunchLeft, SkillType.SkillPunchSmash, "Unarmed"),
     };
 

@@ -43,7 +43,7 @@ public class SettlementView
             killScore = 8,
             remainTime = 120f,
             expGain = 800,
-            beaconHealth = 40f,
+            guardStatueHealth = 40f,
             playerLevelBefore = 5,
             playerLevelAfter = 6,
             characterLevelBefore = 3,
@@ -115,7 +115,7 @@ public class SettlementView
         rows.Add($"击杀数：{r.killScore}");
         rows.Add(camp == EntityCamp.Attack
             ? $"对防守点伤害：{(int)r.expGain}"
-            : $"防守点剩余血量：{(int)r.beaconHealth}");
+            : $"防守点剩余血量：{(int)r.guardStatueHealth}");
         rows.Add($"获得的角色经验：+{r.expGain}");
         rows.Add($"获得的玩家经验：+{r.expGain}");
         if (r.characterLevelAfter > r.characterLevelBefore)

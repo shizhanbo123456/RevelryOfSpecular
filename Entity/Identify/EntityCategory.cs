@@ -4,8 +4,8 @@ public enum EntityCategory
     Character_Defense,
     Zombie,
     EliteZombie,
-    Beacon,
+    GuardStatue,
     Coral,
-    Tower,
-    PlagueTree,
+    CrystalStatue,
+    NeutralStatue,
 }

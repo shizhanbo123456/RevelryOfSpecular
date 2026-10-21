@@ -32,9 +32,9 @@ public class LandscapeSpawns : MonoBehaviour
         SnapListToSurface(coralSpawnPositions);
         SnapListToSurface(zombieSpawnPositions);
         // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
-        SnapTransformsToSurface(beaconSpawnPositions);
-        SnapTransformsToSurface(towerSpawnPositions);
-        SnapTransformsToSurface(plagueTreeSpawnPositions);
+        SnapTransformsToSurface(guardStatueSpawnPositions);
+        SnapTransformsToSurface(crystalStatueSpawnPositions);
+        SnapTransformsToSurface(neutralStatueSpawnPositions);
         SnapTransformsToSurface(attackPositions);
         SnapTransformsToSurface(defensePositions);
     }
@@ -66,8 +66,8 @@ public class LandscapeSpawns : MonoBehaviour
 
     #endregion
 
-    [Header("守护点出生点（前 3 个外围 + 最后 1 个中心）")]
-    public List<Transform> beaconSpawnPositions = new();
+    [Header("雕像出生点（前 3 个外围 + 最后 1 个中心）")]
+    public List<Transform> guardStatueSpawnPositions = new();
 
     [Header("珊瑚刷新位置列表（Vector3，由右键菜单生成）")]
     public List<Vector3> coralSpawnPositions = new();
@@ -75,13 +75,13 @@ public class LandscapeSpawns : MonoBehaviour
     [Tooltip("右键菜单「随机生成珊瑚刷新点」单次生成的数量；生成时会先清空 coralSpawnPositions")]
     [Min(1)] public int coralGenerateCount = 100;
 
-    [Header("防御塔位置列表（防御塔被摧毁后不会复活）")]
-    public List<Transform> towerSpawnPositions = new();
+    [Header("水晶雕像位置列表（水晶雕像被摧毁后不会复活）")]
+    public List<Transform> crystalStatueSpawnPositions = new();
 
-    [Header("瘟疫树位置列表（中立争抢单位，多个候选随机取一个）")]
-    public List<Transform> plagueTreeSpawnPositions = new();
+    [Header("中立雕像位置列表（中立争抢单位，多个候选随机取一个）")]
+    public List<Transform> neutralStatueSpawnPositions = new();
 
-    [Header("僵尸出生点列表（Vector3，由右键菜单生成；道路/墓地/守护点外围，随机取一个）")]
+    [Header("僵尸出生点列表（Vector3，由右键菜单生成；道路/墓地/雕像外围，随机取一个）")]
     public List<Vector3> zombieSpawnPositions = new();
 
     [Tooltip("右键菜单「随机生成僵尸出生点」单次生成的数量；生成时会先清空 zombieSpawnPositions")]
@@ -102,7 +102,7 @@ public class LandscapeSpawns : MonoBehaviour
     [Tooltip("由菜单生成的坐标点位（珊瑚刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
     [Min(0.1f)] public float coralGizmoRadius = 1f;
 
-    [Tooltip("其余 Transform 锚点（守护点/防御塔/瘟疫树/双方出生-复活位置）的 Gizmos 球半径")]
+    [Tooltip("其余 Transform 锚点（雕像/水晶雕像/中立雕像/双方出生-复活位置）的 Gizmos 球半径")]
     [Min(0.1f)] public float otherGizmoRadius = 1f;
 
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
@@ -250,10 +250,10 @@ public class LandscapeSpawns : MonoBehaviour
 
     private bool IsNearExistingPoint(Vector3 pos)
     {
-        return NearIn(beaconSpawnPositions, pos)
+        return NearIn(guardStatueSpawnPositions, pos)
             || NearIn(coralSpawnPositions, pos)
-            || NearIn(towerSpawnPositions, pos)
-            || NearIn(plagueTreeSpawnPositions, pos)
+            || NearIn(crystalStatueSpawnPositions, pos)
+            || NearIn(neutralStatueSpawnPositions, pos)
             || NearIn(zombieSpawnPositions, pos)
             || NearIn(attackPositions, pos)
             || NearIn(defensePositions, pos);
@@ -290,9 +290,9 @@ public class LandscapeSpawns : MonoBehaviour
         DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), coralGizmoRadius);  // 僵尸：橙
 
         // Transform 锚点——共用 otherGizmoRadius
-        DrawPoints(beaconSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);     // 守护点：绿
-        DrawPoints(towerSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);      // 防御塔：红
-        DrawPoints(plagueTreeSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 瘟疫树：紫
+        DrawPoints(guardStatueSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);     // 雕像：绿
+        DrawPoints(crystalStatueSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);      // 水晶雕像：红
+        DrawPoints(neutralStatueSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 中立雕像：紫
         DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);          // 进攻方出生/复活：蓝
         DrawPoints(defensePositions, new Color(0.10f, 0.90f, 0.90f), otherGizmoRadius);         // 防守方出生/复活：青绿
 

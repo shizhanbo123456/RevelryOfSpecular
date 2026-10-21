@@ -70,16 +70,16 @@ public partial class BattleManager
 
     private void ApplyPopeGuard(bool isDay)
     {
-        foreach (var beacon in EntityContainer.Beacons)
+        foreach (var guardStatue in EntityContainer.GuardStatues)
         {
-            if (beacon == null || beacon.effectController == null) continue;
+            if (guardStatue == null || guardStatue.effectController == null) continue;
             if (isDay)
             {
-                beacon.effectController.RemoveEffect(EffectType.PopeGuard);
+                guardStatue.effectController.RemoveEffect(EffectType.PopeGuard);
             }
             else
             {
-                beacon.effectController.AddEffect(EffectType.PopeGuard, 1, float.MaxValue);
+                guardStatue.effectController.AddEffect(EffectType.PopeGuard, 1, float.MaxValue);
             }
         }
     }

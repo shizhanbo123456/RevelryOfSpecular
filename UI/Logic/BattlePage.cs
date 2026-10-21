@@ -129,7 +129,7 @@ public class BattlePage : PageBase
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
-        ResetBeacons();
+        ResetGuardStatues();
         ClearEntityBars();
         ClearMinimap();
         EnsureMinimapMapLoader();
@@ -201,9 +201,9 @@ public class BattlePage : PageBase
     private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        if (info.type.category == EntityCategory.Beacon)
+        if (info.type.category == EntityCategory.GuardStatue)
         {
-            OnBeaconDisplay(info);
+            OnStatueDisplay(info);
         }
         else if (info.type.category == EntityCategory.Character_Attack ||
                  info.type.category == EntityCategory.Character_Defense)
@@ -421,16 +421,16 @@ public class BattlePage : PageBase
         if (slot.m_store != null) slot.m_store.text = "";
     }
 
-    private void OnBeaconDisplay(SCEntityDisplayInfo info)
+    private void OnStatueDisplay(SCEntityDisplayInfo info)
     {
         UI_DefensivePointBar bar;
-        if (info.type == EntityType.CoreBeacon)
+        if (info.type == EntityType.KingStatue)
         {
             bar = panel.m_progressMain;
         }
         else
         {
-            int index = info.type.value; // 外围守护点：Beacon(0~2) → Sub1~3
+            int index = info.type.value; // 贤者雕像：GuardStatue(0~2) → Sub1~3
             if (index < 0 || index > 2) return;
             bar = index == 0 ? panel.m_progressSub1 : index == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
         }
@@ -440,24 +440,24 @@ public class BattlePage : PageBase
         bar.m_fill.scale = new Vector2(destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f), bar.m_fill.scale.y);
     }
 
-    private void ResetBeacons()
+    private void ResetGuardStatues()
     {
-        ResetBeacon(panel.m_progressMain);
-        ResetBeacon(panel.m_progressSub1);
-        ResetBeacon(panel.m_progressSub2);
-        ResetBeacon(panel.m_progressSub3);
+        ResetStatue(panel.m_progressMain);
+        ResetStatue(panel.m_progressSub1);
+        ResetStatue(panel.m_progressSub2);
+        ResetStatue(panel.m_progressSub3);
     }
 
-    private static void ResetBeacon(UI_DefensivePointBar bar)
+    private static void ResetStatue(UI_DefensivePointBar bar)
     {
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 0;
         bar.m_fill.scale = new Vector2(0f, bar.m_fill.scale.y);
     }
 
-    // 守护点被摧毁：据事件携带的 beacon 标识定位血条，切到已摧毁外观并清空填充
-    // beaconId：-1=中心守护点(main)，0~2=外围 Sub1~3（与 OnBeaconDisplay 的 index 映射一致）
-    private void SetBeaconDestroyed(int textId)
+    // 雕像被摧毁：据事件携带的 guardStatue 标识定位血条，切到已摧毁外观并清空填充
+    // guardStatueId：-1=国王雕像(main)，0~2=外围 Sub1~3（与 OnStatueDisplay 的 index 映射一致）
+    private void SetStatueDestroyed(int textId)
     {
         UI_DefensivePointBar bar = textId == 19 ? panel.m_progressMain
             : textId == 24 ? panel.m_progressSub1
@@ -598,12 +598,12 @@ public class BattlePage : PageBase
             case EntityCategory.Character_Defense:
                 if (IsOwnEntity(entity.entityId)) return 0;
                 return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
-            case EntityCategory.PlagueTree: return 3;
+            case EntityCategory.NeutralStatue: return 3;
             case EntityCategory.Coral: return 4;
-            case EntityCategory.Tower: return 5;
+            case EntityCategory.CrystalStatue: return 5;
             case EntityCategory.Zombie: return 6;
             case EntityCategory.EliteZombie: return 7;
-            case EntityCategory.Beacon: return entity.type == EntityType.CoreBeacon ? 8 : 9;
+            case EntityCategory.GuardStatue: return entity.type == EntityType.KingStatue ? 8 : 9;
             default:
                 Debug.LogError($"[Minimap] 未处理的实体类别：{entity.type.category}");
                 return 7;
@@ -727,12 +727,12 @@ public class BattlePage : PageBase
             case SCBattleEvent.Type.PlayerKill: icon = 6; layout = 2; break;           // 文字+击败图标+文字
             case SCBattleEvent.Type.DeathUnattributed: icon = 0; layout = 1; break;    // 无源死亡
             case SCBattleEvent.Type.PlayerRespawn: icon = 2; layout = 1; break;        // 玩家复活
-            case SCBattleEvent.Type.PlagueTreeCaptured: icon = 1; layout = 1; break;   // 瘟疫树被击败
-            case SCBattleEvent.Type.PlagueTreeRespawn: icon = 3; layout = 1; break;    // 瘟疫树刷新
+            case SCBattleEvent.Type.NeutralStatueCaptured: icon = 1; layout = 1; break;   // 中立雕像被击败
+            case SCBattleEvent.Type.NeutralStatueRespawn: icon = 3; layout = 1; break;    // 中立雕像刷新
             case SCBattleEvent.Type.Nightfall: icon = 4; layout = 1; break;            // 天黑
             case SCBattleEvent.Type.Daybreak: icon = 5; layout = 1; break;             // 天亮
-            case SCBattleEvent.Type.BeaconDestroyed: icon = 7; layout = 1; break;      // 其它（守护点）
-            case SCBattleEvent.Type.TowerDestroyed: icon = 7; layout = 1; break;       // 其它（防御塔）
+            case SCBattleEvent.Type.StatueDestroyed: icon = 7; layout = 1; break;      // 其它（雕像）
+            case SCBattleEvent.Type.CrystalStatueDestroyed: icon = 7; layout = 1; break;       // 其它（水晶雕像）
             case SCBattleEvent.Type.Notice: icon = 0; layout = 0; break;               // 纯文字
             default:
                 Debug.LogError($"[BattlePage] 未处理的战斗事件类型：{e.type}");
@@ -751,7 +751,7 @@ public class BattlePage : PageBase
             entry.right = ResolveEventText(e.textId2);
         }
         AddEventEntry(entry);
-        if (e.type == SCBattleEvent.Type.BeaconDestroyed) SetBeaconDestroyed(e.textId);
+        if (e.type == SCBattleEvent.Type.StatueDestroyed) SetStatueDestroyed(e.textId);
         else if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
         else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);       // 日出横幅
     }

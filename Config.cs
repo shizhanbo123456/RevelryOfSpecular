@@ -21,15 +21,15 @@ public static class Config
     public static int GetPlayerLevelUpExp(int currentLevel) => 700 + 300 * Mathf.Max(1, currentLevel);
     #endregion
 
-    #region 守护点（瘟疫信标）
-    public const int outer_beacon_count = 3;
-    public const int core_beacon_count = 1;
+    #region 守护雕像（防守目标）
+    public const int sage_statue_count = 3;
+    public const int king_statue_count = 1;
     #endregion
 
     #region 资源与中立单位
     public const int coral_size_count = 2;              // 0 = 小珊瑚，1 = 大珊瑚
-    public const int tower_count = 4;
-    public const float tower_attack_range = 20f;
+    public const int crystal_statue_count = 4;
+    public const float crystal_statue_attack_range = 20f;
     public const float coral_spawn_checks_per_second = 10f;
     public const float coral_spawn_min_dist = 40f;
     public const float coral_spawn_max_dist = 80f;
@@ -37,10 +37,11 @@ public static class Config
     public const float coral_small_drop_chance = 0.2f;  // 小珊瑚被摧毁时的掉武器概率
     public const float coral_large_drop_chance = 1f;    // 大珊瑚被摧毁时的掉武器概率
 
-    #region 瘟疫树（中立争抢单位）
-    public const float plague_tree_first_spawn_delay = 30f;
-    public const float plague_tree_attack_range = 8f;
-    public const float plague_tree_respawn_delay = 60f;
+    #region 中立雕像（中立争抢单位）
+    public const int neutral_statue_variant_count = 2;   // 0 天使雕像 / 1 恶魔雕像
+    public const float neutral_statue_first_spawn_delay = 30f;
+    public const float neutral_statue_attack_range = 8f;
+    public const float neutral_statue_respawn_delay = 60f;
     public const float plague_bless_duration = 30f;
     public const float plague_bless_damage_up = 0.75f;
     public const float plague_bless_damage_reduce = 0.25f;
@@ -178,7 +179,7 @@ public static class Config
         { EntityType.Attack(17), new[] { (int)SkillType.SkillBoomerangWeapon } },
 
         // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招）=====
-        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillTowerBlazeCast } },      // 鹿铠怪人
+        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillCrystalStatueBlazeCast } },      // 鹿铠怪人
         { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillNightMark, (int)SkillType.SkillForceNight } },                 // 白眼伯爵
         { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // 死灵漫步者
         { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // 蒙面教皇
@@ -188,8 +189,8 @@ public static class Config
         // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退）=====
         { EntityType.Zombie(0), new[] { (int)SkillType.SkillZombieClawR, (int)SkillType.SkillZombieClawL } },                       // 普通僵尸：爪击右 / 爪击左
         { EntityType.EliteZombie(0), new[] { (int)SkillType.SkillEliteZombieClawR, (int)SkillType.SkillEliteZombieClawL, (int)SkillType.SkillEliteZombieScream } }, // 精英僵尸
-        { EntityType.Tower(0), new[] { (int)SkillType.SkillTowerSporeShotA, (int)SkillType.SkillTowerSporeShotB, (int)SkillType.SkillTowerSporeShotC } }, // 防御塔：三种孢子
-        { EntityType.PlagueTree(0), new[] { (int)SkillType.SkillPlagueTreeSpore } },     // 瘟疫树：孢子喷发
+        { EntityType.CrystalStatue(0), new[] { (int)SkillType.SkillCrystalStatueSporeA, (int)SkillType.SkillCrystalStatueSporeB, (int)SkillType.SkillCrystalStatueSporeC } }, // 水晶雕像：三种孢子
+        { EntityType.NeutralStatue(0), new[] { (int)SkillType.SkillNeutralStatueSpore } },     // 中立雕像：孢子喷发
     };
 
     public static List<int> GetInitialSkills(EntityType character)
@@ -251,12 +252,12 @@ public static class Config
 
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
     {
-        { EffectType.BeaconReduce, (SkillVfxKind.Shield, 0) },
-        { EffectType.TowerShield, (SkillVfxKind.MagicCircle, 8) },
+        { EffectType.StatueReduce, (SkillVfxKind.Shield, 0) },
+        { EffectType.StatueShield, (SkillVfxKind.MagicCircle, 8) },
         { EffectType.PopeGuard, (SkillVfxKind.Shield, 12) },
         { EffectType.Shield, (SkillVfxKind.Shield, 2) },
         { EffectType.Stun, (SkillVfxKind.Buff, 20) },
-        { EffectType.TowerBlaze, (SkillVfxKind.MagicCircle, 3) },
+        { EffectType.StatueBlaze, (SkillVfxKind.MagicCircle, 3) },
         { EffectType.Burning, (SkillVfxKind.Buff, 11) },
         { EffectType.EyeMark, (SkillVfxKind.Buff, 23) },
         { EffectType.PaleLight, (SkillVfxKind.Buff, 15) },
@@ -318,8 +319,8 @@ public static class Config
     public const int pale_mixed_stacks = 8;
     #endregion
 
-    #region 灵火（TowerBlaze）：塔攻击附加爆炸
-    public const float tower_blaze_radius = 2.5f;
-    public const float tower_blaze_rate = 0.5f;
+    #region 灵火（StatueBlaze）：水晶雕像攻击附加爆炸
+    public const float statue_blaze_radius = 2.5f;
+    public const float statue_blaze_rate = 0.5f;
     #endregion
 }

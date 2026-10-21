@@ -11,7 +11,7 @@ namespace Ros.Skill
         {
             SkillManager.Register(new SkillRockShield());      // 鹿铠怪人 岩石护盾
             SkillManager.Register(new SkillPowerSuppress());   // 鹿铠怪人 怪力压制
-            SkillManager.Register(new SkillTowerBlazeCast());  // 鹿铠怪人 灵火
+            SkillManager.Register(new SkillCrystalStatueBlazeCast());  // 鹿铠怪人 灵火
 
             SkillManager.Register(new SkillEyeMark());         // 白眼伯爵 白眼标记
             SkillManager.Register(new SkillNightMark());       // 白眼伯爵 黑夜标记
@@ -49,9 +49,9 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            var tower = TargetSelect.SelectNearest(BattleManager.EntityContainer.Towers, entity.transform.position,
+            var crystalStatue = TargetSelect.SelectNearest(BattleManager.EntityContainer.CrystalStatues, entity.transform.position,
                 Config.defense_ally_cast_radius);
-            context.AddInts(tower != null ? tower.id : entity.id); // 附近没塔就给自己
+            context.AddInts(crystalStatue != null ? crystalStatue.id : entity.id); // 附近没塔就给自己
             return context;
         }
 
@@ -59,7 +59,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerShield, 1,
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.StatueShield, 1,
                     ShieldDuration, caster);
         }
 
@@ -121,9 +121,9 @@ namespace Ros.Skill
         }
     }
 
-    public class SkillTowerBlazeCast : SkillBase
+    public class SkillCrystalStatueBlazeCast : SkillBase
     {
-        public override int Id => (int)SkillType.SkillTowerBlazeCast;
+        public override int Id => (int)SkillType.SkillCrystalStatueBlazeCast;
         public override float CD => 60f;
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
@@ -134,7 +134,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Towers);
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.CrystalStatues);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -143,7 +143,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.TowerBlaze, 1,
+                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.StatueBlaze, 1,
                     BlazeDuration, caster);
         }
 
@@ -382,7 +382,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Beacons);
+            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.GuardStatues);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }

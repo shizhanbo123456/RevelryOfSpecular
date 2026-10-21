@@ -17,10 +17,10 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType Defense(int value) => new EntityType(EntityCategory.Character_Defense, value);
     public static EntityType Zombie(int value) => new EntityType(EntityCategory.Zombie, value);
     public static EntityType EliteZombie(int value) => new EntityType(EntityCategory.EliteZombie, value);
-    public static EntityType Beacon(int value) => new EntityType(EntityCategory.Beacon, value);
+    public static EntityType GuardStatue(int value) => new EntityType(EntityCategory.GuardStatue, value);
     public static EntityType Coral(int size) => new EntityType(EntityCategory.Coral, size);
-    public static EntityType Tower(int value) => new EntityType(EntityCategory.Tower, value);
-    public static EntityType PlagueTree(int value) => new EntityType(EntityCategory.PlagueTree, value);
+    public static EntityType CrystalStatue(int value) => new EntityType(EntityCategory.CrystalStatue, value);
+    public static EntityType NeutralStatue(int value) => new EntityType(EntityCategory.NeutralStatue, value);
     #endregion
 
     #region 预设
@@ -56,23 +56,24 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType DefenseFirst => Defense0;
     public static EntityType DefenseLast => Defense(Config.defense_character_count - 1);
 
-    // 守护点：0/1/2 外围，3 中心
-    public static EntityType OuterBeacon0 => Beacon(0);
-    public static EntityType OuterBeacon1 => Beacon(1);
-    public static EntityType OuterBeacon2 => Beacon(2);
-    public static EntityType CoreBeacon => Beacon(Config.outer_beacon_count);
+    // 守护雕像：0/1/2 贤者雕像（外围），3 国王雕像（中心）
+    public static EntityType SageStatue0 => GuardStatue(0);
+    public static EntityType SageStatue1 => GuardStatue(1);
+    public static EntityType SageStatue2 => GuardStatue(2);
+    public static EntityType KingStatue => GuardStatue(Config.sage_statue_count);
 
     // 珊瑚（value = 尺寸：0 小 / 1 大；同尺寸共用一套属性、外观列表与掉落率）
     public static EntityType CoralSmall => Coral(0);
     public static EntityType CoralLarge => Coral(1);
 
-    // 防御塔（0~3）
-    public static EntityType Tower0 => Tower(0);
-    public static EntityType TowerFirst => Tower(0);
-    public static EntityType TowerLast => Tower(Config.tower_count - 1);
+    // 水晶雕像（0~3）
+    public static EntityType CrystalStatue0 => CrystalStatue(0);
+    public static EntityType CrystalStatueFirst => CrystalStatue(0);
+    public static EntityType CrystalStatueLast => CrystalStatue(Config.crystal_statue_count - 1);
 
-    // 瘟疫树
-    public static EntityType PlagueTree0 => PlagueTree(0);
+    // 中立雕像：0 天使雕像 / 1 恶魔雕像（行为一致，仅外观不同）
+    public static EntityType AngelStatue => NeutralStatue(0);
+    public static EntityType DemonStatue => NeutralStatue(1);
 
     // 普通僵尸（0~20，暂用 21 种）
     public static EntityType ZombieFirst => Zombie(0);

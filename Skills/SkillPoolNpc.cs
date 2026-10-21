@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 防御塔孢子喷射×3 / 瘟疫树孢子喷发
+    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 水晶雕像孢子喷射×3 / 中立雕像孢子喷发
     public static class SkillPoolNpc
     {
         public static void RegisterAll()
@@ -14,10 +14,10 @@ namespace Ros.Skill
             SkillManager.Register(new SkillEliteZombieClawR());
             SkillManager.Register(new SkillEliteZombieClawL());
             SkillManager.Register(new SkillEliteZombieScream());
-            SkillManager.Register(new SkillTowerSporeShotA());
-            SkillManager.Register(new SkillTowerSporeShotB());
-            SkillManager.Register(new SkillTowerSporeShotC());
-            SkillManager.Register(new SkillPlagueTreeSpore());
+            SkillManager.Register(new SkillCrystalStatueSporeA());
+            SkillManager.Register(new SkillCrystalStatueSporeB());
+            SkillManager.Register(new SkillCrystalStatueSporeC());
+            SkillManager.Register(new SkillNeutralStatueSpore());
         }
     }
 
@@ -142,11 +142,11 @@ namespace Ros.Skill
     }
     #endregion
 
-    #region 防御塔 / 瘟疫树
+    #region 水晶雕像 / 中立雕像
     // 三发孢子喷射共用实现，只有弹体特效不同
-    public abstract class TowerSporeShot : SkillBase
+    public abstract class CrystalStatueSporeShot : SkillBase
     {
-        public override float CastRange => Config.tower_attack_range;
+        public override float CastRange => Config.crystal_statue_attack_range;
         public override float CD => 2f;
         public override int Store => -1;
         protected override bool HasCastAnim => false; // 塔无攻击动画：按下即施放
@@ -179,28 +179,28 @@ namespace Ros.Skill
             => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0));
     }
 
-    public class SkillTowerSporeShotA : TowerSporeShot
+    public class SkillCrystalStatueSporeA : CrystalStatueSporeShot
     {
-        public override int Id => (int)SkillType.SkillTowerSporeShotA;
+        public override int Id => (int)SkillType.SkillCrystalStatueSporeA;
         protected override int BulletVfx => 25;
     }
 
-    public class SkillTowerSporeShotB : TowerSporeShot
+    public class SkillCrystalStatueSporeB : CrystalStatueSporeShot
     {
-        public override int Id => (int)SkillType.SkillTowerSporeShotB;
+        public override int Id => (int)SkillType.SkillCrystalStatueSporeB;
         protected override int BulletVfx => 24;
     }
 
-    public class SkillTowerSporeShotC : TowerSporeShot
+    public class SkillCrystalStatueSporeC : CrystalStatueSporeShot
     {
-        public override int Id => (int)SkillType.SkillTowerSporeShotC;
+        public override int Id => (int)SkillType.SkillCrystalStatueSporeC;
         protected override int BulletVfx => 26;
     }
 
-    public class SkillPlagueTreeSpore : SkillBase
+    public class SkillNeutralStatueSpore : SkillBase
     {
-        public override int Id => (int)SkillType.SkillPlagueTreeSpore;
-        public override float CastRange => Config.plague_tree_attack_range;
+        public override int Id => (int)SkillType.SkillNeutralStatueSpore;
+        public override float CastRange => Config.neutral_statue_attack_range;
         public override float CD => 2.5f;
         public override int Store => -1;
         protected override bool HasCastAnim => false;

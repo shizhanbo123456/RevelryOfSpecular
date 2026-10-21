@@ -66,7 +66,7 @@
         // ===== 防守方 18（6 角色 × 主动1 / 主动2 / 大招，被动不占 id）=====
         SkillRockShield,
         SkillPowerSuppress,
-        SkillTowerBlazeCast,
+        SkillCrystalStatueBlazeCast,
         SkillEyeMark,
         SkillNightMark,
         SkillForceNight,
@@ -89,10 +89,10 @@
         SkillEliteZombieClawR,
         SkillEliteZombieClawL,
         SkillEliteZombieScream,
-        SkillTowerSporeShotA,
-        SkillTowerSporeShotB,
-        SkillTowerSporeShotC,
-        SkillPlagueTreeSpore,
+        SkillCrystalStatueSporeA,
+        SkillCrystalStatueSporeB,
+        SkillCrystalStatueSporeC,
+        SkillNeutralStatueSpore,
 
         // ===== 空手攻击 3 =====
         SkillPunchLeft,

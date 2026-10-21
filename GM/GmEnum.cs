@@ -37,7 +37,7 @@ namespace Ros.Gm
         [GmLabel("玩家-传送-坐标")]
         [GmStatus(GmStatusType.Battle)]
         Player_Teleport_ToCoordinate,
-        [GmLabel("玩家-传送-守护点")]
+        [GmLabel("玩家-传送-雕像")]
         [GmStatus(GmStatusType.Battle)]
         Player_Teleport_ToGuardPoint,
         [GmLabel("玩家-立即复活")]

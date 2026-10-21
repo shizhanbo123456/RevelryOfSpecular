@@ -147,10 +147,10 @@ public partial class BattleManager
         }
 
         // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent；
-        // 无动画实体（珊瑚/守护点/防御塔等）立即销毁。见 TickDying
+        // 无动画实体（珊瑚/雕像/水晶雕像等）立即销毁。见 TickDying
         BeginDying(entity);
 
-        // 守护点的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
+        // 雕像的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
         if (entity.type.category == EntityCategory.Character_Attack)
         {
             CheckAttackWiped(); // 进攻方全灭 → 立即按分数结算（策划案 17.2，不直接判负）
@@ -341,7 +341,7 @@ public partial class BattleManager
     {
         activeBullets.Clear();
         reviveStates.Clear();
-        plagueTreeRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
+        neutralStatueRespawnTime = -1f; // 由 SpawnBattleWorld 重新排首次刷新
         HarvestByClient.Clear();
         KillCountByClient.Clear();
         minimapRadiusByClient.Clear(); // 每局雷达显示半径回到默认档

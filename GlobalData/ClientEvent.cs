@@ -12,7 +12,7 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     public const int OnScoreUpdate = 10213;
     public const int OnSettlementResult = 10214;
-    // 10217~10219 未占用：守护点血量、技能槽位与武器等信息统一随实体表现摘要下发
+    // 10217~10219 未占用：雕像血量、技能槽位与武器等信息统一随实体表现摘要下发
     // （param=SCEntityDisplayInfo，见 OnEntityDisplayUpdate），不单独发事件
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;

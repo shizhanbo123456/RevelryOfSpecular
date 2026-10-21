@@ -79,16 +79,16 @@ public partial class BattleManager : EnsBehaviour
     public static class EntityContainer
     {
         public static readonly ChunkSearcher<EntityData> Entities = new(d => d.transform.position);
-        public static readonly ChunkSearcher<EntityData> Beacons = new(d => d.transform.position);
+        public static readonly ChunkSearcher<EntityData> GuardStatues = new(d => d.transform.position);
         public static readonly ChunkSearcher<EntityData> Corals = new(d => d.transform.position);
-        public static readonly ChunkSearcher<EntityData> Towers = new(d => d.transform.position);
+        public static readonly ChunkSearcher<EntityData> CrystalStatues = new(d => d.transform.position);
 
         public static void Clear()
         {
             Entities.Clear();
-            Beacons.Clear();
+            GuardStatues.Clear();
             Corals.Clear();
-            Towers.Clear();
+            CrystalStatues.Clear();
         }
 
         private static readonly HashSet<int> s_buffer = new();
@@ -194,7 +194,7 @@ public partial class BattleManager : EnsBehaviour
             return 0;
         }
         data.OnCreate(id, type, level, camp);
-        // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/防御塔/瘟疫树）同一条路径，
+        // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/水晶雕像/中立雕像）同一条路径，
         // 未登记的类别得空表（见 Config.initial_skills）
         if (data.skillController != null) data.skillController.SetSkillList(Config.GetInitialSkills(type));
         ApplyMinimapLostOnSpawn(data); // 夜间出生/复活：补上「小地图失联」（昼夜事件只在翻转那一刻遍历）
@@ -235,32 +235,32 @@ public partial class BattleManager : EnsBehaviour
         {
             Tool.NetworkManager.SendRemoveEntity(clientId, id);
         }
-        // 守护点被摧毁事件（事件列表 icon=其它 + 血条 destroyed 状态）：textId 区分哪一座（19 中心 / 24~26 外围）
-        if (BattleStarted && data.type.category == EntityCategory.Beacon)
+        // 雕像被摧毁事件（事件列表 icon=其它 + 血条 destroyed 状态）：textId 区分哪一座（19 中心 / 24~26 外围）
+        if (BattleStarted && data.type.category == EntityCategory.GuardStatue)
         {
-            int textId = data.type == EntityType.CoreBeacon ? 19 : 24 + data.type.value; // Beacon(0~2) → 24~26
+            int textId = data.type == EntityType.KingStatue ? 19 : 24 + data.type.value; // GuardStatue(0~2) → 24~26
             Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
             {
-                type = SCBattleEvent.Type.BeaconDestroyed,
+                type = SCBattleEvent.Type.StatueDestroyed,
                 textId = textId,
             });
         }
-        // 防御塔被摧毁事件（事件列表 icon=其它）
-        else if (BattleStarted && data.type.category == EntityCategory.Tower)
+        // 水晶雕像被摧毁事件（事件列表 icon=其它）
+        else if (BattleStarted && data.type.category == EntityCategory.CrystalStatue)
         {
             Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
             {
-                type = SCBattleEvent.Type.TowerDestroyed,
+                type = SCBattleEvent.Type.CrystalStatueDestroyed,
                 textId = 27,
             });
         }
 
         data.OnDestroyed();
-        bool wasCoreBeacon = data.type.category == EntityCategory.Beacon && data.type == EntityType.CoreBeacon;
+        bool wasKingStatue = data.type.category == EntityCategory.GuardStatue && data.type == EntityType.KingStatue;
         Destroy(data.gameObject);
-        if (wasCoreBeacon && BattleStarted)
+        if (wasKingStatue && BattleStarted)
         {
-            EndBattle(1); // 中心守护点被摧毁 → 进攻方必然获胜（策划案 17.2）
+            EndBattle(1); // 国王雕像被摧毁 → 进攻方必然获胜（策划案 17.2）
         }
         return true;
     }
@@ -273,14 +273,14 @@ public partial class BattleManager : EnsBehaviour
         EntityContainer.Entities.Add(data.id, data);
         switch (data.type.category)
         {
-            case EntityCategory.Beacon:
-                EntityContainer.Beacons.Add(data.id, data);
+            case EntityCategory.GuardStatue:
+                EntityContainer.GuardStatues.Add(data.id, data);
                 break;
             case EntityCategory.Coral:
                 EntityContainer.Corals.Add(data.id, data);
                 break;
-            case EntityCategory.Tower:
-                EntityContainer.Towers.Add(data.id, data);
+            case EntityCategory.CrystalStatue:
+                EntityContainer.CrystalStatues.Add(data.id, data);
                 break;
         }
         if (IsZombieCategory(data.type.category)) zombieCount++;
@@ -289,9 +289,9 @@ public partial class BattleManager : EnsBehaviour
     private void RemoveFromContainer(EntityData data)
     {
         EntityContainer.Entities.Remove(data.id);
-        EntityContainer.Beacons.Remove(data.id);
+        EntityContainer.GuardStatues.Remove(data.id);
         EntityContainer.Corals.Remove(data.id);
-        EntityContainer.Towers.Remove(data.id);
+        EntityContainer.CrystalStatues.Remove(data.id);
         if (IsZombieCategory(data.type.category)) zombieCount--;
     }
     #endregion
@@ -681,40 +681,40 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    public void AddBeaconDamage(float damage)
+    public void AddStatueDamage(float damage)
     {
         AttackScore += damage;
     }
 
-    public void UpdateCoreBeaconReduce()
+    public void UpdateKingStatueReduce()
     {
         int aliveOuter = 0;
-        foreach (var beacon in EntityContainer.Beacons)
+        foreach (var guardStatue in EntityContainer.GuardStatues)
         {
-            if (beacon != null && beacon.Alive && beacon.type != EntityType.CoreBeacon) aliveOuter++;
+            if (guardStatue != null && guardStatue.Alive && guardStatue.type != EntityType.KingStatue) aliveOuter++;
         }
-        foreach (var beacon in EntityContainer.Beacons)
+        foreach (var guardStatue in EntityContainer.GuardStatues)
         {
-            if (beacon != null && beacon.type == EntityType.CoreBeacon)
+            if (guardStatue != null && guardStatue.type == EntityType.KingStatue)
             {
-                if (beacon.effectController != null) beacon.effectController.AddEffect(EffectType.BeaconReduce, aliveOuter, float.MaxValue);
+                if (guardStatue.effectController != null) guardStatue.effectController.AddEffect(EffectType.StatueReduce, aliveOuter, float.MaxValue);
             }
         }
     }
 
-    public float BeaconRemainingHealth()
+    public float StatueRemainingHealth()
     {
         float remaining = 0f;
-        foreach (var beacon in EntityContainer.Beacons)
+        foreach (var guardStatue in EntityContainer.GuardStatues)
         {
-            if (beacon != null) remaining += beacon.floatingAttribute.health;
+            if (guardStatue != null) remaining += guardStatue.floatingAttribute.health;
         }
         return remaining;
     }
 
     public float DefenseScore()
     {
-        return BeaconRemainingHealth() * (1f + Config.kill_score_factor * DefenseKills);
+        return StatueRemainingHealth() * (1f + Config.kill_score_factor * DefenseKills);
     }
 
     #endregion
@@ -741,7 +741,7 @@ public partial class BattleManager : EnsBehaviour
     {
         if (BattleStarted) return;
 
-        // 清场上局残留实体（结算期间实体保留展示；须在 BattleStarted 置位前清除，避免触发中心守护点结束判定）
+        // 清场上局残留实体（结算期间实体保留展示；须在 BattleStarted 置位前清除，避免触发国王雕像结束判定）
         var stale = new List<EntityData>();
         foreach (var e in EntityContainer.Entities)
         {
@@ -804,9 +804,9 @@ public partial class BattleManager : EnsBehaviour
             Debug.Log($"{(AIClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp} id={entityId}");
         }
 
-        // 对局世界：守护点×4 / 珊瑚 / 防御塔 / 瘟疫树（位置来自地形组件 LandscapeSpawns）
+        // 对局世界：雕像×4 / 珊瑚 / 水晶雕像 / 中立雕像（位置来自地形组件 LandscapeSpawns）
         SpawnBattleWorld();
-        UpdateCoreBeaconReduce(); // 初始分层减伤 = 存活外围数 × 25%
+        UpdateKingStatueReduce(); // 初始分层减伤 = 存活外围数 × 25%
 
         // 防守方被动（僵尸刷新等级 / 夜晚延长 / 进攻方复活减速 / 教皇守护）：须在双方实体生成后扫阵营
         ApplyGlobalPassives();
@@ -829,7 +829,7 @@ public partial class BattleManager : EnsBehaviour
     public void EndBattle(int gameState)
     {
         if (!BattleStarted) return;
-        BattleStarted = false; // 先置 false：DestroyEntity 靠它判断要不要发守护点/防御塔摧毁事件
+        BattleStarted = false; // 先置 false：DestroyEntity 靠它判断要不要发雕像/水晶雕像摧毁事件
         Debug.Log($"对局结束：{gameState}");
         foreach (var clientId in PlayerInfoList.Keys)
         {
@@ -841,8 +841,8 @@ public partial class BattleManager : EnsBehaviour
                 defenseScore = DefenseScore(),
                 killScore = DefenseKills,
                 remainTime = Mathf.Max(0f, BattleRemainTime),
-                expGain = Mathf.RoundToInt(harvest), // 经验 = 采集量 = 对守护点造成的伤害量（策划案 17.3）
-                beaconHealth = BeaconRemainingHealth(),
+                expGain = Mathf.RoundToInt(harvest), // 经验 = 采集量 = 对雕像造成的伤害量（策划案 17.3）
+                guardStatueHealth = StatueRemainingHealth(),
             });
         }
 
@@ -990,7 +990,7 @@ public partial class BattleManager : EnsBehaviour
                 if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
                 {
                     zombieRefreshProgress = 0f;
-                    SpawnZombie(); // 出生点分散在道路/墓地/守护点外围（LandscapeSpawns）
+                    SpawnZombie(); // 出生点分散在道路/墓地/雕像外围（LandscapeSpawns）
                 }
             }
         }

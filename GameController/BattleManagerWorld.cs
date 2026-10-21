@@ -8,35 +8,35 @@ public partial class BattleManager
     private float coralSpawnAccumulator;
     private static readonly List<Vector3> s_playerPosScratch = new();
 
-    private float plagueTreeRespawnTime = -1f;
+    private float neutralStatueRespawnTime = -1f;
 
     private void SpawnBattleWorld()
     {
         var spawns = Tool.LandscapeSpawns;
 
-        // 守护点：列表前 3 个外围（value 0~2）+ 最后 1 个中心（锚点未赋值的槽位跳过）
-        for (int i = 0; i < spawns.beaconSpawnPositions.Count; i++)
+        // 雕像：列表前 3 个外围（value 0~2）+ 最后 1 个中心（锚点未赋值的槽位跳过）
+        for (int i = 0; i < spawns.guardStatueSpawnPositions.Count; i++)
         {
-            var beaconAnchor = spawns.beaconSpawnPositions[i];
-            if (beaconAnchor == null) continue;
-            bool core = i >= Config.outer_beacon_count;
-            SpawnEntity(core ? EntityType.CoreBeacon : EntityType.Beacon(i), 1, beaconAnchor.position, EntityCamp.Defense);
+            var guardStatueAnchor = spawns.guardStatueSpawnPositions[i];
+            if (guardStatueAnchor == null) continue;
+            bool core = i >= Config.sage_statue_count;
+            SpawnEntity(core ? EntityType.KingStatue : EntityType.GuardStatue(i), 1, guardStatueAnchor.position, EntityCamp.Defense);
         }
 
         // 珊瑚：不再开局全量生成（按玩家邻近动态生成，见 TickCoralSpawn）；
         // 这里只按刷新点数量重建"哪一点有珊瑚"的占用记录
         ResetCoralSpawnState(spawns.coralSpawnPositions.Count);
 
-        // 防御塔（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
-        for (int i = 0; i < spawns.towerSpawnPositions.Count; i++)
+        // 水晶雕像（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
+        for (int i = 0; i < spawns.crystalStatueSpawnPositions.Count; i++)
         {
-            var towerAnchor = spawns.towerSpawnPositions[i];
-            if (towerAnchor == null) continue;
-            SpawnEntity(EntityType.Tower(i), 1, towerAnchor.position, EntityCamp.Defense);
+            var crystalStatueAnchor = spawns.crystalStatueSpawnPositions[i];
+            if (crystalStatueAnchor == null) continue;
+            SpawnEntity(EntityType.CrystalStatue(i), 1, crystalStatueAnchor.position, EntityCamp.Defense);
         }
 
-        // 瘟疫树（中立争抢单位）：开局不刷，开战后按延迟计时刷新；之后由被打死的时机重排
-        plagueTreeRespawnTime = Time.time + Config.plague_tree_first_spawn_delay;
+        // 中立雕像（中立争抢单位）：开局不刷，开战后按延迟计时刷新；之后由被打死的时机重排
+        neutralStatueRespawnTime = Time.time + Config.neutral_statue_first_spawn_delay;
     }
 
     private void SpawnZombie()
@@ -47,30 +47,32 @@ public partial class BattleManager
         SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
     }
 
-    private void SpawnPlagueTree()
+    private void SpawnNeutralStatue()
     {
-        var list = Tool.LandscapeSpawns.plagueTreeSpawnPositions;
+        var list = Tool.LandscapeSpawns.neutralStatueSpawnPositions;
         if (list == null || list.Count == 0) return; // 未配置候选点则不刷新
-        SpawnEntity(EntityType.PlagueTree0, 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
+        // 天使 / 恶魔雕像行为一致，每次刷新随机其一（value 决定外观与模板）
+        int variant = Random.Range(0, Config.neutral_statue_variant_count);
+        SpawnEntity(EntityType.NeutralStatue(variant), 1, LandscapeSpawns.RandomOf(list), EntityCamp.Neutral);
 
-        // 瘟疫树刷新播报（首次出生与重生都算刷新）
+        // 中立雕像刷新播报（首次出生与重生都算刷新）
         Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
         {
-            type = SCBattleEvent.Type.PlagueTreeRespawn,
+            type = SCBattleEvent.Type.NeutralStatueRespawn,
             textId = 20,
         });
     }
 
-    public void SchedulePlagueTreeRespawn()
+    public void ScheduleNeutralStatueRespawn()
     {
-        plagueTreeRespawnTime = Time.time + Config.plague_tree_respawn_delay;
+        neutralStatueRespawnTime = Time.time + Config.neutral_statue_respawn_delay;
     }
 
-    public void NotifyPlagueTreeCaptured(ushort treeId)
+    public void NotifyNeutralStatueCaptured(ushort treeId)
     {
         Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
         {
-            type = SCBattleEvent.Type.PlagueTreeCaptured,
+            type = SCBattleEvent.Type.NeutralStatueCaptured,
             textId = 23,
         });
     }
@@ -170,11 +172,11 @@ public partial class BattleManager
 
     private void TickWorldRespawn()
     {
-        // 瘟疫树：倒计时到期刷新一棵（同时只有一棵，故用单值时刻而不进列表）
-        if (plagueTreeRespawnTime >= 0f && Time.time >= plagueTreeRespawnTime)
+        // 中立雕像：倒计时到期刷新一棵（同时只有一棵，故用单值时刻而不进列表）
+        if (neutralStatueRespawnTime >= 0f && Time.time >= neutralStatueRespawnTime)
         {
-            plagueTreeRespawnTime = -1f;
-            SpawnPlagueTree();
+            neutralStatueRespawnTime = -1f;
+            SpawnNeutralStatue();
         }
     }
 }

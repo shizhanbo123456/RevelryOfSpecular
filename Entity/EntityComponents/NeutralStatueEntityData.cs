@@ -1,10 +1,10 @@
 using UnityEngine;
 
-public class PlagueTreeEntityData : AutoCastEntityData
+public class NeutralStatueEntityData : AutoCastEntityData
 {
     public override float AutoCastInterval => 5f;
 
-    protected override float CastSearchRange => Config.plague_tree_attack_range;
+    protected override float CastSearchRange => Config.neutral_statue_attack_range;
 
     private EntityData captor;
 
@@ -26,7 +26,7 @@ public class PlagueTreeEntityData : AutoCastEntityData
         {
             captor.effectController.AddEffect(EffectType.PlagueBless, 1, Config.plague_bless_duration);
         }
-        battle.NotifyPlagueTreeCaptured(this.id);
-        battle.SchedulePlagueTreeRespawn();
+        battle.NotifyNeutralStatueCaptured(this.id);
+        battle.ScheduleNeutralStatueRespawn();
     }
 }

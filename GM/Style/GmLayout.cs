@@ -190,7 +190,7 @@ namespace Ros.Gm
             });
             layoutStyle.Add(GmEnum.Player_Teleport_ToGuardPoint, new()
             {
-                new Dropdown("守护点", typeof(GmBeacon)),
+                new Dropdown("雕像", typeof(GmStatue)),
                 new Button(string.Empty, "传送")
             });
             layoutStyle.Add(GmEnum.Player_Revive, new()

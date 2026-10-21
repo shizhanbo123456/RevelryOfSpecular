@@ -18,12 +18,12 @@ public class InfoManager : MonoBehaviour
     public List<PlayerCharacterInfo> DefenseCharacterInfoList = new();
     public EntityAttributeInfo ZombieInfo;
     public List<EntityAttributeInfo> EliteZombieInfoList = new();
-    public EntityAttributeInfo BeaconInfo;
-    public EntityAttributeInfo CoreBeaconInfo;
+    public EntityAttributeInfo SageStatueInfo;
+    public EntityAttributeInfo KingStatueInfo;
     public EntityAttributeInfo CoralSmallInfo;
     public EntityAttributeInfo CoralLargeInfo;
-    public List<EntityAttributeInfo> TowerInfoList = new();
-    public EntityAttributeInfo PlagueTreeInfo;
+    public List<EntityAttributeInfo> CrystalStatueInfoList = new();
+    public EntityAttributeInfo NeutralStatueInfo;
     #endregion
 
     #region 技能配置
@@ -45,11 +45,11 @@ public class InfoManager : MonoBehaviour
     public List<GameObject> DefenseCharacterTemplates = new();
     public List<GameObject> ZombieTemplates = new();
     public List<GameObject> EliteZombieTemplates = new();
-    public List<GameObject> BeaconTemplates = new();
+    public List<GameObject> GuardStatueTemplates = new();
     public List<GameObject> CoralSmallTemplates = new();
     public List<GameObject> CoralLargeTemplates = new();
-    public List<GameObject> TowerTemplates = new();
-    public GameObject PlagueTreeTemplate;
+    public List<GameObject> CrystalStatueTemplates = new();
+    public List<GameObject> NeutralStatueTemplates = new();
     [Space]
     public GameObject SpringWeapon;//挂载SpringWeapon组件
 
@@ -70,17 +70,20 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.EliteZombie:
                 if (EliteZombieTemplates.Count > 0) template = EliteZombieTemplates[type.value % EliteZombieTemplates.Count];
                 break;
-            case EntityCategory.Beacon:
-                if (BeaconTemplates.Count > 0) template = BeaconTemplates[type.value < Config.outer_beacon_count ? 0 : (BeaconTemplates.Count > 1 ? 1 : 0)];
+            case EntityCategory.GuardStatue:
+                if (GuardStatueTemplates.Count > 0) template = GuardStatueTemplates[type.value < Config.sage_statue_count ? 0 : (GuardStatueTemplates.Count > 1 ? 1 : 0)];
                 break;
             case EntityCategory.Coral:
                 // 服务器模板只承载组件：小/大珊瑚各取自己列表的首个
                 template = FirstTemplate(type.value <= 0 ? CoralSmallTemplates : CoralLargeTemplates);
                 break;
-            case EntityCategory.Tower:
-                if (TowerTemplates.Count > 0) template = TowerTemplates[type.value % TowerTemplates.Count];
+            case EntityCategory.CrystalStatue:
+                if (CrystalStatueTemplates.Count > 0) template = CrystalStatueTemplates[type.value % CrystalStatueTemplates.Count];
                 break;
-            case EntityCategory.PlagueTree: template = PlagueTreeTemplate; break;
+            case EntityCategory.NeutralStatue:
+                // 天使 / 恶魔雕像共用一套组件模板；配置两个则按 value 区分外观与模板
+                if (NeutralStatueTemplates.Count > 0) template = NeutralStatueTemplates[type.value % NeutralStatueTemplates.Count];
+                break;
         }
         return template != null;
     }
@@ -120,13 +123,13 @@ public class InfoManager : MonoBehaviour
             case EntityCategory.EliteZombie:
                 if (EliteZombieInfoList.Count > 0) return EliteZombieInfoList[type.value % EliteZombieInfoList.Count];
                 break;
-            case EntityCategory.Beacon:
-                return type.value < Config.outer_beacon_count ? BeaconInfo : CoreBeaconInfo;
+            case EntityCategory.GuardStatue:
+                return type.value < Config.sage_statue_count ? SageStatueInfo : KingStatueInfo;
             case EntityCategory.Coral:
                 return type.value <= 0 ? CoralSmallInfo : CoralLargeInfo;
-            case EntityCategory.Tower:
-                return type.value >= 0 && type.value < TowerInfoList.Count ? TowerInfoList[type.value] : null;
-            case EntityCategory.PlagueTree: return PlagueTreeInfo;
+            case EntityCategory.CrystalStatue:
+                return type.value >= 0 && type.value < CrystalStatueInfoList.Count ? CrystalStatueInfoList[type.value] : null;
+            case EntityCategory.NeutralStatue: return NeutralStatueInfo;
         }
         return null;
     }

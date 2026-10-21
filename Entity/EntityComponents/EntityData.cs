@@ -88,14 +88,14 @@ public abstract class EntityData : MonoBehaviour
             case EntityCategory.Zombie:
             case EntityCategory.EliteZombie:
                 return target.AddComponent<ZombieEntityData>();
-            case EntityCategory.Beacon:
-                return target.AddComponent<BeaconEntityData>();
+            case EntityCategory.GuardStatue:
+                return target.AddComponent<GuardStatueEntityData>();
             case EntityCategory.Coral:
                 return target.AddComponent<CoralEntityData>();
-            case EntityCategory.Tower:
-                return target.AddComponent<TowerEntityData>();
-            case EntityCategory.PlagueTree:
-                return target.AddComponent<PlagueTreeEntityData>();
+            case EntityCategory.CrystalStatue:
+                return target.AddComponent<CrystalStatueEntityData>();
+            case EntityCategory.NeutralStatue:
+                return target.AddComponent<NeutralStatueEntityData>();
             default:
                 throw new System.Exception(); // 未支持的类别无子类
         }
@@ -189,7 +189,7 @@ public abstract class EntityData : MonoBehaviour
     private const float nav_corner_radius = 0.3f;
     private const float nav_repath_interval = 0.25f;
 
-    private NavMeshPath navPath; // 懒创建：珊瑚/守护点等不寻路的实体不必付这份开销
+    private NavMeshPath navPath; // 懒创建：珊瑚/雕像等不寻路的实体不必付这份开销
     private Vector3[] navCorners;
     private float navNextRepathTime;
 
@@ -479,7 +479,7 @@ public abstract class EntityData : MonoBehaviour
             ? DamageType.Invalid
             : damageType;
         SendDamageEvent(finalDamage, shownType, hitPos);
-        OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（守护点计分与采集量等）
+        OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（雕像计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
