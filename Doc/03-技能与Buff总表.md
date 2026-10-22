@@ -206,7 +206,7 @@ Skills文件夹：
 Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；**2026-10-17 重构后口径**）：
 1. **统一添加入口 `AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)`**：外部只给类型 / 等级 / 持续时间（<0 = 永久）+ 施加者实体，**不传任何数值**——强度全部由控制器内部定死（系数进 Config 通用 Buff region）。`source` 非空时克隆其 `floatingAttribute` 存为**施加者属性快照**（独立实例，施加者后续被减益不影响已挂 Buff），`sourceId` 由此自动取（DoT 击杀归属）；无施加者的强加（守护雕像减伤/愈战愈勇/小地图失联等）传 null。叠加语义：同类型重复添加 = **等级累加 + 时间刷新**，施加者与快照以最新一次为准。
 2. 双轨属性，事件驱动：只有属性修改类 Buff（`IsAttribute` 白名单，**5 对 Boost/Decrease**：力量 / 魔法 / 暴击率 / 暴击伤害 / 可见距离）允许改属性。幅度内部定死 = **被施加者对应属性初始值 × 20% × 等级**（`Config.buff_attr_ratio`，方向由 Boost/Decrease 类型表达），没有固定数值特例；**武器槽位数不可被 Buff 改变**，生命值上限也只由升级路线改变。
-   **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，所以配置 SO 里只出现一个"生命值"项，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
+   **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，entity.csv 每行只有一个"生命"列，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
    Add/Remove 时统一重算运行时属性（base 克隆 + Σ修改量，再把当前生命**夹回上限**——夹取不平移 = 不自动回血）；其它 Buff 一律不得触碰属性
 3. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口——受伤管线顺序 = 护盾吸收 → 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤；出伤乘区由攻击方在伤害计算时调用
 4. OnUpdate 只做两件事：到期移除（Buff 记录结束时间戳 endTime，不每帧刷新剩余时间）、固定间隔 tick（`IsTicking`：燃烧/苍白之火/中毒/死灵漫步，统一 1s 一跳，吃护盾/减伤、不吃增减伤）。**每跳伤害也内部定死**：燃烧与苍白之火 = `Config.burning_damage_per_tick`(30) × 等级；中毒 = `Config.poison_damage_ratio`(0.5) × max(施加者快照力/魔) × 等级；死灵漫步 = `Config.death_stroll_dot_ratio`(1.5) × max(快照力/魔) × 等级，光环半径 `Config.death_stroll_radius`。**叠层自动提高每跳伤害**
