@@ -74,6 +74,7 @@ namespace Ros.Skill
     public class SkillFanIceCone : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFanIceCone;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 6f;
@@ -89,6 +90,7 @@ namespace Ros.Skill
     public class SkillTripleThunderCone : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillTripleThunderCone;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 7f;
@@ -106,6 +108,7 @@ namespace Ros.Skill
     public class SkillFreezeShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFreezeShot;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 6f;
@@ -121,6 +124,7 @@ namespace Ros.Skill
     public class SkillStrengthBreakShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillStrengthBreakShot;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 8f;
@@ -136,6 +140,7 @@ namespace Ros.Skill
     public class SkillDoubleFanShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillDoubleFanShot;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 7f;
@@ -195,7 +200,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             caster.SetMotion(new MotionDash(BackDash, -9f));
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
             base.OnCast(context);
         }
     }
@@ -313,6 +318,7 @@ namespace Ros.Skill
     public class SkillBackstabWeapon : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBackstabWeapon;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 11f;
@@ -355,7 +361,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -424,7 +430,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -460,6 +466,7 @@ namespace Ros.Skill
     public class SkillIceFanTiny : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillIceFanTiny;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 6f;
@@ -511,6 +518,7 @@ namespace Ros.Skill
     public class SkillIceSweep : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillIceSweep;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 9f;
@@ -529,6 +537,7 @@ namespace Ros.Skill
     public class SkillRootShot : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillRootShot;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
@@ -545,6 +554,7 @@ namespace Ros.Skill
     public class SkillDriftOrb : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillDriftOrb;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 8f;
@@ -596,6 +606,7 @@ namespace Ros.Skill
     public class SkillSilenceBolt : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSilenceBolt;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 18f;
         public override float CD => 12f;
@@ -779,7 +790,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             caster.SetMotion(new MotionDash(0.35f, 13f));
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -813,7 +824,7 @@ namespace Ros.Skill
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
                 if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
-                ApplyConfigBuffs(caster, ally);
+                ApplyConfigBuff(caster, ally, 0);
             }
         }
 
@@ -838,7 +849,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -931,6 +942,7 @@ namespace Ros.Skill
     public class SkillStaticBarrage : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillStaticBarrage;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, aim: false);
         public override float CD => 18f;
         public override int Store => 3;
@@ -951,6 +963,7 @@ namespace Ros.Skill
     public class SkillFanFreeze : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillFanFreeze;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 14f;
         public override float CD => 10f;
@@ -967,6 +980,7 @@ namespace Ros.Skill
     public class SkillSweepPoison : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSweepPoison;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 12f;
         public override float CD => 12f;
@@ -1058,6 +1072,7 @@ namespace Ros.Skill
     public class SkillSweepBurn : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSweepBurn;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 13f;
         public override float CD => 14f;
@@ -1212,6 +1227,7 @@ namespace Ros.Skill
     public class SkillSkyfallSilence : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillSkyfallSilence;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
@@ -1233,6 +1249,7 @@ namespace Ros.Skill
     public class SkillBlastKnockback : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillBlastKnockback;
+        protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 4f;
         public override float CD => 14f;
@@ -1307,7 +1324,8 @@ namespace Ros.Skill
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
                 if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
-                ApplyConfigBuffs(caster, ally);
+                ApplyConfigBuff(caster, ally, 0);
+                ApplyConfigBuff(caster, ally, 1);
             }
         }
 
@@ -1336,7 +1354,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
+                ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

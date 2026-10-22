@@ -38,6 +38,9 @@ namespace Ros.Skill
 
         protected virtual Action<EntityData> HitAction(EntityData caster) => null;
 
+        // 命中目标拿 skill.csv 的第几个 Buff，-1 = 不带 Buff
+        protected virtual int HitBuffIndex => -1;
+
         // 包内容由子类决定：显式声明要不要 seed / aim；需要别的内容就自己写 SkillLogic
         protected SkillContext ShotContext(EntityData entity, bool seed = false, bool aim = true)
         {
@@ -97,7 +100,8 @@ namespace Ros.Skill
         {
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, DamageRate, BulletRadius, useMagic: UseMagic,
-                knockback: Knockback, addEffect: ConfigHitBuffs(caster), onHit: HitAction(caster));
+                knockback: Knockback, addEffect: HitBuffIndex >= 0 ? ConfigHitBuff(caster, HitBuffIndex) : null,
+                onHit: HitAction(caster));
             int shots = Mathf.Max(1, ShotsOfWave(wave));
             float spread = SpreadOfWave(wave);
             for (int i = 0; i < shots; i++)

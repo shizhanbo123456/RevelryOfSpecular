@@ -79,22 +79,26 @@ namespace Ros.Skill
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
         }
 
-        // 技能附带的 Buff 类型/等级/时长全部读 skill.csv，施加位置由各技能自己决定
-        protected Action<EntityEffectController> ConfigHitBuffs(EntityData caster)
+        // 技能附带的 Buff 全部读 skill.csv，按 index 取用；越界属配表错配，直接抛
+        protected BuffEntry ConfigBuff(int index)
         {
             var buffs = ConfigManager.SkillConfig.Get(Id).buffs;
-            if (buffs.Count == 0) return null;
-            return effect =>
-            {
-                foreach (var buff in buffs)
-                    effect.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
-            };
+            if (index < 0 || index >= buffs.Count)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 没有第 {index} 个 Buff（共 {buffs.Count} 个）");
+            return buffs[index];
         }
 
-        protected void ApplyConfigBuffs(EntityData caster, EntityData target)
+        protected Action<EntityEffectController> ConfigHitBuff(EntityData caster, int index)
+        {
+            var buff = ConfigBuff(index);
+            return effect => effect.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
+        }
+
+        protected void ApplyConfigBuff(EntityData caster, EntityData target, int index)
         {
             if (target == null || target.effectController == null) return;
-            ConfigHitBuffs(caster)?.Invoke(target.effectController);
+            var buff = ConfigBuff(index);
+            target.effectController.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
         }
 
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)

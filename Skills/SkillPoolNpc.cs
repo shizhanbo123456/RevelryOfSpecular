@@ -135,7 +135,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ApplyConfigBuffs(caster, caster);
+            ApplyConfigBuff(caster, caster, 0);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -226,7 +226,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, 1f, 0.5f, useMagic: true,
-                addEffect: ConfigHitBuffs(caster));
+                addEffect: ConfigHitBuff(caster, 0));
             Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
 
