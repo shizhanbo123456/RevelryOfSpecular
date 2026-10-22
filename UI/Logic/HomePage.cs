@@ -1,6 +1,5 @@
 using Ros.UI.Main;
 using FairyGUI;
-using Ros.Info;
 using UnityEngine;
 
 public class HomePage : PageBase
