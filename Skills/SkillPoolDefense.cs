@@ -43,8 +43,6 @@ namespace Ros.Skill
         public override int Store => 5;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
-        private const float ShieldDuration = 15f;
-
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -59,8 +57,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.StatueShield, 1,
-                    ShieldDuration, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -99,7 +96,7 @@ namespace Ros.Skill
             if (caster == null || !caster.Alive) return;
             Vector3 center = caster.transform.position;
             var attack = BuildAttack(caster, Config.power_suppress_rate, Config.power_suppress_radius,
-                addEffect: ApplyEffect(EffectType.SlowDown, 2, Config.power_suppress_slow_duration, caster));
+                addEffect: ConfigHitBuffs(caster));
             StrikeSphere(caster, center, Config.power_suppress_radius, attack);
         }
 
@@ -128,8 +125,6 @@ namespace Ros.Skill
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
-        private const float BlazeDuration = 12f;
-
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -143,8 +138,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.StatueBlaze, 1,
-                    BlazeDuration, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -172,8 +166,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.EyeMark, 1,
-                    Config.buff_duration_buff, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -197,7 +190,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.NightMark, 1, Config.night_mark_duration, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -275,7 +268,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.DeathStroll, 1, Config.buff_duration_buff, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -322,8 +315,6 @@ namespace Ros.Skill
         public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
-        private const float SilenceDuration = 12f;
-
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -337,8 +328,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Silence, 1,
-                    SilenceDuration, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -364,8 +354,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Mire, 1,
-                    Config.buff_duration_debuff, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -391,8 +380,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Reflect, 1,
-                    Config.buff_duration_buff, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -421,8 +409,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.PlagueMark, 1,
-                    Config.plague_mark_duration, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -449,7 +436,7 @@ namespace Ros.Skill
             if (caster == null) return;
             TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的珊瑚
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
-                GiveEffect(TargetSelect.TargetBuffer[i], EffectType.PlaguePollute, 1, -1f, caster);
+                ApplyConfigBuffs(caster, TargetSelect.TargetBuffer[i]);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -509,7 +496,6 @@ namespace Ros.Skill
         protected override bool UseMagic => true;
         protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 2;
-        protected override System.Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.PaleLight, 1, Config.buff_duration_debuff, caster);
     }
 
     public class SkillPaleDarkCast : ShotSkillBase
@@ -526,7 +512,6 @@ namespace Ros.Skill
         protected override bool UseMagic => true;
         protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 1;
-        protected override System.Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.PaleDark, 1, Config.buff_duration_debuff, caster);
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
@@ -543,8 +528,6 @@ namespace Ros.Skill
         public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
-        private const float FogDuration = 20f;
-
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
@@ -558,8 +541,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Fog, 1,
-                    FogDuration, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

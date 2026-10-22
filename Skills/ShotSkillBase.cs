@@ -36,7 +36,6 @@ namespace Ros.Skill
         protected virtual SkillVfxKind VfxKind => SkillVfxKind.Bullet;
         protected virtual int VfxIndex => -1;
 
-        protected virtual Action<EntityEffectController> HitEffect(EntityData caster) => null;
         protected virtual Action<EntityData> HitAction(EntityData caster) => null;
 
         // 包内容由子类决定：显式声明要不要 seed / aim；需要别的内容就自己写 SkillLogic
@@ -98,7 +97,7 @@ namespace Ros.Skill
         {
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, DamageRate, BulletRadius, useMagic: UseMagic,
-                knockback: Knockback, addEffect: HitEffect(caster), onHit: HitAction(caster));
+                knockback: Knockback, addEffect: ConfigHitBuffs(caster), onHit: HitAction(caster));
             int shots = Mathf.Max(1, ShotsOfWave(wave));
             float spread = SpreadOfWave(wave);
             for (int i = 0; i < shots; i++)

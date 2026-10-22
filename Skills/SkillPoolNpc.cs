@@ -135,7 +135,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.ZombieScreamBoost, 1, Config.buff_duration_buff, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -204,7 +204,6 @@ namespace Ros.Skill
         public override float CD => 2.5f;
         public override int Store => -1;
         protected override bool HasCastAnim => false;
-        private const float PoisonDuration = 4f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -227,7 +226,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, 1f, 0.5f, useMagic: true,
-                addEffect: ApplyEffect(EffectType.Poison, 1, PoisonDuration, caster));
+                addEffect: ConfigHitBuffs(caster));
             Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
 

@@ -229,7 +229,6 @@ public static class Config
     #region 通用 Buff 数值（占位初值，待策划定稿后在此统一调整）
     public const float buff_duration_control = 3f;
     public const float buff_duration_debuff = 5f;
-    public const float buff_duration_buff = 8f;
     public const float buff_attr_ratio = 0.2f;      // 属性 Buff 每级幅度 = 对应属性初始值 × 此系数
     public const float shield_health_ratio = 0.1f;  // 护盾值 = 被施加者生命上限 × 此系数 × 等级
     public const float burning_damage_per_tick = 30f; // 燃烧每跳 = 此值 × 等级
@@ -250,10 +249,8 @@ public static class Config
     public const float power_suppress_interval = 0.4f;
     public const float power_suppress_radius = 3f;
     public const float power_suppress_rate = 1f;
-    public const float power_suppress_slow_duration = 10f;
     public const int power_suppress_vfx_index = 5;   // RangeMagic[5]
     public const float power_suppress_vfx_life = 1f;
-    public const float night_mark_duration = 8f;
     public const float plague_mark_duration = 30f;   // 瘟疫标记持续时长（主动1 与 瘟疫污染扩散共用）
     public const float plague_pollute_radius = 8f;   // 珊瑚被摧毁时的瘟疫标记扩散半径
     #endregion

@@ -1,5 +1,4 @@
-﻿using System;
-using Ros.Skill.Utils;
+﻿using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
 
@@ -85,7 +84,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 0.5f;
         protected override int VfxIndex => 18;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.SlowDown, 1, 5f, caster);
     }
 
     public class SkillTripleThunderCone : ShotSkillBase
@@ -103,7 +101,6 @@ namespace Ros.Skill
         protected override int VfxIndex => 19;
         protected override int WaveCount => 3;
         protected override float WaveInterval => 0.12f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Stun, 1, 2f, caster);
     }
 
     public class SkillFreezeShot : ShotSkillBase
@@ -119,7 +116,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.5f;
         protected override int VfxIndex => 21;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 2f, caster);
     }
 
     public class SkillStrengthBreakShot : ShotSkillBase
@@ -135,7 +131,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.55f;
         protected override int VfxIndex => 22;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.AttrStrengthDecrease, 2, 20f, caster);
     }
 
     public class SkillDoubleFanShot : ShotSkillBase
@@ -155,7 +150,6 @@ namespace Ros.Skill
         protected override float WaveInterval => 0.18f;
         protected override int ShotsOfWave(int wave) => wave == 0 ? 1 : 2;
         protected override float SpreadOfWave(int wave) => wave == 0 ? 0f : 30f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.SlowDown, 1, 4f, caster);
     }
 
     // 四发剑气势力绕自身旋转
@@ -201,7 +195,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             caster.SetMotion(new MotionDash(BackDash, -9f));
-            GiveEffect(caster, EffectType.DodgeBoost, 1, 0.8f, caster);
+            ApplyConfigBuffs(caster, caster);
             base.OnCast(context);
         }
     }
@@ -332,7 +326,6 @@ namespace Ros.Skill
         protected override float BulletLife => 0.55f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Stun, 1, 2f, caster);
         private const float HoverTime = 1.2f;
 
         public override void PlayVFX(SkillContext context)
@@ -362,7 +355,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.SpeedUp, 1, 20f, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -431,7 +424,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.Shield, 10, 60f, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -477,7 +470,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 8f;
         protected override float BulletLife => 0.5f;
         protected override int VfxIndex => 9;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 2f, caster);
     }
     #endregion
 
@@ -532,7 +524,6 @@ namespace Ros.Skill
         protected override int WaveCount => 4;
         protected override float WaveInterval => 0.1f;
         protected override float SpreadOfWave(int wave) => (wave - 1.5f) * 8f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 3f, caster);
     }
 
     public class SkillRootShot : ShotSkillBase
@@ -549,7 +540,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 0.45f;
         protected override int VfxIndex => 28;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Root, 1, 3f, caster);
     }
 
     public class SkillDriftOrb : ShotSkillBase
@@ -584,7 +574,6 @@ namespace Ros.Skill
         protected override int WaveCount => 3;
         protected override float WaveInterval => 0.2f;
         protected override int ShotsOfWave(int wave) => 3 + wave * 2;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 2f, caster);
     }
 
     public class SkillForwardSpray : ShotSkillBase
@@ -618,7 +607,6 @@ namespace Ros.Skill
         protected override float BulletLife => 0.25f;
         protected override float DamageRate => 1.2f;
         protected override int VfxIndex => 47;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Silence, 1, 12f, caster);
     }
 
     public class SkillSkyfallVolley : ShotSkillBase
@@ -791,7 +779,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             caster.SetMotion(new MotionDash(0.35f, 13f));
-            GiveEffect(caster, EffectType.SpeedUp, 2, 10f, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -825,7 +813,7 @@ namespace Ros.Skill
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
                 if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
-                GiveEffect(ally, EffectType.Shield, 8, 60f, caster);
+                ApplyConfigBuffs(caster, ally);
             }
         }
 
@@ -850,7 +838,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            GiveEffect(caster, EffectType.Shield, 4, 10f, caster);
+            ApplyConfigBuffs(caster, caster);
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
@@ -958,7 +946,6 @@ namespace Ros.Skill
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => TrialConstructor.Point(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 12)[shotIndex], BulletLife);
 
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Root, 1, 10f, caster);
     }
 
     public class SkillFanFreeze : ShotSkillBase
@@ -974,7 +961,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 25f;
         protected override float BulletLife => 0.55f;
         protected override int VfxIndex => 3;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Freeze, 1, 4f, caster);
     }
 
     // 来回扫射
@@ -993,7 +979,6 @@ namespace Ros.Skill
         protected override int VfxIndex => 4;
         protected override int WaveCount => 6;
         protected override float WaveInterval => 0.1f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Poison, 3, 5f, caster);
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
@@ -1086,7 +1071,6 @@ namespace Ros.Skill
         protected override int WaveCount => 5;
         protected override float WaveInterval => 0.1f;
         protected override float SpreadOfWave(int wave) => (wave - 2f) * 10f;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Burning, 5, 5f, caster);
     }
 
     // 先开法阵，再向 6 个方向连续扫射
@@ -1240,7 +1224,6 @@ namespace Ros.Skill
         protected override float BulletLife => 1.1f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
         protected override int VfxIndex => 4;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Silence, 1, 10f, caster);
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
             => TrialConstructor.SkyFall(context.vectors[1] + Vector3.up * 10f, context.vectors[1], BulletLife);
@@ -1262,7 +1245,6 @@ namespace Ros.Skill
         protected override float BulletRadius => 0.8f;
         protected override float Knockback => 7f;
         protected override int VfxIndex => 7;
-        protected override Action<EntityEffectController> HitEffect(EntityData caster) => ApplyEffect(EffectType.Burning, 3, 10f, caster);
 
         public override void PlayVFX(SkillContext context)
         {
@@ -1325,8 +1307,7 @@ namespace Ros.Skill
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
                 if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
-                GiveEffect(ally, EffectType.AttrCritRateBoost, 5, 20f, caster);
-                GiveEffect(ally, EffectType.AttrCritDamageBoost, 5, 20f, caster);
+                ApplyConfigBuffs(caster, ally);
             }
         }
 
@@ -1355,7 +1336,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             for (int i = 1; i < context.ints.Count; i++)
-                GiveEffect(BattleManager.GetEntity((ushort)context.ints[i]), EffectType.Shield, 25, 30f, caster);
+                ApplyConfigBuffs(caster, BattleManager.GetEntity((ushort)context.ints[i]));
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播

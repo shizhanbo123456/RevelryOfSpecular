@@ -79,15 +79,22 @@ namespace Ros.Skill
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback);
         }
 
-        protected static Action<EntityEffectController> ApplyEffect(EffectType type, int level, float duration, EntityData source = null)
+        // 技能附带的 Buff 类型/等级/时长全部读 skill.csv，施加位置由各技能自己决定
+        protected Action<EntityEffectController> ConfigHitBuffs(EntityData caster)
         {
-            return effect => effect.AddEffect(type, level, duration, source);
+            var buffs = ConfigManager.SkillConfig.Get(Id).buffs;
+            if (buffs.Count == 0) return null;
+            return effect =>
+            {
+                foreach (var buff in buffs)
+                    effect.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
+            };
         }
 
-        protected static void GiveEffect(EntityData target, EffectType type, int level, float duration, EntityData source = null)
+        protected void ApplyConfigBuffs(EntityData caster, EntityData target)
         {
             if (target == null || target.effectController == null) return;
-            target.effectController.AddEffect(type, level, duration, source);
+            ConfigHitBuffs(caster)?.Invoke(target.effectController);
         }
 
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
