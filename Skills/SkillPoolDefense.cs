@@ -39,8 +39,6 @@ namespace Ros.Skill
     public class SkillRockShield : SkillBase
     {
         public override int Id => (int)SkillType.SkillRockShield;
-        public override float CD => 20f;
-        public override int Store => 5;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -67,8 +65,6 @@ namespace Ros.Skill
     public class SkillPowerSuppress : SkillBase
     {
         public override int Id => (int)SkillType.SkillPowerSuppress;
-        public override float CD => 15f;
-        public override int Store => 4;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -121,8 +117,6 @@ namespace Ros.Skill
     public class SkillCrystalStatueBlazeCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillCrystalStatueBlazeCast;
-        public override float CD => 60f;
-        public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -149,8 +143,6 @@ namespace Ros.Skill
     public class SkillEyeMark : SkillBase
     {
         public override int Id => (int)SkillType.SkillEyeMark;
-        public override float CD => 18f;
-        public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -176,8 +168,6 @@ namespace Ros.Skill
     public class SkillNightMark : SkillBase
     {
         public override int Id => (int)SkillType.SkillNightMark;
-        public override float CD => 18f;
-        public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -199,8 +189,6 @@ namespace Ros.Skill
     public class SkillForceNight : SkillBase
     {
         public override int Id => (int)SkillType.SkillForceNight;
-        public override float CD => 60f;
-        public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -223,8 +211,6 @@ namespace Ros.Skill
     public class SkillSummonZombies : SkillBase
     {
         public override int Id => (int)SkillType.SkillSummonZombies;
-        public override float CD => 20f;
-        public override int Store => 5;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -254,8 +240,6 @@ namespace Ros.Skill
     public class SkillDeathStrollCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillDeathStrollCast;
-        public override float CD => 40f;
-        public override int Store => 3;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -277,8 +261,6 @@ namespace Ros.Skill
     public class SkillSummonElites : SkillBase
     {
         public override int Id => (int)SkillType.SkillSummonElites;
-        public override float CD => 60f;
-        public override int Store => 1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -311,8 +293,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSilenceCast;
         public override float CastRange => 8f;
-        public override float CD => 30f;
-        public override int Store => 6;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -337,8 +317,6 @@ namespace Ros.Skill
     public class SkillMireCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillMireCast;
-        public override float CD => 20f;
-        public override int Store => 1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -363,8 +341,6 @@ namespace Ros.Skill
     public class SkillReflectCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillReflectCast;
-        public override float CD => 60f;
-        public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -392,8 +368,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPlagueMarkCast;
         public override float CastRange => 8f;
-        public override float CD => 2f;
-        public override int Store => 12;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -419,8 +393,6 @@ namespace Ros.Skill
     public class SkillPlaguePollute : SkillBase
     {
         public override int Id => (int)SkillType.SkillPlaguePollute;
-        public override float CD => 30f;
-        public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -445,8 +417,6 @@ namespace Ros.Skill
     public class SkillDetonatePlague : SkillBase
     {
         public override int Id => (int)SkillType.SkillDetonatePlague;
-        public override float CD => 30f;
-        public override int Store => 1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -488,13 +458,10 @@ namespace Ros.Skill
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 20f;
-        public override float CD => 1f;
-        public override int Store => 12;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 1.2f;
-        protected override bool UseMagic => true;
         protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 2;
     }
@@ -505,13 +472,10 @@ namespace Ros.Skill
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
         public override float CastRange => 20f;
-        public override float CD => 2f;
-        public override int Store => 12;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 1.4f;
-        protected override bool UseMagic => true;
         protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 1;
 
@@ -526,8 +490,6 @@ namespace Ros.Skill
     public class SkillFogCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillFogCast;
-        public override float CD => 50f;
-        public override int Store => 2;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)

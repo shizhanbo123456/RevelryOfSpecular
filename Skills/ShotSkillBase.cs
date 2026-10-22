@@ -22,8 +22,6 @@ namespace Ros.Skill
 
         protected virtual float BulletRadius => 0.45f;
         protected virtual float DamageRate => 1f;
-        protected virtual bool UseMagic => false;
-        protected virtual float Knockback => 0f;
         protected virtual float DamageWindowFrom => 0f;
         protected virtual float DamageWindowTo => 1f;
         protected virtual float DamageInterval => 0f;
@@ -99,8 +97,8 @@ namespace Ros.Skill
         protected virtual void ShootWave(EntityData caster, SkillContext context, int wave)
         {
             if (caster == null || Tool.BattleManager == null) return;
-            var attack = BuildAttack(caster, DamageRate, BulletRadius, useMagic: UseMagic,
-                knockback: Knockback, addEffect: HitBuffIndex >= 0 ? ConfigHitBuff(caster, HitBuffIndex) : null,
+            var attack = BuildAttack(caster, DamageRate, BulletRadius,
+                addEffect: HitBuffIndex >= 0 ? ConfigHitBuff(caster, HitBuffIndex) : null,
                 onHit: HitAction(caster));
             int shots = Mathf.Max(1, ShotsOfWave(wave));
             float spread = SpreadOfWave(wave);

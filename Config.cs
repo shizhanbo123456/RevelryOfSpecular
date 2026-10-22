@@ -161,7 +161,6 @@ public static class Config
     #region 通用
     public const int entity_id_max = 30000;
     public const float melee_hit_radius = 0.7f;
-    public const float unarmed_skill_cd = 0.1f;
     public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
     public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
     public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;

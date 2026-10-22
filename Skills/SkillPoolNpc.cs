@@ -26,8 +26,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillZombieClawR;
         public override float CastRange => Config.zombie_attack_range;
-        public override float CD => 1.5f;
-        public override int Store => -1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -50,8 +48,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillZombieClawL;
         public override float CastRange => Config.zombie_attack_range;
-        public override float CD => 1.5f;
-        public override int Store => -1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -74,8 +70,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawR;
         public override float CastRange => Config.zombie_attack_range;
-        public override float CD => 1.5f;
-        public override int Store => -1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -98,8 +92,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawL;
         public override float CastRange => Config.zombie_attack_range;
-        public override float CD => 1.5f;
-        public override int Store => -1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -121,8 +113,6 @@ namespace Ros.Skill
     public class SkillEliteZombieScream : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieScream;
-        public override float CD => 8f;
-        public override int Store => -1;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Scream;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -147,8 +137,6 @@ namespace Ros.Skill
     public abstract class CrystalStatueSporeShot : SkillBase
     {
         public override float CastRange => Config.crystal_statue_attack_range;
-        public override float CD => 2f;
-        public override int Store => -1;
         protected override bool HasCastAnim => false; // 塔无攻击动画：按下即施放
         protected abstract int BulletVfx { get; }
 
@@ -172,7 +160,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f, 0.5f, useMagic: true), CreateTrajectory(context, 0));
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f, 0.5f), CreateTrajectory(context, 0));
         }
 
         public override void PlayVFX(SkillContext context)
@@ -201,8 +189,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillNeutralStatueSpore;
         public override float CastRange => Config.neutral_statue_attack_range;
-        public override float CD => 2.5f;
-        public override int Store => -1;
         protected override bool HasCastAnim => false;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -225,7 +211,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            var attack = BuildAttack(caster, 1f, 0.5f, useMagic: true,
+            var attack = BuildAttack(caster, 1f, 0.5f,
                 addEffect: ConfigHitBuff(caster, 0));
             Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0));
         }
