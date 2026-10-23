@@ -135,6 +135,34 @@ namespace Ros.Skill
             }
         }
 
+        // 第16列：同一目标最短再伤害间隔（秒）；留空在解析阶段已填 100 = 只结算一次
+        protected float DamageInterval => ConfigManager.SkillConfig.Get(Id).damageInterval;
+
+        // 第17列：伤害倍率。空 = 全 1；只有 1 项 = 所有段共用；多项 = 按段序取
+        private float[] SegmentRates(int segments)
+        {
+            var rates = ConfigManager.SkillConfig.Get(Id).damageRates;
+            if (rates.Count == 0) return null;
+            if (rates.Count == 1)
+            {
+                var same = new float[segments];
+                for (int i = 0; i < segments; i++) same[i] = rates[0];
+                return same;
+            }
+            if (rates.Count < segments)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 伤害倍率只有 {rates.Count} 项，不够 {segments} 段用");
+            var arr = new float[segments];
+            rates.CopyTo(0, arr, 0, segments);
+            return arr;
+        }
+
+        // 组装子弹命中判定参数：命中球取特效预制体，倍率/间隔取配表
+        protected BulletHitSpec HitSpec(SkillVfxKind kind, int vfxIndex, float scale)
+        {
+            var hits = VfxHitSource.GetHits(kind, vfxIndex);
+            return new BulletHitSpec(hits, SegmentRates(hits.Length), scale, DamageInterval, $"{kind}[{vfxIndex}]");
+        }
+
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR

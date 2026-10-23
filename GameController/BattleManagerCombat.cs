@@ -18,22 +18,26 @@ public partial class BattleManager
     #endregion
 
     #region 子弹容器（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)，不做增量移动）
+    private const float AllTimeWindow = 999f; // hit.end = 0 表示全程都在伤害窗口内
     private readonly List<Bullet> activeBullets = new();
     private static readonly EntityData[] s_bulletBuffer = new EntityData[16];
+    private static readonly HashSet<string> s_noHitReported = new(); // 缺命中球只报一次，避免每发刷屏
 
-    private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime,
-        float damageWindowFrom = 0f, float damageWindowTo = 1f, float damageInterval = 0f)
+    private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime, BulletHitSpec spec)
     {
         if (attack == null || trajectory == null) return;
+        float now = Time.time;
+        if (spec.Hits.Length == 0 && s_noHitReported.Add(spec.label ?? "未知特效"))
+            Debug.LogError($"[子弹] {spec.label} 没有命中球（BulletVfxInfo.hits 为空）：这发子弹不会造成任何伤害，请补齐特效资产");
+
         activeBullets.Add(new Bullet()
         {
             attack = attack,
             trajectory = trajectory,
             lifeTime = lifeTime > 0f ? lifeTime : trajectory.Duration, // 未传时长则用轨迹自带的
-            spawnTime = Time.time,
-            damageWindowFrom = Mathf.Clamp01(damageWindowFrom),
-            damageWindowTo = Mathf.Clamp01(damageWindowTo),
-            damageInterval = damageInterval,
+            spawnTime = now,
+            lastTickTime = now,
+            spec = spec,
             lastHitTime = new Dictionary<ushort, float>(),
         });
     }
@@ -44,44 +48,75 @@ public partial class BattleManager
         for (int i = activeBullets.Count - 1; i >= 0; i--)
         {
             var b = activeBullets[i];
-            float t = now - b.spawnTime;
-            if (t >= b.lifeTime)
+            float age = b.Age(now);
+            if (age >= b.lifeTime)
             {
                 activeBullets.RemoveAt(i);
                 continue;
             }
-            float progress = t / b.lifeTime;
-            if (progress < b.damageWindowFrom || progress > b.damageWindowTo) continue; // 窗口外只飞不判定
-            TryHitBullet(b, b.trajectory.Lerp(progress), now);
+
+            // 只用到「时刻 → 轨迹位置」，不累计 deltaTime
+            float prevAge = b.Age(b.lastTickTime);
+            Vector3 pos = b.At(age);
+            Vector3 prevPos = b.At(prevAge);
+            Quaternion rot = FacingAt(b.trajectory, age, b.lifeTime);
+            Quaternion prevRot = FacingAt(b.trajectory, prevAge, b.lifeTime);
+
+            b.lastTickTime = now;
+            activeBullets[i] = b; // 结构体写回采样时刻
+
+            TryHitBullet(b, now, age, pos, prevPos, rot, prevRot);
         }
     }
 
-    private void TryHitBullet(Bullet b, Vector3 pos, float now)
+    // 与客户端 BulletPlayer.Tangent 同一算法：取轨迹上稍后的一点定朝向
+    private static Quaternion FacingAt(BulletTrajectory trajectory, float age, float lifeTime)
+    {
+        float inv = lifeTime > 0f ? 1f / lifeTime : 0f;
+        Vector3 cur = trajectory.Lerp(Mathf.Clamp01(age * inv));
+        Vector3 dir = trajectory.Lerp(Mathf.Clamp01((age + 0.02f) * inv)) - cur;
+        return dir.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(dir) : Quaternion.identity;
+    }
+
+    private void TryHitBullet(Bullet b, float now, float age, Vector3 pos, Vector3 prevPos, Quaternion rot, Quaternion prevRot)
     {
         var attack = b.attack;
-#if UNITY_EDITOR
-        DamageRangeDebugHost.Capsule(b.LastPosition, pos, attack.radius); // 调试：可视化本次胶囊伤害判定范围（渐隐渲染）
-#endif
-        int count = EntityPhysics.OverlapCapsule(b.LastPosition, pos, attack.radius, s_bulletBuffer);
-        for (int i = 0; i < count; i++)
+        var spec = b.spec;
+        var hits = spec.Hits;
+        for (int h = 0; h < hits.Length; h++)
         {
-            var e = s_bulletBuffer[i];
-            if (!e.Alive) continue;
-            if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
-            // 同一目标按伤害间隔冷却重复结算；间隔 <=0 时一目标只结算一次
-            if (b.lastHitTime.TryGetValue(e.id, out float lastHit) &&
-                (b.damageInterval <= 0f || now - lastHit < b.damageInterval)) continue;
-            b.lastHitTime[e.id] = now;
+            var hit = hits[h];
+            float end = hit.end <= 0f ? AllTimeWindow : hit.end;
+            if (age < hit.start || age > end) continue; // 时间戳直接比较：窗口外不判定
 
-            int damage = attack.GetDamage(out DamageType type);
-            // 击飞方向取子弹上一帧位置：高速弹一帧穿过目标时，用当前位置算方向会反转
-            Vector3 floatPos = new Vector3(e.transform.position.x, b.LastPosition.y, e.transform.position.z);
-            e.ProcessHit(attack, damage, type, b.LastPosition, floatPos);
-            if (attack.addEffectEvent != null && e.effectController != null)
+            Vector3 offset = hit.center * spec.scale;
+            Vector3 center = pos + rot * offset;
+            Vector3 prevCenter = prevPos + prevRot * offset;
+            float radius = hit.radius * spec.scale;
+#if UNITY_EDITOR
+            DamageRangeDebugHost.Capsule(prevCenter, center, radius); // 调试：可视化本段命中球扫掠范围
+#endif
+            int count = EntityPhysics.OverlapCapsule(prevCenter, center, radius, s_bulletBuffer);
+            for (int i = 0; i < count; i++)
             {
-                attack.addEffectEvent.Invoke(e.effectController);
+                var e = s_bulletBuffer[i];
+                if (e == null || !e.Alive) continue;
+                if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
+                // 同一目标按伤害间隔冷却重复结算；间隔 <=0 时一目标只结算一次
+                if (b.lastHitTime.TryGetValue(e.id, out float lastHit) &&
+                    (spec.interval <= 0f || now - lastHit < spec.interval)) continue;
+                b.lastHitTime[e.id] = now;
+
+                int damage = attack.GetDamage(out DamageType type, spec.rates != null ? spec.rates[h] : 1f);
+                // 击飞方向取上一帧的命中球心：高速弹一帧穿过目标时，用当前位置算方向会反转
+                Vector3 floatPos = new Vector3(e.transform.position.x, prevCenter.y, e.transform.position.z);
+                e.ProcessHit(attack, damage, type, prevCenter, floatPos);
+                if (attack.addEffectEvent != null && e.effectController != null)
+                {
+                    attack.addEffectEvent.Invoke(e.effectController);
+                }
+                if (attack.onHit != null) attack.onHit.Invoke(e);
             }
-            if (attack.onHit != null) attack.onHit.Invoke(e);
         }
     }
     #endregion

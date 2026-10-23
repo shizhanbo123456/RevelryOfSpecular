@@ -152,7 +152,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 2.4f;
         protected override float BulletRadius => 0.6f;
-        protected override float DamageInterval => 0.4f;
         protected override int VfxIndex => 40;
         private const float Radius = 2.2f;
         private const float Turns = 1.5f;
@@ -265,7 +264,6 @@ namespace Ros.Skill
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 1.6f;
-        protected override float DamageInterval => 0.3f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
 
@@ -332,7 +330,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 2f;
         protected override float BulletRadius => 0.6f;
-        protected override float DamageInterval => 0.5f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
         private const float Radius = 2f;
@@ -793,8 +790,9 @@ namespace Ros.Skill
             Vector3 origin = OriginPos(caster, OriginAnchor, OriginOffset);
             var dests = SpreadStyle.FanDests(origin, end, SplitCount, SplitSpread);
             var attack = BuildAttack(caster, DamageRate, BulletRadius);
+            var spec = HitSpec(SkillVfxKind.Bullet, SplitVfx, VfxScale(1));
             for (int i = 0; i < SplitCount; i++)
-                Tool.BattleManager.ShootBullet(caster, attack, TrialConstructor.Line(end, dests[i], BulletLife), BulletLife);
+                Tool.BattleManager.ShootBullet(caster, attack, TrialConstructor.Line(end, dests[i], BulletLife), BulletLife, spec);
         }
     }
 
@@ -823,7 +821,8 @@ namespace Ros.Skill
                 target.SetMotion(new MotionAttract(
                     () => trajectory.Lerp(Mathf.Clamp01((Time.time - spawn) / BulletLife)), PullDuration));
             });
-            Tool.BattleManager.ShootBullet(caster, attack, trajectory, BulletLife);
+            Tool.BattleManager.ShootBullet(caster, attack, trajectory, BulletLife,
+                HitSpec(SkillVfxKind.Bullet, VfxIndex, VfxScale()));
         }
     }
 
@@ -836,7 +835,6 @@ namespace Ros.Skill
         protected override int Shots => 12;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 3f;
-        protected override float DamageInterval => 1f;
         protected override int VfxIndex => 2;
         private const float Ring = 2.6f;
 
@@ -931,7 +929,8 @@ namespace Ros.Skill
             if (points.Length < 2) return;
             var trajectory = new PolylineTrajectory(points);
             trajectory.Duration = JumpLife * (points.Length - 1);
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f, 0.5f), trajectory, trajectory.Duration, 0f, 1f, 0.3f);
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f, 0.5f), trajectory, trajectory.Duration,
+                HitSpec(SkillVfxKind.Bullet, 5, VfxScale()));
         }
 
         public override void PlayVFX(SkillContext context)
@@ -1076,7 +1075,6 @@ namespace Ros.Skill
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 3f;
         protected override float DamageRate => 0.5f;
-        protected override float DamageInterval => 0.6f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
         protected override int VfxIndex => 3;
         private const float Ring = 3f;

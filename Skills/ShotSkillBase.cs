@@ -22,9 +22,6 @@ namespace Ros.Skill
 
         protected virtual float BulletRadius => 0.45f;
         protected virtual float DamageRate => 1f;
-        protected virtual float DamageWindowFrom => 0f;
-        protected virtual float DamageWindowTo => 1f;
-        protected virtual float DamageInterval => 0f;
 
         protected virtual int WaveCount => 1;
         protected virtual float WaveInterval => 0.15f;
@@ -102,11 +99,11 @@ namespace Ros.Skill
                 onHit: HitAction(caster));
             int shots = Mathf.Max(1, ShotsOfWave(wave));
             float spread = SpreadOfWave(wave);
+            var spec = HitSpec(VfxKind, VfxIndex, VfxScale());
             for (int i = 0; i < shots; i++)
             {
                 Tool.BattleManager.ShootBullet(caster, attack,
-                    TrajectoryFor(context, wave, i, shots, spread), BulletLife,
-                    DamageWindowFrom, DamageWindowTo, DamageInterval);
+                    TrajectoryFor(context, wave, i, shots, spread), BulletLife, spec);
             }
         }
 

@@ -729,10 +729,11 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 子弹（统一攻击实体）
+    // 命中判定完全由 spec（特效命中球 + 配表倍率/间隔）驱动，不再有按寿命归一化的伤害窗口
     public void ShootBullet(EntityData shooter, AttackData attack, BulletTrajectory trajectory, float lifeTime = 0f,
-        float damageWindowFrom = 0f, float damageWindowTo = 1f, float damageInterval = 0f)
+        BulletHitSpec spec = default)
     {
-        AddBullet(attack, trajectory, lifeTime, damageWindowFrom, damageWindowTo, damageInterval);
+        AddBullet(attack, trajectory, lifeTime, spec);
     }
     #endregion
 
