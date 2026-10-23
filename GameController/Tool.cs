@@ -124,9 +124,9 @@ public class Tool : MonoBehaviour
         errors += CheckObject(nameof(InfoManager), InfoManager);
         errors += CheckObject(nameof(EnvironmentManager), EnvironmentManager);
         errors += CheckObject("地形 LandscapeSpawns（唯一点位来源）", s_landscapeSpawns);
+        errors += CheckObject(nameof(AssetsManager), AssetsManager);
         if (!isServer)
         {
-            errors += CheckObject(nameof(AssetsManager), AssetsManager);
             errors += CheckObject(nameof(InputManager), InputManager);
             errors += CheckObject(nameof(SaveManager), SaveManager);
             errors += CheckObject(nameof(CameraController), CameraController);
@@ -135,7 +135,8 @@ public class Tool : MonoBehaviour
         }
 
         errors += CheckInfoManager();
-        if (!isServer) errors += CheckAssetsManager();
+        errors += CheckEntityGraphics();          // 实体图形两端都用：BattleManager 生成实体依赖它
+        if (!isServer) errors += CheckClientAssets();
 
         string mode = isServer ? "服务器" : "客户端";
         if (errors == 0) Debug.Log($"[启动自检] 通过（{mode}）");
@@ -159,19 +160,10 @@ public class Tool : MonoBehaviour
             e++;
         }
 
-        e += CheckList("InfoManager.AttackCharacterTemplates", m.AttackCharacterTemplates, Config.attack_character_count);
-        e += CheckList("InfoManager.DefenseCharacterTemplates", m.DefenseCharacterTemplates, Config.defense_character_count);
-        e += CheckList("InfoManager.ZombieTemplates", m.ZombieTemplates, Config.zombie_variant_count);
-        e += CheckList("InfoManager.EliteZombieTemplates", m.EliteZombieTemplates, Config.elite_zombie_variant_count);
-        e += CheckList("InfoManager.GuardStatueTemplates", m.GuardStatueTemplates, guard_statue_type_count);
-        e += CheckList("InfoManager.CoralSmallTemplates", m.CoralSmallTemplates, 0);
-        e += CheckList("InfoManager.CoralLargeTemplates", m.CoralLargeTemplates, 0);
-        e += CheckList("InfoManager.CrystalStatueTemplates", m.CrystalStatueTemplates, Config.crystal_statue_count);
-        e += CheckList("InfoManager.NeutralStatueTemplates", m.NeutralStatueTemplates, Config.neutral_statue_variant_count);
         return e;
     }
 
-    private static int CheckAssetsManager()
+    private static int CheckEntityGraphics()
     {
         var m = AssetsManager;
         if (m == null) return 0;
@@ -186,7 +178,15 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, 0);
         e += CheckList("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, Config.crystal_statue_count);
         e += CheckList("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, Config.neutral_statue_variant_count);
+        return e;
+    }
 
+    private static int CheckClientAssets()
+    {
+        var m = AssetsManager;
+        if (m == null) return 0;
+
+        int e = 0;
         e += CheckList("AssetsManager.BulletVFX", m.BulletVFX, vfx_bullet_count);
         e += CheckList("AssetsManager.ShieldVFX", m.ShieldVFX, vfx_shield_count);
         e += CheckList("AssetsManager.RangeMagicVFX", m.RangeMagicVFX, vfx_range_magic_count);
@@ -216,7 +216,7 @@ public class Tool : MonoBehaviour
     private const float startupCheckDelay = 1f;
 
     // 以下数量在 Config 里没有对应常量，来源见注释
-    private const int guard_statue_type_count = 2;      // 雕像外形：贤者（外围）+ 国王（中心）（TryGetTemplate/TryGetGraphic 按此二分）
+    private const int guard_statue_type_count = 2;      // 雕像外形：贤者（外围）+ 国王（中心）（TryGetGraphic 按此二分）
     private const int vfx_bullet_count = 60;      // 《特效清单与分配表》第二节：20 类 × 3 颜色
     private const int vfx_shield_count = 13;
     private const int vfx_range_magic_count = 10;

@@ -177,14 +177,14 @@ public partial class BattleManager : EnsBehaviour
     // 用加载阶段预分配的 id 生成（id 由 BeginLoading 预留，客户端加载期拿到的就是它）
     public ushort SpawnEntity(ushort reservedId, EntityType type, int level, Vector3 pos, EntityCamp camp)
     {
-        if (!Tool.InfoManager.TryGetTemplate(type, out var template) || template == null)
+        if (!Tool.AssetsManager.TryGetGraphic(type, out var prefab) || prefab == null)
         {
-            Debug.LogWarning($"缺少服务器模板：{type}，请先在 InfoManager 配置");
+            Debug.LogWarning($"缺少实体预制体：{type}，请先在 AssetsManager 配置对应 Graphics");
             return 0;
         }
         ushort id = reservedId;
-        var go = Instantiate(template, pos, Quaternion.identity);
-        // EntityData 不挂预制体（模板与客户端图形是同一批预制体），生成时按类别补上对应子类
+        var go = Instantiate(prefab, pos, Quaternion.identity);
+        // EntityData 不挂预制体（图形预制体自带表现），生成时按类别补上对应子类
         var data = go.GetComponent<EntityData>();
         if (data == null) data = EntityData.AddTo(go, type.category);
         if (data == null)
