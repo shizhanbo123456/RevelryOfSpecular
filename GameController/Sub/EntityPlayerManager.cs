@@ -440,6 +440,7 @@ public class EntityPlayerManager : ClientSubManager
 
     private static readonly HashSet<int> s_activeBuffs = new();
     private static readonly HashSet<int> s_expiredBuffs = new();
+    private static readonly HashSet<int> s_noHitBuffs = new(); // 缺命中球的 buff 特效只报一次
 
     private static void ApplyBuffVfx(ClientEntityView view, List<SCEntityDisplayInfo.BuffRuntime> buffs)
     {
@@ -451,9 +452,24 @@ public class EntityPlayerManager : ClientSubManager
             if (!Config.buff_vfx.TryGetValue((EffectType)b.type, out var vfx)) continue;
             if (view.buffVfx.ContainsKey(b.type)) continue;
 
-            var trajectory = new FollowTrajectory(view.id);
+            // Buff 特效按 hits[0] 的竖直范围贴合实体：底对底、顶对顶，等比缩放
+            var hits = VfxHitSource.GetHits(vfx.kind, vfx.index);
+            float scale = 1f;
+            float offsetY = 0f;
+            if (hits.Length == 0)
+            {
+                if (s_noHitBuffs.Add(((int)vfx.kind << 16) | vfx.index))
+                    Debug.LogError($"[Buff特效] {vfx.kind}[{vfx.index}] 的 BulletVfxInfo.hits 为空：无法贴合实体高度，按原始大小播放");
+            }
+            else if (!TryFitBuffVfxToEntity(view, hits[0], out scale, out offsetY))
+            {
+                scale = 1f;
+                offsetY = 0f;
+            }
+
+            var trajectory = new FollowTrajectory(view.id, new Vector3(0f, offsetY, 0f));
             trajectory.Duration = Config.buff_vfx_life_time;
-            var obj = PlayTrackedVfx(vfx.kind, vfx.index, trajectory);
+            var obj = PlayTrackedVfx(vfx.kind, vfx.index, trajectory, scale);
             if (obj != null) view.buffVfx[b.type] = obj;
         }
 
@@ -469,18 +485,50 @@ public class EntityPlayerManager : ClientSubManager
         }
     }
 
-    private static GameObject PlayTrackedVfx(SkillVfxKind kind, int index, BulletTrajectory trajectory)
+    // 命中球的竖直范围（center.y ± radius）对齐实体包围盒（EntityModelInfo.yRange）的上下沿
+    private static bool TryFitBuffVfxToEntity(ClientEntityView view, BulletVfxInfo.HitInfo hit, out float scale, out float offsetY)
+    {
+        scale = 1f;
+        offsetY = 0f;
+        var info = view.modelInfo;
+        if (info == null) return false;
+
+        float vfxBottom = hit.center.y - hit.radius;
+        float vfxHeight = hit.radius * 2f;
+        if (vfxHeight <= 0f)
+        {
+            Debug.LogError($"[Buff特效] 命中球半径为 {hit.radius}，无法贴合实体高度");
+            return false;
+        }
+
+        Transform model = info.transform;
+        float worldBottom = model.TransformPoint(new Vector3(0f, info.yRange.x, 0f)).y;
+        float worldTop = model.TransformPoint(new Vector3(0f, info.yRange.y, 0f)).y;
+        float entityHeight = worldTop - worldBottom;
+        if (entityHeight <= 0f)
+        {
+            Debug.LogError($"[Buff特效] 实体包围盒高度为 {entityHeight}（EntityModelInfo.yRange 未录入？）：{model.name}");
+            return false;
+        }
+
+        scale = entityHeight / vfxHeight;
+        // FollowTrajectory 给的是实体根位置，缩放后特效底部落在 根位置+offsetY+vfxBottom*scale
+        offsetY = (worldBottom - view.transform.position.y) - vfxBottom * scale;
+        return true;
+    }
+
+    private static GameObject PlayTrackedVfx(SkillVfxKind kind, int index, BulletTrajectory trajectory, float scale)
     {
         var vfx = Tool.VfxManager;
         if (vfx == null || kind == SkillVfxKind.None || index < 0) return null;
         switch (kind)
         {
             case SkillVfxKind.Buff:
-                return vfx.PlayBuffVFX(index, trajectory);
+                return vfx.PlayBuffVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
             case SkillVfxKind.Shield:
-                return vfx.PlayShieldVFX(index, trajectory);
+                return vfx.PlayShieldVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
             case SkillVfxKind.MagicCircle:
-                return vfx.Play(vfx.GetMagicCircleVfx(index), trajectory);
+                return vfx.Play(vfx.GetMagicCircleVfx(index), trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
             default:
                 Debug.LogError($"[Buff特效] 未处理的特效类别：{kind}（Config.buff_vfx 配置错误）");
                 return null;
