@@ -13,7 +13,8 @@ public class AssetsManager : MonoBehaviour
     public List<GameObject> DefenseCharacterGraphics = new();
     public List<GameObject> ZombieGraphics = new();
     public List<GameObject> EliteZombieGraphics = new();
-    public List<GameObject> GuardStatueGraphics = new();
+    public List<GameObject> SageStatueGraphics = new();      // 副守护点 3 种，下标即 GuardStatue.value 0~2
+    public GameObject KingStatueGraphic;                    // 主守护点
     public List<GameObject> CoralSmallGraphics = new();
     public List<GameObject> CoralLargeGraphics = new();
     public List<GameObject> CrystalStatueGraphics = new();
@@ -61,7 +62,9 @@ public class AssetsManager : MonoBehaviour
                 if (EliteZombieGraphics.Count > 0) graphic = EliteZombieGraphics[type.value % EliteZombieGraphics.Count];
                 break;
             case EntityCategory.GuardStatue:
-                if (GuardStatueGraphics.Count > 0) graphic = GuardStatueGraphics[type.value < Config.sage_statue_count ? 0 : (GuardStatueGraphics.Count > 1 ? 1 : 0)];
+                // 副守护点 value 0~2 各用自己那一种；主守护点 value >= sage_statue_count 用国王
+                if (type.value >= Config.sage_statue_count) graphic = KingStatueGraphic;
+                else if (type.value >= 0 && type.value < SageStatueGraphics.Count) graphic = SageStatueGraphics[type.value];
                 break;
             case EntityCategory.Coral:
                 // 小/大珊瑚各用自己列表，列表内随机取一个变体（每个实体创建时只取一次）

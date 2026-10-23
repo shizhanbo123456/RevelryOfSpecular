@@ -194,7 +194,8 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.DefenseCharacterGraphics", m.DefenseCharacterGraphics, Config.defense_character_count);
         e += CheckList("AssetsManager.ZombieGraphics", m.ZombieGraphics, Config.zombie_variant_count);
         e += CheckList("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, Config.elite_zombie_variant_count);
-        e += CheckList("AssetsManager.GuardStatueGraphics", m.GuardStatueGraphics, guard_statue_type_count);
+        e += CheckList("AssetsManager.SageStatueGraphics", m.SageStatueGraphics, Config.sage_statue_count);
+        e += CheckObject("AssetsManager.KingStatueGraphic", m.KingStatueGraphic);
         e += CheckList("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, 0);
         e += CheckList("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, 0);
         e += CheckList("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, Config.crystal_statue_count);
@@ -237,7 +238,6 @@ public class Tool : MonoBehaviour
     private const float startupCheckDelay = 1f;
 
     // 以下数量在 Config 里没有对应常量，来源见注释
-    private const int guard_statue_type_count = 2;      // 雕像外形：贤者（外围）+ 国王（中心）（TryGetGraphic 按此二分）
     private const int vfx_bullet_count = 60;      // 《特效清单与分配表》第二节：20 类 × 3 颜色
     private const int vfx_shield_count = 13;
     private const int vfx_range_magic_count = 10;
