@@ -25,13 +25,21 @@ public static class VfxScalingModeMenu
             "继续", "取消"))
             return;
 
-        int prefabs = 0, systems = 0;
+        int prefabs = 0, systems = 0, skipped = 0;
         try
         {
             for (int i = 0; i < guids.Length; i++)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[i]);
                 EditorUtility.DisplayProgressBar("粒子缩放模式", path, (float)i / guids.Length);
+
+                // 变体 / 模型改缩放模式会把预制体拍平成普通预制体，一律跳过（变体可继承基础预制体的设置）
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (asset == null || PrefabUtility.GetPrefabAssetType(asset) != PrefabAssetType.Regular)
+                {
+                    skipped++;
+                    continue;
+                }
 
                 var root = PrefabUtility.LoadPrefabContents(path);
                 bool dirty = false;
@@ -57,7 +65,7 @@ public static class VfxScalingModeMenu
         }
 
         AssetDatabase.SaveAssets();
-        Debug.Log($"[粒子缩放模式] 完成：{prefabs} 个预制体、{systems} 个粒子系统改为 Hierarchy（共扫描 {guids.Length} 个预制体）");
+        Debug.Log($"[粒子缩放模式] 完成：{prefabs} 个预制体、{systems} 个粒子系统改为 Hierarchy；扫描 {guids.Length} 个，跳过变体/模型 {skipped} 个");
     }
 
     [MenuItem(MenuPath, true)]
