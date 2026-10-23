@@ -143,6 +143,7 @@ public class SaveManager : MonoBehaviour
 
     private void CreateNewSave()
     {
+        if (!Application.isPlaying) return; // 编辑模式不建存档，清档只删盘上数据
         playerLevel = 1;
         playerExp = 0;
         characterLevels.Clear();
