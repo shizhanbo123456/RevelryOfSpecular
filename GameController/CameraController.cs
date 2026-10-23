@@ -20,7 +20,7 @@ public class CameraController : MonoBehaviour
 
     // 俯仰偏转平滑速率
     public float pitchSmooth = 10f;
-    // 俯仰偏转钳制范围（度）：在平滑之后钳制而非钳制目标值，设大目标可快速平滑到边界
+    // 俯仰钳制范围（度，世界俯仰、0=水平）：TickPitch 里钳制目标角
     public Vector2 pitchClamp = new Vector2(-45f, 45f);
     
     public float xSmooth = 2f;
@@ -164,21 +164,21 @@ public class CameraController : MonoBehaviour
         Vector3 toAnchor = lookTarget.position - camPos;
         float anchorPitch = Mathf.Atan2(-toAnchor.y, new Vector2(toAnchor.x, toAnchor.z).magnitude) * Mathf.Rad2Deg;
 
-        // 视角中心可行区间：上边缘 ≤ 上限 且 下边缘 ≥ 下限
+        // 视角中心可行区间：上边缘 ≤ 上限 且 下边缘 ≥ 下限（均为世界俯仰角，与 pitchTarget 同口径）
         float fitLow = pitchBottom - vHalf;
         float fitHigh = pitchTop + vHalf;
         if (fitLow > fitHigh)
         {
             // 视场装不下：中心取上限与下限的平均值
-            SetPitch((pitchTop + pitchBottom) * 0.5f - anchorPitch, autoFrameInterval * 1.5f);
+            SetPitch((pitchTop + pitchBottom) * 0.5f, autoFrameInterval * 1.5f);
             return;
         }
-        if (anchorPitch < fitLow) SetPitch(fitLow - anchorPitch, autoFrameInterval * 1.5f); // 压低
-        else if (anchorPitch > fitHigh) SetPitch(fitHigh - anchorPitch, autoFrameInterval * 1.5f); // 抬起
+        if (anchorPitch < fitLow) SetPitch(fitLow, autoFrameInterval * 1.5f); // 压低
+        else if (anchorPitch > fitHigh) SetPitch(fitHigh, autoFrameInterval * 1.5f); // 抬起
         // 否则 0 偏转已完整覆盖：不刷新，自然回正
     }
 
-    // 俯仰偏转：保持 duration 秒后自动回归看向锚点；重复调用刷新保持时间
+    // 俯仰目标（世界俯仰角，度）：保持 duration 秒后自动回归看向锚点；重复调用刷新保持时间
     private void SetPitch(float pitch, float duration = 0.1f)
     {
         pitchTarget = pitch;
@@ -198,6 +198,7 @@ public class CameraController : MonoBehaviour
             float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
             pitchTarget = -Mathf.Atan(dh / ds)*Mathf.Rad2Deg;
         }
+        pitchTarget = Mathf.Clamp(pitchTarget, pitchClamp.x, pitchClamp.y);
         var eular = new Vector3(pitchTarget, lookTarget.rotation.eulerAngles.y);
         var targetQuaternion = Quaternion.Euler(eular);
         transform.rotation = Quaternion.Lerp(transform.rotation,targetQuaternion, 1f - Mathf.Exp(-pitchSmooth * Time.deltaTime));
