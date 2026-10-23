@@ -151,7 +151,6 @@ namespace Ros.Skill
         protected override int Shots => 4;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 2.4f;
-        protected override float BulletRadius => 0.6f;
         protected override int VfxIndex => 40;
         private const float Radius = 2.2f;
         private const float Turns = 1.5f;
@@ -329,7 +328,6 @@ namespace Ros.Skill
         protected override int Shots => 4;
         protected override float SpreadDeg => 0f;
         protected override float BulletLife => 2f;
-        protected override float BulletRadius => 0.6f;
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
         private const float Radius = 2f;
@@ -397,7 +395,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            StrikeSphere(caster, context.vectors[0], 1.4f, BuildAttack(caster, 1.2f, 1.4f));
+            StrikeSphere(caster, context.vectors[0], MeleeRadius, BuildAttack(caster, 1.2f));
         }
 
         public override void PlayVFX(SkillContext context) { } // 1019：无特效（飞踢）
@@ -613,6 +611,7 @@ namespace Ros.Skill
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         private const float PullRadius = 8f;
         private const float PullTime = 0.5f;
+        private const float LandVfxLife = 0.8f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -637,15 +636,17 @@ namespace Ros.Skill
             {
                 var stillCaster = FindEntity((ushort)context.ints[0]);
                 if (stillCaster == null) return;
-                StrikeSphere(stillCaster, stillCaster.transform.position, 3f,
-                    BuildAttack(stillCaster, 1.4f, 3f));
+                // 落点伤害由 RM[4] 的命中球决定：子弹定在落点陪特效走
+                Tool.BattleManager.ShootBullet(stillCaster, BuildAttack(stillCaster, 1.4f),
+                    TrialConstructor.Point(stillCaster.transform.position, LandVfxLife), LandVfxLife,
+                    HitSpec(SkillVfxKind.RangeMagic, 4, VfxScale(1)));
             }, PullTime, 1, false);
         }
 
         public override void PlayVFX(SkillContext context)
         {
             VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 7, context.vectors[0], 1f, VfxScale(0));
-            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[0], 0.8f, VfxScale(1)), PullTime, 1, false);
+            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[0], LandVfxLife, VfxScale(1)), PullTime, 1, false);
         }
     }
 
@@ -789,7 +790,7 @@ namespace Ros.Skill
             Vector3 end = context.vectors[1];
             Vector3 origin = OriginPos(caster, OriginAnchor, OriginOffset);
             var dests = SpreadStyle.FanDests(origin, end, SplitCount, SplitSpread);
-            var attack = BuildAttack(caster, DamageRate, BulletRadius);
+            var attack = BuildAttack(caster, DamageRate);
             var spec = HitSpec(SkillVfxKind.Bullet, SplitVfx, VfxScale(1));
             for (int i = 0; i < SplitCount; i++)
                 Tool.BattleManager.ShootBullet(caster, attack, TrialConstructor.Line(end, dests[i], BulletLife), BulletLife, spec);
@@ -815,7 +816,7 @@ namespace Ros.Skill
             if (caster == null || Tool.BattleManager == null) return;
             BulletTrajectory trajectory = TrajectoryFor(context, wave, 0, 1, 0f);
             float spawn = Time.time;
-            var attack = BuildAttack(caster, DamageRate, BulletRadius, onHit: target =>
+            var attack = BuildAttack(caster, DamageRate, onHit: target =>
             {
                 if (target == null) return;
                 target.SetMotion(new MotionAttract(
@@ -929,7 +930,7 @@ namespace Ros.Skill
             if (points.Length < 2) return;
             var trajectory = new PolylineTrajectory(points);
             trajectory.Duration = JumpLife * (points.Length - 1);
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f, 0.5f), trajectory, trajectory.Duration,
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), trajectory, trajectory.Duration,
                 HitSpec(SkillVfxKind.Bullet, 5, VfxScale()));
         }
 
@@ -1051,12 +1052,10 @@ namespace Ros.Skill
                 var target = Utils.TargetSelect.TargetBuffer[i];
                 if (target != null) target.SetMotion(new MotionAttract(center, PullTime)); // 牵引点 = 施放瞬间的位置
             }
-            Timer.AddTimer(0, _ =>
-            {
-                var stillCaster = FindEntity((ushort)context.ints[0]);
-                if (stillCaster == null) return;
-                StrikeSphere(stillCaster, center, 3.5f, BuildAttack(stillCaster, 1.6f, 3.5f));
-            }, PullTime, 1, false);
+            // 引爆时刻由 RM[1] 的命中窗口决定（1.0~1.2s），子弹在施放时就位陪特效走完整段
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1.6f),
+                TrialConstructor.Point(center, PullTime), PullTime,
+                HitSpec(SkillVfxKind.RangeMagic, 1, VfxScale()));
         }
 
         public override void PlayVFX(SkillContext context)
@@ -1112,7 +1111,6 @@ namespace Ros.Skill
         protected override int Shots => 6;
         protected override float SpreadDeg => 60f;
         protected override float BulletLife => 0.35f;
-        protected override float BulletRadius => 0.8f;
         protected override int VfxIndex => 7;
 
         public override void PlayVFX(SkillContext context)

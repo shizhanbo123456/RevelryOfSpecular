@@ -77,14 +77,14 @@ namespace Ros.Skill
             if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         }
 
-        // 数值来源（力量/魔法）与击退力度默认读 skill.csv，个别技能可显式覆盖
-        protected AttackData BuildAttack(EntityData entity, float rate, float radius,
+        // 数值来源（力量/魔法）与击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
+        protected AttackData BuildAttack(EntityData entity, float rate,
             bool breakEndure = false, bool? useMagic = null, Action<EntityEffectController> addEffect = null,
             Action<EntityData> onHit = null, float? knockback = null)
         {
             var config = ConfigManager.SkillConfig.Get(Id);
             int exp = entity != null && entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0;
-            return AttackData.Create(entity, rate, radius, breakEndure, useMagic ?? (config.valueSource == 1),
+            return AttackData.Create(entity, rate, breakEndure, useMagic ?? (config.valueSource == 1),
                 addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback ?? config.knockback ?? 0f);
         }
 

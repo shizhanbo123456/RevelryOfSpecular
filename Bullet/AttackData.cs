@@ -5,7 +5,6 @@ public class AttackData
     public ushort shooter;
     public EntityCamp shooterCamp;
     public float rate;
-    public float radius;
     public bool useMagic;
     public bool breakEndure;
     public float knockbackPower;
@@ -16,7 +15,7 @@ public class AttackData
     public float outDamageMultiplier = 1f;
     public int weaponExp;
 
-    public static AttackData Create(EntityData shooter, float rate, float radius, bool breakEndure,
+    public static AttackData Create(EntityData shooter, float rate, bool breakEndure,
         bool useMagic = false, Damageable.IDamageable damageable = null,
         Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null, int weaponExp = 0,
         float knockbackPower = 0f)
@@ -26,7 +25,6 @@ public class AttackData
             shooter = shooter != null ? shooter.id : (ushort)0,
             shooterCamp = shooter != null ? shooter.camp : EntityCamp.None,
             rate = rate,
-            radius = radius,
             useMagic = useMagic,
             breakEndure = breakEndure,
             damageable = damageable,

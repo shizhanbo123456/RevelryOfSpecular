@@ -31,8 +31,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius,
-                BuildAttack(caster, 1f, MeleeRadius));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1f));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -54,8 +53,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius,
-                BuildAttack(caster, 1f, MeleeRadius));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1f));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -66,6 +64,7 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillPunchSmash;
         public override float CastRange => 2f;
         protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
+        private const float SmashLife = 0.6f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -75,14 +74,17 @@ namespace Ros.Skill
             return context;
         }
 
+        // 有特效：伤害范围取 RM[6] 的命中球，子弹定在原地陪特效走完
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, caster.transform.position, Config.melee_hit_radius,
-                BuildAttack(caster, 1f, Config.melee_hit_radius));
+            if (caster == null) return;
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f),
+                TrialConstructor.Point(caster.transform.position, SmashLife), SmashLife,
+                HitSpec(SkillVfxKind.RangeMagic, 6, VfxScale()));
         }
 
         public override void PlayVFX(SkillContext context)
-            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 6, context.vectors[0], 0.6f, VfxScale());
+            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 6, context.vectors[0], SmashLife, VfxScale());
     }
 }

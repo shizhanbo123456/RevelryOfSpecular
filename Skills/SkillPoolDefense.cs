@@ -87,13 +87,15 @@ namespace Ros.Skill
             }
         }
 
+        // 有特效：每次砸击发一颗定在原地的子弹，伤害范围取 RM[5] 的命中球
         private void Smash(EntityData caster)
         {
             if (caster == null || !caster.Alive) return;
-            Vector3 center = caster.transform.position;
-            var attack = BuildAttack(caster, Config.power_suppress_rate, Config.power_suppress_radius,
-                addEffect: ConfigHitBuff(caster, 0));
-            StrikeSphere(caster, center, Config.power_suppress_radius, attack);
+            Tool.BattleManager.ShootBullet(caster,
+                BuildAttack(caster, Config.power_suppress_rate, addEffect: ConfigHitBuff(caster, 0)),
+                TrialConstructor.Point(caster.transform.position, Config.power_suppress_vfx_life),
+                Config.power_suppress_vfx_life,
+                HitSpec(SkillVfxKind.RangeMagic, Config.power_suppress_vfx_index, VfxScale()));
         }
 
         public override void PlayVFX(SkillContext context)
@@ -462,7 +464,6 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 1.2f;
-        protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 2;
     }
 
@@ -476,7 +477,6 @@ namespace Ros.Skill
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;
         protected override float BulletLife => 1.4f;
-        protected override float BulletRadius => 0.4f;
         protected override int VfxIndex => 1;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
