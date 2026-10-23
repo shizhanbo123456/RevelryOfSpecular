@@ -13,6 +13,7 @@ public class BulletVfxInfo:MonoBehaviour
     }
     public List<HitInfo> hits=new();
     public float lifeTime = -1f;
+    public float vfxRadius;
 
 #if UNITY_2017_1_OR_NEWER
     [SerializeField] private float time;
