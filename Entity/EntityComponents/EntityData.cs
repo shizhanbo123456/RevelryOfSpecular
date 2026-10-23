@@ -520,14 +520,15 @@ public abstract class EntityData : MonoBehaviour
     }
 
     // 显示同步脏标记：health 只在当前生命值变化时置脏（上限全程不变）、buff 只在增删时置脏、skill 只在持有列表变化时置脏、
-    // transform 记待发次数：0 = 有新位移，<2 时每轮下发并 +1，满 2 停发（停下后仍会多发一个包）
+    // transform 记待发次数：0 = 位置/朝向/速度有变化，<2 时每轮下发并 +1，满 2 停发（停下后仍会多发一个包）
     public bool healthDirty;
     public bool buffDirty;
     public bool skillDirty;
     public int transformDirty;
 
-    private Vector3 transformBasePos;   // 上次下发时的位姿基准（发包时对齐当前）
+    private Vector3 transformBasePos;    // 上次下发时的位姿基准（发包时对齐当前）
     private float transformBaseYaw;
+    private float transformBaseSpeedSqr; // 上次下发时的水平速度模平方
     private bool transformBaseReady;
 
     // 每帧调用：待发次数满 2（已静止）才重新判定，超阈值置 0 重新计数（基准不随帧推进，误差恒定为阈值量级）
@@ -536,16 +537,19 @@ public abstract class EntityData : MonoBehaviour
         if (transformDirty < 2) return;
         Vector3 p = transform.position;
         float yaw = transform.eulerAngles.y;
+        float speedSqr = SpeedSqr();
         if (!transformBaseReady)
         {
             transformBasePos = p;
             transformBaseYaw = yaw;
+            transformBaseSpeedSqr = speedSqr;
             transformBaseReady = true;
             return;
         }
         float eps = Config.entity_sync_pos_epsilon;
         if ((p - transformBasePos).sqrMagnitude >= eps * eps) { transformDirty = 0; return; }
-        if (Mathf.Abs(Mathf.DeltaAngle(transformBaseYaw, yaw)) >= Config.entity_sync_yaw_epsilon) transformDirty = 0;
+        if (Mathf.Abs(Mathf.DeltaAngle(transformBaseYaw, yaw)) >= Config.entity_sync_yaw_epsilon) { transformDirty = 0; return; }
+        if (Mathf.Abs(speedSqr - transformBaseSpeedSqr) >= 0.01f) transformDirty = 0; // 0.01 ≈ 速度差 0.1m/s，兜住减速末段
     }
 
     // 位姿已下发：基准对齐当前，待发次数未满 2 时 +1（满 2 后的全量心跳包只是重复带位姿，不计数）
@@ -553,8 +557,17 @@ public abstract class EntityData : MonoBehaviour
     {
         transformBasePos = transform.position;
         transformBaseYaw = transform.eulerAngles.y;
+        transformBaseSpeedSqr = SpeedSqr();
         transformBaseReady = true;
         if (transformDirty < 2) transformDirty++;
+    }
+
+    // 与下发口径一致：只取水平分量，客户端不推演纵向
+    private float SpeedSqr()
+    {
+        if (rb == null) return 0f;
+        Vector3 v = rb.velocity;
+        return v.x * v.x + v.z * v.z;
     }
 
     public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
