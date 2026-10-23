@@ -96,7 +96,7 @@ public class PlayerEntityData : EntityData
 
         bool moving = moveState.moving;
 
-        // 跳跃键：普通跳跃（翻滚动作已整体移除，K 只做跳跃）；飞行模式下 K 转为上升长按，不跳
+        // 跳跃键：K 只做跳跃；飞行模式下 K 转为上升长按，不跳
         if (!flightMode && (input.pressed & PlayerKey.K) != 0)
         {
             Jump();
