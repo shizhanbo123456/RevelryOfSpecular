@@ -107,10 +107,10 @@ namespace Ros.Skill
             }
         }
 
-        private static void PlaySmash(Vector3 center)
+        private void PlaySmash(Vector3 center)
         {
             VfxHelper.PlayAt(SkillVfxKind.RangeMagic, Config.power_suppress_vfx_index, center,
-                Config.power_suppress_vfx_life);
+                Config.power_suppress_vfx_life, VfxScale());
         }
     }
 

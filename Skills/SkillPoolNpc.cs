@@ -38,7 +38,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius, BuildAttack(caster, 1f, Config.melee_hit_radius));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1f, MeleeRadius));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -60,7 +60,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius, BuildAttack(caster, 1f, Config.melee_hit_radius));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1f, MeleeRadius));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -82,7 +82,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, Config.melee_hit_radius, BuildAttack(caster, 1.1f, Config.melee_hit_radius));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1.1f, MeleeRadius));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -104,7 +104,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, Config.melee_hit_radius, BuildAttack(caster, 1.1f, Config.melee_hit_radius));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1.1f, MeleeRadius));
         }
 
         public override void PlayVFX(SkillContext context) { }
@@ -164,7 +164,7 @@ namespace Ros.Skill
         }
 
         public override void PlayVFX(SkillContext context)
-            => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0));
+            => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0), VfxScale());
     }
 
     public class SkillCrystalStatueSporeA : CrystalStatueSporeShot
@@ -218,7 +218,7 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, 9, CreateTrajectory(context, 0));
+            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, 9, CreateTrajectory(context, 0), VfxScale());
         }
     }
     #endregion

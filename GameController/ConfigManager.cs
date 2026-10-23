@@ -408,7 +408,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 14;
+        private const int ColumnCount = 16;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -425,6 +425,7 @@ public class ConfigManager : MonoBehaviour
         public int? valueSource;
         public float? knockback;
         public List<BuffEntry> buffs;
+        public List<float> bulletSizes; // 第15列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
 
         public SkillConfig(string[] rowData)
         {
@@ -442,6 +443,7 @@ public class ConfigManager : MonoBehaviour
             valueSource = ParseIntOrNull(rowData, 11);
             knockback = ParseFloatOrNull(rowData, 12);
             buffs = ParseBuffList(rowData, 13);
+            bulletSizes = ParseFloatList(rowData, 14);
         }
 
         public static int Load(ConfigTable table)

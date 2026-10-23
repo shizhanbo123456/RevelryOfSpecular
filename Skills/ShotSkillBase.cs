@@ -115,8 +115,9 @@ namespace Ros.Skill
             if (VfxKind == SkillVfxKind.None || VfxIndex < 0) return;
             int shots = Mathf.Max(1, ShotsOfWave(wave));
             float spread = SpreadOfWave(wave);
+            float scale = VfxScale();
             for (int i = 0; i < shots; i++)
-                VfxHelper.PlayOne(VfxKind, VfxIndex, TrajectoryFor(context, wave, i, shots, spread));
+                VfxHelper.PlayOne(VfxKind, VfxIndex, TrajectoryFor(context, wave, i, shots, spread), scale);
         }
 
         // 双端同源：起点按锚点实时位置（没有实体就用包里冻结点），终点按扇形常量从瞄准点展开

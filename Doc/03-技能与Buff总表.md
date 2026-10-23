@@ -200,6 +200,7 @@ Skills文件夹：
 **多目标**：需要锁多个目标时由技能自己在 `SkillLogic` 里写（`ints[2..]` = 目标 id、`vectors[2..]` = 位置兜底，上限与排序规则写进技能常量）；纯范围效果优先只传「中心 + 半径 + 阵营」，由服务器自己取，不逐个下发。
 **命中附加效果**：`AttackData.addEffectEvent`（命中挂 Buff）与 `AttackData.onHit`（命中额外逻辑）；子弹路径由 `BattleManagerCombat.TryHitBullet` 消费、近战球判定由 `SkillBase.StrikeSphere` 消费。`SkillBase` 提供 `ApplyEffect`（命中挂 Buff 回调）、`GiveEffect`（直接挂 Buff）、`PullTo`（命中拉拽）。**击退/击飞不是回调**：力度写在 `AttackData.knockbackPower` 上，由命中管线统一处理（见速度节⑥）。
 **持续型 Buff 表现**：客户端按同步的 `SCEntityDisplayInfo.buffs` 增删特效（仅 `includeRuntime || hasBuffs` 的包触发），映射表见 `Config.buff_vfx`（清单即本文件二章）。**技能里禁止再为 Buff 播持续特效**（不写 `PlayFollow`）——否则同一状态叠两份、且技能那份不随 Buff 消失而清理；因此 `PlayVFX` 允许空实现。
+**尺寸（skill.csv 第 15 列）**：`|` 分隔，按特效出现顺序每项一个值。有特效/武器模型的技能，值 = 该特效的**缩放倍率**（1 = 资产原大小，播放时由 `VfxManager.ApplyScale` 只乘在特效根节点上）；无特效的近战（腐爪 / 裂骨爪 / 直拳）值 = **判定半径**（米），由 `SkillBase.MeleeRadius` 直接读表。倍率列表为空按 1 处理，列表非空但下标越界、或近战没配半径，一律抛 `FormatException`（无代码兜底）。第 16 列「伤害间隔」为占位，代码不解析。
 **位移**：统一走 `MotionBase`（`Entity/Motion/`），由 `EntityData.TickVelocity` 逐帧驱动（Enter / Update / 到期 Exit 三态都在 TickVelocity 内，见速度节⑤），禁止直接改 position 以免穿模；现有 `MotionDash`（恒定朝前）、`MotionToPoint`（固定点）、`MotionAttract`（持续被目标吸引，距离越远速度越大、上限封顶；目标可传 `Transform` / 固定点 / 位置来源——服务器子弹没有 Transform，用「轨迹 + 出生时间」算实时位置）。
 **延时 / 多段 / 重复结算：统一用 `Timer.AddTimer`**（见 Utils 节），不要在技能里自己写计时字段——多段命中、延时爆炸、引导间隔、姿态持续期结束等都在 `SkillLogic`/`OnCast` 里注册即可，服务端与客户端（`PlayVFX` 内）都能调。`AddTimer` 没有取消句柄，注册的闭包请自行判空（实体可能已销毁）；需要中途取消的过渡动画用 `Timer.AddTransition`（有句柄）。
 

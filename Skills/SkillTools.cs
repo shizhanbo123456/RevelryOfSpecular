@@ -187,54 +187,54 @@ namespace Ros.Skill.Utils
     }
     public static class VfxHelper
     {
-        public static void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration)
+        public static void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration, float scale = 0f)
         {
             if (Tool.VfxManager == null || kind == SkillVfxKind.None || index < 0) return;
             switch (kind)
             {
                 case SkillVfxKind.Bullet:
-                    Tool.VfxManager.PlayBulletVFX(index, pos, Quaternion.identity, duration);
+                    Tool.VfxManager.PlayBulletVFX(index, pos, Quaternion.identity, duration, scale);
                     break;
                 case SkillVfxKind.Shield:
-                    Tool.VfxManager.PlayShieldVFX(index, pos, Quaternion.identity, duration);
+                    Tool.VfxManager.PlayShieldVFX(index, pos, Quaternion.identity, duration, scale);
                     break;
                 case SkillVfxKind.Buff:
-                    Tool.VfxManager.PlayBuffVFX(index, pos, Quaternion.identity, duration);
+                    Tool.VfxManager.PlayBuffVFX(index, pos, Quaternion.identity, duration, scale);
                     break;
                 case SkillVfxKind.Weapon:
-                    Tool.VfxManager.PlayWeaponVFX(index, pos, Quaternion.identity, duration);
+                    Tool.VfxManager.PlayWeaponVFX(index, pos, Quaternion.identity, duration, scale);
                     break;
                 case SkillVfxKind.RangeMagic:
-                    Tool.VfxManager.PlayRangeMagicVFX(index, pos, Quaternion.identity, duration);
+                    Tool.VfxManager.PlayRangeMagicVFX(index, pos, Quaternion.identity, duration, scale);
                     break;
                 case SkillVfxKind.MagicCircle:
-                    Tool.VfxManager.PlayMagicCircleVFX(index, pos, duration);
+                    Tool.VfxManager.PlayMagicCircleVFX(index, pos, duration, scale);
                     break;
             }
         }
 
-        public static void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory)
+        public static void PlayOne(SkillVfxKind kind, int index, BulletTrajectory trajectory, float scale = 0f)
         {
             float life = trajectory.Duration;
             switch (kind)
             {
                 case SkillVfxKind.Weapon:
-                    Tool.VfxManager.PlayWeaponVFX(index, trajectory);
+                    Tool.VfxManager.PlayWeaponVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Tangent, scale);
                     break;
                 case SkillVfxKind.Bullet when index >= 0:
-                    Tool.VfxManager.PlayBulletVFX(index, trajectory);
+                    Tool.VfxManager.PlayBulletVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Tangent, scale);
                     break;
                 case SkillVfxKind.Shield when index >= 0:
-                    Tool.VfxManager.PlayShieldVFX(index, trajectory);
+                    Tool.VfxManager.PlayShieldVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
                     break;
                 case SkillVfxKind.Buff when index >= 0:
-                    Tool.VfxManager.PlayBuffVFX(index, trajectory);
+                    Tool.VfxManager.PlayBuffVFX(index, trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
                     break;
                 case SkillVfxKind.RangeMagic:
-                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory, life);
+                    Tool.VfxManager.PlayRangeMagicVFX(index, trajectory, life, scale);
                     break;
                 case SkillVfxKind.MagicCircle:
-                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory, life);
+                    Tool.VfxManager.PlayMagicCircleVFX(index, trajectory, life, scale);
                     break;
             }
         }

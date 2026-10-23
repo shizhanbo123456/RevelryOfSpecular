@@ -298,7 +298,7 @@ namespace Ros.Skill
             base.PlayVFX(context);
             // 命中后原地静止漂浮：纯表现，不参与判定
             Vector3 end = context.vectors[1];
-            VfxHelper.PlayOne(SkillVfxKind.Weapon, VfxIndex, TrialConstructor.Point(end, HoverTime));
+            VfxHelper.PlayOne(SkillVfxKind.Weapon, VfxIndex, TrialConstructor.Point(end, HoverTime), VfxScale());
         }
     }
 
@@ -647,8 +647,8 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 7, context.vectors[0], 1f);
-            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[0], 0.8f), PullTime, 1, false);
+            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 7, context.vectors[0], 1f, VfxScale(0));
+            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 4, context.vectors[0], 0.8f, VfxScale(1)), PullTime, 1, false);
         }
     }
 
@@ -782,7 +782,7 @@ namespace Ros.Skill
                 Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
                 var dests = SpreadStyle.FanDests(origin, end, SplitCount, SplitSpread);
                 for (int i = 0; i < SplitCount; i++)
-                    VfxHelper.PlayOne(SkillVfxKind.Bullet, SplitVfx, TrialConstructor.Line(end, dests[i], BulletLife));
+                    VfxHelper.PlayOne(SkillVfxKind.Bullet, SplitVfx, TrialConstructor.Line(end, dests[i], BulletLife), VfxScale(1));
             }, BulletLife, 1, false);
         }
 
@@ -941,7 +941,7 @@ namespace Ros.Skill
             if (points.Length < 2) return;
             var trajectory = new PolylineTrajectory(points);
             trajectory.Duration = JumpLife * (points.Length - 1);
-            VfxHelper.PlayOne(SkillVfxKind.Bullet, 5, trajectory);
+            VfxHelper.PlayOne(SkillVfxKind.Bullet, 5, trajectory, VfxScale());
         }
     }
 
@@ -978,7 +978,7 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, CircleVfx, context.vectors[0], 1.2f);
+            VfxHelper.PlayAt(SkillVfxKind.MagicCircle, CircleVfx, context.vectors[0], 1.2f, VfxScale(1));
             base.PlayVFX(context);
         }
 
@@ -1062,7 +1062,7 @@ namespace Ros.Skill
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], PullTime);
+            VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 1, context.vectors[0], PullTime, VfxScale());
         }
     }
 

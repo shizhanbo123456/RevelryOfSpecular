@@ -110,6 +110,31 @@ namespace Ros.Skill
             target.effectController.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
         }
 
+        // 第15列：有特效的技能 = 各特效的缩放倍率（空 = 原大小），无特效近战 = 判定半径
+        private List<float> SizedConfig => ConfigManager.SkillConfig.Get(Id).bulletSizes;
+
+        // 取第 index 个特效的缩放倍率；没配 = 原大小，配了但越界属错配，直接抛
+        protected float VfxScale(int index = 0)
+        {
+            var sizes = SizedConfig;
+            if (sizes.Count == 0) return 1f;
+            if (index < 0 || index >= sizes.Count)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 只配了 {sizes.Count} 个尺寸，取第 {index} 个越界");
+            return sizes[index];
+        }
+
+        // 无特效近战的判定半径：只认配表，缺配置立刻抛
+        protected float MeleeRadius
+        {
+            get
+            {
+                var sizes = SizedConfig;
+                if (sizes.Count == 0)
+                    throw new FormatException($"[配表] skill.csv 技能 {Id} 是无特效近战，第 15 列必须配判定半径");
+                return sizes[0];
+            }
+        }
+
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR
