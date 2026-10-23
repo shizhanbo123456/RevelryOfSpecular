@@ -160,7 +160,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), CreateTrajectory(context, 0),
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), CreateTrajectory(context, 0), 0f,
                 HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale()));
         }
 
@@ -214,7 +214,7 @@ namespace Ros.Skill
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, 1f,
                 addEffect: ConfigHitBuff(caster, 0));
-            Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0),
+            Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0), 0f,
                 HitSpec(SkillVfxKind.RangeMagic, 9, VfxScale()));
         }
 
