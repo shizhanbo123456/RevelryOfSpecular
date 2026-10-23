@@ -24,7 +24,7 @@ public struct EntityType : IEquatable<EntityType>
     #endregion
 
     #region 预设
-    // 进攻方角色（18 人，具体角色池待定）
+    // 进攻方角色（17 人，具体角色池待定）
     public static EntityType Attack0 => Attack(0);
     public static EntityType Attack1 => Attack(1);
     public static EntityType Attack2 => Attack(2);
@@ -42,7 +42,6 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType Attack14 => Attack(14);
     public static EntityType Attack15 => Attack(15);
     public static EntityType Attack16 => Attack(16);
-    public static EntityType Attack17 => Attack(17);
     public static EntityType AttackFirst => Attack0;
     public static EntityType AttackLast => Attack(Config.attack_character_count - 1);
 

@@ -24,7 +24,7 @@ public class InfoManager : MonoBehaviour
         return ConfigManager.EntityConfig.GetByCategory(type);
     }
 
-    // 全局角色下标：0~17 进攻方，18~23 防守方
+    // 全局角色下标：0~16 进攻方，17~22 防守方
     public ConfigManager.EntityConfig GetPlayerCharacterInfo(int globalIndex)
     {
         if (globalIndex < Config.attack_character_count)
