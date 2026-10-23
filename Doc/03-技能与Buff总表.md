@@ -183,7 +183,7 @@ Skills文件夹：
 技能双端执行模型：EntitySkillController.TryUseSkill是全部释放路径（技能槽/J键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型由技能的 `CastAnim` 声明；`HasCastAnim=false` 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，`CastAnim`/`HasCastAnim` 在技能上声明。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 
 **技能上下文（SkillContext）**：`ints` / `vectors` / `floats` 三个可变长列表，语义 = **能复原技能表现的最小可变数据包**。
-① 只放运行时才确定、两端无法推导的东西：施法者 id、随机种子、瞄准点/落点、目标 id、档位、时间（放 floats）。发数、散布角、波次表、间隔、半径、时长、轨迹形状、特效下标一律写死在技能类常量里，读包时用「变参 + 技能常量」复原——包体不随发数膨胀。
+① 只放运行时才确定、两端无法推导的东西：施法者 id、随机种子、瞄准点/落点、目标 id、档位、时间（放 floats）。发数、散布角、波次表、时长、轨迹形状、特效下标一律写死在技能类常量里，读包时用「变参 + 技能常量」复原——包体不随发数膨胀。伤害范围不写进包：有本体特效的取该特效预制体的命中球，无特效近战取 skill.csv 第 15 列半径；伤害倍率与再伤害间隔取 skill.csv 第 17 / 16 列。
 ② **包内容与布局由每个技能自己决定**：`ShotSkillBase` **不实现 `SkillLogic`**（`SkillBase.SkillLogic` 是 abstract），只提供可选 helper `ShotContext(entity, seed, aim)`——写不写种子、写不写落点由子类在自己那行 `SkillLogic => ShotContext(...)` 里显式声明；需要别的布局就直接 `new SkillContext()` 自己拼。读取同样由技能自己按下标解析（同一技能的内部约定：`ints[0]=施法者`、`vectors[0]=起点`、`vectors[1]=落点`，只有真写了才存在）。
 ③ **跨端随机一律伪随机**：服务器施放时生成种子写进包里，两端用技能自己的 `System.Random(seed)` 按固定调用顺序取数（禁止 `UnityEngine.Random`：全局状态，两端消耗顺序不同必然发散）。目前只有「跃起随机散射」「后方随机汇聚」写种子。
 ④ **位置一律 entityId + Vector3**：客户端有该实体就按锚点取实时位置（跟随身体），取不到实体数据才用 Vector3 兜底。
