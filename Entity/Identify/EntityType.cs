@@ -66,7 +66,7 @@ public struct EntityType : IEquatable<EntityType>
     public static EntityType CoralSmall => Coral(0);
     public static EntityType CoralLarge => Coral(1);
 
-    // 水晶雕像（0~3）
+    // 水晶雕像（0~2）
     public static EntityType CrystalStatue0 => CrystalStatue(0);
     public static EntityType CrystalStatueFirst => CrystalStatue(0);
     public static EntityType CrystalStatueLast => CrystalStatue(Config.crystal_statue_count - 1);

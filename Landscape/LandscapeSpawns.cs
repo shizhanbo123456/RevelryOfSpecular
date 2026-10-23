@@ -32,7 +32,8 @@ public class LandscapeSpawns : MonoBehaviour
         SnapListToSurface(coralSpawnPositions);
         SnapListToSurface(zombieSpawnPositions);
         // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
-        SnapTransformsToSurface(guardStatueSpawnPositions);
+        SnapTransformsToSurface(subGuardStatueSpawnPositions);
+        SnapTransformToSurface(mainGuardStatueSpawnPosition);
         SnapTransformsToSurface(crystalStatueSpawnPositions);
         SnapTransformsToSurface(neutralStatueSpawnPositions);
         SnapTransformsToSurface(attackPositions);
@@ -54,20 +55,24 @@ public class LandscapeSpawns : MonoBehaviour
     private void SnapTransformsToSurface(List<Transform> list)
     {
         if (list == null) return;
+        for (int i = 0; i < list.Count; i++) SnapTransformToSurface(list[i]);
+    }
+
+    private void SnapTransformToSurface(Transform t)
+    {
+        if (t == null) return;
         Vector3 origin = terrain.transform.position;
-        for (int i = 0; i < list.Count; i++)
-        {
-            var t = list[i];
-            if (t == null) continue;
-            float y = origin.y + terrain.SampleHeight(t.position) + SurfaceOffset;
-            t.position = new Vector3(t.position.x, y, t.position.z);
-        }
+        float y = origin.y + terrain.SampleHeight(t.position) + SurfaceOffset;
+        t.position = new Vector3(t.position.x, y, t.position.z);
     }
 
     #endregion
 
-    [Header("雕像出生点（前 3 个外围 + 最后 1 个中心）")]
-    public List<Transform> guardStatueSpawnPositions = new();
+    [Header("副守护点列表（贤者雕像 ×3，下标即 value 0~2）")]
+    public List<Transform> subGuardStatueSpawnPositions = new();
+
+    [Header("主守护点（国王雕像 ×1）")]
+    public Transform mainGuardStatueSpawnPosition;
 
     [Header("珊瑚刷新位置列表（Vector3，由右键菜单生成）")]
     public List<Vector3> coralSpawnPositions = new();
@@ -250,7 +255,8 @@ public class LandscapeSpawns : MonoBehaviour
 
     private bool IsNearExistingPoint(Vector3 pos)
     {
-        return NearIn(guardStatueSpawnPositions, pos)
+        return NearIn(subGuardStatueSpawnPositions, pos)
+            || NearIn(mainGuardStatueSpawnPosition, pos)
             || NearIn(coralSpawnPositions, pos)
             || NearIn(crystalStatueSpawnPositions, pos)
             || NearIn(neutralStatueSpawnPositions, pos)
@@ -272,6 +278,13 @@ public class LandscapeSpawns : MonoBehaviour
         return false;
     }
 
+    private static bool NearIn(Transform t, Vector3 pos)
+    {
+        if (t == null) return false;
+        float sqr = ClearanceRadius * ClearanceRadius;
+        return (t.position - pos).sqrMagnitude < sqr;
+    }
+
     private static bool NearIn(List<Vector3> list, Vector3 pos)
     {
         if (list == null) return false;
@@ -290,7 +303,8 @@ public class LandscapeSpawns : MonoBehaviour
         DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), coralGizmoRadius);  // 僵尸：橙
 
         // Transform 锚点——共用 otherGizmoRadius
-        DrawPoints(guardStatueSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);     // 雕像：绿
+        DrawPoints(subGuardStatueSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);  // 副守护点：绿
+        if (mainGuardStatueSpawnPosition != null) { Gizmos.color = new Color(1.00f, 0.85f, 0.25f); DrawPoint(mainGuardStatueSpawnPosition.position, otherGizmoRadius); } // 主守护点：金
         DrawPoints(crystalStatueSpawnPositions, new Color(1.00f, 0.35f, 0.30f), otherGizmoRadius);      // 水晶雕像：红
         DrawPoints(neutralStatueSpawnPositions, new Color(0.70f, 0.40f, 1.00f), otherGizmoRadius); // 中立雕像：紫
         DrawPoints(attackPositions, new Color(0.35f, 0.55f, 1.00f), otherGizmoRadius);          // 进攻方出生/复活：蓝

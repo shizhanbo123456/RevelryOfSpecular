@@ -14,14 +14,18 @@ public partial class BattleManager
     {
         var spawns = Tool.LandscapeSpawns;
 
-        // 雕像：列表前 3 个外围（value 0~2）+ 最后 1 个中心（锚点未赋值的槽位跳过）
-        for (int i = 0; i < spawns.guardStatueSpawnPositions.Count; i++)
+        // 副守护点：index 即 value 0~2（贤者雕像；锚点未赋值的槽位跳过）
+        var sagePositions = spawns.subGuardStatueSpawnPositions;
+        for (int i = 0; i < sagePositions.Count; i++)
         {
-            var guardStatueAnchor = spawns.guardStatueSpawnPositions[i];
-            if (guardStatueAnchor == null) continue;
-            bool core = i >= Config.sage_statue_count;
-            SpawnEntity(core ? EntityType.KingStatue : EntityType.GuardStatue(i), 1, guardStatueAnchor.position, EntityCamp.Defense);
+            var sageAnchor = sagePositions[i];
+            if (sageAnchor == null) continue;
+            SpawnEntity(EntityType.GuardStatue(i), 1, sageAnchor.position, EntityCamp.Defense);
         }
+
+        // 主守护点：国王雕像（未赋值则不生成，启动自检会报）
+        var kingAnchor = spawns.mainGuardStatueSpawnPosition;
+        if (kingAnchor != null) SpawnEntity(EntityType.KingStatue, 1, kingAnchor.position, EntityCamp.Defense);
 
         // 珊瑚：不再开局全量生成（按玩家邻近动态生成，见 TickCoralSpawn）；
         // 这里只按刷新点数量重建"哪一点有珊瑚"的占用记录

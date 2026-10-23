@@ -136,6 +136,7 @@ public class Tool : MonoBehaviour
 
         errors += CheckInfoManager();
         errors += CheckEntityGraphics();          // 实体图形两端都用：BattleManager 生成实体依赖它
+        errors += CheckGuardStatueSpawns();
         if (!isServer) errors += CheckClientAssets();
 
         string mode = isServer ? "服务器" : "客户端";
@@ -160,6 +161,26 @@ public class Tool : MonoBehaviour
             e++;
         }
 
+        return e;
+    }
+
+    private static int CheckGuardStatueSpawns()
+    {
+        var spawns = s_landscapeSpawns;
+        if (spawns == null) return 0;
+
+        int e = 0;
+        int subCount = spawns.subGuardStatueSpawnPositions.Count;
+        if (subCount > Config.sage_statue_count)
+        {
+            Debug.LogError($"[启动自检] LandscapeSpawns.subGuardStatueSpawnPositions 有 {subCount} 个，超过贤者雕像上限 {Config.sage_statue_count}：多出的点会拿到国王雕像的 value");
+            e++;
+        }
+        if (spawns.mainGuardStatueSpawnPosition == null)
+        {
+            Debug.LogError("[启动自检] LandscapeSpawns.mainGuardStatueSpawnPosition 未赋值：开局不会生成国王雕像");
+            e++;
+        }
         return e;
     }
 

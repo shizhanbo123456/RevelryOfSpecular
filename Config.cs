@@ -37,7 +37,7 @@ public static class Config
 
     #region 资源与中立单位
     public const int coral_size_count = 2;              // 0 = 小珊瑚，1 = 大珊瑚
-    public const int crystal_statue_count = 4;
+    public const int crystal_statue_count = 3;          // 场景 3 座水晶雕像，value 0~2
     public const float crystal_statue_attack_range = 20f;
     public const float coral_spawn_checks_per_second = 10f;
     public const float coral_spawn_min_dist = 40f;

@@ -68,7 +68,7 @@ public class AssetsManager : MonoBehaviour
                 graphic = RandomOf(type.value <= 0 ? CoralSmallGraphics : CoralLargeGraphics);
                 break;
             case EntityCategory.CrystalStatue:
-                // 4 种外观按实例编号选用（Config.crystal_statue_count = 4）；配置不足时取模循环
+                // 3 种外观按实例编号选用（Config.crystal_statue_count = 3）；配置不足时取模循环
                 if (CrystalStatueGraphics.Count > 0) graphic = CrystalStatueGraphics[type.value % CrystalStatueGraphics.Count];
                 break;
             case EntityCategory.NeutralStatue:
