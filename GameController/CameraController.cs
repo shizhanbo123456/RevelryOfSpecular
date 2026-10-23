@@ -31,12 +31,9 @@ public class CameraController : MonoBehaviour
 
     private float autoFrameTimer;
 
-    // 俯仰偏转（度，向下为正；0 = 正看锚点）：全程向目标值平滑，保持时间结束自动归零
-    private float pitchOffset;
+    // 俯仰偏转
     private float pitchTarget;
     private float pitchHoldTime;
-
-    private Vector3 lastLookPos; // 上一帧锚点位置：先把相机随实体平移，再量距离摆到正后方，避免行进中距离累积漂移
 
     private void Awake()
     {
@@ -48,25 +45,31 @@ public class CameraController : MonoBehaviour
     {
         lookTarget = target;
         if (target == null) return;
-        // 绑定/换绑（进战斗、复活换绑）：直接摆到平滑目标位置，否则下一帧会被平滑拉走而抖动
-        lastLookPos = target.position;
+
         Vector3 back = Quaternion.Euler(0f, target.eulerAngles.y, 0f) * Vector3.back;
         float yCenter = (yRange.x + yRange.y) * 0.5f;
         float zCenter = (zRange.x + zRange.y) * 0.5f;
         transform.position = target.position + Vector3.up * yCenter + back * zCenter;
-        LookAtAnchor();             // 先摆正朝向：UpdateAutoPitch 取 transform.forward
-        UpdateAutoPitch();          // 换绑是瞬移：俯仰立即算一次，不等周期遍历
-        // 并直接生效，否则随后几帧还要缓动过去；钳制与 TickPitch 一致（目标值可能大于钳制范围）
-        pitchOffset = Mathf.Clamp(pitchTarget, pitchClamp.x, pitchClamp.y);
-        ApplyView();
-        NotifyCameraUpdated();
-    }
 
-    // 俯仰偏转：保持 duration 秒后自动回归看向锚点；重复调用刷新保持时间
-    public void SetPitch(float pitch, float duration = 0.1f)
-    {
-        pitchTarget = pitch;
-        pitchHoldTime = duration;
+        transform.LookAt(lookTarget.position);
+        UpdateAutoPitch();
+        if (pitchHoldTime > 0f)
+        {
+            pitchHoldTime -= Time.deltaTime;
+        }
+        else
+        {
+            var d = lookTarget.position - transform.position;
+            float dh = d.y;
+            float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
+            pitchTarget = Mathf.Atan(dh / ds);
+        }
+        var eular = transform.rotation.eulerAngles;
+        eular.x = pitchTarget;
+        transform.rotation *= Quaternion.Euler(eular);
+        NotifyCameraUpdated();
+
+        NotifyCameraUpdated();
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
@@ -89,25 +92,9 @@ public class CameraController : MonoBehaviour
     {
         if (lookTarget == null) return;
 
-        TickPitch();
-
-        // 自动取景周期遍历
-        autoFrameTimer += Time.deltaTime;
-        if (autoFrameTimer >= autoFrameInterval)
-        {
-            autoFrameTimer = 0f;
-            UpdateAutoPitch();
-        }
-
         // 偏航不平滑：相机全程在角色正后方，自身偏航与角色一致
         float yaw = lookTarget.eulerAngles.y;
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
-
-        // 1) 先随实体平移（量距不受行进位移污染），2) 再量当前水平距离/高度
-        Vector3 delta = lookTarget.position - lastLookPos;
-        delta.y = 0f;
-        transform.position += delta;
-        lastLookPos = lookTarget.position;
 
         Vector3 toCam = transform.position - lookTarget.position;
         toCam.y = 0f;
@@ -121,35 +108,30 @@ public class CameraController : MonoBehaviour
         float yCenter = (yRange.x + yRange.y) * 0.5f;
         float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * Time.deltaTime));
         float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
-
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
-        ApplyView();
-        NotifyCameraUpdated();
-    }
 
-    // 正看锚点（不含俯仰偏转）
-    private void LookAtAnchor()
-    {
-        transform.LookAt(lookTarget.position);
-    }
-
-    // 正看锚点，再叠加平滑后的俯仰偏转
-    private void ApplyView()
-    {
-        LookAtAnchor();
-        if (pitchOffset != 0f) transform.rotation *= Quaternion.Euler(pitchOffset, 0f, 0f);
-    }
-
-    // 俯仰偏转全程向目标值平滑（平滑后钳制）；保持时间结束后目标归零（回归看向锚点）
-    private void TickPitch()
-    {
+        // 自动取景周期遍历
+        autoFrameTimer += Time.deltaTime;
+        if (autoFrameTimer >= autoFrameInterval)
+        {
+            autoFrameTimer = 0f;
+            UpdateAutoPitch();
+        }
         if (pitchHoldTime > 0f)
         {
             pitchHoldTime -= Time.deltaTime;
-            if (pitchHoldTime <= 0f) pitchTarget = 0f;
         }
-        pitchOffset = Mathf.Lerp(pitchOffset, pitchTarget, 1f - Mathf.Exp(-pitchSmooth * Time.deltaTime));
-        pitchOffset = Mathf.Clamp(pitchOffset, pitchClamp.x, pitchClamp.y);
+        else
+        {
+            var d = lookTarget.position- transform.position;
+            float dh = d.y;
+            float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
+            pitchTarget = Mathf.Atan(dh/ds);
+        }
+        var eular = transform.rotation.eulerAngles;
+        eular.x = pitchTarget;
+        transform.rotation *= Quaternion.Euler(eular);
+        NotifyCameraUpdated();
     }
 
     // 自动取景：把所有可见模型的上下边界压进水平视野中间 80%，0 偏转够用时不干预（自然回正）
@@ -216,6 +198,13 @@ public class CameraController : MonoBehaviour
         if (anchorPitch < fitLow) SetPitch(fitLow - anchorPitch, autoFrameInterval * 1.5f); // 压低
         else if (anchorPitch > fitHigh) SetPitch(fitHigh - anchorPitch, autoFrameInterval * 1.5f); // 抬起
         // 否则 0 偏转已完整覆盖：不刷新，自然回正
+    }
+
+    // 俯仰偏转：保持 duration 秒后自动回归看向锚点；重复调用刷新保持时间
+    private void SetPitch(float pitch, float duration = 0.1f)
+    {
+        pitchTarget = pitch;
+        pitchHoldTime = duration;
     }
 
     // Unity 要到渲染才重算 worldToCameraMatrix，同帧 WorldToScreenPoint 会用上一帧矩阵（血条/名字差一帧震颤）

@@ -18,6 +18,7 @@ public enum EntityAnchor
     Bar,//头顶血条位置
     UpCenter,//中上中心
     UpFront,//中上前方
+    Camera,//相机注视点
 
     //必须依赖人物骨骼的
     ModelRootPosition,//模型根位置
@@ -27,7 +28,6 @@ public enum EntityAnchor
     LeftFoot,
     RightFoot,
     Chest,
-    Camera,//相机注视点
 }
 public struct EntityAnchorInfo
 {
@@ -91,6 +91,7 @@ public static class EntityAnchorExtensions
             case EntityAnchor.Bar: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.5f) * Vector3.up;
             case EntityAnchor.UpCenter: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up;
             case EntityAnchor.UpFront: return model.transform.ToAnchorInfo() + model.yRange.y*0.75f * Vector3.up+ (model.zRange.y + 0.5f) * model.transform.forward;
+            case EntityAnchor.Camera: return model.transform.ToAnchorInfo() + (model.yRange.y * 0.5f + 0.5f) * Vector3.up;
         }
         throw new System.Exception("Unknown anchor: " + anchor);
     }

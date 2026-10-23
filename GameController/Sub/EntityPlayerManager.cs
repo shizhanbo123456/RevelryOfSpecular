@@ -259,9 +259,7 @@ public class EntityPlayerManager : ClientSubManager
                     view.transform.position = info.position;
                     view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
-                    view.cameraAnchor.position = view.anim != null
-                        ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
-                        : view.transform.position;
+                    view.cameraAnchor.position = EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position;
                     view.cameraAnchor.rotation = view.transform.rotation;
                     Tool.CameraController.SetLookTarget(view.cameraAnchor);
                 }
