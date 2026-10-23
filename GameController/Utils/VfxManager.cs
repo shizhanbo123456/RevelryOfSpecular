@@ -60,11 +60,11 @@ public class VfxManager : MonoBehaviour
         return obj;
     }
 
-    // 倍率直接乘在根节点上（0 = 不缩放）。Local 缩放模式的子粒子不跟随父级缩放，这类资产需美术在预制体内自行处理
+    // 特效资产的位姿与缩放统一是 (0,0,0)/(1,1,1)，倍率直接写成根节点缩放（0 = 不缩放）
     private static void ApplyScale(GameObject obj, float scale)
     {
         if (obj == null || scale <= 0f || Mathf.Approximately(scale, 1f)) return;
-        obj.transform.localScale *= scale;
+        obj.transform.localScale = Vector3.one * scale;
     }
     #endregion
 
