@@ -3,10 +3,12 @@ using UnityEngine;
 
 public class LandscapeSpawns : MonoBehaviour
 {
-    [Header("地形（在 Inspector 中指定；右键菜单生成珊瑚/僵尸点位时用于贴合表面）")]
+    [Header("地形")]
+    [Tooltip("右键菜单生成珊瑚/僵尸点位时用于贴合表面")]
     [SerializeField] private Terrain terrain;
 
-    [Header("地形块列表（拆分后的 64 个子地形物体；供 TerrainChunkCuller 按相机方形可见距离显隐）")]
+    [Header("地形块")]
+    [Tooltip("拆分后的 64 个子地形物体；供 TerrainChunkCuller 按相机方形可见距离显隐")]
     public List<GameObject> terrainChunks = new();
 
     private void Awake()
@@ -68,46 +70,55 @@ public class LandscapeSpawns : MonoBehaviour
 
     #endregion
 
-    [Header("副守护点列表（贤者雕像 ×3，下标即 value 0~2）")]
+    [Header("副守护点")]
+    [Tooltip("贤者雕像 ×3，下标即 GuardStatue.value 0~2")]
     public List<Transform> subGuardStatueSpawnPositions = new();
 
-    [Header("主守护点（国王雕像 ×1）")]
+    [Header("主守护点")]
+    [Tooltip("国王雕像 ×1")]
     public Transform mainGuardStatueSpawnPosition;
 
-    [Header("珊瑚刷新位置列表（Vector3，由右键菜单生成）")]
+    [Header("珊瑚刷新点")]
+    [Tooltip("由右键菜单生成")]
     public List<Vector3> coralSpawnPositions = new();
 
     [Tooltip("右键菜单「随机生成珊瑚刷新点」单次生成的数量；生成时会先清空 coralSpawnPositions")]
     [Min(1)] public int coralGenerateCount = 100;
 
-    [Header("水晶雕像位置列表（水晶雕像被摧毁后不会复活）")]
+    [Header("水晶雕像位置")]
+    [Tooltip("被摧毁后不会复活")]
     public List<Transform> crystalStatueSpawnPositions = new();
 
-    [Header("中立雕像位置列表（中立争抢单位，多个候选随机取一个）")]
+    [Header("中立雕像位置")]
+    [Tooltip("中立争抢单位，多个候选随机取一个")]
     public List<Transform> neutralStatueSpawnPositions = new();
 
-    [Header("僵尸出生点列表（Vector3，由右键菜单生成；道路/墓地/雕像外围，随机取一个）")]
+    [Header("僵尸出生点")]
+    [Tooltip("由右键菜单生成，分布偏道路/墓地/雕像外围，随机取一个")]
     public List<Vector3> zombieSpawnPositions = new();
 
     [Tooltip("右键菜单「随机生成僵尸出生点」单次生成的数量；生成时会先清空 zombieSpawnPositions")]
     [Min(1)] public int zombieGenerateCount = 100;
 
-    [Header("进攻方出生/复活位置列表（同一个列表，出生与复活均随机取一个）")]
+    [Header("进攻方出生/复活位置")]
     public List<Transform> attackPositions = new();
 
-    [Header("防守方出生/复活位置列表（同一个列表，出生与复活均随机取一个）")]
+    [Header("防守方出生/复活位置")]
     public List<Transform> defensePositions = new();
 
-    [Header("初始界面预览（仅客户端使用）：角色站位与展示相机机位，锚点必须属于地形预制体")]
+    [Header("初始界面预览")]
+    [Tooltip("进攻方角色站位；仅客户端使用，锚点必须属于地形预制体")]
     public Transform attackerPreviewPos;
+    [Tooltip("防守方角色站位")]
     public Transform defenserPreviewPos;
+    [Tooltip("展示相机机位")]
     public Transform cameraPreviewPos;
 
-    [Header("Gizmos 半径（仅编辑期可视化，不影响运行时逻辑）")]
-    [Tooltip("由菜单生成的坐标点位（珊瑚刷新点 + 僵尸出生点，两个 Vector3 列表共用）的 Gizmos 球半径")]
+    [Header("Gizmos 半径")]
+    [Tooltip("珊瑚刷新点与僵尸出生点（两个 Vector3 列表共用）的球半径，仅编辑期可视化")]
     [Min(0.1f)] public float coralGizmoRadius = 1f;
 
-    [Tooltip("其余 Transform 锚点（雕像/水晶雕像/中立雕像/双方出生-复活位置）的 Gizmos 球半径")]
+    [Tooltip("其余 Transform 锚点的球半径，仅编辑期可视化")]
     [Min(0.1f)] public float otherGizmoRadius = 1f;
 
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
