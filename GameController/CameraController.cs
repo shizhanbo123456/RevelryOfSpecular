@@ -22,6 +22,8 @@ public class CameraController : MonoBehaviour
     public float pitchSmooth = 10f;
     // 俯仰偏转钳制范围（度）：在平滑之后钳制而非钳制目标值，设大目标可快速平滑到边界
     public Vector2 pitchClamp = new Vector2(-45f, 45f);
+    
+    public float xSmooth = 2f;
 
     // 自动取景：每 autoFrameInterval 遍历可见实体，把可见模型的俯仰跨度约束进视野；
     // 有越界时经 SetPitch 按周期续期修正，无越界时停止刷新、由保持时间自然到期回正
@@ -93,7 +95,11 @@ public class CameraController : MonoBehaviour
         float yCenter = (yRange.x + yRange.y) * 0.5f;
         float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * Time.deltaTime));
         float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
-        transform.position = lookTarget.position + Vector3.up * yNew + back * zNew;
+
+        float x=Vector3.Dot(lookTarget.position - transform.position, lookTarget.right);
+        float xNew=Mathf.Lerp(x, 0, 1f - Mathf.Exp(-xSmooth * Time.deltaTime));
+
+        transform.position = lookTarget.position + Vector3.up * yNew + back * zNew - lookTarget.right * xNew;
 
         // 自动取景周期遍历
         autoFrameTimer += Time.deltaTime;
@@ -190,16 +196,11 @@ public class CameraController : MonoBehaviour
             var d = lookTarget.position - transform.position;
             float dh = d.y;
             float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
-            pitchTarget = Mathf.Atan(dh / ds);
+            pitchTarget = -Mathf.Atan(dh / ds)*Mathf.Rad2Deg;
         }
-        var eular = transform.rotation.eulerAngles;
-        eular.x = pitchTarget;
+        var eular = new Vector3(pitchTarget, lookTarget.rotation.eulerAngles.y);
         var targetQuaternion = Quaternion.Euler(eular);
-        transform.rotation = Quaternion.Lerp(transform.rotation,targetQuaternion, 1f - Mathf.Exp(pitchSmooth * Time.deltaTime));
-
-        eular = transform.rotation.eulerAngles;
-        eular.y = lookTarget.rotation.eulerAngles.y;
-        transform.rotation = Quaternion.Euler(eular);
+        transform.rotation = Quaternion.Lerp(transform.rotation,targetQuaternion, 1f - Mathf.Exp(-pitchSmooth * Time.deltaTime));
     }
 
     // Unity 要到渲染才重算 worldToCameraMatrix，同帧 WorldToScreenPoint 会用上一帧矩阵（血条/名字差一帧震颤）
