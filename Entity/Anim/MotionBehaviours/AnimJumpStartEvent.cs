@@ -16,7 +16,7 @@ public class AnimJumpStartEvent : AnimMotionEvent
         if (data == null) return;
         if (main)
         {
-            if(MovingForward)anim.SetVelocityForward(MoveSpeed*0.7f);
+            if(MovingForward)anim.SetVelocityForward(MoveSpeed*1.3f);
         }
     }
 }

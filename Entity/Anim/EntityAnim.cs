@@ -65,7 +65,7 @@ public class EntityAnim : MonoBehaviour
         }
     }
     private EntityData data;
-    public EntityAnimData animData;
+    [HideInInspector]public EntityAnimData animData;
 
 
     private int currentAnimId = -1;

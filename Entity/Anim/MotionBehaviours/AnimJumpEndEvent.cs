@@ -3,25 +3,18 @@ using UnityEngine;
 public class AnimJumpEndEvent : AnimMotionEvent
 {
     protected override InputBlockOp blockOp => InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
-    private const float thresholdLand = 0.25f;
-    private bool canTrig = false;
+    [SerializeField]private float thresholdLand = 0.25f;
 
-    public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
-    {
-        base.OnStateEnter(animator, stateInfo, layerIndex);
-        if (!main) return;
-        canTrig = true;
-    }
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         base.OnStateUpdate(animator, stateInfo, layerIndex);
         if (data == null) return;
         if (!main) return;
 
-        if (canTrig&&stateInfo.normalizedTime > thresholdLand)
+        if (stateInfo.normalizedTime > thresholdLand)
         {
-            anim.SetVelocityForward(0);
-            canTrig = false;
+            if (MovingForward) anim.SetVelocityForward(MoveSpeed);
+            else anim.SetVelocityForward(0);
         }
     }
 }
