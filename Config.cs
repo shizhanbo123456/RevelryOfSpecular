@@ -32,11 +32,9 @@ public static class Config
 
     #region 守护雕像（防守目标）
     public const int sage_statue_count = 3;
-    public const int king_statue_count = 1;
     #endregion
 
     #region 资源与中立单位
-    public const int coral_size_count = 2;              // 0 = 小珊瑚，1 = 大珊瑚
     public const int crystal_statue_count = 3;          // 场景 3 座水晶雕像，value 0~2
     public const float crystal_statue_attack_range = 20f;
     public const float coral_spawn_checks_per_second = 10f;
@@ -221,8 +219,6 @@ public static class Config
     // 技能自动索敌前方扇形半角（度）；敌人在朝向左右各该角度内才索敌
     public const float default_skill_auto_target_sector_half_angle = 30f;
 
-    public const float default_forward_aim_distance = 10f;
-
     public const float buff_vfx_life_time = 3600f;
 
     #region 通用 Buff 数值（占位初值，待策划定稿后在此统一调整）
@@ -252,12 +248,6 @@ public static class Config
     public const float power_suppress_vfx_life = 1f;
     public const float plague_mark_duration = 30f;   // 瘟疫标记持续时长（主动1 与 瘟疫污染扩散共用）
     public const float plague_pollute_radius = 8f;   // 珊瑚被摧毁时的瘟疫标记扩散半径
-    #endregion
-
-    #region 技能参数补充（占位初值，待策划定稿）
-    public const float chain_jump_radius = 6f;
-    public const float chain_jump_duration = 0.6f;
-    public const float airstrike_radius = 3f;
     #endregion
 
     public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
@@ -317,7 +307,6 @@ public static class Config
     public const int defense_index_death_stroller = 2; // 死灵漫步者
     public const int defense_index_masked_pope = 3;    // 蒙面教皇
     public const int defense_index_plague_bringer = 4; // 瘟疫使者
-    public const int defense_index_pale_dancer = 5;    // 苍白舞者
     #endregion
 
     #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）
