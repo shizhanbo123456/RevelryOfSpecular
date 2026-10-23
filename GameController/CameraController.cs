@@ -53,37 +53,23 @@ public class CameraController : MonoBehaviour
 
         transform.LookAt(lookTarget.position);
         UpdateAutoPitch();
-        if (pitchHoldTime > 0f)
-        {
-            pitchHoldTime -= Time.deltaTime;
-        }
-        else
-        {
-            var d = lookTarget.position - transform.position;
-            float dh = d.y;
-            float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
-            pitchTarget = Mathf.Atan(dh / ds);
-        }
-        var eular = transform.rotation.eulerAngles;
-        eular.x = pitchTarget;
-        transform.rotation *= Quaternion.Euler(eular);
-        NotifyCameraUpdated();
+        TickPitch();
 
         NotifyCameraUpdated();
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
-    private float AxisRate(float v, Vector2 range, float d, float slow, float fast)
+    private float AxisRate(float v, Vector2 range, float smoothDistance, float slow, float fast)
     {
         if (v < range.x)
         {
-            if (d <= 0f || v <= range.x - d) return fast;
-            return Mathf.Lerp(fast, slow, (v - (range.x - d)) / d);
+            if (smoothDistance <= 0f || v <= range.x - smoothDistance) return fast;
+            return Mathf.Lerp(fast, slow, (v - (range.x - smoothDistance)) / smoothDistance);
         }
         if (v > range.y)
         {
-            if (d <= 0f || v >= range.y + d) return fast;
-            return Mathf.Lerp(slow, fast, (v - range.y) / d);
+            if (smoothDistance <= 0f || v >= range.y + smoothDistance) return fast;
+            return Mathf.Lerp(slow, fast, (v - range.y) / smoothDistance);
         }
         return slow;
     }
@@ -95,7 +81,6 @@ public class CameraController : MonoBehaviour
         // 偏航不平滑：相机全程在角色正后方，自身偏航与角色一致
         float yaw = lookTarget.eulerAngles.y;
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
-
         Vector3 toCam = transform.position - lookTarget.position;
         toCam.y = 0f;
         float zCur = toCam.magnitude;
@@ -117,20 +102,7 @@ public class CameraController : MonoBehaviour
             autoFrameTimer = 0f;
             UpdateAutoPitch();
         }
-        if (pitchHoldTime > 0f)
-        {
-            pitchHoldTime -= Time.deltaTime;
-        }
-        else
-        {
-            var d = lookTarget.position- transform.position;
-            float dh = d.y;
-            float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
-            pitchTarget = Mathf.Atan(dh/ds);
-        }
-        var eular = transform.rotation.eulerAngles;
-        eular.x = pitchTarget;
-        transform.rotation *= Quaternion.Euler(eular);
+        TickPitch();
         NotifyCameraUpdated();
     }
 
@@ -205,6 +177,29 @@ public class CameraController : MonoBehaviour
     {
         pitchTarget = pitch;
         pitchHoldTime = duration;
+    }
+
+    private void TickPitch()
+    {
+        if (pitchHoldTime > 0f)
+        {
+            pitchHoldTime -= Time.deltaTime;
+        }
+        else
+        {
+            var d = lookTarget.position - transform.position;
+            float dh = d.y;
+            float ds = Mathf.Sqrt(d.x * d.x + d.z * d.z);
+            pitchTarget = Mathf.Atan(dh / ds);
+        }
+        var eular = transform.rotation.eulerAngles;
+        eular.x = pitchTarget;
+        var targetQuaternion = Quaternion.Euler(eular);
+        transform.rotation = Quaternion.Lerp(transform.rotation,targetQuaternion, 1f - Mathf.Exp(pitchSmooth * Time.deltaTime));
+
+        eular = transform.rotation.eulerAngles;
+        eular.y = lookTarget.rotation.eulerAngles.y;
+        transform.rotation = Quaternion.Euler(eular);
     }
 
     // Unity 要到渲染才重算 worldToCameraMatrix，同帧 WorldToScreenPoint 会用上一帧矩阵（血条/名字差一帧震颤）
