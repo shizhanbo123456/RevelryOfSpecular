@@ -158,7 +158,6 @@ public static class Config
 
     #region 通用
     public const int entity_id_max = 30000;
-    public const float melee_hit_radius = 0.7f;
     public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
     public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
     public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;
@@ -241,7 +240,6 @@ public static class Config
     public const float defense_nearby_radius = 8f;
     public const int power_suppress_hits = 3;
     public const float power_suppress_interval = 0.4f;
-    public const float power_suppress_radius = 3f;
     public const float power_suppress_rate = 1f;
     public const int power_suppress_vfx_index = 5;   // RangeMagic[5]
     public const float power_suppress_vfx_life = 1f;
@@ -295,8 +293,6 @@ public static class Config
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）
     public const float rb_drag = 0f;
 
-    public const float move_ground_friction = 2f;
-
     public const float rb_angular_drag = 1f;
     #endregion
 
@@ -315,10 +311,5 @@ public static class Config
     public const float attack_revive_slow_factor = 0.6f;
     public const int pale_full_stacks = 10;
     public const int pale_mixed_stacks = 8;
-    #endregion
-
-    #region 灵火（StatueBlaze）：水晶雕像攻击附加爆炸
-    public const float statue_blaze_radius = 2.5f;
-    public const float statue_blaze_rate = 0.5f;
     #endregion
 }
