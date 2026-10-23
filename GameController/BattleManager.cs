@@ -1079,8 +1079,8 @@ public partial class BattleManager : EnsBehaviour
             e.healthDirty = false;
             e.buffDirty = false;
             e.skillDirty = false;
-            // 位姿基准只在真的把新位姿发出去后推进：否则每轮都对齐当前会让慢速移动永远攒不满阈值（完整包必带位姿）
-            if (e.transformDirty || includeRuntime) e.ClearTransformDirty();
+            // 位姿待发次数每轮只 +1（与客户端数量无关）；基准只在真的发出去后推进，否则慢速移动永远攒不满阈值
+            if (includeRuntime || e.transformDirty < 2) e.OnTransformSent();
         }
         s_dirtySweep.Clear();
 

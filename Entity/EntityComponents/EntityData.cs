@@ -520,20 +520,20 @@ public abstract class EntityData : MonoBehaviour
     }
 
     // 显示同步脏标记：health 只在当前生命值变化时置脏（上限全程不变）、buff 只在增删时置脏、skill 只在持有列表变化时置脏、
-    // transform 只在相对上次下发的位姿超阈值时置脏
+    // transform 记待发次数：0 = 有新位移，<2 时每轮下发并 +1，满 2 停发（停下后仍会多发一个包）
     public bool healthDirty;
     public bool buffDirty;
     public bool skillDirty;
-    public bool transformDirty;
+    public int transformDirty;
 
-    private Vector3 transformBasePos;   // 上次下发时的位姿基准（清脏时对齐当前）
+    private Vector3 transformBasePos;   // 上次下发时的位姿基准（发包时对齐当前）
     private float transformBaseYaw;
     private bool transformBaseReady;
 
-    // 每帧调用：与上次下发的基准比，超阈值才置脏（基准不随帧推进，误差恒定为阈值量级）
+    // 每帧调用：待发次数满 2（已静止）才重新判定，超阈值置 0 重新计数（基准不随帧推进，误差恒定为阈值量级）
     public void CheckTransformDirty()
     {
-        if (transformDirty) return;
+        if (transformDirty < 2) return;
         Vector3 p = transform.position;
         float yaw = transform.eulerAngles.y;
         if (!transformBaseReady)
@@ -544,23 +544,23 @@ public abstract class EntityData : MonoBehaviour
             return;
         }
         float eps = Config.entity_sync_pos_epsilon;
-        if ((p - transformBasePos).sqrMagnitude >= eps * eps) { transformDirty = true; return; }
-        if (Mathf.Abs(Mathf.DeltaAngle(transformBaseYaw, yaw)) >= Config.entity_sync_yaw_epsilon) transformDirty = true;
+        if ((p - transformBasePos).sqrMagnitude >= eps * eps) { transformDirty = 0; return; }
+        if (Mathf.Abs(Mathf.DeltaAngle(transformBaseYaw, yaw)) >= Config.entity_sync_yaw_epsilon) transformDirty = 0;
     }
 
-    // 清脏：基准对齐到当前位姿（与 health/buff/skill 脏标记同批清）
-    public void ClearTransformDirty()
+    // 位姿已下发：基准对齐当前，待发次数未满 2 时 +1（满 2 后的全量心跳包只是重复带位姿，不计数）
+    public void OnTransformSent()
     {
-        transformDirty = false;
         transformBasePos = transform.position;
         transformBaseYaw = transform.eulerAngles.y;
         transformBaseReady = true;
+        if (transformDirty < 2) transformDirty++;
     }
 
     public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
     {
         // 各段按脏标记选择性携带（完整同步 / 首见必带全量）
-        bool withTransform = includeRuntime || transformDirty;
+        bool withTransform = includeRuntime || transformDirty < 2;
         bool withHealth = includeRuntime || healthDirty;
         bool withBuffs = includeRuntime || buffDirty;
         bool withSkills = includeRuntime || skillDirty;
