@@ -19,7 +19,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPunchLeft;
         public override float CastRange => 2f;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_L;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -41,7 +40,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPunchRight;
         public override float CastRange => 2f;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Hand_R;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -63,7 +61,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPunchSmash;
         public override float CastRange => 2f;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
         private const float SmashLife = 0.6f;
 
         public override SkillContext SkillLogic(EntityData entity)

@@ -12,8 +12,9 @@ namespace Ros.Skill
     {
         public abstract int Id { get; }
         public virtual float CastRange => 0f;
-        protected virtual bool HasCastAnim => true;
-        protected virtual EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Attack_Weapon_R;
+        // 攻击动画读 skill.csv 第 18 列，空/0 = 无动画（按下立刻施放）
+        protected bool HasCastAnim => (int)CastAnim != 0;
+        protected EntityAnim.AttackType CastAnim => (EntityAnim.AttackType)ConfigManager.SkillConfig.Get(Id).attackAnim;
 
         // 武器分类 / 细分 id 读 skill.csv（分类 0 或细分留空 = 无武器）
         public WeaponRef Weapon

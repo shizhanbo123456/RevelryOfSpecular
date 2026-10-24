@@ -302,7 +302,6 @@ namespace Ros.Skill
     public class SkillSwiftAura : SkillBase
     {
         public override int Id => (int)SkillType.SkillSwiftAura;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -359,7 +358,6 @@ namespace Ros.Skill
     public class SkillShieldTen : SkillBase
     {
         public override int Id => (int)SkillType.SkillShieldTen;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -381,7 +379,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillFlyingKick;
         public override float CastRange => 3f;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Jump_Mega;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -608,7 +605,6 @@ namespace Ros.Skill
     public class SkillPullSmash : SkillBase
     {
         public override int Id => (int)SkillType.SkillPullSmash;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         private const float PullRadius = 8f;
         private const float PullTime = 0.5f;
         private const float LandVfxLife = 0.8f;
@@ -697,7 +693,6 @@ namespace Ros.Skill
     public class SkillAllyShieldEight : SkillBase
     {
         public override int Id => (int)SkillType.SkillAllyShieldEight;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         private const float Radius = 10f;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -729,7 +724,6 @@ namespace Ros.Skill
     public class SkillShieldFour : SkillBase
     {
         public override int Id => (int)SkillType.SkillShieldFour;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -1028,7 +1022,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillVortexBomb;
         public override float CastRange => 12f;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
         private const float PullTime = 1.2f;
         private const float PullRadius = 6f;
 
@@ -1146,7 +1139,6 @@ namespace Ros.Skill
     public class SkillAllyCritBoost : SkillBase
     {
         public override int Id => (int)SkillType.SkillAllyCritBoost;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Short;
         private const float Radius = 10f;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -1179,7 +1171,6 @@ namespace Ros.Skill
     public class SkillAllyShieldTwentyFive : SkillBase
     {
         public override int Id => (int)SkillType.SkillAllyShieldTwentyFive;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Mega_Long;
 
         public override SkillContext SkillLogic(EntityData entity)
         {

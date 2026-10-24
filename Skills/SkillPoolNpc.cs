@@ -26,7 +26,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillZombieClawR;
         public override float CastRange => Config.zombie_attack_range;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -48,7 +47,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillZombieClawL;
         public override float CastRange => Config.zombie_attack_range;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -70,7 +68,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawR;
         public override float CastRange => Config.zombie_attack_range;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_R;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -92,7 +89,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawL;
         public override float CastRange => Config.zombie_attack_range;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Hand_Attack_L;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -113,7 +109,6 @@ namespace Ros.Skill
     public class SkillEliteZombieScream : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieScream;
-        protected override EntityAnim.AttackType CastAnim => EntityAnim.AttackType.Zombie_Scream;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -137,7 +132,6 @@ namespace Ros.Skill
     public abstract class CrystalStatueSporeShot : SkillBase
     {
         public override float CastRange => Config.crystal_statue_attack_range;
-        protected override bool HasCastAnim => false; // 塔无攻击动画：按下即施放
         protected abstract int BulletVfx { get; }
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -190,7 +184,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillNeutralStatueSpore;
         public override float CastRange => Config.neutral_statue_attack_range;
-        protected override bool HasCastAnim => false;
 
         public override SkillContext SkillLogic(EntityData entity)
         {

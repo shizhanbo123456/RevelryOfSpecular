@@ -139,6 +139,16 @@ public class ConfigManager : MonoBehaviour
         return value;
     }
 
+    // 技能攻击动画：空/0 = 无动画，其余必须是 EntityAnim.AttackType 里定义的值
+    public static int ParseAttackAnim(string[] rowData, int col)
+    {
+        int value = ParseIntOrNull(rowData, col) ?? 0;
+        if (value == 0) return 0;
+        if (!Enum.IsDefined(typeof(EntityAnim.AttackType), value))
+            throw new FormatException($"第 {col} 列的攻击动画 {value} 未在 EntityAnim.AttackType 中定义");
+        return (int)(EntityAnim.AttackType)value;
+    }
+
     public static float? ParseFloatOrNull(string[] rowData, int col)
     {
         string raw = Cell(rowData, col);
@@ -408,7 +418,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 17;
+        private const int ColumnCount = 18;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -428,6 +438,7 @@ public class ConfigManager : MonoBehaviour
         public List<float> bulletSizes; // 第15列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
         public float damageInterval;     // 第16列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
         public List<float> damageRates;  // 第17列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
+        public int attackAnim;           // 第18列：EntityAnim.AttackType 数值，空 = 0 = 无动画
 
         public SkillConfig(string[] rowData)
         {
@@ -448,6 +459,7 @@ public class ConfigManager : MonoBehaviour
             bulletSizes = ParseFloatList(rowData, 14);
             damageInterval = ParseFloatOrNull(rowData, 15) ?? 100f;
             damageRates = ParseFloatList(rowData, 16);
+            attackAnim = ParseAttackAnim(rowData, 17);
         }
 
         public static int Load(ConfigTable table)
