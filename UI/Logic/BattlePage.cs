@@ -207,7 +207,12 @@ public class BattlePage : PageBase
         else if (info.type.category == EntityCategory.Character_Attack ||
                  info.type.category == EntityCategory.Character_Defense)
         {
-            UpdateEntityBar(info);
+            UpdateEntityBar(info, withName: true);
+        }
+        else if (info.type.category == EntityCategory.CrystalStatue ||
+                 info.type.category == EntityCategory.Coral)
+        {
+            UpdateEntityBar(info, withName: false); // 场景物件常显血条，不占名牌
         }
 
         if (IsOwnEntity(info.entityId))
@@ -779,22 +784,25 @@ public class BattlePage : PageBase
     #endregion
 
     #region//Local
-    private void UpdateEntityBar(SCEntityDisplayInfo info)
+    private void UpdateEntityBar(SCEntityDisplayInfo info, bool withName)
     {
         bool isAttack = info.camp == EntityCamp.Attack;
         Color campColor = isAttack ? CampAttackColor : CampDefenseColor;
 
-        if (!nameLabels.TryGetValue(info.entityId, out var nameItem))
+        if (withName)
         {
-            nameItem = UI_PlayerName.CreateInstance();
-            Root.AddChild(nameItem);
-            nameLabels[info.entityId] = nameItem;
-        }
-        nameItem.visible = true;
-        if (nameItem.m_num != null)
-        {
-            nameItem.m_num.text = GetUnitName(EntityOwnerOf(info.entityId));
-            nameItem.m_num.color = campColor;
+            if (!nameLabels.TryGetValue(info.entityId, out var nameItem))
+            {
+                nameItem = UI_PlayerName.CreateInstance();
+                Root.AddChild(nameItem);
+                nameLabels[info.entityId] = nameItem;
+            }
+            nameItem.visible = true;
+            if (nameItem.m_num != null)
+            {
+                nameItem.m_num.text = GetUnitName(EntityOwnerOf(info.entityId));
+                nameItem.m_num.color = campColor;
+            }
         }
 
         if (!entityBars.TryGetValue(info.entityId, out var barItem))
