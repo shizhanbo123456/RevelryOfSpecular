@@ -8,8 +8,8 @@ public class AssetsManager : MonoBehaviour
     private void Awake()
     {
         Tool.AssetsManager = this;
-        SkillIconMap = BuildIconMap(SkillIconTextures, nameof(SkillIconTextures));
-        BuffIconMap = BuildIconMap(BuffIconTextures, nameof(BuffIconTextures));
+        SkillIconMap = BuildIconMap(skillIconTextures, nameof(skillIconTextures));
+        BuffIconMap = BuildIconMap(buffIconTextures, nameof(buffIconTextures));
     }
 
     // 图标 id 取贴图名前 3 位（如 "015_霜棱散" → 15）；名字不合规或 id 重复属资源配置错配，直接抛
@@ -64,9 +64,11 @@ public class AssetsManager : MonoBehaviour
     #region UI 图标
     public List<Texture2D> AttackCharacterIcons = new();
     public List<Texture2D> DefenseCharacterIcons = new();
+    [FormerlySerializedAs("SkillIconTextures")]
     [FormerlySerializedAs("SkillIcons")]
-    public List<Texture> SkillIconTextures = new();   // 贴图名前 3 位 = 技能 id
-    public List<Texture> BuffIconTextures = new();    // 贴图名前 3 位 = Buff(EffectType) id
+    [SerializeField] private List<Texture> skillIconTextures = new();   // 贴图名前 3 位 = 技能 id
+    [FormerlySerializedAs("BuffIconTextures")]
+    [SerializeField] private List<Texture> buffIconTextures = new();    // 贴图名前 3 位 = Buff(EffectType) id
     public Texture MapTexture;
     public Texture MapArea;
 
