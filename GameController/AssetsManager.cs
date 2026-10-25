@@ -1,11 +1,36 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class AssetsManager : MonoBehaviour
 {
     private void Awake()
     {
         Tool.AssetsManager = this;
+        SkillIconMap = BuildIconMap(SkillIconTextures, nameof(SkillIconTextures));
+        BuffIconMap = BuildIconMap(BuffIconTextures, nameof(BuffIconTextures));
+    }
+
+    // 图标 id 取贴图名前 3 位（如 "015_霜棱散" → 15）；名字不合规或 id 重复属资源配置错配，直接抛
+    private static Dictionary<int, Texture> BuildIconMap(List<Texture> textures, string fieldName)
+    {
+        var map = new Dictionary<int, Texture>();
+        if (textures == null)
+            throw new FormatException($"[图标] AssetsManager.{fieldName} 列表为空引用，请在 Inspector 里重新配置");
+
+        foreach (var texture in textures)
+        {
+            if (texture == null)
+                throw new FormatException($"[图标] AssetsManager.{fieldName} 含空引用，请检查 Inspector 列表");
+            string textureName = texture.name;
+            if (textureName.Length < 3 || !int.TryParse(textureName.Substring(0, 3), out int id))
+                throw new FormatException($"[图标] AssetsManager.{fieldName} 的贴图「{textureName}」前 3 位不是图标 id");
+            if (map.ContainsKey(id))
+                throw new FormatException($"[图标] AssetsManager.{fieldName} 的贴图「{textureName}」id {id} 与「{map[id].name}」重复");
+            map.Add(id, texture);
+        }
+        return map;
     }
 
     #region 实体图形（客户端表现用；服务器不加载本组件）
@@ -39,9 +64,14 @@ public class AssetsManager : MonoBehaviour
     #region UI 图标
     public List<Texture2D> AttackCharacterIcons = new();
     public List<Texture2D> DefenseCharacterIcons = new();
-    public List<Texture> SkillIcons = new();
+    [FormerlySerializedAs("SkillIcons")]
+    public List<Texture> SkillIconTextures = new();   // 贴图名前 3 位 = 技能 id
+    public List<Texture> BuffIconTextures = new();    // 贴图名前 3 位 = Buff(EffectType) id
     public Texture MapTexture;
     public Texture MapArea;
+
+    public Dictionary<int, Texture> SkillIconMap { get; private set; } = new();
+    public Dictionary<int, Texture> BuffIconMap { get; private set; } = new();
     #endregion
 
     public bool TryGetGraphic(EntityType type, out GameObject graphic)

@@ -1054,18 +1054,9 @@ public class BattlePage : PageBase
     private static Texture ResolveSkillIcon(int skillId)
     {
         if (skillId < 0) return null;
-
-        var config = ConfigManager.SkillConfig.Get(skillId);
-        if (!config.iconIndex.HasValue) return null;
-
-        var icons = Tool.AssetsManager != null ? Tool.AssetsManager.SkillIcons : null;
-        int index = config.iconIndex.Value;
-        if (icons == null || index < 0 || index >= icons.Count)
-        {
-            Debug.LogError($"[技能图标] 技能 {skillId} 的图标编号 {index} 越界（SkillIcons 数量 {(icons == null ? 0 : icons.Count)}）");
-            return null;
-        }
-        return icons[index];
+        var map = Tool.AssetsManager != null ? Tool.AssetsManager.SkillIconMap : null;
+        if (map == null) return null;
+        return map.TryGetValue(skillId, out var icon) ? icon : null; // 该技能没配图标 → 不显示图标
     }
 
     private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
