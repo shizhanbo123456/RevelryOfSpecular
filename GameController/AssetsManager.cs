@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class AssetsManager : MonoBehaviour
 {
@@ -64,10 +63,7 @@ public class AssetsManager : MonoBehaviour
     #region UI 图标
     public List<Texture2D> AttackCharacterIcons = new();
     public List<Texture2D> DefenseCharacterIcons = new();
-    [FormerlySerializedAs("SkillIconTextures")]
-    [FormerlySerializedAs("SkillIcons")]
     [SerializeField] private List<Texture> skillIconTextures = new();   // 贴图名前 3 位 = 技能 id
-    [FormerlySerializedAs("BuffIconTextures")]
     [SerializeField] private List<Texture> buffIconTextures = new();    // 贴图名前 3 位 = Buff(EffectType) id
     public Texture MapTexture;
     public Texture MapArea;
