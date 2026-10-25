@@ -110,7 +110,7 @@ public class AssetsManager : MonoBehaviour
         return graphic != null;
     }
 
-    private static GameObject RandomOf(List<GameObject> list) => list.Count > 0 ? list[Random.Range(0, list.Count)] : null;
+    private static GameObject RandomOf(List<GameObject> list) => list.Count > 0 ? list[UnityEngine.Random.Range(0, list.Count)] : null;
 
     public bool TryGetWeaponPrefab(WeaponRef weapon, out GameObject prefab)
     {
