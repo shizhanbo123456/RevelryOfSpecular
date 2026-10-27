@@ -21,9 +21,8 @@ public class HomePage : PageBase
         var charPanel = panel.m_characterList;
         charPanel.visible = false; // 单页布局：角色选择面板默认隐藏，「选择角色」打开
         charPanel.m_characterList.itemRenderer = RenderCharacter;
-        charPanel.m_btn_attacker.onClick.Add(() => SwitchTab(false));
-        charPanel.m_btn_defenser.onClick.Add(() => SwitchTab(true));
-        charPanel.m_btn_confirm.onClick.Add(() => charPanel.visible = false); // 确认 → 收起角色选择面板
+        charPanel.m_btn_attack.onClick.Add(() => SwitchTab(false));
+        charPanel.m_btn_defense.onClick.Add(() => SwitchTab(true));
 
         panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮在连接面板上
         {
@@ -51,7 +50,6 @@ public class HomePage : PageBase
         base.Enter(param);
         panel.m_playerInfo.m_input_playerName.text = ClientSelection.playerName;
         RefreshLists();
-        RefreshPlayerInfo();
         RefreshAttrList();
         panel.m_characterList.visible = false; // 每次进入首页收起角色选择面板
         //同步场景预览：当前选中的两角色复制到预览锚点
@@ -64,8 +62,8 @@ public class HomePage : PageBase
     {
         defenseTab = defense;
         var charPanel = panel.m_characterList;
-        charPanel.m_btn_attacker.m_selected.selectedIndex = defense ? 0 : 1;
-        charPanel.m_btn_defenser.m_selected.selectedIndex = defense ? 1 : 0;
+        charPanel.m_btn_attack.selected = !defense;
+        charPanel.m_btn_defense.selected = defense;
         RefreshLists();
         RefreshAttrList(); // 属性列表与角色列表同面板，切阵营后一起刷新
     }
@@ -76,8 +74,8 @@ public class HomePage : PageBase
         panel.m_characterList.m_panel.title = "角色选择";
         // 按钮标题（GButton.title）
         panel.m_connectPanel.m_btn_editSelection.title = "选择角色"; // 打开角色选择面板
-        panel.m_characterList.m_btn_attacker.title = "进攻";
-        panel.m_characterList.m_btn_defenser.title = "防守";
+        panel.m_characterList.m_btn_attack.title = "进攻";
+        panel.m_characterList.m_btn_defense.title = "防守";
         panel.m_connectPanel.m_btn_connect.title = "连接";
     }
 
@@ -119,13 +117,6 @@ public class HomePage : PageBase
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
                 Tool.ClientLogicManager.HomePreview.Refresh(ClientSelection.selectedAttackIndex, ClientSelection.selectedDefenseIndex);
         });
-    }
-
-    private void RefreshPlayerInfo()
-    {
-        var info = panel.m_playerInfo;
-        if (info.m_label_level != null)
-            info.m_label_level.text = $"玩家等级 Lv{(Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1)}";
     }
 
     private void RefreshAttrList()

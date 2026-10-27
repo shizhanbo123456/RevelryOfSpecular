@@ -25,14 +25,10 @@ public class LobbyPage : PageBase
     public override void Construct()
     {
         var view = panel.m_mainView;
-        view.m_btn_joinAttacker.onClick.Add(() => JoinCamp(0));
-        view.m_btn_joinDefenser.onClick.Add(() => JoinCamp(1));
-        view.m_btn_joinSpectate.onClick.Add(() => JoinCamp(2));
+        view.m_camp_attack.m_btn_join.onClick.Add(() => JoinCamp(0));
+        view.m_camp_defense.m_btn_join.onClick.Add(() => JoinCamp(1));
+        view.m_camp_spectate.m_btn_join.onClick.Add(() => JoinCamp(2));
         view.m_btn_prepare.onClick.Add(ToggleReady);
-        view.m_attackerAI_minus.onClick.Add(() => ChangeAICount(false, -1));
-        view.m_attackerAI_add.onClick.Add(() => ChangeAICount(false, +1));
-        view.m_defenserAI_minus.onClick.Add(() => ChangeAICount(true, -1));
-        view.m_defenserAI_add.onClick.Add(() => ChangeAICount(true, +1));
         panel.m_btn_exit.onClick.Add(OnExitClicked);
     }
 
@@ -85,8 +81,8 @@ public class LobbyPage : PageBase
     private void RefreshAICountLabels()
     {
         var view = panel.m_mainView;
-        if (view.m_label_attackerAI_count != null) view.m_label_attackerAI_count.text = $"x{attackAICount}";
-        if (view.m_label_defenserAI_count != null) view.m_label_defenserAI_count.text = $"x{defenseAICount}";
+        if (view.m_camp_attack.m_label_AI_count != null) view.m_camp_attack.m_label_AI_count.text = $"x{attackAICount}";
+        if (view.m_camp_defense.m_label_AI_count != null) view.m_camp_defense.m_label_AI_count.text = $"x{defenseAICount}";
     }
 
     private void SendRoomState()
@@ -117,9 +113,9 @@ public class LobbyPage : PageBase
         myReady = me != null && me.ready;
         RefreshPrepareButton();
 
-        RenderMemberList(panel.m_mainView.m_attackerPlayers, info.members, 0);
-        RenderMemberList(panel.m_mainView.m_defenserPlayers, info.members, 1);
-        RenderMemberList(panel.m_mainView.m_spectatePlayers, info.members, 2);
+        RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, info.members, 0);
+        RenderMemberList(panel.m_mainView.m_camp_defense.m_attackerPlayers, info.members, 1);
+        RenderMemberList(panel.m_mainView.m_camp_spectate.m_attackerPlayers, info.members, 2);
         syncingFromServer = false;
     }
 
@@ -133,9 +129,9 @@ public class LobbyPage : PageBase
         RefreshPrepareButton();
         RefreshAICountLabels();
         var empty = new List<SCLobbyInfo.LobbyMemberInfo>();
-        RenderMemberList(panel.m_mainView.m_attackerPlayers, empty, 0);
-        RenderMemberList(panel.m_mainView.m_defenserPlayers, empty, 1);
-        RenderMemberList(panel.m_mainView.m_spectatePlayers, empty, 2);
+        RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, empty, 0);
+        RenderMemberList(panel.m_mainView.m_camp_defense.m_attackerPlayers, empty, 1);
+        RenderMemberList(panel.m_mainView.m_camp_spectate.m_attackerPlayers, empty, 2);
         syncingFromServer = false;
     }
 

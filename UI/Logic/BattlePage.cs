@@ -12,7 +12,6 @@ public class BattlePage : PageBase
     private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存（仅技能 id）
     private readonly Dictionary<int, float> localCdEnds = new(); // 本地冷却模拟：skillId → 结束时刻（含延迟余量）
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地模拟需要周期刷新）
-    private readonly List<int> skillOutlineIndex = new(); // 各技能槽的边框样式（0~4）：进入战斗时一次性随机，之后不再变
     private int skillSlotCount;                           // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
     private bool skillSlotsBuilt;                         // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
     private readonly Dictionary<ushort, UI_PlayerName> nameLabels = new();
@@ -43,7 +42,6 @@ public class BattlePage : PageBase
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
-    private const int SkillOutlineVariants = 5;    // UI_SkillListItem.m_randomOutline 的档位数（0~4）
 
     private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
     private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
@@ -369,8 +367,6 @@ public class BattlePage : PageBase
         int capacity = ResolveSkillSlotCapacity(camp);
         if (capacity <= 0) capacity = Mathf.Max(1, skillSummary.Count); // 取不到属性时退化为"已持有技能数"，至少露出一格
         skillSlotCount = capacity;
-        skillOutlineIndex.Clear();
-        for (int i = 0; i < capacity; i++) skillOutlineIndex.Add(Random.Range(0, SkillOutlineVariants));
         list.itemRenderer = RenderSkillSlot;
         list.numItems = capacity; // 非虚拟列表会同步建出全部条目并回调渲染器
         RefreshSkillListWidth(list);
@@ -391,9 +387,6 @@ public class BattlePage : PageBase
     private void RenderSkillSlot(int index, GObject obj)
     {
         if (obj is not UI_SkillListItem slot) return;
-        // 边框样式：进入战斗时随好，之后每次刷新都用同一个
-        if (slot.m_randomOutline != null)
-            slot.m_randomOutline.selectedIndex = index < skillOutlineIndex.Count ? skillOutlineIndex[index] : 0;
         // 键位：槽位顺序即 Config.skill_slot_keys（U I O L H Y）
         if (slot.m_key != null)
             slot.m_key.text = index < Config.skill_slot_keys.Length ? Config.skill_slot_keys[index].ToString() : "";
@@ -422,7 +415,7 @@ public class BattlePage : PageBase
             slot.m_loader_iconBase.texture = null;
             slot.m_loader_iconBase.visible = false;
         }
-        if (slot.m_store != null) slot.m_store.text = "";
+        if (slot.m_storeList != null) slot.m_storeList.numItems = 0;
     }
 
     private void OnStatueDisplay(SCEntityDisplayInfo info)
@@ -475,17 +468,10 @@ public class BattlePage : PageBase
     {
         var bar = panel.m_PlayerBar;
         if (bar == null) return;
-        if (bar.m_bar_fill.data == null) bar.m_bar_fill.data = bar.m_bar_fill.width; // 首次记录满血宽度
-        float fullWidth = bar.m_bar_fill.data is float w ? w : bar.m_bar_fill.width;
-        bar.m_bar_fill.width = fullWidth * (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f);
+        if (bar.m_bar_fill_health.data == null) bar.m_bar_fill_health.data = bar.m_bar_fill_health.width; // 首次记录满血宽度
+        float fullWidth = bar.m_bar_fill_health.data is float w ? w : bar.m_bar_fill_health.width;
+        bar.m_bar_fill_health.width = fullWidth * (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f);
         if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
-        if (bar.m_label_level != null)
-        {
-            // 本地玩家等级：按自己阵营取所选角色的局外等级（只显示数字，不带 "Lv"）
-            int saveIndex = GetLocalSaveIndex(info.camp);
-            int level = saveIndex < 0 || Tool.SaveManager == null ? 1 : Tool.SaveManager.GetCharacterLevel(saveIndex);
-            bar.m_label_level.text = level.ToString();
-        }
     }
 
     private static int GetLocalSaveIndex(EntityCamp camp)
