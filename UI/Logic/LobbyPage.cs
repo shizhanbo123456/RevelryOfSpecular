@@ -28,6 +28,10 @@ public class LobbyPage : PageBase
         view.m_camp_attack.m_btn_join.onClick.Add(() => JoinCamp(0));
         view.m_camp_defense.m_btn_join.onClick.Add(() => JoinCamp(1));
         view.m_camp_spectate.m_btn_join.onClick.Add(() => JoinCamp(2));
+        view.m_camp_attack.m_add_ai.onClick.Add(() => ChangeAICount(false, +1));
+        view.m_camp_attack.m_remove_ai.onClick.Add(() => ChangeAICount(false, -1));
+        view.m_camp_defense.m_add_ai.onClick.Add(() => ChangeAICount(true, +1));
+        view.m_camp_defense.m_remove_ai.onClick.Add(() => ChangeAICount(true, -1));
         view.m_btn_prepare.onClick.Add(ToggleReady);
         panel.m_btn_exit.onClick.Add(OnExitClicked);
     }

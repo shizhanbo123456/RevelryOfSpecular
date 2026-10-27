@@ -11,6 +11,8 @@ namespace Ros.UI.Main
         public Controller m_hide_ai_member_operation;
         public GList m_attackerPlayers;
         public GTextField m_label_AI_count;
+        public GButton m_add_ai;
+        public GButton m_remove_ai;
         public GButton m_btn_join;
         public const string URL = "ui://q68vr2bflu0bls";
 
@@ -27,6 +29,8 @@ namespace Ros.UI.Main
             m_hide_ai_member_operation = GetControllerAt(1);
             m_attackerPlayers = (GList)GetChildAt(4);
             m_label_AI_count = (GTextField)GetChildAt(6);
+            m_add_ai = (GButton)GetChildAt(7);
+            m_remove_ai = (GButton)GetChildAt(8);
             m_btn_join = (GButton)GetChildAt(10);
         }
     }
