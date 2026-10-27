@@ -1,4 +1,5 @@
 using FairyGUI;
+using Ros.UI.Main;
 using UnityEngine;
 
 public abstract class PageBase
@@ -35,6 +36,13 @@ public abstract class PageBase
     public bool IsVisible { get; private set; }
 
     public virtual void Tick(float deltaTime) { }
+
+    // 通用面板底框（UI_panel_2）自带关闭按钮：点它收起整个面板，各面板不必再单独放关闭按钮
+    protected static void BindFrameClose(UI_panel_2 frame, GComponent target)
+    {
+        if (frame == null) return;
+        frame.m_close.onClick.Set(() => target.visible = false);
+    }
 
     public virtual void OnResize(float width, float height)
     {

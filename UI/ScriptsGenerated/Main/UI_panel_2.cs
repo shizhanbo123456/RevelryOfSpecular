@@ -9,6 +9,7 @@ namespace Ros.UI.Main
     {
         public Controller m_hide_title;
         public Controller m_show_close;
+        public GButton m_close;
         public const string URL = "ui://q68vr2bfctp8jr";
 
         public static UI_panel_2 CreateInstance()
@@ -22,6 +23,7 @@ namespace Ros.UI.Main
 
             m_hide_title = GetControllerAt(0);
             m_show_close = GetControllerAt(1);
+            m_close = (GButton)GetChildAt(3);
         }
     }
 }

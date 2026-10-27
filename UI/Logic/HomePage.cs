@@ -23,6 +23,7 @@ public class HomePage : PageBase
         charPanel.m_characterList.itemRenderer = RenderCharacter;
         charPanel.m_btn_attack.onClick.Add(() => SwitchTab(false));
         charPanel.m_btn_defense.onClick.Add(() => SwitchTab(true));
+        BindFrameClose(charPanel.m_panel, charPanel); // 底框自带的关闭按钮 → 收起角色选择面板
 
         panel.m_connectPanel.m_btn_editSelection.onClick.Add(() => // 打开角色选择面板的按钮在连接面板上
         {
