@@ -27,7 +27,7 @@ namespace Ros.UI.Main
             m_side = GetControllerAt(1);
             m_content = (GTextField)GetChildAt(1);
             m_headIcon = (GLoader)GetChildAt(3);
-            m_player_name = (GTextField)GetChildAt(9);
+            m_player_name = (GTextField)GetChildAt(10);
         }
     }
 }

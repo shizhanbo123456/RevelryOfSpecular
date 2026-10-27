@@ -29,7 +29,7 @@ namespace Ros.UI.Main
             m_confirm = GetControllerAt(3);
             m_quality = GetControllerAt(4);
             m_headIcon = (GLoader)GetChildAt(4);
-            m_roleName = (GTextField)GetChildAt(18);
+            m_roleName = (GTextField)GetChildAt(17);
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Ros.UI.Main
         public Controller m_show_channel_menu;
         public Controller m_fold;
         public GTextInput m_input;
-        public UI_button1 m_btn_send;
+        public GButton m_btn_send;
         public GList m_content;
         public GButton m_btn_allChannel;
         public GButton m_btn_campChannel;
@@ -30,7 +30,7 @@ namespace Ros.UI.Main
             m_show_channel_menu = GetControllerAt(0);
             m_fold = GetControllerAt(1);
             m_input = (GTextInput)GetChildAt(2);
-            m_btn_send = (UI_button1)GetChildAt(3);
+            m_btn_send = (GButton)GetChildAt(4);
             m_content = (GList)GetChildAt(6);
             m_btn_allChannel = (GButton)GetChildAt(7);
             m_btn_campChannel = (GButton)GetChildAt(8);

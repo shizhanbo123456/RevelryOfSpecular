@@ -8,7 +8,8 @@ namespace Ros.UI.Main
     public partial class UI_PlayerInfo : GComponent
     {
         public GTextInput m_input_playerName;
-        public GTextField m_label_level;
+        public GImage m_bar_fill_energy;
+        public GTextField m_label_exp;
         public const string URL = "ui://q68vr2bfphy0ii";
 
         public static UI_PlayerInfo CreateInstance()
@@ -20,8 +21,9 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_input_playerName = (GTextInput)GetChildAt(2);
-            m_label_level = (GTextField)GetChildAt(3);
+            m_input_playerName = (GTextInput)GetChildAt(1);
+            m_bar_fill_energy = (GImage)GetChildAt(3);
+            m_label_exp = (GTextField)GetChildAt(4);
         }
     }
 }

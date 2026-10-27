@@ -9,9 +9,6 @@ namespace Ros.UI.Main
         public static void BindAll()
         {
             UIObjectFactory.SetPackageItemExtension(UI_panel_2.URL, typeof(UI_panel_2));
-            UIObjectFactory.SetPackageItemExtension(UI_button1.URL, typeof(UI_button1));
-            UIObjectFactory.SetPackageItemExtension(UI_button2.URL, typeof(UI_button2));
-            UIObjectFactory.SetPackageItemExtension(UI_button3.URL, typeof(UI_button3));
             UIObjectFactory.SetPackageItemExtension(UI_EventBanner.URL, typeof(UI_EventBanner));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
@@ -32,7 +29,13 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_iconEmerald.URL, typeof(UI_iconEmerald));
+            UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberContent.URL, typeof(UI_LobbyMemberContent));
             UIObjectFactory.SetPackageItemExtension(UI_onlookComboBox_popup.URL, typeof(UI_onlookComboBox_popup));
+            UIObjectFactory.SetPackageItemExtension(UI_buffItem.URL, typeof(UI_buffItem));
+            UIObjectFactory.SetPackageItemExtension(UI_buffItemMask.URL, typeof(UI_buffItemMask));
+            UIObjectFactory.SetPackageItemExtension(UI_buffList.URL, typeof(UI_buffList));
+            UIObjectFactory.SetPackageItemExtension(UI_avaterMask.URL, typeof(UI_avaterMask));
             UIObjectFactory.SetPackageItemExtension(UI_ChatPanel.URL, typeof(UI_ChatPanel));
             UIObjectFactory.SetPackageItemExtension(UI_ChatItem.URL, typeof(UI_ChatItem));
             UIObjectFactory.SetPackageItemExtension(UI_LoadingPanel.URL, typeof(UI_LoadingPanel));

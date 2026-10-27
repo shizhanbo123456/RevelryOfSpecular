@@ -7,7 +7,8 @@ namespace Ros.UI.Main
 {
     public partial class UI_panel_2 : GLabel
     {
-        public Controller m_hidetitle;
+        public Controller m_hide_title;
+        public Controller m_show_close;
         public const string URL = "ui://q68vr2bfctp8jr";
 
         public static UI_panel_2 CreateInstance()
@@ -19,7 +20,8 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_hidetitle = GetControllerAt(0);
+            m_hide_title = GetControllerAt(0);
+            m_show_close = GetControllerAt(1);
         }
     }
 }

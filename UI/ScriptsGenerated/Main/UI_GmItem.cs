@@ -8,7 +8,7 @@ namespace Ros.UI.Main
     public partial class UI_GmItem : GComponent
     {
         public Controller m_content;
-        public UI_button1 m_content_btn;
+        public GButton m_content_btn;
         public GSlider m_content_slider;
         public GTextInput m_content_inputField;
         public GComboBox m_content_dropdown;
@@ -27,7 +27,7 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_content = GetControllerAt(0);
-            m_content_btn = (UI_button1)GetChildAt(1);
+            m_content_btn = (GButton)GetChildAt(1);
             m_content_slider = (GSlider)GetChildAt(2);
             m_content_inputField = (GTextInput)GetChildAt(4);
             m_content_dropdown = (GComboBox)GetChildAt(5);
