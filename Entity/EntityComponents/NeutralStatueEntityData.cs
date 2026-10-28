@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class NeutralStatueEntityData : AutoCastEntityData
 {
-    public override float AutoCastInterval => 5f;
+    public override float AutoCastInterval => ConfigManager.GlobalVariableConfig.status_auto_cast_interval_neutral;
 
     protected override float CastSearchRange => Config.neutral_statue_attack_range;
 

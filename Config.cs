@@ -13,8 +13,10 @@ public static class Config
     #region 角色
     public const int attack_character_count = 17;
     public const int defense_character_count = 6;
-    public const int save_max_level = 10; // 角色等级上限（对应 exp_character.csv 的行数）
-    public const int battle_max_level = 20; // 战斗期等级上限：生成实体时钳制，最高刷出 20 级
+
+    // 角色等级上限 = exp_character.csv 覆盖到的最高等级、战斗期等级上限 = global_variables，配表加行即生效
+    public static int save_max_level => ConfigManager.ExpCharacterConfig.MaxLevel;
+    public static int battle_max_level => ConfigManager.GlobalVariableConfig.battle_max_level;
 
     // 玩家等级上限 = exp_player.csv 覆盖到的最高等级，配表加行即生效
     public static int player_max_level => ConfigManager.ExpPlayerConfig.MaxLevel;
@@ -151,53 +153,6 @@ public static class Config
     public const float anim_move_speed_up = 1.3f;
     public const float anim_move_speed_down = 0.6f;
     public const float anim_move_speed_mire = 0.5f;
-    // 初始技能表：进攻方按 4 类武器的基础技能循环，防守方按角色（主动1 / 主动2 / 大招）固定，非玩家按单位类别
-    public static readonly Dictionary<EntityType, int[]> initial_skills = new()
-    {
-        // ===== 进攻方角色（17 人，每角色 1 个天生攻击技能）=====
-        // 策划案 4.1「不做定位区分」；暂时按 4 类武器的基础技能循环分配，待角色池定稿后调整
-        { EntityType.Attack(0), new[] { (int)SkillType.SkillFanIceCone } },
-        { EntityType.Attack(1), new[] { (int)SkillType.SkillBoomerangWeapon } },
-        { EntityType.Attack(2), new[] { (int)SkillType.SkillBackVolley } },
-        { EntityType.Attack(3), new[] { (int)SkillType.SkillSplitShot } },
-        { EntityType.Attack(4), new[] { (int)SkillType.SkillFanIceCone } },
-        { EntityType.Attack(5), new[] { (int)SkillType.SkillBoomerangWeapon } },
-        { EntityType.Attack(6), new[] { (int)SkillType.SkillBackVolley } },
-        { EntityType.Attack(7), new[] { (int)SkillType.SkillSplitShot } },
-        { EntityType.Attack(8), new[] { (int)SkillType.SkillFanIceCone } },
-        { EntityType.Attack(9), new[] { (int)SkillType.SkillBoomerangWeapon } },
-        { EntityType.Attack(10), new[] { (int)SkillType.SkillBackVolley } },
-        { EntityType.Attack(11), new[] { (int)SkillType.SkillSplitShot } },
-        { EntityType.Attack(12), new[] { (int)SkillType.SkillFanIceCone } },
-        { EntityType.Attack(13), new[] { (int)SkillType.SkillBoomerangWeapon } },
-        { EntityType.Attack(14), new[] { (int)SkillType.SkillBackVolley } },
-        { EntityType.Attack(15), new[] { (int)SkillType.SkillSplitShot } },
-        { EntityType.Attack(16), new[] { (int)SkillType.SkillFanIceCone } },
-
-        // ===== 防守方角色（6 人 × 主动1 / 主动2 / 大招）=====
-        { EntityType.Defense(0), new[] { (int)SkillType.SkillRockShield, (int)SkillType.SkillPowerSuppress, (int)SkillType.SkillCrystalStatueBlazeCast } },      // 鹿铠怪人
-        { EntityType.Defense(1), new[] { (int)SkillType.SkillEyeMark, (int)SkillType.SkillNightMark, (int)SkillType.SkillForceNight } },                 // 白眼伯爵
-        { EntityType.Defense(2), new[] { (int)SkillType.SkillSummonZombies, (int)SkillType.SkillDeathStrollCast, (int)SkillType.SkillSummonElites } },    // 死灵漫步者
-        { EntityType.Defense(3), new[] { (int)SkillType.SkillSilenceCast, (int)SkillType.SkillMireCast, (int)SkillType.SkillReflectCast } },             // 蒙面教皇
-        { EntityType.Defense(4), new[] { (int)SkillType.SkillPlagueMarkCast, (int)SkillType.SkillPlaguePollute, (int)SkillType.SkillDetonatePlague } },    // 瘟疫使者
-        { EntityType.Defense(5), new[] { (int)SkillType.SkillPaleLightCast, (int)SkillType.SkillPaleDarkCast, (int)SkillType.SkillFogCast } },           // 苍白舞者
-
-        // ===== 非玩家单位（只登记 value=0，同类别其它 value 走回退）=====
-        { EntityType.Zombie(0), new[] { (int)SkillType.SkillZombieClawR, (int)SkillType.SkillZombieClawL } },                       // 普通僵尸：爪击右 / 爪击左
-        { EntityType.EliteZombie(0), new[] { (int)SkillType.SkillEliteZombieClawR, (int)SkillType.SkillEliteZombieClawL, (int)SkillType.SkillEliteZombieScream } }, // 精英僵尸
-        { EntityType.CrystalStatue(0), new[] { (int)SkillType.SkillCrystalStatueSporeA, (int)SkillType.SkillCrystalStatueSporeB, (int)SkillType.SkillCrystalStatueSporeC } }, // 水晶雕像：三种孢子
-        { EntityType.NeutralStatue(0), new[] { (int)SkillType.SkillNeutralStatueSpore } },     // 中立雕像：孢子喷发
-    };
-
-    public static List<int> GetInitialSkills(EntityType character)
-    {
-        if (initial_skills.TryGetValue(character, out var ids) && ids != null) return new List<int>(ids);
-        foreach (var pair in initial_skills)
-        {
-            if (pair.Key.category == character.category && pair.Value != null) return new List<int>(pair.Value);
-        }
-        return new List<int>();
-    }
 
     public const float default_skill_auto_target_radius = 20f;
 
@@ -283,7 +238,7 @@ public static class Config
     public const float rb_angular_drag = 1f;
     #endregion
 
-    #region 防守方角色下标（type.value，顺序同策划案第五章与 initial_skills）
+    #region 防守方角色下标（type.value，顺序同策划案第五章与 entity.csv）
     public const int defense_index_deer_knight = 0;    // 鹿铠怪人
     public const int defense_index_count_eye = 1;      // 白眼伯爵
     public const int defense_index_death_stroller = 2; // 死灵漫步者

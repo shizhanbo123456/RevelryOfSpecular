@@ -414,11 +414,11 @@ public class ConfigManager : MonoBehaviour
                 int upgrade = step == 0 ? upgradeA : step == 1 ? upgradeB : upgradeC;
                 switch (upgrade)
                 {
-                    case 0: attr.health += attr.health * 0.25f; break;
-                    case 1: attr.strength += (int)(attr.strength * 0.25f); break;
-                    case 2: attr.magic += (int)(attr.magic * 0.25f); break;
-                    case 3: attr.critRate += (int)(attr.critRate * 0.1f); break;
-                    case 4: attr.critDamage += attr.critDamage * 0.2f; break;
+                    case 0: attr.health += attr.health * GlobalVariableConfig.attr_growth_health; break;
+                    case 1: attr.strength += (int)(attr.strength * GlobalVariableConfig.attr_growth_strength); break;
+                    case 2: attr.magic += (int)(attr.magic * GlobalVariableConfig.attr_growth_magic); break;
+                    case 3: attr.critRate += (int)(attr.critRate * GlobalVariableConfig.attr_growth_critRate); break;
+                    case 4: attr.critDamage += attr.critDamage * GlobalVariableConfig.attr_growth_critDamage; break;
                 }
             }
             return attr;
@@ -542,6 +542,7 @@ public class ConfigManager : MonoBehaviour
         public const string FileName = "exp_character.csv";
         private const int ColumnCount = 2;
         public static readonly Dictionary<int, ExpCharacterConfig> content = new();
+        public static int MaxLevel { get; private set; } // 配表覆盖到的最高等级 = 角色等级上限
 
         public int key;
         public int exp;
@@ -555,7 +556,14 @@ public class ConfigManager : MonoBehaviour
         public static int Load(ConfigTable table)
         {
             table.RequireColumnCount(ColumnCount);
-            return Fill(table, content, row => new ExpCharacterConfig(row), row => row.key);
+            int count = Fill(table, content, row => new ExpCharacterConfig(row), row => row.key);
+            MaxLevel = 0;
+            foreach (int key in content.Keys)
+            {
+                if (key > MaxLevel) MaxLevel = key;
+            }
+            if (MaxLevel <= 0) throw new FormatException($"[配表] {FileName} 没有任何等级行，角色等级上限推不出来");
+            return count;
         }
 
         public static ExpCharacterConfig Get(int key) => GetRequired(content, key, FileName);
@@ -642,6 +650,14 @@ public class ConfigManager : MonoBehaviour
         public static int day_duration;                 // 默认白天时长
         public static int night_duration;               // 默认晚上时长
         public static int distance_of_bar_default_size; // 实体血条为设计大小时的距离
+        public static float attr_growth_health;         // 升级增益系数：生命
+        public static float attr_growth_strength;       // 升级增益系数：力量
+        public static float attr_growth_magic;          // 升级增益系数：魔法
+        public static float attr_growth_critRate;       // 升级增益系数：暴击率
+        public static float attr_growth_critDamage;     // 升级增益系数：暴击伤害
+        public static int battle_max_level;             // 战斗期等级上限（生成实体时钳制）
+        public static float status_auto_cast_interval_crystal; // 水晶雕像自动施法间隔
+        public static float status_auto_cast_interval_neutral; // 中立雕像自动施法间隔
 
         public string key;
         public string description;
@@ -681,9 +697,47 @@ public class ConfigManager : MonoBehaviour
                     if (distance_of_bar_default_size <= 0) // 血条 scale 以它为分母
                         throw new FormatException($"[配表] {FileName} 的 distance_of_bar_default_size 必须大于 0");
                     break;
+                case "attr_growth_health":
+                    attr_growth_health = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_strength":
+                    attr_growth_strength = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_magic":
+                    attr_growth_magic = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_critRate":
+                    attr_growth_critRate = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_critDamage":
+                    attr_growth_critDamage = NonNegative(Float(row), row.key);
+                    break;
+                case "battle_max_level":
+                    battle_max_level = Int(row);
+                    if (battle_max_level <= 0)
+                        throw new FormatException($"[配表] {FileName} 的 battle_max_level 必须大于 0");
+                    break;
+                case "status_auto_cast_interval_crystal":
+                    status_auto_cast_interval_crystal = Positive(Float(row), row.key);
+                    break;
+                case "status_auto_cast_interval_neutral":
+                    status_auto_cast_interval_neutral = Positive(Float(row), row.key);
+                    break;
                 default:
                     throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
             }
+        }
+
+        private static float NonNegative(float value, string key)
+        {
+            if (value < 0f) throw new FormatException($"[配表] {FileName} 的行「{key}」不能为负数：{value}");
+            return value;
+        }
+
+        private static float Positive(float value, string key)
+        {
+            if (value <= 0f) throw new FormatException($"[配表] {FileName} 的行「{key}」必须大于 0：{value}");
+            return value;
         }
 
         private static string[] Tokens(GlobalVariableConfig row)
@@ -700,6 +754,16 @@ public class ConfigManager : MonoBehaviour
             if (tokens.Length != 1 ||
                 !int.TryParse(tokens[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
                 throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 必须是单个整数：「{row.value}」");
+            return value;
+        }
+
+        // 单值行（浮点）
+        private static float Float(GlobalVariableConfig row)
+        {
+            string[] tokens = Tokens(row);
+            if (tokens.Length != 1 ||
+                !float.TryParse(tokens[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+                throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 必须是单个数值：「{row.value}」");
             return value;
         }
 

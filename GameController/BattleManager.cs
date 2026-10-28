@@ -194,9 +194,10 @@ public partial class BattleManager : EnsBehaviour
             return 0;
         }
         data.OnCreate(id, type, level, camp);
-        // 初始技能表按实体类型统一赋：玩家角色与非玩家单位（僵尸/精英/水晶雕像/中立雕像）同一条路径，
-        // 未登记的类别得空表（见 Config.initial_skills）
-        if (data.skillController != null) data.skillController.SetSkillList(Config.GetInitialSkills(type));
+        // 初始技能表按实体类型统一赋（来源 entity.csv 初始技能列表列）：玩家角色与非玩家单位（僵尸/精英/雕像）同一条路径，
+        // 表里没配即为空表
+        if (data.skillController != null)
+            data.skillController.SetSkillList(ConfigManager.EntityConfig.GetByCategory(type).initialSkills);
         ApplyMinimapLostOnSpawn(data); // 夜间出生/复活：补上「小地图失联」（昼夜事件只在翻转那一刻遍历）
         AddToContainer(data);
         reservedEntityIds.Remove(id); // 已实体化，不再占用预留位
