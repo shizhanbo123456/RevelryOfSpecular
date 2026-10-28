@@ -610,15 +610,21 @@ public class BattlePage : PageBase
         var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
         if (mapBase == null) return true;
 
-        // 视野内实体取本地实时位置（跟随其自身移动），视野外回退到包里最后一次世界坐标
-        Vector2 world = minimapWorldPos[entityId];
-        if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null
-            && Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(entityId, out var live))
-            world = new Vector2(live.x, live.z);
-
-        // 只画雷达半径内：超出显示半径的点位剔除（服务器圈外本就过滤，回到圈内会重建）
-        float dx = world.x - myPos.x, dz = world.y - myPos.z;
-        if (dx * dx + dz * dz > minimapViewRadius * minimapViewRadius) return false;
+        // 位置一律用服务器下发的小地图包坐标；自身固定在雷达中心，不参与换算
+        float dx, dz;
+        if (IsOwnEntity(entityId))
+        {
+            dx = 0f;
+            dz = 0f;
+        }
+        else
+        {
+            Vector2 world = minimapWorldPos[entityId];
+            dx = world.x - myPos.x;
+            dz = world.y - myPos.z;
+            // 只画雷达半径内：超出显示半径的点位剔除（服务器圈外本就过滤，回到圈内会重建）
+            if (dx * dx + dz * dz > minimapViewRadius * minimapViewRadius) return false;
+        }
 
         //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
         float scale = mapBase.width * 0.5f / minimapViewRadius;
