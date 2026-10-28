@@ -630,11 +630,11 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 全局参数表
+    #region 全局参数表：0 key / 1 功能描述 / 2 value（| 分隔多个）
     public struct GlobalVariableConfig
     {
         public const string FileName = "global_variables.csv";
-        private const int ColumnCount = 4;
+        private const int ColumnCount = 3;
         public static readonly Dictionary<string, GlobalVariableConfig> content = new();
 
         // 每行一个静态字段（字段名即表内 key），Load 时由 Apply 填入
@@ -645,15 +645,13 @@ public class ConfigManager : MonoBehaviour
 
         public string key;
         public string description;
-        public List<int> ints;
-        public List<float> floats;
+        public string value;
 
         public GlobalVariableConfig(string[] rowData)
         {
             key = ParseString(rowData, 0);
             description = ParseString(rowData, 1);
-            ints = ParseIntList(rowData, 2);
-            floats = ParseFloatList(rowData, 3);
+            value = ParseString(rowData, 2);
         }
 
         public static int Load(ConfigTable table)
@@ -670,16 +668,16 @@ public class ConfigManager : MonoBehaviour
             switch (row.key)
             {
                 case "minimap_view_radius":
-                    minimap_view_radius = RequireValues(row.floats, row.key);
+                    minimap_view_radius = Floats(row);
                     break;
                 case "day_duration":
-                    day_duration = RequireValue(row.ints, row.key);
+                    day_duration = Int(row);
                     break;
                 case "night_duration":
-                    night_duration = RequireValue(row.ints, row.key);
+                    night_duration = Int(row);
                     break;
                 case "distance_of_bar_default_size":
-                    distance_of_bar_default_size = RequireValue(row.ints, row.key);
+                    distance_of_bar_default_size = Int(row);
                     if (distance_of_bar_default_size <= 0) // 血条 scale 以它为分母
                         throw new FormatException($"[配表] {FileName} 的 distance_of_bar_default_size 必须大于 0");
                     break;
@@ -688,19 +686,35 @@ public class ConfigManager : MonoBehaviour
             }
         }
 
-        // 单值行取首项
-        private static int RequireValue(List<int> values, string key)
+        private static string[] Tokens(GlobalVariableConfig row)
         {
-            if (values == null || values.Count == 0)
-                throw new FormatException($"[配表] {FileName} 的行「{key}」ints 列必须填值");
-            return values[0];
+            if (row.value.Length == 0)
+                throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 不能为空");
+            return row.value.Split('|');
         }
 
-        private static List<float> RequireValues(List<float> values, string key)
+        // 单值行
+        private static int Int(GlobalVariableConfig row)
         {
-            if (values == null || values.Count == 0)
-                throw new FormatException($"[配表] {FileName} 的行「{key}」floats 列必须填值");
-            return values;
+            string[] tokens = Tokens(row);
+            if (tokens.Length != 1 ||
+                !int.TryParse(tokens[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 必须是单个整数：「{row.value}」");
+            return value;
+        }
+
+        // 多值行（如雷达半径档位）
+        private static List<float> Floats(GlobalVariableConfig row)
+        {
+            string[] tokens = Tokens(row);
+            var result = new List<float>(tokens.Length);
+            foreach (string token in tokens)
+            {
+                if (!float.TryParse(token.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+                    throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 含非法数值：「{token}」");
+                result.Add(value);
+            }
+            return result;
         }
     }
     #endregion
