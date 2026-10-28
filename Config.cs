@@ -13,9 +13,11 @@ public static class Config
     #region 角色
     public const int attack_character_count = 17;
     public const int defense_character_count = 6;
-    public const int save_max_level = 10; // 玩家存档等级上限
+    public const int save_max_level = 10; // 角色等级上限（对应 exp_character.csv 的行数）
     public const int battle_max_level = 20; // 战斗期等级上限：生成实体时钳制，最高刷出 20 级
-    public const int player_max_level = 50;
+
+    // 玩家等级上限 = exp_player.csv 覆盖到的最高等级，配表加行即生效
+    public static int player_max_level => ConfigManager.ExpPlayerConfig.MaxLevel;
 
     // 升到下一级所需经验；配表最大等级不足时停止升级并报错
     public static int GetPlayerLevelUpExp(int currentLevel)

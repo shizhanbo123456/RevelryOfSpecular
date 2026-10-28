@@ -557,6 +557,7 @@ public class ConfigManager : MonoBehaviour
         public const string FileName = "exp_player.csv";
         private const int ColumnCount = 2;
         public static readonly Dictionary<int, ExpPlayerConfig> content = new();
+        public static int MaxLevel { get; private set; } // 配表覆盖到的最高等级 = 玩家等级上限
 
         public int key;
         public int exp;
@@ -570,7 +571,14 @@ public class ConfigManager : MonoBehaviour
         public static int Load(ConfigTable table)
         {
             table.RequireColumnCount(ColumnCount);
-            return Fill(table, content, row => new ExpPlayerConfig(row), row => row.key);
+            int count = Fill(table, content, row => new ExpPlayerConfig(row), row => row.key);
+            MaxLevel = 0;
+            foreach (int key in content.Keys)
+            {
+                if (key > MaxLevel) MaxLevel = key;
+            }
+            if (MaxLevel <= 0) throw new FormatException($"[配表] {FileName} 没有任何等级行，玩家等级上限推不出来");
+            return count;
         }
 
         public static ExpPlayerConfig Get(int key) => GetRequired(content, key, FileName);
