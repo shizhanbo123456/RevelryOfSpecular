@@ -236,9 +236,10 @@ public partial class BattleManager : EnsBehaviour
         {
             Tool.NetworkManager.SendRemoveEntity(clientId, id);
         }
-        // 雕像被摧毁事件（事件列表 icon=其它 + 血条 destroyed 状态）：textId 区分哪一座（19 中心 / 24~26 外围）
+        // 雕像被摧毁事件（事件列表 icon=其它）：textId 区分哪一座（19 中心 / 24~26 外围）
         if (BattleStarted && data.type.category == EntityCategory.GuardStatue)
         {
+            MarkDefensePointDestroyed(data); // 实体销毁后算不出血量，进度在这里定死 100
             int textId = data.type == EntityType.KingStatue ? 19 : 24 + data.type.value; // GuardStatue(0~2) → 24~26
             Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
             {
@@ -876,6 +877,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kTickWorldRespawnTag = "BattleManager.TickWorldRespawn";
     private const string kProcessKilledTag = "BattleManager.ProcessKilled";
     private const string kCampAliveCountTag = "BattleManager.CampAliveCount";
+    private const string kDefensePointTag = "BattleManager.DefensePointProgress";
     private const string kTickDyingTag = "BattleManager.TickDying";
     private const string kUpdateAITag = "BattleManager.UpdateAI";
     private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
@@ -963,6 +965,10 @@ public partial class BattleManager : EnsBehaviour
 
         Profiler.BeginSample(kCampAliveCountTag);
         TickCampAliveCount();
+        Profiler.EndSample();
+
+        Profiler.BeginSample(kDefensePointTag);
+        TickDefensePointProgress(); // 必须早于 TickDying：血量归零当帧还能读到雕像
         Profiler.EndSample();
 
         Profiler.BeginSample(kTickDyingTag);

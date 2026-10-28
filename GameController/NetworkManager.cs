@@ -412,6 +412,12 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveCampAliveCountLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    // 守护点开采进度：与视野无关，广播给房间内所有客户端（含观战方）
+    public void SendDefensePointProgress(SCDefensePointProgress info)
+    {
+        CallFuncRpc(ClientReceiveDefensePointProgressLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
+    }
+
     public void SendDayNightInfo(short clientId, SCDayNightInfo info)
     {
         if (!HasClient(clientId)) return;
@@ -673,6 +679,16 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     public static SCCampAliveCount LatestCampAliveCount { get; private set; }
+
+    [Rpc]
+    private void ClientReceiveDefensePointProgressLocal(SCDefensePointProgress info)
+    {
+        if (info == null) return;
+        LatestDefensePointProgress = info; // 缓存最新进度（战斗页进入时取初值）
+        EventManager.TrigEvent(ClientEvent.OnDefensePointProgress, info);
+    }
+
+    public static SCDefensePointProgress LatestDefensePointProgress { get; private set; }
 
     // 组队期的成员名字（战斗期请走 ClientLoadingManager，不要读这里的组队缓存）
     public static string GetLobbyMemberName(int clientId)

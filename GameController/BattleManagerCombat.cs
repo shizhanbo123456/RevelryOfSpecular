@@ -380,7 +380,65 @@ public partial class BattleManager
         visionStates.Clear(); // 每局视野锚点与观战状态重置
         skillFailPromptTime.Clear();
         lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = -1; // 每局重置，保证开局首帧必发
+        System.Array.Clear(defensePointProgress, 0, defensePointProgress.Length);
+        for (int i = 0; i < sentDefensePointProgress.Length; i++) sentDefensePointProgress[i] = -1; // 同上：开局必发一次
     }
+
+    #region 守护点开采进度（0~100，与视野解耦，变更即广播）
+    private readonly int[] defensePointProgress = new int[4];       // 0 主点 / 1~3 副点
+    private readonly int[] sentDefensePointProgress = { -1, -1, -1, -1 };
+
+    private void TickDefensePointProgress()
+    {
+        foreach (var statue in EntityContainer.GuardStatues)
+        {
+            if (statue == null) continue;
+            int index = DefensePointIndexOf(statue);
+            if (index < 0) continue;
+            defensePointProgress[index] = ProgressOf(statue);
+        }
+
+        bool changed = false;
+        for (int i = 0; i < defensePointProgress.Length; i++)
+        {
+            if (defensePointProgress[i] == sentDefensePointProgress[i]) continue;
+            sentDefensePointProgress[i] = defensePointProgress[i];
+            changed = true;
+        }
+        if (!changed) return;
+
+        Tool.NetworkManager.SendDefensePointProgress(new SCDefensePointProgress()
+        {
+            main = defensePointProgress[0],
+            sub1 = defensePointProgress[1],
+            sub2 = defensePointProgress[2],
+            sub3 = defensePointProgress[3],
+        });
+    }
+
+    private void MarkDefensePointDestroyed(EntityData statue)
+    {
+        int index = DefensePointIndexOf(statue);
+        if (index >= 0) defensePointProgress[index] = 100;
+    }
+
+    private static int DefensePointIndexOf(EntityData statue)
+    {
+        if (statue.type == EntityType.KingStatue) return 0;
+        if (statue.type.category != EntityCategory.GuardStatue) return -1;
+        return statue.type.value >= 0 && statue.type.value < Config.sage_statue_count ? statue.type.value + 1 : -1;
+    }
+
+    // 满血 0、打空 100：血量归零单独判，避免浮点误差把最后一格停在 99
+    private static int ProgressOf(EntityData statue)
+    {
+        float max = statue.baseAttribute.health;
+        if (max <= 0f) return 0;
+        float health = statue.floatingAttribute.health;
+        if (health <= 0f) return 100;
+        return Mathf.Clamp((int)(100f * (1f - health / max)), 0, 100);
+    }
+    #endregion
 
     #region 技能释放失败提示
     private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏

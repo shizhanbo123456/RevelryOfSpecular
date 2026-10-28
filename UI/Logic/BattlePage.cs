@@ -114,6 +114,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
+        EventManager.AddEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
         EventManager.AddEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         playerEntities.Clear();
         entityOwners.Clear();
@@ -132,6 +133,7 @@ public class BattlePage : PageBase
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
+        OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
         ClearEntityBars();
         HideAllTips();
         localBuffs.Clear();
@@ -156,6 +158,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
+        EventManager.RemoveEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
         EventManager.RemoveEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         playerEntities.Clear();
         entityOwners.Clear();
@@ -209,12 +212,8 @@ public class BattlePage : PageBase
     private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        if (info.type.category == EntityCategory.GuardStatue)
-        {
-            OnStatueDisplay(info);
-        }
-        else if (info.type.category == EntityCategory.Character_Attack ||
-                 info.type.category == EntityCategory.Character_Defense)
+        if (info.type.category == EntityCategory.Character_Attack ||
+            info.type.category == EntityCategory.Character_Defense)
         {
             UpdateEntityBar(info, withName: true);
         }
@@ -454,27 +453,22 @@ public class BattlePage : PageBase
         if (slot.m_storeList != null) slot.m_storeList.numItems = 0;
     }
 
-    private void OnStatueDisplay(SCEntityDisplayInfo info)
+    // 守护点进度只认 SCDefensePointProgress（服务器算好的 0~100 开采比例），不再从实体表现包里取血量
+    private void OnDefensePointProgress(SCDefensePointProgress info)
     {
-        UI_DefensivePointBar bar;
-        if (info.type == EntityType.KingStatue)
-        {
-            bar = panel.m_progressMain;
-        }
-        else
-        {
-            int index = info.type.value; // 贤者雕像：GuardStatue(0~2) → Sub1~3
-            if (index < 0 || index > 2) return;
-            bar = index == 0 ? panel.m_progressSub1 : index == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
-        }
+        if (info == null) return;
+        ApplyStatueProgress(panel.m_progressMain, info.main);
+        ApplyStatueProgress(panel.m_progressSub1, info.sub1);
+        ApplyStatueProgress(panel.m_progressSub2, info.sub2);
+        ApplyStatueProgress(panel.m_progressSub3, info.sub3);
+    }
+
+    private static void ApplyStatueProgress(UI_DefensivePointBar bar, int progress)
+    {
         if (bar == null) return;
-        // health/maxHealth 在包里无条件序列化，buff-only 包带的是 0：不按 hasHealth 过滤会误判成「已开采完」
-        if (!info.hasHealth && !info.includeRuntime) return;
-        // 开采进度 = 已被打掉的血量比例：满血 0、打空 100
-        float progress = info.maxHealth > 0 ? 1f - Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
-        bool destroyed = info.maxHealth > 0 && info.health <= 0;
-        bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
-        bar.m_fill.scale = new Vector2(progress, bar.m_fill.scale.y);
+        int clamped = Mathf.Clamp(progress, 0, 100);
+        bar.m_destroyed.selectedIndex = clamped >= 100 ? 1 : 0;
+        bar.m_fill.scale = new Vector2(clamped / 100f, bar.m_fill.scale.y);
     }
 
     private void ResetGuardStatues()
@@ -490,18 +484,6 @@ public class BattlePage : PageBase
         if (bar == null) return;
         bar.m_destroyed.selectedIndex = 0;
         bar.m_fill.scale = new Vector2(0f, bar.m_fill.scale.y);
-    }
-
-    // 雕像被摧毁：据事件携带的 guardStatue 标识定位血条，切到已摧毁外观并清空填充
-    // guardStatueId：-1=国王雕像(main)，0~2=外围 Sub1~3（与 OnStatueDisplay 的 index 映射一致）
-    private void SetStatueDestroyed(int textId)
-    {
-        UI_DefensivePointBar bar = textId == 19 ? panel.m_progressMain
-            : textId == 24 ? panel.m_progressSub1
-            : textId == 25 ? panel.m_progressSub2 : textId == 26 ? panel.m_progressSub3 : null;
-        if (bar == null) return;
-        bar.m_destroyed.selectedIndex = 1;
-        bar.m_fill.scale = new Vector2(1f, bar.m_fill.scale.y);
     }
 
     private void UpdateLocalPlayerBar(SCEntityDisplayInfo info)
@@ -829,9 +811,8 @@ public class BattlePage : PageBase
             entry.right = ResolveEventText(e.textId2);
         }
         AddEventEntry(entry);
-        if (e.type == SCBattleEvent.Type.StatueDestroyed) SetStatueDestroyed(e.textId);
-        else if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
-        else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);       // 日出横幅
+        if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
+        else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);      // 日出横幅
     }
 
     // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 notice.csv
