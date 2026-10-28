@@ -150,9 +150,14 @@ public class LobbyPage : PageBase
     private void RenderMemberList(GList list, List<SCLobbyInfo.LobbyMemberInfo> members, int camp)
     {
         var memberList = members.Where(m => m != null && m.camp == camp && m.clientId >= 0).ToList(); // 负数 = AI，不进真人列表
-        if (camp == 2) // 观战条目同为 RoleHead，只写玩家名，其余字段保持 UI 默认
+        if (camp == 2) // 观战条目同为 RoleHead：只写玩家名 + 默认头像（观战无角色）
         {
-            list.itemRenderer = (i, obj) => ((UI_RoleHead)obj).m_roleName.text = NetworkManager.GetLobbyMemberName(memberList[i].clientId);
+            list.itemRenderer = (i, obj) =>
+            {
+                var head = (UI_RoleHead)obj;
+                head.m_roleName.text = NetworkManager.GetLobbyMemberName(memberList[i].clientId);
+                head.m_show_default_icon.selectedIndex = 1;
+            };
             list.numItems = memberList.Count;
             return;
         }
