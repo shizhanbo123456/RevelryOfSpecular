@@ -14,96 +14,96 @@
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现（buff 由客户端统一播） |
 | --- | --- | --- | --- | --- |
-| 0 | 扇形三发冰锥 | SkillFanIceCone | Bullet[18] | 命中挂 1 级减速 5s |
-| 1 | 连续三发雷锥 | SkillTripleThunderCone | Bullet[19] | 命中挂麻痹 2s |
-| 2 | 一发冰冻弹 | SkillFreezeShot | Bullet[21] | 附加冰冻 2s |
-| 3 | 力量侵蚀弹 | SkillStrengthBreakShot | Bullet[22] | 2 级力量降低 20s |
-| 4 | 先一发后扇形两发 | SkillDoubleFanShot | Bullet[39] | 命中挂 1 级减速 5s |
-| 5 | 绕身剑气 | SkillOrbitBlades | Bullet[40] ×4（绕身） | 无 |
-| 6 | 后撤闪避+一发 | SkillBackstepShot | Bullet[41] | 短暂闪避 buff |
-| 7 | 跃起随机散射 | SkillLeapScatter | Bullet[57] ×N（随机角） | 无 |
-| 8 | 抛出武器 | SkillThrowWeapon | 武器模型本体 | 无 |
-| 9 | 五发扇形武器 | SkillFanWeaponThrow | 武器模型本体 ×5 | 无 |
-| 10 | 天降武器 | SkillSkyfallWeapon | 武器模型本体（天降） | 无 |
+| 0 | 霜棱散 | SkillFanIceCone | Bullet[18] | 命中挂 1 级减速 5s |
+| 1 | 雷锥连闪 | SkillTripleThunderCone | Bullet[19] | 命中挂麻痹 2s |
+| 2 | 凝霜弹 | SkillFreezeShot | Bullet[21] | 附加冰冻 2s |
+| 3 | 蚀力矢 | SkillStrengthBreakShot | Bullet[22] | 2 级力量降低 20s |
+| 4 | 冰扇双舞 | SkillDoubleFanShot | Bullet[39] | 命中挂 1 级减速 5s |
+| 5 | 回锋环 | SkillOrbitBlades | Bullet[40] ×4（绕身） | 无 |
+| 6 | 退锋 | SkillBackstepShot | Bullet[41] | 短暂闪避 buff |
+| 7 | 腾跃散华 | SkillLeapScatter | Bullet[57] ×N（随机角） | 无 |
+| 8 | 掷兵 | SkillThrowWeapon | 武器模型本体 | 无 |
+| 9 | 五刃扇 | SkillFanWeaponThrow | 武器模型本体 ×5 | 无 |
+| 10 | 天诛落刃 | SkillSkyfallWeapon | 武器模型本体（天降） | 无 |
 
 #### 长枪（11~18）
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现（buff 由客户端统一播） |
 | --- | --- | --- | --- | --- |
-| 11 | 回旋武器 | SkillBoomerangWeapon | 武器模型本体（去-回） | 无 |
-| 12 | 背后扎入武器 | SkillBackstabWeapon | 武器模型本体 + 悬停 | 命中挂麻痹 2s |
-| 13 | 速度提升 | SkillSwiftAura | 无 | 1 级加速 20s |
-| 14 | 绕身武器击飞 | SkillOrbitWeaponKnockback | 武器模型本体 ×4（绕身） | 无 |
-| 15 | 短距冲刺 | SkillShortDash | 无 | 无 |
-| 16 | 10 级护盾 | SkillShieldTen | 无（护盾 buff 自带） | 10 级护盾 60s |
-| 17 | 飞踢 | SkillFlyingKick | 无 | 无 |
-| 18 | 小夹角冰扇 | SkillIceFanTiny | Bullet[9] | 命中挂冰冻 |
+| 11 | 回旋枪 | SkillBoomerangWeapon | 武器模型本体（去-回） | 无 |
+| 12 | 背水一击 | SkillBackstabWeapon | 武器模型本体 + 悬停 | 命中挂麻痹 2s |
+| 13 | 疾风步 | SkillSwiftAura | 无 | 1 级加速 20s |
+| 14 | 旋枪荡 | SkillOrbitWeaponKnockback | 武器模型本体 ×4（绕身） | 无 |
+| 15 | 短距突进 | SkillShortDash | 无 | 无 |
+| 16 | 铁壁 | SkillShieldTen | 无（护盾 buff 自带） | 10 级护盾 60s |
+| 17 | 裂地踢 | SkillFlyingKick | 无 | 无 |
+| 18 | 霜锋 | SkillIceFanTiny | Bullet[9] | 命中挂冰冻 |
 
 #### 枪械（19~33）
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现（buff 由客户端统一播） |
 | --- | --- | --- | --- | --- |
-| 19 | 后方随机汇聚 | SkillBackVolley | Bullet[11] ×6 | 无 |
-| 20 | 连续扫射冰锥 | SkillIceSweep | Bullet[20] | 附加冰冻 3s |
-| 21 | 定身弹 | SkillRootShot | Bullet[28] | 命中挂定身 3s |
-| 22 | 缓慢漂浮弹 | SkillDriftOrb | Bullet[29] | 命中击飞 |
-| 23 | 3/5/7 递增冰扇 | SkillTripleWaveIce | Bullet[45] | 命中挂冰冻 2s |
-| 24 | 连续向前散射 | SkillForwardSpray | Bullet[46] | 无 |
-| 25 | 高速沉默弹 | SkillSilenceBolt | Bullet[47] | 1 级沉默 12s |
-| 26 | 周围天降弹幕 | SkillSkyfallVolley | RangeMagic[2] ×5（自身周围落下） | 无 |
-| 27 | 周围射出武器 | SkillOrbitWeaponVolley | 武器模型本体 ×N（环身飞出） | 无 |
-| 28 | 周围创造武器落下 | SkillOrbitWeaponRain | 武器模型本体 ×N（自身周围落下） | 无 |
-| 29 | 牵引砸击 | SkillPullSmash | RangeMagic[7] 起手 + RangeMagic[4] 落点 | 无 |
-| 30 | 前方连续落下 | SkillRainBarrage | Bullet[44] ×N | 无 |
-| 31 | 冲刺 + 速度提升 | SkillDashSpeed | 无 | 2 级加速 10s |
-| 32 | 8 级群体护盾 | SkillAllyShieldEight | 无（护盾 buff 自带） | 8 级护盾 60s（自身+附近友方） |
-| 33 | 4 级自身护盾 | SkillShieldFour | 无（护盾 buff 自带） | 4 级护盾 10s |
+| 19 | 背袭弹幕 | SkillBackVolley | Bullet[11] ×6 | 无 |
+| 20 | 霜雨扫射 | SkillIceSweep | Bullet[20] | 附加冰冻 3s |
+| 21 | 缚足弹 | SkillRootShot | Bullet[28] | 命中挂定身 3s |
+| 22 | 浮游弹 | SkillDriftOrb | Bullet[29] | 命中击飞 |
+| 23 | 冰潮递进 | SkillTripleWaveIce | Bullet[45] | 命中挂冰冻 2s |
+| 24 | 前压弹幕 | SkillForwardSpray | Bullet[46] | 无 |
+| 25 | 禁声弹 | SkillSilenceBolt | Bullet[47] | 1 级沉默 12s |
+| 26 | 天罗 | SkillSkyfallVolley | RangeMagic[2] ×5（自身周围落下） | 无 |
+| 27 | 环射 | SkillOrbitWeaponVolley | 武器模型本体 ×N（环身飞出） | 无 |
+| 28 | 兵雨 | SkillOrbitWeaponRain | 武器模型本体 ×N（自身周围落下） | 无 |
+| 29 | 引力锤击 | SkillPullSmash | RangeMagic[7] 起手 + RangeMagic[4] 落点 | 无 |
+| 30 | 坠落序曲 | SkillRainBarrage | Bullet[44] ×N | 无 |
+| 31 | 疾风突进 | SkillDashSpeed | 无 | 2 级加速 10s |
+| 32 | 同心壁垒 | SkillAllyShieldEight | 无（护盾 buff 自带） | 8 级护盾 60s（自身+附近友方） |
+| 33 | 自守壁垒 | SkillShieldFour | 无（护盾 buff 自带） | 4 级护盾 10s |
 
 #### 魔法球（34~49）
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现（buff 由客户端统一播） |
 | --- | --- | --- | --- | --- |
-| 34 | 终点分裂 5 发 | SkillSplitShot | Bullet[0] 母弹 + Bullet[36] ×5 分裂 | 无 |
-| 35 | 牵引弹 | SkillPullBolt | Bullet[1] | 命中挂 MotionAttract 牵引 |
-| 36 | 12 发静止弹幕 | SkillStaticBarrage | Bullet[2] ×12（定点） | 命中挂定身 10s |
-| 37 | 扇形冰冻 | SkillFanFreeze | Bullet[3] | 命中挂冰冻 4s |
-| 38 | 来回扫射中毒 | SkillSweepPoison | Bullet[4] ×N | 3 级中毒 5s |
-| 39 | 八次弹跳 | SkillBounceShot | Bullet[5]（9 点折线） | 无 |
-| 40 | 连续扫射燃烧 | SkillSweepBurn | Bullet[8] | 5 级燃烧 5s |
-| 41 | 法阵 + 六向连射 | SkillCircleVolley | MagicCircle[7] 法阵 + Bullet[12] ×6 | 无 |
-| 42 | 钩人扇形 | SkillHookFan | Bullet[14] ×5 | 命中挂 MotionAttract 牵引 |
-| 43 | 漩涡延迟爆炸 | SkillVortexBomb | RangeMagic[1] | 命中挂 MotionAttract 牵引 |
-| 44 | 6 定点持续伤害 | SkillSixOrbs | RangeMagic[3] ×6（定点） | 无 |
-| 45 | 头顶沉默 | SkillSkyfallSilence | RangeMagic[4]（头顶落下） | 命中挂沉默 10s |
-| 46 | 自身爆炸击飞 | SkillBlastKnockback | Bullet[7] ×6（扇形） | 灼烧 3 级 10s |
-| 47 | 背后贝塞尔武器 | SkillBackArcWeapons | 武器模型本体 ×N（贝塞尔） | 无 |
-| 48 | 群体暴击暴伤 | SkillAllyCritBoost | 无 | 5 级暴击率 + 5 级暴伤 20s（自身+附近友方） |
-| 49 | 全体 25 级护盾 | SkillAllyShieldTwentyFive | 无（护盾 buff 自带） | 25 级护盾 30s（全体友方） |
+| 34 | 终裂 | SkillSplitShot | Bullet[0] 母弹 + Bullet[36] ×5 分裂 | 无 |
+| 35 | 引力弹 | SkillPullBolt | Bullet[1] | 命中挂 MotionAttract 牵引 |
+| 36 | 静滞矩阵 | SkillStaticBarrage | Bullet[2] ×12（定点） | 命中挂定身 10s |
+| 37 | 霜封扇 | SkillFanFreeze | Bullet[3] | 命中挂冰冻 4s |
+| 38 | 毒幕往复 | SkillSweepPoison | Bullet[4] ×N | 3 级中毒 5s |
+| 39 | 连弹 | SkillBounceShot | Bullet[5]（9 点折线） | 无 |
+| 40 | 焚幕 | SkillSweepBurn | Bullet[8] | 5 级燃烧 5s |
+| 41 | 六芒连射 | SkillCircleVolley | MagicCircle[7] 法阵 + Bullet[12] ×6 | 无 |
+| 42 | 钩影扇 | SkillHookFan | Bullet[14] ×5 | 命中挂 MotionAttract 牵引 |
+| 43 | 涡爆 | SkillVortexBomb | RangeMagic[1] | 命中挂 MotionAttract 牵引 |
+| 44 | 六点灼阵 | SkillSixOrbs | RangeMagic[3] ×6（定点） | 无 |
+| 45 | 禁言之落 | SkillSkyfallSilence | RangeMagic[4]（头顶落下） | 命中挂沉默 10s |
+| 46 | 爆裂崩击 | SkillBlastKnockback | Bullet[7] ×6（扇形） | 灼烧 3 级 10s |
+| 47 | 弧刃背袭 | SkillBackArcWeapons | 武器模型本体 ×N（贝塞尔） | 无 |
+| 48 | 锐意共鸣 | SkillAllyCritBoost | 无 | 5 级暴击率 + 5 级暴伤 20s（自身+附近友方） |
+| 49 | 圣域壁垒 | SkillAllyShieldTwentyFive | 无（护盾 buff 自带） | 25 级护盾 30s（全体友方） |
 
 ### 1.2 防守方 6 角色（50~67）
 
-> 这 18 个技能**除怪力压制（51，播 RangeMagic[5]）外都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
+> 这 18 个技能**除山崩连踏（51，播 RangeMagic[5]）外都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
-| 50 | 岩石护盾 | SkillRockShield | 无（护盾 buff 自带） | 附近水晶雕像挂 StatueShield；附近无水晶雕像则给自己 |
-| 51 | 怪力压制 | SkillPowerSuppress | RangeMagic[5]（自身位置 ×3） | 命中挂 2 级 AnimSlowDown 10s |
-| 52 | 灵火 | SkillCrystalStatueBlazeCast | 无 | 全场水晶雕像挂 StatueBlaze |
-| 53 | 白眼标记 | SkillEyeMark | 无 | EyeMark（小地图常显） |
-| 54 | 黑夜标记 | SkillNightMark | 无 | 自身挂 NightMark（不出现在敌方小地图） |
-| 55 | 立即入夜 | SkillForceNight | 无 | 无 |
-| 56 | 召唤僵尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
-| 57 | 死灵漫步 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
-| 58 | 召唤精英 | SkillSummonElites | 无 | 无（3 只精英僵尸，等级跟随自然刷新等级） |
-| 59 | 沉默 | SkillSilenceCast | 无 | 自身 8m 内敌人挂 Silence |
-| 60 | 泥沼 | SkillMireCast | 无 | 全场敌人挂 Mire |
-| 61 | 反伤 | SkillReflectCast | 无 | 守护雕像挂 Reflect |
-| 62 | 瘟疫标记 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
-| 63 | 瘟疫污染 | SkillPlaguePollute | 无 | 场上现有珊瑚挂 PlaguePollute；珊瑚被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
-| 64 | 引爆瘟疫 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
-| 65 | 苍白之光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
-| 66 | 苍白之暗 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
-| 67 | 迷雾 | SkillFogCast | 无 | 敌人挂 Fog |
+| 50 | 磐石壁垒 | SkillRockShield | 无（护盾 buff 自带） | 附近水晶雕像挂 StatueShield；附近无水晶雕像则给自己 |
+| 51 | 山崩连踏 | SkillPowerSuppress | RangeMagic[5]（自身位置 ×3） | 命中挂 2 级 AnimSlowDown 10s |
+| 52 | 焚塔灵焰 | SkillCrystalStatueBlazeCast | 无 | 全场水晶雕像挂 StatueBlaze |
+| 53 | 白瞳凝视 | SkillEyeMark | 无 | EyeMark（小地图常显） |
+| 54 | 夜隐 | SkillNightMark | 无 | 自身挂 NightMark（不出现在敌方小地图） |
+| 55 | 长夜降临 | SkillForceNight | 无 | 无 |
+| 56 | 唤尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
+| 57 | 死境漫游 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
+| 58 | 菁英尸潮 | SkillSummonElites | 无 | 无（3 只精英僵尸，等级跟随自然刷新等级） |
+| 59 | 缄默之咒 | SkillSilenceCast | 无 | 自身 8m 内敌人挂 Silence |
+| 60 | 沉沼缚 | SkillMireCast | 无 | 全场敌人挂 Mire |
+| 61 | 荆棘回响 | SkillReflectCast | 无 | 守护雕像挂 Reflect |
+| 62 | 疫印 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
+| 63 | 疫染 | SkillPlaguePollute | 无 | 场上现有珊瑚挂 PlaguePollute；珊瑚被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
+| 64 | 疫爆 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
+| 65 | 苍白耀光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
+| 66 | 苍白蚀影 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
+| 67 | 蔽目之雾 | SkillFogCast | 无 | 敌人挂 Fog |
 
 **被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、单次受伤不超过生命上限 5%（`AdjustIncomingDamage`）、致命伤害拦截 + 20s 10 级护盾（`BlockLethalDamage`，每角色 60s 一次）、光暗转化（`CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升等全局被动见策划案第二十章。
 
@@ -111,18 +111,18 @@
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
-| 68 | 僵尸·爪击右 | SkillZombieClawR | 无（手部骨骼判定球） | 无 |
-| 69 | 僵尸·爪击左 | SkillZombieClawL | 无（手部骨骼判定球） | 无 |
-| 70 | 精英僵尸·爪击右 | SkillEliteZombieClawR | 无（手部骨骼判定球） | 无 |
-| 71 | 精英僵尸·爪击左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
-| 72 | 精英僵尸·嘶吼 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
-| 73 | 水晶雕像·孢子喷射1 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
-| 74 | 水晶雕像·孢子喷射2 | SkillCrystalStatueSporeB | Bullet[24] | 无 |
-| 75 | 水晶雕像·孢子喷射3 | SkillCrystalStatueSporeC | Bullet[26] | 无 |
-| 76 | 中立雕像·孢子喷发 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
-| 77 | 空手·左拳 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
-| 78 | 空手·右拳 | SkillPunchRight | 无（手部骨骼判定球） | 无 |
-| 79 | 空手·原地砸击 | SkillPunchSmash | RangeMagic[6] | 无 |
+| 68 | 腐爪·右 | SkillZombieClawR | 无（手部骨骼判定球） | 无 |
+| 69 | 腐爪·左 | SkillZombieClawL | 无（手部骨骼判定球） | 无 |
+| 70 | 裂骨爪·右 | SkillEliteZombieClawR | 无（手部骨骼判定球） | 无 |
+| 71 | 裂骨爪·左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
+| 72 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
+| 73 | 孢毒喷吐·甲 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
+| 74 | 孢毒喷吐·乙 | SkillCrystalStatueSporeB | Bullet[24] | 无 |
+| 75 | 孢毒喷吐·丙 | SkillCrystalStatueSporeC | Bullet[26] | 无 |
+| 76 | 疫孢吐息 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
+| 77 | 直拳·左 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
+| 78 | 直拳·右 | SkillPunchRight | 无（手部骨骼判定球） | 无 |
+| 79 | 崩拳 | SkillPunchSmash | RangeMagic[6] | 无 |
 
 > 水晶雕像 / 中立雕像的孢子同样从**体中心 `UpCenter`** 发出（不走雕像顶部），落点取目标体中心。
 
@@ -185,7 +185,7 @@ Skills文件夹：
 **技能上下文（SkillContext）**：`ints` / `vectors` / `floats` 三个可变长列表，语义 = **能复原技能表现的最小可变数据包**。
 ① 只放运行时才确定、两端无法推导的东西：施法者 id、随机种子、瞄准点/落点、目标 id、档位、时间（放 floats）。发数、散布角、波次表、时长、轨迹形状、特效下标一律写死在技能类常量里，读包时用「变参 + 技能常量」复原——包体不随发数膨胀。伤害范围不写进包：有本体特效的取该特效预制体的命中球，无特效近战取 skill.csv 第 15 列半径；伤害倍率与再伤害间隔取 skill.csv 第 17 / 16 列。
 ② **包内容与布局由每个技能自己决定**：`ShotSkillBase` **不实现 `SkillLogic`**（`SkillBase.SkillLogic` 是 abstract），只提供可选 helper `ShotContext(entity, seed, aim)`——写不写种子、写不写落点由子类在自己那行 `SkillLogic => ShotContext(...)` 里显式声明；需要别的布局就直接 `new SkillContext()` 自己拼。读取同样由技能自己按下标解析（同一技能的内部约定：`ints[0]=施法者`、`vectors[0]=起点`、`vectors[1]=落点`，只有真写了才存在）。
-③ **跨端随机一律伪随机**：服务器施放时生成种子写进包里，两端用技能自己的 `System.Random(seed)` 按固定调用顺序取数（禁止 `UnityEngine.Random`：全局状态，两端消耗顺序不同必然发散）。目前只有「跃起随机散射」「后方随机汇聚」写种子。
+③ **跨端随机一律伪随机**：服务器施放时生成种子写进包里，两端用技能自己的 `System.Random(seed)` 按固定调用顺序取数（禁止 `UnityEngine.Random`：全局状态，两端消耗顺序不同必然发散）。目前只有「腾跃散华」「背袭弹幕」写种子。
 ④ **位置一律 entityId + Vector3**：客户端有该实体就按锚点取实时位置（跟随身体），取不到实体数据才用 Vector3 兜底。
 ⑤ **禁止给子弹加跨端回调**：分裂 / 弹跳 / 延时等二次效果，施放时就算好时刻与点位，两端到点各自创建——弹跳 = 起点 + 8 跳共 9 个点整串下发；分裂 = 母弹终点 + 按弹速与距离动态算出的时刻。
 包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B。
@@ -194,7 +194,7 @@ Skills文件夹：
 **索敌与落点**：文档 `[索敌]` 标记 = 覆盖 `AutoAim => true`，其余默认 `false`（朝自身面向）。落点统一走 `AimPoint(entity, origin)`：
 - 不索敌：`origin + forward × ForwardAimDistance`，**高度 = 起点高度**（水平射出）；
 - 索敌：水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**落点高度 = 目标体中心**（不锁 `transform.position` / 脚部），距离取技能 `CastRange`；
-- 专门做上下变化的技能自己覆盖 `AimPoint`（「周围子弹天降」「周围创造武器落下」→ 自身脚下）或整段覆写 `TrajectoryFor`。
+- 专门做上下变化的技能自己覆盖 `AimPoint`（「天罗」「兵雨」→ 自身脚下）或整段覆写 `TrajectoryFor`。
 `TargetSelect.AimPos` 保留给非射击类索敌（防守方 / 塔 / 树），内部同样按体中心取点。
 **轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `TrialConstructor.Line(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；也可直接 new 对应 `BulletTrajectory` 子类。
 **多目标**：需要锁多个目标时由技能自己在 `SkillLogic` 里写（`ints[2..]` = 目标 id、`vectors[2..]` = 位置兜底，上限与排序规则写进技能常量）；纯范围效果优先只传「中心 + 半径 + 阵营」，由服务器自己取，不逐个下发。

@@ -37,7 +37,10 @@ public class GmPanel
 
     // 开关类指令的本地状态（服务端按目标状态设置；本地只用于按钮标题与切换）
     private readonly HashSet<GmEnum> toggleOn = new();
-    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标 0~4
+    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标（只含走开战扫阵营的：0 鹿铠 / 2 死灵 / 3 教皇）
+
+    // 被动按钮序号 → Config.defense_index_*（顺序同 GmLayout 里的按钮）
+    private static readonly int[] PassiveDefenseIndexes = { 0, 2, 3 };
 
     public GmPanel(UI_GmPanel panel)
     {
@@ -538,7 +541,7 @@ public class GmPanel
 
         if (cmd == GmEnum.Player_Skill_PassiveEnable)
         {
-            int index = rowIndex - start; // 按钮顺序即防守方被动下标
+            int index = PassiveDefenseIndexes[rowIndex - start]; // 按钮序号 ≠ 防守方下标，按映射表取
             bool on = !passiveOn.Contains(index);
             if (on) passiveOn.Add(index); else passiveOn.Remove(index);
             if (Tool.NetworkManager != null)

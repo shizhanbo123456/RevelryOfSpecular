@@ -213,12 +213,10 @@ namespace Ros.Gm
             });
             layoutStyle.Add(GmEnum.Player_Skill_PassiveEnable, new()
             {
-                // 按钮顺序 = 防守方被动下标 0~4（苍白舞者的被动是"双高转火"类，不在此列）
+                // 顺序与 GmPanel.PassiveDefenseIndexes 对应；白眼伯爵 / 瘟疫使者的被动绑定自身受击，不在此列
                 new Button(string.Empty, "鹿铠怪人"),
-                new Button(string.Empty, "白眼伯爵"),
                 new Button(string.Empty, "死灵漫步者"),
-                new Button(string.Empty, "蒙面教皇"),
-                new Button(string.Empty, "瘟疫使者")
+                new Button(string.Empty, "蒙面教皇")
             });
             layoutStyle.Add(GmEnum.Player_Buff_AddBuff, new()
             {
