@@ -207,36 +207,36 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, Config.neutral_statue_variant_count);
 
         // 数量/空项之外再逐项核对：组件没挂、范围没录、碰撞体层不对，运行时照样打不中或不动
-        e += CheckPrefabs("AssetsManager.AttackCharacterGraphics", m.AttackCharacterGraphics, expectAnim: true);
-        e += CheckPrefabs("AssetsManager.DefenseCharacterGraphics", m.DefenseCharacterGraphics, expectAnim: true);
-        e += CheckPrefabs("AssetsManager.ZombieGraphics", m.ZombieGraphics, expectAnim: true);
-        e += CheckPrefabs("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, expectAnim: true);
-        e += CheckPrefabs("AssetsManager.SageStatueGraphics", m.SageStatueGraphics, expectAnim: false);
-        e += CheckPrefab("AssetsManager.KingStatueGraphic", m.KingStatueGraphic, expectAnim: false);
-        e += CheckPrefabs("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, expectAnim: false);
-        e += CheckPrefabs("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, expectAnim: false);
-        e += CheckPrefabs("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, expectAnim: false);
-        e += CheckPrefabs("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, expectAnim: false);
+        e += CheckPrefabs("AssetsManager.AttackCharacterGraphics", m.AttackCharacterGraphics, humanoid: true);
+        e += CheckPrefabs("AssetsManager.DefenseCharacterGraphics", m.DefenseCharacterGraphics, humanoid: true);
+        e += CheckPrefabs("AssetsManager.ZombieGraphics", m.ZombieGraphics, humanoid: true);
+        e += CheckPrefabs("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, humanoid: true);
+        e += CheckPrefabs("AssetsManager.SageStatueGraphics", m.SageStatueGraphics, humanoid: false);
+        e += CheckPrefab("AssetsManager.KingStatueGraphic", m.KingStatueGraphic, humanoid: false);
+        e += CheckPrefabs("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, humanoid: false);
+        e += CheckPrefabs("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, humanoid: false);
+        e += CheckPrefabs("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, humanoid: false);
+        e += CheckPrefabs("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, humanoid: false);
         return e;
     }
 
-    private static int CheckPrefabs(string label, List<GameObject> list, bool expectAnim)
+    private static int CheckPrefabs(string label, List<GameObject> list, bool humanoid)
     {
         if (list == null) return 0;
 
         int e = 0;
         for (int i = 0; i < list.Count; i++)
-            if (list[i] != null) e += CheckEntityPrefab($"{label}[{i}]", list[i], expectAnim);
+            if (list[i] != null) e += CheckEntityPrefab($"{label}[{i}]", list[i], humanoid);
         return e;
     }
 
-    private static int CheckPrefab(string label, GameObject prefab, bool expectAnim)
+    private static int CheckPrefab(string label, GameObject prefab, bool humanoid)
     {
-        return prefab == null ? 0 : CheckEntityPrefab(label, prefab, expectAnim);
+        return prefab == null ? 0 : CheckEntityPrefab(label, prefab, humanoid);
     }
 
-    // 单个实体图形：EntityModelInfo 是否挂上、包围范围是否录入、胶囊碰撞体会落在哪一层、有动画的类别是否挂 EntityAnim
-    private static int CheckEntityPrefab(string label, GameObject prefab, bool expectAnim)
+    // 单个实体图形：EntityModelInfo 是否挂上、包围范围是否有效、胶囊碰撞体会落在哪一层、人形是否挂 EntityAnim（非人形不应挂）
+    private static int CheckEntityPrefab(string label, GameObject prefab, bool humanoid)
     {
         int e = 0;
         string name = $"{label}「{prefab.name}」";
@@ -248,7 +248,7 @@ public class Tool : MonoBehaviour
             return 1;
         }
 
-        // 与 EntityModelInfo.BuildCapsuleCollider 同一算式：范围没录 = 零体积胶囊 = 打不中
+        // 与 EntityModelInfo.BuildCapsuleCollider 同一算式：半径/高度为 0 时碰撞体失效
         float height = modelInfo.yRange.y - modelInfo.yRange.x;
         float radius = ((modelInfo.xRange.y - modelInfo.xRange.x) + (modelInfo.zRange.y - modelInfo.zRange.x)) * 0.25f;
         if (height <= 0f || radius <= 0f)
@@ -273,9 +273,16 @@ public class Tool : MonoBehaviour
             e++;
         }
 
-        if (expectAnim && prefab.GetComponentInChildren<EntityAnim>(true) == null)
+        // 只有人形（角色/僵尸）挂 EntityAnim：它决定是否建刚体与驱动动画，雕像与珊瑚不该有
+        var anim = prefab.GetComponentInChildren<EntityAnim>(true);
+        if (humanoid && anim == null)
         {
-            Debug.LogError($"[启动自检] {name} 没挂 EntityAnim：运行时不会建刚体，实体不会移动也没有受击动作");
+            Debug.LogError($"[启动自检] {name} 是人形预制体但没挂 EntityAnim：运行时不会建刚体，实体不会移动也没有受击动作");
+            e++;
+        }
+        else if (!humanoid && anim != null)
+        {
+            Debug.LogError($"[启动自检] {name} 是非人形预制体（雕像/珊瑚）却挂了 EntityAnim：会被当人形建刚体并驱动动画");
             e++;
         }
         return e;
