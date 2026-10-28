@@ -14,6 +14,7 @@ namespace Ros.UI.Main
         public GList m_content;
         public GButton m_btn_allChannel;
         public GButton m_btn_campChannel;
+        public GButton m_btn_systemInfo;
         public UI_btn_chatShowHide m_btn_hide;
         public UI_btn_chatShowHide m_btn_show;
         public const string URL = "ui://q68vr2bfobkwj0";
@@ -34,8 +35,9 @@ namespace Ros.UI.Main
             m_content = (GList)GetChildAt(6);
             m_btn_allChannel = (GButton)GetChildAt(7);
             m_btn_campChannel = (GButton)GetChildAt(8);
-            m_btn_hide = (UI_btn_chatShowHide)GetChildAt(10);
-            m_btn_show = (UI_btn_chatShowHide)GetChildAt(12);
+            m_btn_systemInfo = (GButton)GetChildAt(9);
+            m_btn_hide = (UI_btn_chatShowHide)GetChildAt(11);
+            m_btn_show = (UI_btn_chatShowHide)GetChildAt(13);
         }
     }
 }

@@ -22,7 +22,6 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_PlayerHealth.URL, typeof(UI_PlayerHealth));
             UIObjectFactory.SetPackageItemExtension(UI_NoticePanel.URL, typeof(UI_NoticePanel));
             UIObjectFactory.SetPackageItemExtension(UI_EventItem.URL, typeof(UI_EventItem));
-            UIObjectFactory.SetPackageItemExtension(UI_EventList.URL, typeof(UI_EventList));
             UIObjectFactory.SetPackageItemExtension(UI_Minimap.URL, typeof(UI_Minimap));
             UIObjectFactory.SetPackageItemExtension(UI_MinimapItem.URL, typeof(UI_MinimapItem));
             UIObjectFactory.SetPackageItemExtension(UI_DamageLabel.URL, typeof(UI_DamageLabel));
@@ -33,6 +32,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
             UIObjectFactory.SetPackageItemExtension(UI_iconEmerald.URL, typeof(UI_iconEmerald));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberContent.URL, typeof(UI_LobbyMemberContent));
+            UIObjectFactory.SetPackageItemExtension(UI_ImportantEventBanner.URL, typeof(UI_ImportantEventBanner));
             UIObjectFactory.SetPackageItemExtension(UI_onlookComboBox_popup.URL, typeof(UI_onlookComboBox_popup));
             UIObjectFactory.SetPackageItemExtension(UI_buffItem.URL, typeof(UI_buffItem));
             UIObjectFactory.SetPackageItemExtension(UI_buffItemMask.URL, typeof(UI_buffItemMask));

@@ -26,12 +26,12 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_type = GetControllerAt(0);
-            m_type0_label = (GTextField)GetChildAt(1);
-            m_type1_loader = (UI_EventIcon)GetChildAt(4);
-            m_type1_label = (GTextField)GetChildAt(5);
-            m_type2_label1 = (GTextField)GetChildAt(8);
-            m_type2_loader = (UI_EventIcon)GetChildAt(9);
-            m_type2_label2 = (GTextField)GetChildAt(10);
+            m_type0_label = (GTextField)GetChildAt(0);
+            m_type1_loader = (UI_EventIcon)GetChildAt(2);
+            m_type1_label = (GTextField)GetChildAt(3);
+            m_type2_label1 = (GTextField)GetChildAt(5);
+            m_type2_loader = (UI_EventIcon)GetChildAt(6);
+            m_type2_label2 = (GTextField)GetChildAt(7);
         }
     }
 }

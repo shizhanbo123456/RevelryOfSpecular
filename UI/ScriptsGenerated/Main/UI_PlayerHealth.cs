@@ -24,7 +24,7 @@ namespace Ros.UI.Main
 
             m_bar_fill_health = (GImage)GetChildAt(1);
             m_label_health = (GTextField)GetChildAt(2);
-            m_avater_mask = (UI_avaterMask)GetChildAt(5);
+            m_avater_mask = (UI_avaterMask)GetChildAt(4);
             m_buffList = (UI_buffList)GetChildAt(6);
         }
     }

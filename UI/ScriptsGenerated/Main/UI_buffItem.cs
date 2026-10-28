@@ -9,6 +9,7 @@ namespace Ros.UI.Main
     {
         public Controller m_negative;
         public UI_buffItemMask m_mask;
+        public GTextField m_layer_count;
         public const string URL = "ui://q68vr2bfncwmlm";
 
         public static UI_buffItem CreateInstance()
@@ -22,6 +23,7 @@ namespace Ros.UI.Main
 
             m_negative = GetControllerAt(0);
             m_mask = (UI_buffItemMask)GetChildAt(1);
+            m_layer_count = (GTextField)GetChildAt(4);
         }
     }
 }
