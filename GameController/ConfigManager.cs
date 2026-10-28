@@ -634,9 +634,10 @@ public class ConfigManager : MonoBehaviour
     // 表内 key 的唯一出处：增删配表行须同步本枚举与 GlobalVariableConfig.keyMap，Load 时三方校验
     public enum GlobalVariableType
     {
-        MinimapViewRadius = 0, // minimap_view_radius
-        DayDuration = 1,       // day_duration
-        NightDuration = 2,     // night_duration
+        MinimapViewRadius = 0,      // minimap_view_radius
+        DayDuration = 1,            // day_duration
+        NightDuration = 2,          // night_duration
+        BarDefaultSizeDistance = 3, // distance_of_bar_default_size
     }
 
     public struct GlobalVariableConfig
@@ -651,6 +652,7 @@ public class ConfigManager : MonoBehaviour
             { GlobalVariableType.MinimapViewRadius, "minimap_view_radius" },
             { GlobalVariableType.DayDuration, "day_duration" },
             { GlobalVariableType.NightDuration, "night_duration" },
+            { GlobalVariableType.BarDefaultSizeDistance, "distance_of_bar_default_size" },
         };
 
         public string key;

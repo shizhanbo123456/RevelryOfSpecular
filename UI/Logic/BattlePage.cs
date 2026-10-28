@@ -19,6 +19,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly Dictionary<ushort, int> barOwners = new();
+    private readonly float barDefaultSizeDistance = Config.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
     private readonly List<ushort> s_expiredMinimapIds = new();
@@ -912,7 +913,14 @@ public class BattlePage : PageBase
                 if (visible) local = new Vector2(screen.x / UiScale, (Screen.height - screen.y) / UiScale);
             }
             bar.visible = visible;
-            if (visible) bar.xy = local - new Vector2(bar.width * 0.5f, 0f); // 血条正中在头顶正上方
+            if (visible)
+            {
+                // 血条画在屏幕面板上，不随距离自然缩小：按相机到头顶锚点的距离倒比缩放，默认距离处为 (1,1)
+                float distance = Vector3.Distance(cam.transform.position, headPos);
+                float scale = barDefaultSizeDistance / Mathf.Max(distance, 0.01f); // 相机贴到锚点时按 1 厘米算，避免除零
+                bar.SetScale(scale, scale);
+                bar.xy = local - new Vector2(bar.width * 0.5f * scale, 0f); // 缩放后正中仍落在头顶正上方
+            }
         }
     }
 

@@ -114,6 +114,21 @@ public static class Config
     public const float map_terrain_size = 1000f;
     #endregion
 
+    #region 实体血条（世界跟随，按相机距离缩放）
+    // 血条 scale = 本距离 / 实际相机距离：本距离处 (1,1)，2 倍距离处 (0.5,0.5)
+    public static float distance_of_bar_default_size
+    {
+        get
+        {
+            var ints = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.BarDefaultSizeDistance).ints;
+            if (ints == null || ints.Count == 0 || ints[0] <= 0)
+                throw new System.FormatException("[配表] global_variables.csv 的 distance_of_bar_default_size 必须填大于 0 的整数");
+
+            return ints[0];
+        }
+    }
+    #endregion
+
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
     public const float move_turn_rate = 120f;
     public static readonly KeyCode[] skill_slot_keys = { KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.L, KeyCode.H, KeyCode.Y };
