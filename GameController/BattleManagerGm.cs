@@ -47,7 +47,6 @@ public partial class BattleManager
                     Tool.EnvironmentManager.dayDuration = Mathf.Max(0.01f, gm.float1);
                 break;
             case GmEnum.Battle_DayNight_SetNightDuration:
-                // 允许覆盖防御方「夜晚延长」被动算出的值
                 if (Tool.EnvironmentManager != null)
                     Tool.EnvironmentManager.nightDuration = Mathf.Max(0.01f, gm.float1);
                 break;

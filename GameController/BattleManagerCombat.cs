@@ -286,7 +286,7 @@ public partial class BattleManager
             var revive = ConfigManager.ReviveTimeConfig.GetClamped(Mathf.Max(1, rs.deathCount));
             if (camp == PlayerCampType.Attack)
             {
-                rs.progress += dt / revive.attackReviveSeconds * AttackReviveFactor; // 瘟疫使者 被动「进攻方复活速度减慢」
+                rs.progress += dt / revive.attackReviveSeconds;
             }
             else
             {
@@ -382,6 +382,7 @@ public partial class BattleManager
         lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = -1; // 每局重置，保证开局首帧必发
         System.Array.Clear(defensePointProgress, 0, defensePointProgress.Length);
         for (int i = 0; i < sentDefensePointProgress.Length; i++) sentDefensePointProgress[i] = -1; // 同上：开局必发一次
+        plagueGuardReadyTime.Clear();
     }
 
     #region 守护点开采进度（0~100，与视野解耦，变更即广播）

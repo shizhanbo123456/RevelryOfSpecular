@@ -252,10 +252,12 @@ public static class Config
 
     #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）
     public const float crit_paralysis_duration = 1.5f;
-    public const float night_extend_factor = 1.5f;
     public const float pope_guard_reduce_rate = 0.3f;
-    public const float attack_revive_slow_factor = 0.6f;
     public const int pale_full_stacks = 10;
     public const int pale_mixed_stacks = 8;
+    public const float count_eye_damage_cap_ratio = 0.05f; // 白眼伯爵：单次受伤不超过生命上限的此比例
+    public const int plague_shield_level = 10;             // 瘟疫使者：致命伤害拦截后给自己挂的护盾等级
+    public const float plague_shield_duration = 20f;
+    public const float plague_shield_cooldown = 60f;        // 同一角色两次触发的最小间隔
     #endregion
 }

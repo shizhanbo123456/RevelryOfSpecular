@@ -105,7 +105,7 @@
 | 66 | 苍白之暗 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
 | 67 | 迷雾 | SkillFogCast | 无 | 敌人挂 Fog |
 
-**被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、光暗转化（`BattleManagerPassive.CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升 / 进攻方复活减速等全局被动见策划案第二十章。
+**被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、单次受伤不超过生命上限 5%（`AdjustIncomingDamage`）、致命伤害拦截 + 20s 10 级护盾（`BlockLethalDamage`，每角色 60s 一次）、光暗转化（`CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升等全局被动见策划案第二十章。
 
 ### 1.3 非玩家单位与空手（68~79）
 
@@ -221,6 +221,6 @@ Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；*
 8. 破霸体：攻击数据（AttackData.breakEndure）命中霸体等级 1 的目标时进入受击，且若目标在位移中则移除 MotionBase；命中判定入口 = EntityData.ProcessHit（**受击动作、打断位移、被击飞三者都在 enterHit 这一分支内**，见速度节⑥）
 9. 沉默/强控期间无法释放技能（EntitySkillController.TryUseSkill 校验 CanCastSkill）
 10. Buff 数据使用 struct；标记类 Buff（瘟疫标记/苍白之光/暗）无自身效果，供其它逻辑读层数（苍白转化由被动订阅 Buff 变化实现；**转化出的苍白之冰/之雷/之火归属原施加者**——`AddEffect` 的苍白钩子把标记的施加者传给 `CheckPaleConversion`，多人叠同一目标时归属最后叠层者）。苍白之冰/之雷是独立强控类型（行为同冰冻/麻痹），苍白之火是独立 DoT（每跳同燃烧），三者只是类型不同、可与通用冰冻/麻痹/燃烧并存各算各的层数与时间
-11. 全局参数（僵尸刷新等级、进攻方复活减速等）不是 Buff，实现于游戏逻辑控制器/Config（策划案第二十章）；其中僵尸刷新等级按战斗剩余时间实时计算（`BattleManagerPassive.GetZombieSpawnLevel`：每经过 7.5% 战斗时间 +1，死亡漫步者被动再 +4，普通/精英共用）。等级上限分三档：角色等级上限 `save_max_level=10`（对应 `exp_character.csv` 的 1~10 级）、战斗期生成等级 `battle_max_level=20`（`EntityData.OnCreate` 钳制，最高刷出 20 级）、玩家等级上限取 `exp_player.csv` 的最大主键（`Config.player_max_level` 由表推断，不写死）
+11. 全局参数（僵尸刷新等级等）不是 Buff，实现于游戏逻辑控制器/Config（策划案第二十章）；其中僵尸刷新等级按战斗剩余时间实时计算（`BattleManagerPassive.GetZombieSpawnLevel`：每经过 7.5% 战斗时间 +1，死亡漫步者被动再 +4，普通/精英共用）。受击类被动（白眼伯爵单次受伤上限、瘟疫使者致命拦截）不进 Buff 系统，在 `EntityData.OnDamaged` 的伤害管线里即时判定。等级上限分三档：角色等级上限 `save_max_level=10`（对应 `exp_character.csv` 的 1~10 级）、战斗期生成等级 `battle_max_level=20`（`EntityData.OnCreate` 钳制，最高刷出 20 级）、玩家等级上限取 `exp_player.csv` 的最大主键（`Config.player_max_level` 由表推断，不写死）
 12. 表现：持续型 Buff 特效**只由客户端播**——`EntityPlayerManager.ApplyBuffVfx` 按 `SCEntityDisplayInfo.buffs` 查 `Config.buff_vfx` 增删跟随特效（映射表按《特效清单分别表1019》定稿），**技能 `PlayVFX` 内禁止播 buff 特效**。
 13. 瘟疫祝福（`PlagueBless`）：唯一的"出伤 / 受伤乘区"Buff，与愈战愈勇同通道（`GetOutDamageMultiplier` +75% / `GetInDamageMultiplier` −25%），攻击方在伤害计算时读取。由 `NeutralStatueEntityData.OnKilled` 挂给"把雕像血量清零那一次攻击的攻击者"；被 Buff/DoT（固定数值伤害）打死的没有归属。移速类单独一档，见"速度"节⑨

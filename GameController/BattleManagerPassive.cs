@@ -3,11 +3,12 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    public float AttackReviveFactor { get; private set; } = 1f;
-
     private bool zombieSpawnLevelBoosted;
 
     private readonly HashSet<int> defenseCharacters = new();
+
+    // 瘟疫使者「致命伤害拦截」的冷却：按玩家角色记（复活后仍占用），无归属实体按 id 记
+    private readonly Dictionary<int, float> plagueGuardReadyTime = new();
 
     #region 开局全局参数（一次结算）
     private void ApplyGlobalPassives()
@@ -20,25 +21,41 @@ public partial class BattleManager
         GmOnBattleStart(); // GM：把组队期启用的被动并进本次结算，并清掉上一局的无敌记录
 
         zombieSpawnLevelBoosted = DefenseHas(Config.defense_index_death_stroller);
-        AttackReviveFactor = DefenseHas(Config.defense_index_plague_bringer)
-            ? Config.attack_revive_slow_factor
-            : 1f;
-        if (DefenseHas(Config.defense_index_count_eye)) ExtendNight();
 
         // 入夜才施加教皇守护，这里按当前昼夜补一次，避免开战即夜晚时漏掉
         if (DefenseHas(Config.defense_index_masked_pope)) ApplyPopeGuard(EnvironmentManager.IsDay);
     }
 
     private bool DefenseHas(int defenseValue) => defenseCharacters.Contains(defenseValue);
+    #endregion
 
-    private void ExtendNight()
+    #region 受击被动（白眼伯爵 / 瘟疫使者）
+    // 白眼伯爵：单次受到伤害不超过生命上限的固定比例，在护盾与减伤之前就裁到上限
+    public float AdjustIncomingDamage(EntityData victim, float damage)
     {
-        var env = Tool.EnvironmentManager;
-        if (env == null) return;
-        float cycle = env.dayDuration + env.nightDuration;
-        float night = Mathf.Min(cycle - 0.01f, env.nightDuration * Config.night_extend_factor);
-        env.nightDuration = night;
-        env.dayDuration = Mathf.Max(0.01f, cycle - night);
+        if (victim == null || damage <= 0f) return damage;
+        if (victim.type != EntityType.Defense(Config.defense_index_count_eye)) return damage;
+        float cap = victim.baseAttribute.health * Config.count_eye_damage_cap_ratio;
+        return damage > cap ? cap : damage;
+    }
+
+    // 瘟疫使者：会致死的伤害改成「剩余血量 -1」，同时挂护盾；每个角色每冷却只触发一次
+    public float BlockLethalDamage(EntityData victim, float damage)
+    {
+        if (victim == null || damage <= 0f) return damage;
+        if (victim.type != EntityType.Defense(Config.defense_index_plague_bringer)) return damage;
+
+        float health = victim.floatingAttribute.health;
+        if (damage < health) return damage; // 不致死
+        if (health <= 1f) return damage;    // 已只剩 1 血，留不出 1 血，正常死亡
+
+        int key = EntityOwnerClient.TryGetValue(victim.id, out short owner) ? owner : 100000 + victim.id;
+        if (plagueGuardReadyTime.TryGetValue(key, out float readyTime) && Time.time < readyTime) return damage;
+
+        plagueGuardReadyTime[key] = Time.time + Config.plague_shield_cooldown;
+        if (victim.effectController != null)
+            victim.effectController.AddEffect(EffectType.Shield, Config.plague_shield_level, Config.plague_shield_duration);
+        return health - 1f;
     }
     #endregion
 

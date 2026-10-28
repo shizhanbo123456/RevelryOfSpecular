@@ -458,6 +458,7 @@ public abstract class EntityData : MonoBehaviour
         if (BattleManager.IsGmInvincible(id)) return; // GM 无敌：伤害按 0 处理（见 BattleManagerGm）
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
+        if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.AdjustIncomingDamage(this, finalDamage); // 白眼伯爵：单次受伤上限
         if (effectController != null)
         {
             float shield = effectController.GetShieldAbsorb();
@@ -471,6 +472,7 @@ public abstract class EntityData : MonoBehaviour
             if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
         finalDamage = Mathf.Max(0f, finalDamage);
+        if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.BlockLethalDamage(this, finalDamage); // 瘟疫使者：致命拦截
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
         // 伤害被完全吸收/免疫时按「无效」飘字；闪避等已有明确类型的不覆盖

@@ -811,7 +811,7 @@ public partial class BattleManager : EnsBehaviour
         SpawnBattleWorld();
         UpdateKingStatueReduce(); // 初始分层减伤 = 存活外围数 × 25%
 
-        // 防守方被动（僵尸刷新等级 / 夜晚延长 / 进攻方复活减速 / 教皇守护）：须在双方实体生成后扫阵营
+        // 防守方开局被动（僵尸刷新等级 / 教皇守护）：须在双方实体生成后扫阵营；受击类被动在伤害结算里即时判定
         ApplyGlobalPassives();
 
         // 昼夜快照（周期时间 + 白天时长 + 晚上时长）：客户端据此自行推演，中途改时长会再补发
