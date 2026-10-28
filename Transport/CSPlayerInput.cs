@@ -27,10 +27,34 @@ namespace Ros.Transport
     {
         public static bool Serialize(CSPlayerInput value, byte[] result, ref int indexStart)
         {
-            return IntSerializer.Serialize((int)value.pressed, result, ref indexStart);
+            if (!EnsInstance.enableBitTransform) return SerializeBytes(value, result, ref indexStart);
+            if (result.Length - indexStart < 3) return false;
+
+            // 位级：PlayerKey 位标志最高 1<<18，19 位
+            BitField.SetBuffer(result, indexStart);
+            BitField.WriteInt((int)value.pressed, 0, 524287);
+            indexStart += BitField.Flush();
+            return true;
         }
 
         public static CSPlayerInput Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        {
+            if (!EnsInstance.enableBitTransform) return DeserializeBytes(data, ref indexStart, invalidIndex);
+            if (invalidIndex - indexStart < 3) throw new Exception("反序列化 CSPlayerInput 失败：剩余数据不足");
+
+            BitField.SetBuffer(data, indexStart);
+            var r = new CSPlayerInput();
+            r.pressed = (PlayerKey)BitField.ReadInt(0, 524287);
+            indexStart += 3;
+            return r;
+        }
+
+        private static bool SerializeBytes(CSPlayerInput value, byte[] result, ref int indexStart)
+        {
+            return IntSerializer.Serialize((int)value.pressed, result, ref indexStart);
+        }
+
+        private static CSPlayerInput DeserializeBytes(byte[] data, ref int indexStart, int invalidIndex)
         {
             return new CSPlayerInput()
             {

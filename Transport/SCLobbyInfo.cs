@@ -1,3 +1,5 @@
+using System;
+
 using System.Collections.Generic;
 
 namespace Ros.Transport
@@ -22,6 +24,71 @@ namespace Ros.Transport
     {
         public static bool Serialize(SCLobbyInfo value, byte[] result, ref int indexStart)
         {
+            if (!EnsInstance.enableBitTransform) return SerializeBytes(value, result, ref indexStart);
+
+            // 位级：AI数量4*2+battleStarted1+成员数4+成员(1+16+3+6+1)*n
+            BitField.SetBuffer(result, indexStart);
+            BitField.WriteBool(value != null);
+            if (value != null)
+            {
+                BitField.WriteInt(value.attackAICount, 0, 15);
+                BitField.WriteInt(value.defenseAICount, 0, 15);
+                BitField.WriteBool(value.battleStarted);
+
+                int count = value.members != null ? value.members.Count : 0;
+                BitField.WriteInt(count, 0, 15);
+                if (value.members != null)
+                {
+                    foreach (var member in value.members)
+                    {
+                        BitField.WriteBool(member != null);
+                        if (member == null) continue;
+                        BitField.WriteInt(member.clientId, -1, 32767);
+                        BitField.WriteInt(member.camp, -1, 2);
+                        BitField.WriteInt(member.characterIndex, -1, 31);
+                        BitField.WriteBool(member.ready);
+                    }
+                }
+            }
+            indexStart += BitField.Flush();
+            return true;
+        }
+
+        public static SCLobbyInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        {
+            if (!EnsInstance.enableBitTransform) return DeserializeBytes(data, ref indexStart, invalidIndex);
+            if (invalidIndex - indexStart < 1) throw new Exception("反序列化 SCLobbyInfo 失败：剩余数据不足");
+
+            BitField.SetBuffer(data, indexStart);
+            if (!BitField.ReadBool())
+            {
+                indexStart += 1;
+                return null;
+            }
+
+            var r = new SCLobbyInfo();
+            r.attackAICount = BitField.ReadInt(0, 15);
+            r.defenseAICount = BitField.ReadInt(0, 15);
+            r.battleStarted = BitField.ReadBool();
+
+            int count = BitField.ReadInt(0, 15);
+            for (int i = 0; i < count; i++)
+            {
+                if (!BitField.ReadBool()) { r.members.Add(null); continue; }
+                r.members.Add(new SCLobbyInfo.LobbyMemberInfo()
+                {
+                    clientId = (short)BitField.ReadInt(-1, 32767),
+                    camp = BitField.ReadInt(-1, 2),
+                    characterIndex = BitField.ReadInt(-1, 31),
+                    ready = BitField.ReadBool(),
+                });
+            }
+            indexStart += BitField.ReadByteLength;
+            return r;
+        }
+
+        private static bool SerializeBytes(SCLobbyInfo value, byte[] result, ref int indexStart)
+        {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
             if (!IntSerializer.Serialize(value.attackAICount, result, ref indexStart)) return false;
@@ -45,7 +112,7 @@ namespace Ros.Transport
             return true;
         }
 
-        public static SCLobbyInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        private static SCLobbyInfo DeserializeBytes(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             var info = new SCLobbyInfo()

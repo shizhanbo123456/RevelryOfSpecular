@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ros.Transport
@@ -37,6 +39,128 @@ namespace Ros.Transport
     public struct SCEntityDisplayInfoSerializer
     {
         public static bool Serialize(SCEntityDisplayInfo value, byte[] result, ref int indexStart)
+        {
+            if (!EnsInstance.enableBitTransform) return SerializeBytes(value, result, ref indexStart);
+
+            // 位级：id16+type11+camp5+5flag+health17*2+列表+可选位姿45/12/33/11
+            BitField.SetBuffer(result, indexStart);
+            BitField.WriteBool(value != null);
+            if (value != null)
+            {
+                BitField.WriteInt(value.entityId, 0, 65535);
+                BitField.WriteInt((int)value.type.category, 0, 7);
+                BitField.WriteInt(value.type.value, 0, 255);
+                BitField.WriteInt((int)value.camp, 0, 31);
+                BitField.WriteBool(value.includeRuntime);
+                BitField.WriteBool(value.hasTransform);
+                BitField.WriteBool(value.hasHealth);
+                BitField.WriteBool(value.hasBuffs);
+                BitField.WriteBool(value.hasSkills);
+                BitField.WriteInt(value.health, 0, 100000);
+                BitField.WriteInt(value.maxHealth, 0, 100000);
+
+                int buffCount = value.buffs != null ? value.buffs.Count : 0;
+                BitField.WriteInt(buffCount, 0, 15);
+                if (value.buffs != null)
+                {
+                    foreach (var buff in value.buffs)
+                    {
+                        BitField.WriteBool(buff != null);
+                        if (buff == null) continue;
+                        BitField.WriteInt(buff.type, 0, 255);
+                        BitField.WriteInt(buff.level, 0, 15);
+                    }
+                }
+
+                int skillCount = value.skills != null ? value.skills.Count : 0;
+                BitField.WriteInt(skillCount, 0, 15);
+                if (value.skills != null)
+                {
+                    foreach (var slot in value.skills)
+                    {
+                        BitField.WriteBool(slot != null);
+                        if (slot == null) continue;
+                        BitField.WriteInt(slot.skillId, -1, 255);
+                    }
+                }
+
+                if (value.hasTransform)
+                {
+                    BitField.WriteFloat(value.position.x, -500f, 500f, 0.05f);
+                    BitField.WriteFloat(value.position.y, -500f, 500f, 0.05f);
+                    BitField.WriteFloat(value.position.z, -500f, 500f, 0.05f);
+                    BitField.WriteFloat(value.yaw, 0f, 360f, 0.1f);
+                    BitField.WriteFloat(value.velocity.x, -50f, 50f, 0.05f);
+                    BitField.WriteFloat(value.velocity.y, -50f, 50f, 0.05f);
+                    BitField.WriteFloat(value.velocity.z, -50f, 50f, 0.05f);
+                    BitField.WriteFloat(value.yawSpeed, -720f, 720f, 1f);
+                }
+            }
+            indexStart += BitField.Flush();
+            return true;
+        }
+
+        public static SCEntityDisplayInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        {
+            if (!EnsInstance.enableBitTransform) return DeserializeBytes(data, ref indexStart, invalidIndex);
+            if (invalidIndex - indexStart < 1) throw new Exception("反序列化 SCEntityDisplayInfo 失败：剩余数据不足");
+
+            BitField.SetBuffer(data, indexStart);
+            if (!BitField.ReadBool())
+            {
+                indexStart += 1;
+                return null;
+            }
+
+            var r = new SCEntityDisplayInfo();
+            r.entityId = (ushort)BitField.ReadInt(0, 65535);
+            r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 255));
+            r.camp = (EntityCamp)BitField.ReadInt(0, 31);
+            r.includeRuntime = BitField.ReadBool();
+            r.hasTransform = BitField.ReadBool();
+            r.hasHealth = BitField.ReadBool();
+            r.hasBuffs = BitField.ReadBool();
+            r.hasSkills = BitField.ReadBool();
+            r.health = BitField.ReadInt(0, 100000);
+            r.maxHealth = BitField.ReadInt(0, 100000);
+
+            int buffCount = BitField.ReadInt(0, 15);
+            for (int i = 0; i < buffCount; i++)
+            {
+                if (!BitField.ReadBool()) { r.buffs.Add(null); continue; }
+                r.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
+                {
+                    type = BitField.ReadInt(0, 255),
+                    level = BitField.ReadInt(0, 15),
+                });
+            }
+
+            int skillCount = BitField.ReadInt(0, 15);
+            for (int i = 0; i < skillCount; i++)
+            {
+                if (!BitField.ReadBool()) { r.skills.Add(null); continue; }
+                r.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
+                {
+                    skillId = BitField.ReadInt(-1, 255),
+                });
+            }
+
+            if (r.hasTransform)
+            {
+                r.position.x = BitField.ReadFloat(-500f, 500f, 0.05f);
+                r.position.y = BitField.ReadFloat(-500f, 500f, 0.05f);
+                r.position.z = BitField.ReadFloat(-500f, 500f, 0.05f);
+                r.yaw = BitField.ReadFloat(0f, 360f, 0.1f);
+                r.velocity.x = BitField.ReadFloat(-50f, 50f, 0.05f);
+                r.velocity.y = BitField.ReadFloat(-50f, 50f, 0.05f);
+                r.velocity.z = BitField.ReadFloat(-50f, 50f, 0.05f);
+                r.yawSpeed = BitField.ReadFloat(-720f, 720f, 1f);
+            }
+            indexStart += BitField.ReadByteLength;
+            return r;
+        }
+
+        private static bool SerializeBytes(SCEntityDisplayInfo value, byte[] result, ref int indexStart)
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
@@ -82,7 +206,7 @@ namespace Ros.Transport
             return FloatSerializer.Serialize(value.yawSpeed, result, ref indexStart);
         }
 
-        public static SCEntityDisplayInfo Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        private static SCEntityDisplayInfo DeserializeBytes(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             var info = new SCEntityDisplayInfo()
