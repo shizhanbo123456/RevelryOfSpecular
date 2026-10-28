@@ -15,10 +15,12 @@ public class EntityPlayerManager : ClientSubManager
         public int animHash = int.MinValue; // 当前动画片段 hash（判断是否需要切换）
         public Vector3 velocity;   // 服务器下发速度（包间推演用）
         public float yawSpeed;     // 绕 Y 角速度（度/秒，包间推演用）
-        public Rigidbody rb;       // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
+        public Rigidbody rb;       // 客户端表现刚体：dynamic（kinematic 与静态碰撞体之间不做穿透解算），位置由 MovePosition 喂
         public Vector3 predictedPos;  // dead-reckoning 基准，避免读 transform 造成 velocity 重复叠加偏移
         public float predictedYaw;
         public bool predictedInit;
+        public bool snapPending;   // 刚收到权威位姿、物理步尚未应用：本帧不要用 rb.position 覆盖预测位置
+        public Vector3 moveTarget; // 上一次 MovePosition 的目标，用于取物理解算位移（推到墙外的那一段）
         public float lastSeenTime; // 最近一次收到同步的时间（超时移除用）
 
         public string pendingForcedSwitch;
@@ -58,12 +60,26 @@ public class EntityPlayerManager : ClientSubManager
             // 包间推演：用预测位置/朝向积分速度，绝不再读 transform（否则上一物理步已含 velocity 会重复叠加偏移）
             if (predictedInit)
             {
+                // 物理步会把插进墙体/地形的刚体推出来：把这段解算位移叠加回预测位置，否则穿透会逐帧累积；
+                // 只取水平分量，纵向仍用服务器下发值（关重力，物理不决定高度）
+                if (rb != null && !snapPending)
+                {
+                    Vector3 solvedDelta = rb.position - moveTarget;
+                    if (solvedDelta.sqrMagnitude > 1e-6f)
+                        predictedPos += new Vector3(solvedDelta.x, 0f, solvedDelta.z);
+                }
+                snapPending = false;
+
                 if (velocity.sqrMagnitude > 0f) predictedPos += velocity * Time.deltaTime;
                 if (!Mathf.Approximately(yawSpeed, 0f)) predictedYaw += yawSpeed * Time.deltaTime;
                 if (rb != null)
                 {
+                    // 位置只由 MovePosition 决定：速度不清零会被物理再积分一段，与目标位置互相拉扯
+                    rb.velocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
                     rb.MovePosition(predictedPos);
                     rb.MoveRotation(Quaternion.Euler(0f, predictedYaw, 0f));
+                    moveTarget = predictedPos;
                 }
                 else
                 {
@@ -381,11 +397,14 @@ public class EntityPlayerManager : ClientSubManager
             // 客户端动画：与服务器同一 Controller 资产；无 EntityData，攻击帧回调不传（伤害只由服务器算）
             if (view.anim != null) view.anim.Init(null);
 
-            // 客户端表现刚体：kinematic，仅由 MovePosition 驱动，物理做碰撞解析防穿墙抽搐
+            // 客户端表现刚体：dynamic + 关重力，逐帧 MovePosition 喂位姿；只有 dynamic 才与场景静态碰撞体做穿透解算
             view.modelInfo.BuildCapsuleCollider();
             view.rb = go.GetComponent<Rigidbody>();
             if (view.rb == null) view.rb = go.AddComponent<Rigidbody>();
-            view.rb.isKinematic = true;
+            view.rb.isKinematic = false;
+            view.rb.useGravity = false; // 高度由服务器下发，客户端不积分纵向
+            view.rb.drag = 0f;
+            view.rb.angularDrag = 0f;
             view.rb.interpolation = RigidbodyInterpolation.None; // 关闭插值：Update 喂可变帧率目标会与物理步拍子打架产生 judder
             view.rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
             view.rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
@@ -543,10 +562,12 @@ public class EntityPlayerManager : ClientSubManager
             view.predictedPos = info.position;
             view.predictedYaw = info.yaw;
             view.predictedInit = true;
+            view.snapPending = true;
             if (view.rb != null)
             {
                 view.rb.MovePosition(info.position);
                 view.rb.MoveRotation(Quaternion.Euler(0f, info.yaw, 0f));
+                view.moveTarget = info.position;
             }
             else
             {
