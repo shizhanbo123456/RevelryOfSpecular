@@ -417,8 +417,8 @@ public class ConfigManager : MonoBehaviour
                     case 0: attr.health += attr.health * GlobalVariableConfig.attr_growth_health; break;
                     case 1: attr.strength += (int)(attr.strength * GlobalVariableConfig.attr_growth_strength); break;
                     case 2: attr.magic += (int)(attr.magic * GlobalVariableConfig.attr_growth_magic); break;
-                    case 3: attr.critRate += (int)(attr.critRate * GlobalVariableConfig.attr_growth_critRate); break;
-                    case 4: attr.critDamage += (int)(attr.critDamage * GlobalVariableConfig.attr_growth_critDamage); break;
+                    case 3: attr.critRate += GlobalVariableConfig.attr_growth_critRate; break;
+                    case 4: attr.critDamage += GlobalVariableConfig.attr_growth_critDamage; break;
                 }
             }
             return attr;
@@ -653,8 +653,8 @@ public class ConfigManager : MonoBehaviour
         public static float attr_growth_health;         // 升级增益系数：生命
         public static float attr_growth_strength;       // 升级增益系数：力量
         public static float attr_growth_magic;          // 升级增益系数：魔法
-        public static float attr_growth_critRate;       // 升级增益系数：暴击率
-        public static float attr_growth_critDamage;     // 升级增益系数：暴击伤害
+        public static int attr_growth_critRate;         // 升级增益：暴击率，每级加点（百分点）
+        public static int attr_growth_critDamage;       // 升级增益：暴击伤害，每级加点（百分点）
         public static int battle_max_level;             // 战斗期等级上限（生成实体时钳制）
         public static float status_auto_cast_interval_crystal; // 水晶雕像自动施法间隔
         public static float status_auto_cast_interval_neutral; // 中立雕像自动施法间隔
@@ -714,10 +714,10 @@ public class ConfigManager : MonoBehaviour
                     attr_growth_magic = NonNegative(Float(row), row.key);
                     break;
                 case "attr_growth_critRate":
-                    attr_growth_critRate = NonNegative(Float(row), row.key);
+                    attr_growth_critRate = NonNegative(Int(row), row.key);
                     break;
                 case "attr_growth_critDamage":
-                    attr_growth_critDamage = NonNegative(Float(row), row.key);
+                    attr_growth_critDamage = NonNegative(Int(row), row.key);
                     break;
                 case "battle_max_level":
                     battle_max_level = Int(row);
@@ -759,6 +759,12 @@ public class ConfigManager : MonoBehaviour
         private static float NonNegative(float value, string key)
         {
             if (value < 0f) throw new FormatException($"[配表] {FileName} 的行「{key}」不能为负数：{value}");
+            return value;
+        }
+
+        private static int NonNegative(int value, string key)
+        {
+            if (value < 0) throw new FormatException($"[配表] {FileName} 的行「{key}」不能为负数：{value}");
             return value;
         }
 
