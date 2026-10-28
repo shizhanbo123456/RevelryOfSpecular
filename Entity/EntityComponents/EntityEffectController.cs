@@ -107,6 +107,8 @@ public class EntityEffectController
     }
 
     private readonly Dictionary<EffectType, EffectRuntime> effects = new();
+    private readonly List<EffectType> iterateKeys = new(); // OnUpdate 遍历快照：DoT tick 会走 OnDamaged，可能增删效果
+    private readonly List<EffectType> expiredKeys = new(); // OnUpdate 待移除列表（不共用 s_expired，避免被嵌套的清空调用打断）
     private static readonly List<EffectType> s_expired = new();
     private static readonly List<EntityData> s_tickTargets = new();
 
@@ -271,24 +273,27 @@ public class EntityEffectController
     public void OnUpdate()
     {
         if (effects.Count == 0) return;
-        s_expired.Clear();
-        foreach (var pair in effects)
+        expiredKeys.Clear();
+        // 先快照 key：TickDamage 会走 OnDamaged → 可能施加/移除效果（苍白转化、死亡清空等），不能直接遍历字典
+        iterateKeys.Clear();
+        iterateKeys.AddRange(effects.Keys);
+        foreach (var key in iterateKeys)
         {
-            var rt = pair.Value;
+            if (!effects.TryGetValue(key, out var rt)) continue; // 已被本轮 tick 移掉
             if (Time.time >= rt.endTime)
             {
-                s_expired.Add(pair.Key);
+                expiredKeys.Add(key);
                 continue;
             }
             // 固定间隔生效（燃烧/中毒/死灵漫步，1s 一跳），是否 tick 由类型决定
             if (rt.type.IsTicking() && Time.time >= rt.nextTickTime)
             {
                 rt.nextTickTime = Time.time + TickInterval;
-                effects[pair.Key] = rt;
+                effects[key] = rt; // 先写回再结算：结算里若刷新了该效果，以结算写入的为准
                 TickDamage(rt);
             }
         }
-        for (int i = 0; i < s_expired.Count; i++) RemoveEffect(s_expired[i]);
+        for (int i = 0; i < expiredKeys.Count; i++) RemoveEffect(expiredKeys[i]);
     }
 
     private void TickDamage(EffectRuntime rt)
