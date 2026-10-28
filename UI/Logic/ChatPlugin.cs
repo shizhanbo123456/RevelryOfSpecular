@@ -73,6 +73,7 @@ public class ChatPlugin
         EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.AddEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.AddEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
         EventManager.AddEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -84,6 +85,7 @@ public class ChatPlugin
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
+        EventManager.RemoveEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }

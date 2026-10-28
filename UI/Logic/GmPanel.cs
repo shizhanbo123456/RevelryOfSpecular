@@ -20,9 +20,8 @@ public class GmPanel
     private string curGroup;
     private string curSub;
 
-    // 面板入口：1 秒内连按 3 次 V 打开，Backspace 关闭
+    // 面板入口：1 秒内连按 3 次 V 打开；关闭走面板上的关闭按钮
     private const KeyCode panelOpenKey = KeyCode.V;
-    private const KeyCode panelCloseKey = KeyCode.Backspace;
     private const int panelOpenPressCount = 3;
     private const float panelOpenPressWindow = 1f;
     private int pressCount;
@@ -58,6 +57,7 @@ public class GmPanel
         panel.m_secondMenu.m_button_list.itemRenderer = RenderSubButton;
         panel.m_secondMenu.m_button_list.onClickItem.Add(OnClickSub);
         panel.m_GmItemList.itemRenderer = RenderRow;
+        panel.m_panel.m_close.onClick.Add(Close);
 
         // EventManager 是静态的，订阅必须与解绑成对
         EventManager.AddEvent(ClientEvent.OnConnect, OnNetChanged);
@@ -85,16 +85,10 @@ public class GmPanel
             (GRoot.inst.height - panel.height * uiScale) * 0.5f);
     }
 
-    // 每帧由 UIManager 驱动：检测面板开关快捷键
+    // 每帧由 UIManager 驱动：检测面板打开快捷键
     public void Tick()
     {
-        if (GRoot.inst.focus is GTextInput) return; // 正在编辑输入框时不响应，避免 Backspace 误关 / V 误开
-        if (Input.GetKeyDown(panelCloseKey))
-        {
-            ResetPress();
-            Close();
-            return;
-        }
+        if (GRoot.inst.focus is GTextInput) return; // 正在编辑输入框时不响应，避免 V 误开
         if (!Input.GetKeyDown(panelOpenKey)) return;
         if (pressCount == 0 || Time.unscaledTime - firstPressTime > panelOpenPressWindow)
         {
