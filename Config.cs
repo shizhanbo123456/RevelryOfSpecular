@@ -102,15 +102,17 @@ public static class Config
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
-    public const float move_turn_rate = 120f;
     public static readonly KeyCode[] skill_slot_keys = { KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.L, KeyCode.H, KeyCode.Y };
     public static readonly PlayerKey[] skill_slot_player_keys = { PlayerKey.U, PlayerKey.I, PlayerKey.O, PlayerKey.L, PlayerKey.H, PlayerKey.Y };
     public const KeyCode melee_key = KeyCode.J;
     public const KeyCode jump_key = KeyCode.K;
     public const KeyCode slide_key = KeyCode.LeftShift;
-    public const float fly_vertical_speed = 5f; // 飞行模式垂直速度（长按 K 升 / 长按 Shift 降）
-    public const float gm_speed_multiplier = 5f;  // GM「极速」动画移速倍率（占位初值）
     public const float gm_teleport_height = 200f; // GM 传送的 Y（传送面板只给 x/z）
+
+    // 转向 / 飞行升降 / GM 极速倍率来自配表 global_variables
+    public static float move_turn_rate => ConfigManager.GlobalVariableConfig.move_turn_rate;
+    public static float fly_vertical_speed => ConfigManager.GlobalVariableConfig.fly_vertical_speed;
+    public static float gm_speed_multiplier => ConfigManager.GlobalVariableConfig.gm_speed_multiplier;
     #endregion
 
     #region 武器与技能
@@ -150,9 +152,11 @@ public static class Config
     public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
     public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
     public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;
-    public const float anim_move_speed_up = 1.3f;
-    public const float anim_move_speed_down = 0.6f;
-    public const float anim_move_speed_mire = 0.5f;
+
+    // 移动类 Buff 的移速倍率来自配表 global_variables（同一乘区，连乘叠加）
+    public static float anim_move_speed_up => ConfigManager.GlobalVariableConfig.buff_speed_up;
+    public static float anim_move_speed_down => ConfigManager.GlobalVariableConfig.buff_speed_down;
+    public static float anim_move_speed_mire => ConfigManager.GlobalVariableConfig.buff_mire_speed_rate;
 
     public const float default_skill_auto_target_radius = 20f;
 
@@ -174,7 +178,7 @@ public static class Config
     #region 防守方技能参数（占位初值，待策划定稿）
     public const float death_stroll_radius = 4f;
     public const float death_stroll_dot_ratio = 1.5f; // 死灵漫步光环每跳 = max(施加者力/魔) × 此系数 × 等级
-    public const float death_stroll_speed_up = 1.3f;
+    public static float death_stroll_speed_up => ConfigManager.GlobalVariableConfig.buff_death_stroll_speed_up; // 移速倍率取配表
     public const int summon_zombie_count = 5;
     public const int summon_elite_count = 3;
     public const float plague_detonate_damage = 20f;

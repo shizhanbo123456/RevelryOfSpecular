@@ -658,6 +658,13 @@ public class ConfigManager : MonoBehaviour
         public static int battle_max_level;             // 战斗期等级上限（生成实体时钳制）
         public static float status_auto_cast_interval_crystal; // 水晶雕像自动施法间隔
         public static float status_auto_cast_interval_neutral; // 中立雕像自动施法间隔
+        public static float buff_speed_up;              // 加速 Buff 移速倍率
+        public static float buff_speed_down;            // 减速 Buff 移速倍率
+        public static float buff_mire_speed_rate;       // 泥沼 Buff 移速倍率
+        public static float buff_death_stroll_speed_up; // 死灵漫步 Buff 移速倍率
+        public static float move_turn_rate;             // 转向角速度（度/秒）
+        public static float fly_vertical_speed;         // GM 飞行升降速度（米/秒）
+        public static float gm_speed_multiplier;        // GM 极速移速倍率
 
         public string key;
         public string description;
@@ -722,6 +729,27 @@ public class ConfigManager : MonoBehaviour
                     break;
                 case "status_auto_cast_interval_neutral":
                     status_auto_cast_interval_neutral = Positive(Float(row), row.key);
+                    break;
+                case "buff_speed_up":
+                    buff_speed_up = Positive(Float(row), row.key);
+                    break;
+                case "buff_speed_down":
+                    buff_speed_down = Positive(Float(row), row.key);
+                    break;
+                case "buff_mire_speed_rate":
+                    buff_mire_speed_rate = Positive(Float(row), row.key);
+                    break;
+                case "buff_death_stroll_speed_up":
+                    buff_death_stroll_speed_up = Positive(Float(row), row.key);
+                    break;
+                case "move_turn_rate":
+                    move_turn_rate = Positive(Float(row), row.key);
+                    break;
+                case "fly_vertical_speed":
+                    fly_vertical_speed = Positive(Float(row), row.key);
+                    break;
+                case "gm_speed_multiplier":
+                    gm_speed_multiplier = Positive(Float(row), row.key);
                     break;
                 default:
                     throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
