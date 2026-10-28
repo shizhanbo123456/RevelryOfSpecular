@@ -8,6 +8,7 @@ public class HomePage : PageBase
     private bool defenseTab;
 
     private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "视野", "技能槽" };
+    private static readonly string[] AttrSuffixes = { "", "", "", "%", "x", "m", "" }; // 与 StatKeys 一一对应
     private const string GainGreen = "#6BD98C";  // 已取得的累计增益
     private const string NextGainOrange = "#FF9E47"; // 下一级将获得的增益
 
@@ -128,33 +129,38 @@ public class HomePage : PageBase
         int level = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(saveIndex) : 1;
 
         var attrList = panel.m_characterList.m_attrList;
-        var attr = info.GetAttribute(level);
-        var baseAttr = info.GetAttribute(1);
+        float[] baseValues = ToValues(info.GetAttribute(1));    // 基础：1 级属性
+        float[] curValues = ToValues(info.GetAttribute(level)); // 当前等级加成后
         var nextAttr = level < Config.save_max_level ? info.GetAttribute(level + 1) : null;
-        float? nextHealth = nextAttr != null ? nextAttr.health : (float?)null;
-        float? nextStrength = nextAttr != null ? nextAttr.strength : (float?)null;
-        float? nextMagic = nextAttr != null ? nextAttr.magic : (float?)null;
-        float? nextCritRate = nextAttr != null ? nextAttr.critRate : (float?)null;
-        float? nextCritDamage = nextAttr != null ? nextAttr.critDamage : (float?)null;
-        float? nextViewDistance = nextAttr != null ? nextAttr.viewDistance : (float?)null;
-        float? nextWeaponSlotCount = nextAttr != null ? nextAttr.weaponSlotCount : (float?)null;
-        string[] values =
+        float[] nextValues = nextAttr != null ? ToValues(nextAttr) : curValues; // 满级没有下一级：条与当前一致
+
+        string[] values = new string[StatKeys.Length];
+        for (int i = 0; i < StatKeys.Length; i++)
         {
-            StatPart(attr.health, baseAttr.health, nextHealth),
-            StatPart(attr.strength, baseAttr.strength, nextStrength),
-            StatPart(attr.magic, baseAttr.magic, nextMagic),
-            StatPart(attr.critRate, baseAttr.critRate, nextCritRate, "%"),
-            StatPart(attr.critDamage, baseAttr.critDamage, nextCritDamage, "x"),
-            StatPart(attr.viewDistance, baseAttr.viewDistance, nextViewDistance, "m"),
-            StatPart(attr.weaponSlotCount, baseAttr.weaponSlotCount, nextWeaponSlotCount),
-        };
+            float? next = nextAttr != null ? nextValues[i] : (float?)null;
+            values[i] = StatPart(curValues[i], baseValues[i], next, AttrSuffixes[i]);
+        }
+
         attrList.itemRenderer = (i, obj) =>
         {
             var item = (UI_AttrItem)obj;
-            item.m_attrName.text = i < StatKeys.Length ? StatKeys[i] : "";
-            item.m_attrValue.text = i < values.Length ? values[i] : "-";
+            var range = ConfigManager.AttrRangeConfig.Get(i); // 属性条比例：最小值=空、最大值=满
+            item.m_attrName.text = StatKeys[i];
+            item.m_attrValue.text = values[i];
+            item.m_base.fillAmount = range.Ratio(baseValues[i]);
+            item.m_growth_fill.fillAmount = range.Ratio(curValues[i]);
+            item.m_next_level_fill.fillAmount = range.Ratio(nextValues[i]);
         };
         attrList.numItems = StatKeys.Length;
+    }
+
+    private static float[] ToValues(EntityAttribute attr)
+    {
+        return new[]
+        {
+            attr.health, attr.strength, attr.magic, attr.critRate,
+            attr.critDamage, attr.viewDistance, attr.weaponSlotCount,
+        };
     }
 
     private static string StatPart(float current, float baseVal, float? nextVal, string suffix = "")

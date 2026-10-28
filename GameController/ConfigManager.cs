@@ -33,9 +33,10 @@ public class ConfigManager : MonoBehaviour
         int revive = ReviveTimeConfig.Load(ReadTable(dir, ReviveTimeConfig.FileName));
         int global = GlobalVariableConfig.Load(ReadTable(dir, GlobalVariableConfig.FileName));
         int notice = NoticeConfig.Load(ReadTable(dir, NoticeConfig.FileName));
+        int attrRange = AttrRangeConfig.Load(ReadTable(dir, AttrRangeConfig.FileName));
 
         Debug.Log($"[配表] {dir} 加载完成 | battle_fury_layer {battleFury} | entity {entity} | skill {skill} | effect {effect} | " +
-                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice}");
+                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice} | attr_range {attrRange}");
     }
 
     #region 文件读取与拆分
@@ -653,6 +654,43 @@ public class ConfigManager : MonoBehaviour
         }
 
         public static NoticeConfig Get(int key) => GetRequired(content, key, FileName);
+    }
+    #endregion
+
+    #region 属性范围表：0 属性下标 / 1 属性名 / 2 最小值 / 3 最大值
+    public struct AttrRangeConfig
+    {
+        public const string FileName = "attr_range.csv";
+        private const int ColumnCount = 4;
+        public static readonly Dictionary<int, AttrRangeConfig> content = new();
+
+        public int key;
+        public string name;
+        public float min;
+        public float max;
+
+        public AttrRangeConfig(string[] rowData)
+        {
+            key = ParseInt(rowData, 0);
+            name = ParseString(rowData, 1);
+            min = ParseFloat(rowData, 2);
+            max = ParseFloat(rowData, 3);
+            if (max <= min) throw new FormatException($"属性「{name}」的最大值 {max} 必须大于最小值 {min}");
+        }
+
+        public static int Load(ConfigTable table)
+        {
+            table.RequireColumnCount(ColumnCount);
+            return Fill(table, content, row => new AttrRangeConfig(row), row => row.key);
+        }
+
+        public static AttrRangeConfig Get(int key) => GetRequired(content, key, FileName);
+
+        // 属性值映射成 0~1 的填充比例：最小值=空、最大值=满
+        public float Ratio(float value)
+        {
+            return Mathf.Clamp01((value - min) / (max - min));
+        }
     }
     #endregion
 }
