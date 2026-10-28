@@ -160,6 +160,11 @@ public class Tool : MonoBehaviour
             Debug.LogError("[启动自检] InfoManager.ground_layer 未配置（当前 0）：落地检测会退化为 Default 层");
             e++;
         }
+        if (m.entity_layer != 0 && m.entity_layer == m.ground_layer)
+        {
+            Debug.LogError($"[启动自检] InfoManager 的 entity_layer 与 ground_layer 相同（{LayerName(m.entity_layer)}）：落地检测会把实体自身当地面，命中查询也会混层");
+            e++;
+        }
 
         return e;
     }
@@ -200,7 +205,86 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, 0);
         e += CheckList("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, Config.crystal_statue_count);
         e += CheckList("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, Config.neutral_statue_variant_count);
+
+        // 数量/空项之外再逐项核对：组件没挂、范围没录、碰撞体层不对，运行时照样打不中或不动
+        e += CheckPrefabs("AssetsManager.AttackCharacterGraphics", m.AttackCharacterGraphics, expectAnim: true);
+        e += CheckPrefabs("AssetsManager.DefenseCharacterGraphics", m.DefenseCharacterGraphics, expectAnim: true);
+        e += CheckPrefabs("AssetsManager.ZombieGraphics", m.ZombieGraphics, expectAnim: true);
+        e += CheckPrefabs("AssetsManager.EliteZombieGraphics", m.EliteZombieGraphics, expectAnim: true);
+        e += CheckPrefabs("AssetsManager.SageStatueGraphics", m.SageStatueGraphics, expectAnim: false);
+        e += CheckPrefab("AssetsManager.KingStatueGraphic", m.KingStatueGraphic, expectAnim: false);
+        e += CheckPrefabs("AssetsManager.CoralSmallGraphics", m.CoralSmallGraphics, expectAnim: false);
+        e += CheckPrefabs("AssetsManager.CoralLargeGraphics", m.CoralLargeGraphics, expectAnim: false);
+        e += CheckPrefabs("AssetsManager.CrystalStatueGraphics", m.CrystalStatueGraphics, expectAnim: false);
+        e += CheckPrefabs("AssetsManager.NeutralStatueGraphics", m.NeutralStatueGraphics, expectAnim: false);
         return e;
+    }
+
+    private static int CheckPrefabs(string label, List<GameObject> list, bool expectAnim)
+    {
+        if (list == null) return 0;
+
+        int e = 0;
+        for (int i = 0; i < list.Count; i++)
+            if (list[i] != null) e += CheckEntityPrefab($"{label}[{i}]", list[i], expectAnim);
+        return e;
+    }
+
+    private static int CheckPrefab(string label, GameObject prefab, bool expectAnim)
+    {
+        return prefab == null ? 0 : CheckEntityPrefab(label, prefab, expectAnim);
+    }
+
+    // 单个实体图形：EntityModelInfo 是否挂上、包围范围是否录入、胶囊碰撞体会落在哪一层、有动画的类别是否挂 EntityAnim
+    private static int CheckEntityPrefab(string label, GameObject prefab, bool expectAnim)
+    {
+        int e = 0;
+        string name = $"{label}「{prefab.name}」";
+
+        var modelInfo = prefab.GetComponentInChildren<EntityModelInfo>(true);
+        if (modelInfo == null)
+        {
+            Debug.LogError($"[启动自检] {name} 没挂 EntityModelInfo：运行时补不出胶囊碰撞体与头顶锚点，实体无法被命中");
+            return 1;
+        }
+
+        // 与 EntityModelInfo.BuildCapsuleCollider 同一算式：范围没录 = 零体积胶囊 = 打不中
+        float height = modelInfo.yRange.y - modelInfo.yRange.x;
+        float radius = ((modelInfo.xRange.y - modelInfo.xRange.x) + (modelInfo.zRange.y - modelInfo.zRange.x)) * 0.25f;
+        if (height <= 0f || radius <= 0f)
+        {
+            Debug.LogError($"[启动自检] {name} 的 EntityModelInfo 包围范围未录入或已退化（height={height:0.###} / radius={radius:0.###}）：胶囊碰撞体尺寸无效，实体很可能打不中");
+            e++;
+        }
+
+        // 运行时补的 CapsuleCollider 挂在 EntityModelInfo 所在物体上，物体在哪层碰撞体就在哪层
+        var host = modelInfo.gameObject;
+        int entityLayer = InfoManager != null ? InfoManager.entity_layer : 0;
+        if (entityLayer > 0 && host.layer != entityLayer)
+        {
+            Debug.LogError($"[启动自检] {name} 的 EntityModelInfo 在「{host.name}」（{LayerName(host.layer)} 层），应为实体层 {LayerName(entityLayer)}：物理命中查询会漏掉这个实体");
+            e++;
+        }
+
+        var capsule = host.GetComponent<CapsuleCollider>();
+        if (capsule != null && (!capsule.enabled || capsule.isTrigger))
+        {
+            Debug.LogError($"[启动自检] {name} 已有 CapsuleCollider 但被禁用或是 Trigger：命中判定会跳过它");
+            e++;
+        }
+
+        if (expectAnim && prefab.GetComponentInChildren<EntityAnim>(true) == null)
+        {
+            Debug.LogError($"[启动自检] {name} 没挂 EntityAnim：运行时不会建刚体，实体不会移动也没有受击动作");
+            e++;
+        }
+        return e;
+    }
+
+    private static string LayerName(int layer)
+    {
+        string name = LayerMask.LayerToName(layer);
+        return name.Length > 0 ? $"{name}({layer})" : layer.ToString();
     }
 
     private static int CheckClientAssets()
