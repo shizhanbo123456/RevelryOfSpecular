@@ -51,6 +51,7 @@ public class HomePage : PageBase
     {
         base.Enter(param);
         panel.m_playerInfo.m_input_playerName.text = ClientSelection.playerName;
+        RefreshPlayerExp();
         RefreshLists();
         RefreshAttrList();
         panel.m_characterList.visible = false; // 每次进入首页收起角色选择面板
@@ -121,6 +122,18 @@ public class HomePage : PageBase
         });
     }
 
+    // 玩家经验条：进度 = 当前级经验 / 升到下一级所需（经验与等级都在存档里，满级拉满）
+    private void RefreshPlayerExp()
+    {
+        var info = panel.m_playerInfo;
+        int level = Tool.SaveManager != null ? Tool.SaveManager.playerLevel : 1;
+        int exp = Tool.SaveManager != null ? Tool.SaveManager.playerExp : 0;
+        bool maxed = level >= Config.player_max_level;
+        int need = maxed ? 0 : Config.GetPlayerLevelUpExp(level);
+        info.m_bar_fill_energy.fillAmount = need > 0 ? Mathf.Clamp01((float)exp / need) : 1f;
+        info.m_label_exp.text = need > 0 ? $"{exp}/{need}" : "MAX";
+    }
+
     private void RefreshAttrList()
     {
         int selectedIndex = defenseTab ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
@@ -145,6 +158,7 @@ public class HomePage : PageBase
         {
             var item = (UI_AttrItem)obj;
             var range = ConfigManager.AttrRangeConfig.Get(i); // 属性条比例：最小值=空、最大值=满
+            item.m_show_bg.selectedIndex = (i + 1) % 2;        // 条目底色：隔行交替
             item.m_attrName.text = StatKeys[i];
             item.m_attrValue.text = values[i];
             item.m_base.fillAmount = range.Ratio(baseValues[i]);
