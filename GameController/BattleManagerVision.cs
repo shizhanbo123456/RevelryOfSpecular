@@ -353,7 +353,7 @@ public partial class BattleManager
     //F 键切换雷达显示半径：在档位间循环并回应新值
     public void SwitchMinimapRadius(short clientId)
     {
-        var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+        var radii = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.MinimapViewRadius).floats;
         if (radii == null || radii.Count == 0)
         {
             Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");
@@ -374,7 +374,7 @@ public partial class BattleManager
     {
         if (minimapRadiusByClient.TryGetValue(clientId, out var r)) return r;
 
-        var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+        var radii = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.MinimapViewRadius).floats;
         if (radii == null || radii.Count == 0)
         {
             Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");

@@ -631,11 +631,27 @@ public class ConfigManager : MonoBehaviour
     #endregion
 
     #region 全局参数表
+    // 表内 key 的唯一出处：增删配表行须同步本枚举与 GlobalVariableConfig.keyMap，Load 时三方校验
+    public enum GlobalVariableType
+    {
+        MinimapViewRadius = 0, // minimap_view_radius
+        DayDuration = 1,       // day_duration
+        NightDuration = 2,     // night_duration
+    }
+
     public struct GlobalVariableConfig
     {
         public const string FileName = "global_variables.csv";
         private const int ColumnCount = 4;
         public static readonly Dictionary<string, GlobalVariableConfig> content = new();
+
+        // 枚举 → 表内 key：外部只按枚举取值，不再手写字符串
+        public static readonly Dictionary<GlobalVariableType, string> keyMap = new()
+        {
+            { GlobalVariableType.MinimapViewRadius, "minimap_view_radius" },
+            { GlobalVariableType.DayDuration, "day_duration" },
+            { GlobalVariableType.NightDuration, "night_duration" },
+        };
 
         public string key;
         public string description;
@@ -653,10 +669,33 @@ public class ConfigManager : MonoBehaviour
         public static int Load(ConfigTable table)
         {
             table.RequireColumnCount(ColumnCount);
-            return Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
+            int count = Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
+            RequireEnumMatch();
+            return count;
         }
 
-        public static GlobalVariableConfig Get(string key) => GetRequired(content, key, FileName);
+        public static GlobalVariableConfig Get(GlobalVariableType type)
+        {
+            if (!keyMap.TryGetValue(type, out string key))
+                throw new FormatException($"[配表] {FileName} 的枚举 {type} 未在 keyMap 映射中登记");
+
+            return GetRequired(content, key, FileName);
+        }
+
+        // 枚举 / 映射表 / 配表三者必须一一对应：漏行、多行、漏映射一律在读表时抛
+        private static void RequireEnumMatch()
+        {
+            foreach (GlobalVariableType type in Enum.GetValues(typeof(GlobalVariableType)))
+            {
+                if (!keyMap.TryGetValue(type, out string key))
+                    throw new FormatException($"[配表] {FileName} 的枚举 {type} 未在 keyMap 映射中登记");
+                if (!content.ContainsKey(key))
+                    throw new FormatException($"[配表] {FileName} 缺少枚举 {type} 对应的行「{key}」");
+            }
+
+            if (content.Count != keyMap.Count)
+                throw new FormatException($"[配表] {FileName} 有 {content.Count} 行、枚举映射 {keyMap.Count} 项：表内存在未登记到枚举的 key");
+        }
     }
     #endregion
 

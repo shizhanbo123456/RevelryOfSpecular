@@ -96,7 +96,7 @@ public static class Config
     {
         get
         {
-            var radii = ConfigManager.GlobalVariableConfig.Get("minimap_view_radius").floats;
+            var radii = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.MinimapViewRadius).floats;
             if (radii == null || radii.Count == 0)
             {
                 Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");

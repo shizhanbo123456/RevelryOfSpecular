@@ -84,8 +84,8 @@ public class EnvironmentManager : MonoBehaviour
     // 昼夜时长默认值来自配表 global_variables
     private void ApplyConfigDurations()
     {
-        var day = ConfigManager.GlobalVariableConfig.Get("day_duration");
-        var night = ConfigManager.GlobalVariableConfig.Get("night_duration");
+        var day = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.DayDuration);
+        var night = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.NightDuration);
 
         if (day.ints == null || day.ints.Count == 0 || day.ints[0] <= 0 ||
             night.ints == null || night.ints.Count == 0 || night.ints[0] <= 0)
