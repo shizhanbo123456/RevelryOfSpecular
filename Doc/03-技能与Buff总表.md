@@ -204,6 +204,7 @@ Skills文件夹：
 **命中判定（`BulletVfxInfo.hits`）**：伤害范围不再存在于攻击数据里（`AttackData` 已无 radius 字段），改为读特效预制体上的命中球——`start`/`end` 是特效出生后的秒数窗口（`end = 0` 表示全程有效），`center` 是相对特效根节点的局部球心（资产位姿归零后即特效实际位置），`radius` 是局部半径。服务器每帧按「上一帧球心 → 本帧球心」的胶囊判定，球心 = 轨迹位置 + 朝向（与客户端 `BulletPlayer.Tangent` 同算法）+ 技能缩放倍率。多段各自独立按窗口结算。**有本体特效的伤害技能一律发一颗子弹**（原地范围技能用 `TrialConstructor.Point` 定在原地陪特效走），伤害只走命中球；**只有无特效的近战/飞踢**才用 `SkillBase.StrikeSphere` 一次性球形 Overlap，半径取第 15 列。
 **伤害间隔（第 16 列）与段倍率（第 17 列）**：第 16 列 = 同一目标最短再伤害间隔（秒），**留空解析为 100**（相当于只结算一次），需要反复结算的才填值；第 17 列 = 伤害倍率列表，空 = 全 1，只填 1 项 = 所有段共用，填多项 = 按段序取（项数少于段数抛错）。缺命中球的子弹会打一条 `[子弹]` 报错日志（同一特效只报一次），因为它不会造成任何伤害。
 **攻击动画（第 18 列）**：填 `EntityAnim.AttackType` 的数值——1 左拳 / 2 右拳 / 12 跳砸 / 21 右手武器 / 31 短大招 / 32 中程大招 / 33 远程大招 / 41 僵尸右爪 / 42 僵尸左爪 / 43 僵尸嘶吼；留空或 0 = 无动画（水晶雕像与中立雕像的孢子技能，按下即施放）。动画由 `SkillBase.CastAnim` / `HasCastAnim` 统一读表，技能类不再声明；填了非 0 且不在枚举内的值，加载期直接抛 `FormatException`。
+**六项评分（第 19~24 列）**：依次为 输出 / 冷却恢复 / 控制 / 支援 / 攻击范围 / 攻击速度，取值 0~4 对应 D / C / B / A / S，留空按 0 解析。只用于 UI 展示（技能栏条目悬浮的 `UI_SkillTip`，每项一行 `UI_TipLevel`，`m_level` 档位 = 评分值），不参与任何战斗计算。
 **位移**：统一走 `MotionBase`（`Entity/Motion/`），由 `EntityData.TickVelocity` 逐帧驱动（Enter / Update / 到期 Exit 三态都在 TickVelocity 内，见速度节⑤），禁止直接改 position 以免穿模；现有 `MotionDash`（恒定朝前）、`MotionToPoint`（固定点）、`MotionAttract`（持续被目标吸引，距离越远速度越大、上限封顶；目标可传 `Transform` / 固定点 / 位置来源——服务器子弹没有 Transform，用「轨迹 + 出生时间」算实时位置）。
 **延时 / 多段 / 重复结算：统一用 `Timer.AddTimer`**（见 Utils 节），不要在技能里自己写计时字段——多段命中、延时爆炸、引导间隔、姿态持续期结束等都在 `SkillLogic`/`OnCast` 里注册即可，服务端与客户端（`PlayVFX` 内）都能调。`AddTimer` 没有取消句柄，注册的闭包请自行判空（实体可能已销毁）；需要中途取消的过渡动画用 `Timer.AddTransition`（有句柄）。
 
@@ -220,6 +221,6 @@ Buff管理器（EntityEffectController）设计要点（对应策划案 11.3；*
 8. 破霸体：攻击数据（AttackData.breakEndure）命中霸体等级 1 的目标时进入受击，且若目标在位移中则移除 MotionBase；命中判定入口 = EntityData.ProcessHit（**受击动作、打断位移、被击飞三者都在 enterHit 这一分支内**，见速度节⑥）
 9. 沉默/强控期间无法释放技能（EntitySkillController.TryUseSkill 校验 CanCastSkill）
 10. Buff 数据使用 struct；标记类 Buff（瘟疫标记/苍白之光/暗）无自身效果，供其它逻辑读层数（苍白转化由被动订阅 Buff 变化实现；**转化出的苍白之冰/之雷/之火归属原施加者**——`AddEffect` 的苍白钩子把标记的施加者传给 `CheckPaleConversion`，多人叠同一目标时归属最后叠层者）。苍白之冰/之雷是独立强控类型（行为同冰冻/麻痹），苍白之火是独立 DoT（每跳同燃烧），三者只是类型不同、可与通用冰冻/麻痹/燃烧并存各算各的层数与时间
-11. 全局参数（僵尸刷新等级、进攻方复活减速等）不是 Buff，实现于游戏逻辑控制器/Config（策划案第二十章）；其中僵尸刷新等级按战斗剩余时间实时计算（`BattleManagerPassive.GetZombieSpawnLevel`：每经过 7.5% 战斗时间 +1，死亡漫步者被动再 +4，普通/精英共用）。等级上限拆两档：`save_max_level=10` 只管玩家存档升级，`battle_max_level=20` 管战斗期生成（`EntityData.OnCreate` 钳制，最高刷出 20 级）
+11. 全局参数（僵尸刷新等级、进攻方复活减速等）不是 Buff，实现于游戏逻辑控制器/Config（策划案第二十章）；其中僵尸刷新等级按战斗剩余时间实时计算（`BattleManagerPassive.GetZombieSpawnLevel`：每经过 7.5% 战斗时间 +1，死亡漫步者被动再 +4，普通/精英共用）。等级上限分三档：角色等级上限 `save_max_level=10`（对应 `exp_character.csv` 的 1~10 级）、战斗期生成等级 `battle_max_level=20`（`EntityData.OnCreate` 钳制，最高刷出 20 级）、玩家等级上限取 `exp_player.csv` 的最大主键（`Config.player_max_level` 由表推断，不写死）
 12. 表现：持续型 Buff 特效**只由客户端播**——`EntityPlayerManager.ApplyBuffVfx` 按 `SCEntityDisplayInfo.buffs` 查 `Config.buff_vfx` 增删跟随特效（映射表按《特效清单分别表1019》定稿），**技能 `PlayVFX` 内禁止播 buff 特效**。
 13. 瘟疫祝福（`PlagueBless`）：唯一的"出伤 / 受伤乘区"Buff，与愈战愈勇同通道（`GetOutDamageMultiplier` +75% / `GetInDamageMultiplier` −25%），攻击方在伤害计算时读取。由 `NeutralStatueEntityData.OnKilled` 挂给"把雕像血量清零那一次攻击的攻击者"；被 Buff/DoT（固定数值伤害）打死的没有归属。移速类单独一档，见"速度"节⑨
