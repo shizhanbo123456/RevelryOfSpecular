@@ -332,7 +332,7 @@ public class ConfigManager : MonoBehaviour
         public int strength;
         public int magic;
         public int critRate;
-        public float critDamage;
+        public int critDamage;
         public float viewDistance;
         public int weaponSlotCount;
         public int upgradeA;
@@ -351,7 +351,7 @@ public class ConfigManager : MonoBehaviour
             strength = ParseInt(rowData, 4);
             magic = ParseInt(rowData, 5);
             critRate = ParseInt(rowData, 6);
-            critDamage = ParseFloat(rowData, 7);
+            critDamage = ParseInt(rowData, 7);
             viewDistance = ParseFloat(rowData, 8);
             weaponSlotCount = ParseInt(rowData, 9);
             upgradeA = ParseUpgrade(rowData, 10);
@@ -418,7 +418,7 @@ public class ConfigManager : MonoBehaviour
                     case 1: attr.strength += (int)(attr.strength * GlobalVariableConfig.attr_growth_strength); break;
                     case 2: attr.magic += (int)(attr.magic * GlobalVariableConfig.attr_growth_magic); break;
                     case 3: attr.critRate += (int)(attr.critRate * GlobalVariableConfig.attr_growth_critRate); break;
-                    case 4: attr.critDamage += attr.critDamage * GlobalVariableConfig.attr_growth_critDamage; break;
+                    case 4: attr.critDamage += (int)(attr.critDamage * GlobalVariableConfig.attr_growth_critDamage); break;
                 }
             }
             return attr;

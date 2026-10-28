@@ -51,7 +51,7 @@ public class AttackData
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
             type = DamageType.Crit;
-            final *= attribute.critDamage; // 暴击伤害为倍率
+            final *= attribute.critDamage / 100f; // 暴击伤害为整数百分比：100 = 不加成，200 = 翻倍
         }
         if (final < 1f) return 1;
         return (int)final;

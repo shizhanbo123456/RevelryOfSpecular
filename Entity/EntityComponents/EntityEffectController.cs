@@ -371,20 +371,19 @@ public class EntityEffectController
         owner.floatingAttribute = attr;
     }
 
-    // 属性增减幅度内部定死：对应属性初始值 × 20% × 等级（方向由 Boost/Decrease 表达）
+    // 属性增减幅度内部定死：暴击率 / 暴伤按固定点数逐级线性叠加，力量 / 魔法 / 视野按初始值比例
     private float AttributeDeltaOf(EffectType type, int level)
     {
         var field = FieldFromType(type);
-        float baseValue = field switch
+        float amount = field switch
         {
-            EntityAttributeDelta.Field.Strength => owner.baseAttribute.strength,
-            EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic,
-            EntityAttributeDelta.Field.CritRate => owner.baseAttribute.critRate,
-            EntityAttributeDelta.Field.CritDamage => owner.baseAttribute.critDamage,
-            EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance,
+            EntityAttributeDelta.Field.CritRate => Config.buff_crit_rate_points * level,
+            EntityAttributeDelta.Field.CritDamage => Config.buff_crit_damage_points * level,
+            EntityAttributeDelta.Field.Strength => owner.baseAttribute.strength * Config.buff_attr_ratio * level,
+            EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic * Config.buff_attr_ratio * level,
+            EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance * Config.buff_attr_ratio * level,
             _ => UnsupportedAttrField(field),
         };
-        float amount = baseValue * Config.buff_attr_ratio * level;
         return type.IsNegative() ? -amount : amount;
     }
 

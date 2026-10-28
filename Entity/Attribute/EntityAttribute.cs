@@ -5,7 +5,7 @@ public class EntityAttribute
     public int strength = 100;
     public int magic = 100;
     public int critRate = 5;
-    public float critDamage = 1.5f;
+    public int critDamage = 100; // 整数百分比：100 = 与不暴击相同，200 = 翻倍
     public float viewDistance = 80f;
     public int weaponSlotCount = 3;
 
@@ -31,7 +31,7 @@ public class EntityAttribute
             case EntityAttributeDelta.Field.Strength: strength += (int)delta.value; break;
             case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
-            case EntityAttributeDelta.Field.CritDamage: critDamage += delta.value; break;
+            case EntityAttributeDelta.Field.CritDamage: critDamage += (int)delta.value; break;
             case EntityAttributeDelta.Field.ViewDistance: viewDistance += delta.value; break;
             case EntityAttributeDelta.Field.WeaponSlotCount: weaponSlotCount += (int)delta.value; break;
         }

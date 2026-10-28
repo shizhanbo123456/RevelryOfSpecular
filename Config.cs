@@ -168,7 +168,9 @@ public static class Config
     #region 通用 Buff 数值（占位初值，待策划定稿后在此统一调整）
     public const float buff_duration_control = 3f;
     public const float buff_duration_debuff = 5f;
-    public const float buff_attr_ratio = 0.2f;      // 属性 Buff 每级幅度 = 对应属性初始值 × 此系数
+    public const float buff_attr_ratio = 0.2f;      // 力量 / 魔法 / 视野 Buff 每级幅度 = 对应属性初始值 × 此系数
+    public const int buff_crit_rate_points = 10;    // 暴击率 Buff 每级加点（百分点，线性叠加）
+    public const int buff_crit_damage_points = 20;  // 暴击伤害 Buff 每级加点（百分点，线性叠加）
     public const float shield_health_ratio = 0.1f;  // 护盾值 = 被施加者生命上限 × 此系数 × 等级
     public const float burning_damage_per_tick = 30f; // 燃烧每跳 = 此值 × 等级
     public const float poison_damage_ratio = 0.5f;  // 中毒每跳 = max(施加者力/魔) × 此系数 × 等级
