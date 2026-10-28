@@ -177,7 +177,7 @@ public class ChatPlugin
         if (obj is not UI_ChatItem item || index >= entries.Count) return;
         var e = entries[index];
         item.m_side.selectedIndex = e.isSelf ? 1 : 0;
-        item.m_camp.selectedIndex = e.camp; // 0 攻击方图标 / 1 防守方图标
+        item.m_camp.selectedIndex = e.camp; // 0 进攻 / 1 防守 / 2 观战 / 3 中立（协议值直接当档位）
         item.m_player_name.text = string.IsNullOrEmpty(e.name) ? $"玩家{e.senderClientId}" : e.name;
         item.m_content.text = e.content;
         //自己的消息文本靠右，他人的靠左

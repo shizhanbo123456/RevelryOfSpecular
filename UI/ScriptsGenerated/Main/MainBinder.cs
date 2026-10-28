@@ -10,6 +10,7 @@ namespace Ros.UI.Main
         {
             UIObjectFactory.SetPackageItemExtension(UI_panel_2.URL, typeof(UI_panel_2));
             UIObjectFactory.SetPackageItemExtension(UI_EventBanner.URL, typeof(UI_EventBanner));
+            UIObjectFactory.SetPackageItemExtension(UI_PlayerCampIcon.URL, typeof(UI_PlayerCampIcon));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
@@ -23,7 +24,6 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_Minimap.URL, typeof(UI_Minimap));
             UIObjectFactory.SetPackageItemExtension(UI_MinimapItem.URL, typeof(UI_MinimapItem));
             UIObjectFactory.SetPackageItemExtension(UI_DamageLabel.URL, typeof(UI_DamageLabel));
-            UIObjectFactory.SetPackageItemExtension(UI_PlayerName.URL, typeof(UI_PlayerName));
             UIObjectFactory.SetPackageItemExtension(UI_EntityBar.URL, typeof(UI_EntityBar));
             UIObjectFactory.SetPackageItemExtension(UI_EventIcon.URL, typeof(UI_EventIcon));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));

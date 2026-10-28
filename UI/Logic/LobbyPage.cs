@@ -25,6 +25,10 @@ public class LobbyPage : PageBase
     public override void Construct()
     {
         var view = panel.m_mainView;
+        // 三个阵营块的图标档位（PlayerCampIcon.m_player_camp：0 进攻 / 1 防守 / 2 观战 / 3 中立）
+        view.m_camp_attack.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Attack;
+        view.m_camp_defense.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Defense;
+        view.m_camp_spectate.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Spectator;
         view.m_camp_attack.m_btn_join.onClick.Add(() => JoinCamp(0));
         view.m_camp_defense.m_btn_join.onClick.Add(() => JoinCamp(1));
         view.m_camp_spectate.m_btn_join.onClick.Add(() => JoinCamp(2));

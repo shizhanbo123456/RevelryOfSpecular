@@ -815,8 +815,10 @@ public class BattlePage : PageBase
         }
         bar.visible = true;
 
-        // 阵营/敌对：中立与场景物件没有攻守阵营，按进攻方档显示
-        bar.m_player_camp.selectedIndex = info.camp == EntityCamp.Defense ? 1 : 0;
+        // 阵营：进攻/防守/中立（中立含中立雕像与场景物件），血条两侧与阵营图标用同一档
+        int campIndex = (int)ToPlayerCamp(info.camp);
+        bar.m_player_camp.selectedIndex = campIndex;
+        bar.m_campIcon.m_player_camp.selectedIndex = campIndex;
         bar.m_is_enemy.selectedIndex = IsEnemyCamp(info.camp) ? 1 : 0;
         if (bar.m_entity_name != null) bar.m_entity_name.text = withName ? GetUnitName(EntityOwnerOf(info.entityId)) : "";
 
@@ -838,6 +840,14 @@ public class BattlePage : PageBase
         entityBuffs[entityId] = buffs;
         bar.m_buff_list.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, buffs[i]); // 必须先设渲染器再设 numItems
         return bar;
+    }
+
+    // 实体阵营 → 玩家阵营档位（PlayerCampIcon.m_player_camp 页序：0 进攻 / 1 防守 / 2 观战 / 3 中立）
+    private static PlayerCampType ToPlayerCamp(EntityCamp camp)
+    {
+        if (camp == EntityCamp.Attack) return PlayerCampType.Attack;
+        if (camp == EntityCamp.Defense) return PlayerCampType.Defense;
+        return PlayerCampType.Neutral; // 中立雕像、珊瑚与其它场景物件
     }
 
     // 敌对：只有攻/守两方算阵营；自己阵营未知或对方是中立/场景物件时都不算敌对

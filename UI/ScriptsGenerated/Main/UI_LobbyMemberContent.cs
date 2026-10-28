@@ -7,8 +7,8 @@ namespace Ros.UI.Main
 {
     public partial class UI_LobbyMemberContent : GComponent
     {
-        public Controller m_camp;
         public Controller m_hide_ai_member_operation;
+        public UI_PlayerCampIcon m_player_camp;
         public GList m_attackerPlayers;
         public GTextField m_label_AI_count;
         public GButton m_add_ai;
@@ -25,13 +25,13 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_camp = GetControllerAt(0);
-            m_hide_ai_member_operation = GetControllerAt(1);
-            m_attackerPlayers = (GList)GetChildAt(4);
-            m_label_AI_count = (GTextField)GetChildAt(6);
-            m_add_ai = (GButton)GetChildAt(7);
-            m_remove_ai = (GButton)GetChildAt(8);
-            m_btn_join = (GButton)GetChildAt(10);
+            m_hide_ai_member_operation = GetControllerAt(0);
+            m_player_camp = (UI_PlayerCampIcon)GetChildAt(0);
+            m_attackerPlayers = (GList)GetChildAt(2);
+            m_label_AI_count = (GTextField)GetChildAt(4);
+            m_add_ai = (GButton)GetChildAt(5);
+            m_remove_ai = (GButton)GetChildAt(6);
+            m_btn_join = (GButton)GetChildAt(8);
         }
     }
 }
