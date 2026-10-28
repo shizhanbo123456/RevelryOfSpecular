@@ -631,29 +631,17 @@ public class ConfigManager : MonoBehaviour
     #endregion
 
     #region 全局参数表
-    // 表内 key 的唯一出处：增删配表行须同步本枚举与 GlobalVariableConfig.keyMap，Load 时三方校验
-    public enum GlobalVariableType
-    {
-        MinimapViewRadius = 0,      // minimap_view_radius
-        DayDuration = 1,            // day_duration
-        NightDuration = 2,          // night_duration
-        BarDefaultSizeDistance = 3, // distance_of_bar_default_size
-    }
-
     public struct GlobalVariableConfig
     {
         public const string FileName = "global_variables.csv";
         private const int ColumnCount = 4;
         public static readonly Dictionary<string, GlobalVariableConfig> content = new();
 
-        // 枚举 → 表内 key：外部只按枚举取值，不再手写字符串
-        public static readonly Dictionary<GlobalVariableType, string> keyMap = new()
-        {
-            { GlobalVariableType.MinimapViewRadius, "minimap_view_radius" },
-            { GlobalVariableType.DayDuration, "day_duration" },
-            { GlobalVariableType.NightDuration, "night_duration" },
-            { GlobalVariableType.BarDefaultSizeDistance, "distance_of_bar_default_size" },
-        };
+        // 每行一个静态字段（字段名即表内 key），Load 时由 Apply 填入
+        public static List<float> minimap_view_radius;  // 小地图显示半径档位，首档即默认档
+        public static int day_duration;                 // 默认白天时长
+        public static int night_duration;               // 默认晚上时长
+        public static int distance_of_bar_default_size; // 实体血条为设计大小时的距离
 
         public string key;
         public string description;
@@ -672,31 +660,47 @@ public class ConfigManager : MonoBehaviour
         {
             table.RequireColumnCount(ColumnCount);
             int count = Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
-            RequireEnumMatch();
+            foreach (GlobalVariableConfig row in content.Values) Apply(row);
             return count;
         }
 
-        public static GlobalVariableConfig Get(GlobalVariableType type)
+        // 表内行 → 静态字段：多出未处理的行直接抛错（新增配表行必须同步这里）
+        private static void Apply(GlobalVariableConfig row)
         {
-            if (!keyMap.TryGetValue(type, out string key))
-                throw new FormatException($"[配表] {FileName} 的枚举 {type} 未在 keyMap 映射中登记");
-
-            return GetRequired(content, key, FileName);
+            switch (row.key)
+            {
+                case "minimap_view_radius":
+                    minimap_view_radius = RequireValues(row.floats, row.key);
+                    break;
+                case "day_duration":
+                    day_duration = RequireValue(row.ints, row.key);
+                    break;
+                case "night_duration":
+                    night_duration = RequireValue(row.ints, row.key);
+                    break;
+                case "distance_of_bar_default_size":
+                    distance_of_bar_default_size = RequireValue(row.ints, row.key);
+                    if (distance_of_bar_default_size <= 0) // 血条 scale 以它为分母
+                        throw new FormatException($"[配表] {FileName} 的 distance_of_bar_default_size 必须大于 0");
+                    break;
+                default:
+                    throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
+            }
         }
 
-        // 枚举 / 映射表 / 配表三者必须一一对应：漏行、多行、漏映射一律在读表时抛
-        private static void RequireEnumMatch()
+        // 单值行取首项
+        private static int RequireValue(List<int> values, string key)
         {
-            foreach (GlobalVariableType type in Enum.GetValues(typeof(GlobalVariableType)))
-            {
-                if (!keyMap.TryGetValue(type, out string key))
-                    throw new FormatException($"[配表] {FileName} 的枚举 {type} 未在 keyMap 映射中登记");
-                if (!content.ContainsKey(key))
-                    throw new FormatException($"[配表] {FileName} 缺少枚举 {type} 对应的行「{key}」");
-            }
+            if (values == null || values.Count == 0)
+                throw new FormatException($"[配表] {FileName} 的行「{key}」ints 列必须填值");
+            return values[0];
+        }
 
-            if (content.Count != keyMap.Count)
-                throw new FormatException($"[配表] {FileName} 有 {content.Count} 行、枚举映射 {keyMap.Count} 项：表内存在未登记到枚举的 key");
+        private static List<float> RequireValues(List<float> values, string key)
+        {
+            if (values == null || values.Count == 0)
+                throw new FormatException($"[配表] {FileName} 的行「{key}」floats 列必须填值");
+            return values;
         }
     }
     #endregion

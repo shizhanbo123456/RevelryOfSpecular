@@ -91,42 +91,12 @@ public static class Config
     public const float minimap_sync_interval = 0.5f;
     public const float minimap_lost_duration = 99999f;
 
-    // 雷达显示半径档位来自配表 global_variables（minimap_view_radius），首档即默认档
-    public static float minimap_view_radius
-    {
-        get
-        {
-            var radii = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.MinimapViewRadius).floats;
-            if (radii == null || radii.Count == 0)
-            {
-                Debug.LogError("[配表] global_variables.csv 的 minimap_view_radius 至少要配一档半径");
-                return 0f;
-            }
-            return radii[0];
-        }
-    }
-
     // 客户端小地图点位超时：超过此时间未收到该实体点位包则隐藏（覆盖「离屏残留」与「夜间/致盲停传」两类情况）
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
     // 地形边长（米）：世界 x/z 范围 0~size；小地图地形底图与世界坐标的换算基准
     public const float map_terrain_size = 1000f;
-    #endregion
-
-    #region 实体血条（世界跟随，按相机距离缩放）
-    // 血条 scale = 本距离 / 实际相机距离：本距离处 (1,1)，2 倍距离处 (0.5,0.5)
-    public static float distance_of_bar_default_size
-    {
-        get
-        {
-            var ints = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.BarDefaultSizeDistance).ints;
-            if (ints == null || ints.Count == 0 || ints[0] <= 0)
-                throw new System.FormatException("[配表] global_variables.csv 的 distance_of_bar_default_size 必须填大于 0 的整数");
-
-            return ints[0];
-        }
-    }
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）

@@ -84,18 +84,17 @@ public class EnvironmentManager : MonoBehaviour
     // 昼夜时长默认值来自配表 global_variables
     private void ApplyConfigDurations()
     {
-        var day = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.DayDuration);
-        var night = ConfigManager.GlobalVariableConfig.Get(ConfigManager.GlobalVariableType.NightDuration);
+        int day = ConfigManager.GlobalVariableConfig.day_duration;
+        int night = ConfigManager.GlobalVariableConfig.night_duration;
 
-        if (day.ints == null || day.ints.Count == 0 || day.ints[0] <= 0 ||
-            night.ints == null || night.ints.Count == 0 || night.ints[0] <= 0)
+        if (day <= 0 || night <= 0)
         {
             Debug.LogError("[配表] global_variables.csv 的 day_duration / night_duration 必须填大于 0 的整数，已保留 Inspector 值");
             return;
         }
 
-        dayDuration = day.ints[0];
-        nightDuration = night.ints[0];
+        dayDuration = day;
+        nightDuration = night;
     }
 
     private void Update()

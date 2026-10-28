@@ -19,12 +19,12 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly Dictionary<ushort, int> barOwners = new();
-    private readonly float barDefaultSizeDistance = Config.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
+    private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
     private readonly List<ushort> s_expiredMinimapIds = new();
     private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
-    private float minimapViewRadius = Config.minimap_view_radius; //当前雷达显示半径（服务器权威，F 键切换）
+    private float minimapViewRadius = ConfigManager.GlobalVariableConfig.minimap_view_radius[0]; //当前雷达显示半径（服务器权威，F 键切换；首档即默认档）
     private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
     private GLoader minimapMapLoader;    // 遮罩内的地形底图：xy/尺寸每帧随玩家位置与雷达半径换算
     private NTexture minimapMapTexture;  // 缓存 NTexture：包一层 AssetsManager.MapTexture，重复 Enter 不重建
@@ -125,7 +125,7 @@ public class BattlePage : PageBase
         panel.m_onlook.selectedIndex = spectatorMode ? 1 : 0; // onlook=1：FGUI 自动隐藏血条/技能等非观战元素
         if (panel.m_onlookComboBox != null) panel.m_onlookComboBox.onChanged.Set(OnOnlookComboBoxChanged);
         RefreshCampAliveCount(NetworkManager.LatestCampAliveCount); // 进入战斗先填一次缓存值，随后由变更包刷新
-        minimapViewRadius = Config.minimap_view_radius; //每局回到默认档，与服务器 ClearBattleState 对齐
+        minimapViewRadius = ConfigManager.GlobalVariableConfig.minimap_view_radius[0]; //每局回到默认档（首档），与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
