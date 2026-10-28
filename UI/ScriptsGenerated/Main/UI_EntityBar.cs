@@ -7,7 +7,6 @@ namespace Ros.UI.Main
 {
     public partial class UI_EntityBar : GComponent
     {
-        public Controller m_player_camp;
         public Controller m_is_enemy;
         public GImage m_bar_fill_health_partner;
         public GImage m_bar_fill_health_enemy;
@@ -26,8 +25,7 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_player_camp = GetControllerAt(0);
-            m_is_enemy = GetControllerAt(1);
+            m_is_enemy = GetControllerAt(0);
             m_bar_fill_health_partner = (GImage)GetChildAt(1);
             m_bar_fill_health_enemy = (GImage)GetChildAt(2);
             m_label_health = (GTextField)GetChildAt(3);

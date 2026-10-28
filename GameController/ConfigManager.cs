@@ -419,7 +419,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 18;
+        private const int ColumnCount = 24;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -440,6 +440,7 @@ public class ConfigManager : MonoBehaviour
         public float damageInterval;     // 第16列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
         public List<float> damageRates;  // 第17列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
         public int attackAnim;           // 第18列：EntityAnim.AttackType 数值，空 = 0 = 无动画
+        public List<int> scores;         // 第19~24列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
 
         public SkillConfig(string[] rowData)
         {
@@ -461,6 +462,15 @@ public class ConfigManager : MonoBehaviour
             damageInterval = ParseFloatOrNull(rowData, 15) ?? 100f;
             damageRates = ParseFloatList(rowData, 16);
             attackAnim = ParseAttackAnim(rowData, 17);
+            scores = new List<int>
+            {
+                ParseIntOrNull(rowData, 18) ?? 0,
+                ParseIntOrNull(rowData, 19) ?? 0,
+                ParseIntOrNull(rowData, 20) ?? 0,
+                ParseIntOrNull(rowData, 21) ?? 0,
+                ParseIntOrNull(rowData, 22) ?? 0,
+                ParseIntOrNull(rowData, 23) ?? 0,
+            };
         }
 
         public static int Load(ConfigTable table)

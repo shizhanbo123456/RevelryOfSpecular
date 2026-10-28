@@ -31,6 +31,8 @@ public class BattlePage : PageBase
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
     private readonly List<DamageLabelItem> damageLabels = new();
     private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
+    private UI_SkillTip skillTip;     // 技能悬浮提示（技能栏条目）
+    private UI_BuffTip buffTip;       // buff 悬浮提示（任意 buff 图标）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
     private bool spectatorMode;       // 纯观战方玩家（无战斗实体）
     private bool localPlayerAlive = true; // 本地玩家实体是否在场（死亡观战期间 false，显示观战下拉）
@@ -128,6 +130,7 @@ public class BattlePage : PageBase
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
         ClearEntityBars();
+        HideAllTips();
         localBuffs.Clear();
         panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
         ClearMinimap();
@@ -159,6 +162,7 @@ public class BattlePage : PageBase
         spectateTargetClientId = -1;
         spectateTargetEntityId = -1;
         if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
+        HideAllTips();
     }
 
     public override void Tick(float deltaTime)
@@ -424,6 +428,10 @@ public class BattlePage : PageBase
         {
             RefreshSkillSlot(slot, data);
         }
+        // 悬浮显示技能提示（空槽不提示，但离开时照常收起）
+        int skillId = empty ? -1 : data.skillId;
+        slot.onRollOver.Set(() => { if (skillId >= 0) ShowSkillTip(skillId, slot); });
+        slot.onRollOut.Set(HideSkillTip);
     }
 
     private static void ClearSkillSlot(UI_SkillListItem slot)
@@ -815,10 +823,8 @@ public class BattlePage : PageBase
         }
         bar.visible = true;
 
-        // 阵营：进攻/防守/中立（中立含中立雕像与场景物件），血条两侧与阵营图标用同一档
-        int campIndex = (int)ToPlayerCamp(info.camp);
-        bar.m_player_camp.selectedIndex = campIndex;
-        bar.m_campIcon.m_player_camp.selectedIndex = campIndex;
+        // 阵营：进攻/防守/观战/中立（中立含中立雕像与场景物件），档位即 PlayerCampIcon.m_player_camp 的页序
+        bar.m_campIcon.m_player_camp.selectedIndex = (int)ToPlayerCamp(info.camp);
         bar.m_is_enemy.selectedIndex = IsEnemyCamp(info.camp) ? 1 : 0;
         if (bar.m_entity_name != null) bar.m_entity_name.text = withName ? GetUnitName(EntityOwnerOf(info.entityId)) : "";
 
@@ -865,7 +871,7 @@ public class BattlePage : PageBase
         list.numItems = target.Count;
     }
 
-    private static void RenderBuffItem(UI_buffItem item, SCEntityDisplayInfo.BuffRuntime buff)
+    private void RenderBuffItem(UI_buffItem item, SCEntityDisplayInfo.BuffRuntime buff)
     {
         if (buff == null) return;
         var cfg = ConfigManager.EffectConfig.Get(buff.type);
@@ -874,6 +880,9 @@ public class BattlePage : PageBase
         var map = Tool.AssetsManager != null ? Tool.AssetsManager.BuffIconMap : null;
         if (map != null && map.TryGetValue(buff.type, out var tex)) icon = tex;
         item.m_mask.m_loader.texture = icon != null ? new NTexture(icon) : null; // 没配图标 → 不显示
+        int buffType = buff.type;
+        item.onRollOver.Set(() => ShowBuffTip(buffType, item));
+        item.onRollOut.Set(HideBuffTip);
     }
 
     private Camera GetProjectionCamera()
@@ -1122,6 +1131,76 @@ public class BattlePage : PageBase
         item.m_loader_icon.fillAmount = unlimited ? 1f : skillRecharge.GetCycleProgress(slot.skillId);
         if (item.m_storeList != null) item.m_storeList.numItems = unlimited ? 0 : skillRecharge.GetStore(slot.skillId);
     }
+
+    #region 悬浮提示
+    private static readonly string[] SkillScoreNames = { "输出", "冷却恢复", "控制", "支援", "攻击范围", "攻击速度" };
+
+    private void ShowSkillTip(int skillId, GObject anchor)
+    {
+        HideBuffTip();
+        var cfg = ConfigManager.SkillConfig.Get(skillId);
+        if (skillTip == null) skillTip = UI_SkillTip.CreateInstance();
+        if (skillTip.parent == null) Root.AddChild(skillTip);
+
+        skillTip.m_SkillName.text = cfg.name;
+        Texture icon = ResolveSkillIcon(skillId);
+        skillTip.m_icon.texture = icon != null ? new NTexture(icon) : null;
+        skillTip.m_label_cd.text = $"{cfg.cd:0.#}s";
+        skillTip.m_label_store.text = cfg.storeLimit < 0 ? "∞" : cfg.storeLimit.ToString();
+
+        var scores = cfg.scores;
+        var list = skillTip.m_score_list;
+        list.itemRenderer = (i, obj) =>
+        {
+            if (obj is not UI_TipLevel row) return;
+            row.m_title.text = i < SkillScoreNames.Length ? SkillScoreNames[i] : "";
+            row.m_level.selectedIndex = Mathf.Clamp(scores[i], 0, 4); // 0~4 = D/C/B/A/S
+        };
+        list.numItems = scores.Count;
+
+        skillTip.visible = true;
+        PlaceTip(skillTip, anchor);
+    }
+
+    private void ShowBuffTip(int buffType, GObject anchor)
+    {
+        HideSkillTip();
+        var cfg = ConfigManager.EffectConfig.Get(buffType);
+        if (buffTip == null) buffTip = UI_BuffTip.CreateInstance();
+        if (buffTip.parent == null) Root.AddChild(buffTip);
+
+        buffTip.m_buff_name.text = cfg.name;
+        buffTip.m_buff_des.text = cfg.description;
+        buffTip.visible = true;
+        PlaceTip(buffTip, anchor);
+    }
+
+    private void HideSkillTip()
+    {
+        if (skillTip != null) skillTip.visible = false;
+    }
+
+    private void HideBuffTip()
+    {
+        if (buffTip != null) buffTip.visible = false;
+    }
+
+    private void HideAllTips()
+    {
+        HideSkillTip();
+        HideBuffTip();
+    }
+
+    // 提示摆在锚点正上方居中；顶部放不下就改到锚点下方，左右夹在页面内
+    private void PlaceTip(GComponent tip, GObject anchor)
+    {
+        Vector2 local = Root.GlobalToLocal(anchor.LocalToGlobal(Vector2.zero));
+        float x = Mathf.Clamp(local.x + anchor.width * 0.5f - tip.width * 0.5f, 0f, Mathf.Max(0f, Root.width - tip.width));
+        float y = local.y - tip.height - 8f;
+        if (y < 0f) y = local.y + anchor.height + 8f;
+        tip.SetXY(x, y);
+    }
+    #endregion
 
     // 退出确认：确认后 ExitWorld → NetworkManager 触发 OnExitWorld → UIManager 切回主界面
     private void OnExitClicked()

@@ -11,6 +11,8 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_panel_2.URL, typeof(UI_panel_2));
             UIObjectFactory.SetPackageItemExtension(UI_EventBanner.URL, typeof(UI_EventBanner));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerCampIcon.URL, typeof(UI_PlayerCampIcon));
+            UIObjectFactory.SetPackageItemExtension(UI_SkillTip.URL, typeof(UI_SkillTip));
+            UIObjectFactory.SetPackageItemExtension(UI_TipLevel.URL, typeof(UI_TipLevel));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
@@ -51,6 +53,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_AttrItem.URL, typeof(UI_AttrItem));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyPanel.URL, typeof(UI_LobbyPanel));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberList.URL, typeof(UI_LobbyMemberList));
+            UIObjectFactory.SetPackageItemExtension(UI_BuffTip.URL, typeof(UI_BuffTip));
             UIObjectFactory.SetPackageItemExtension(UI_HomePanel.URL, typeof(UI_HomePanel));
             UIObjectFactory.SetPackageItemExtension(UI_RoleHead.URL, typeof(UI_RoleHead));
         }
