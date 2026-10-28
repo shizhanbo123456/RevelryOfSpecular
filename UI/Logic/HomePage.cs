@@ -101,6 +101,7 @@ public class HomePage : PageBase
         head.m_roleName.text = name;
         head.m_level.selectedIndex = Mathf.Clamp(level - 1, 0, head.m_level.pageCount - 1);
         head.m_lock.selectedIndex = unlocked ? 0 : 1;
+        head.m_quality.selectedIndex = info.quality;
         head.enabled = unlocked;
 
         //头像：图标列表未导入或下标越界时置空

@@ -140,6 +140,15 @@ public class ConfigManager : MonoBehaviour
         return value;
     }
 
+    // 品质档只允许 0~2（B/A/S），与 RoleHead 的 m_quality 页序一致
+    public static int ParseQuality(string[] rowData, int col)
+    {
+        int value = ParseInt(rowData, col);
+        if (value < 0 || value > 2)
+            throw new FormatException($"第 {col} 列的角色品质 {value} 超出 0~2（0:B / 1:A / 2:S）");
+        return value;
+    }
+
     // 技能攻击动画：空/0 = 无动画，其余必须是 EntityAnim.AttackType 里定义的值
     public static int ParseAttackAnim(string[] rowData, int col)
     {
@@ -309,11 +318,11 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表
+    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表 / 15 品质
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private const int ColumnCount = 15;
+        private const int ColumnCount = 16;
         public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
         public EntityCategory category;
@@ -331,6 +340,7 @@ public class ConfigManager : MonoBehaviour
         public int upgradeC;
         public int unlockLevel;
         public List<int> initialSkills;
+        public int quality;           // 0:B / 1:A / 2:S，直接对应 RoleHead 的 m_quality 页序
 
         public EntityConfig(string[] rowData)
         {
@@ -349,6 +359,7 @@ public class ConfigManager : MonoBehaviour
             upgradeC = ParseUpgrade(rowData, 12);
             unlockLevel = ParseInt(rowData, 13);
             initialSkills = ParseIntList(rowData, 14);
+            quality = ParseQuality(rowData, 15);
         }
 
         public static int Load(ConfigTable table)
