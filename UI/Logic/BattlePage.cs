@@ -468,9 +468,13 @@ public class BattlePage : PageBase
             bar = index == 0 ? panel.m_progressSub1 : index == 1 ? panel.m_progressSub2 : panel.m_progressSub3;
         }
         if (bar == null) return;
-        bool destroyed = info.health <= 0;
+        // health/maxHealth 在包里无条件序列化，buff-only 包带的是 0：不按 hasHealth 过滤会误判成「已开采完」
+        if (!info.hasHealth && !info.includeRuntime) return;
+        // 开采进度 = 已被打掉的血量比例：满血 0、打空 100
+        float progress = info.maxHealth > 0 ? 1f - Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
+        bool destroyed = info.maxHealth > 0 && info.health <= 0;
         bar.m_destroyed.selectedIndex = destroyed ? 1 : 0;
-        bar.m_fill.scale = new Vector2(destroyed ? 1f : (info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 1f), bar.m_fill.scale.y);
+        bar.m_fill.scale = new Vector2(progress, bar.m_fill.scale.y);
     }
 
     private void ResetGuardStatues()
