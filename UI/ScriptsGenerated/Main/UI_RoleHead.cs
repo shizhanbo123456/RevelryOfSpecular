@@ -11,6 +11,7 @@ namespace Ros.UI.Main
         public Controller m_lock;
         public Controller m_confirm;
         public Controller m_quality;
+        public Controller m_show_default_icon;
         public GLoader m_headIcon;
         public GTextField m_roleName;
         public const string URL = "ui://q68vr2bfvjeqgx";
@@ -28,8 +29,9 @@ namespace Ros.UI.Main
             m_lock = GetControllerAt(2);
             m_confirm = GetControllerAt(3);
             m_quality = GetControllerAt(4);
+            m_show_default_icon = GetControllerAt(5);
             m_headIcon = (GLoader)GetChildAt(4);
-            m_roleName = (GTextField)GetChildAt(17);
+            m_roleName = (GTextField)GetChildAt(18);
         }
     }
 }
