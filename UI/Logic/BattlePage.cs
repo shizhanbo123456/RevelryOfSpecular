@@ -33,7 +33,6 @@ public class BattlePage : PageBase
     private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
     private readonly List<DamageLabelItem> damageLabels = new();
-    private readonly List<EventEntry> eventEntries = new(); // 事件列表数据源（渲染器按索引读取）
     private UI_SkillTip skillTip;     // 技能悬浮提示（技能栏条目）
     private UI_BuffTip buffTip;       // buff 悬浮提示（任意 buff 图标）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
@@ -48,7 +47,6 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
-    private const float EventLife = 3.5f;
 
     // 本局会话数据全部来自加载期（不再读组队缓存）
     private static ClientLoadingManager Session => ClientLoadingManager.Current;
@@ -58,16 +56,6 @@ public class BattlePage : PageBase
 
     // 战斗期名字一律取加载期下发的表（不再读组队期缓存）
     private static string GetUnitName(int clientId) => HasSession ? Session.GetName(clientId) : $"玩家{clientId}";
-
-    private struct EventEntry
-    {
-        public int type;     // UI_EventItem 的 type 控制器：0 纯文字 / 1 图标+文字 / 2 文字+图标+文字
-        public string text;  // type 0/1 的文本
-        public int icon;     // type 1/2 的 EventIcon 档位
-        public string left;  // type 2 左侧文本（击杀者）
-        public string right; // type 2 右侧文本（受害者）
-        public float time;   // 入列时间；超过 EventLife 的条目从列表头部移除
-    }
 
     private struct DamageLabelItem
     {
@@ -140,7 +128,6 @@ public class BattlePage : PageBase
         panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
         ClearMinimap();
         EnsureMinimapMapLoader();
-        ClearEventItems();
         skillRecharge.Clear();
         BuildSkillSlots(HasSession ? Session.Camp : EntityCamp.None);
         RefreshTimeIcon();
@@ -181,7 +168,6 @@ public class BattlePage : PageBase
         }
         RefreshTimeIcon();
         TickDamageLabels(deltaTime);
-        TickEventItems();
         TickMinimapTimeout();
         TickSelfMinimapRotation();
         TickMinimapMapImage();
@@ -776,50 +762,12 @@ public class BattlePage : PageBase
         foreach (var id in s_expiredMinimapIds) CullMinimapItem(id);
     }
 
-    // 事件类型 → (EventIcon 档位, 条目版式)：FGUI 表现映射，协议里不传表现字段
+    // 事件条目播报在聊天面板（ChatPlugin 系统消息页签），这里只负责日夜大横幅
     private void OnBattleEvent(SCBattleEvent e)
     {
         if (e == null) return;
-        byte icon;
-        byte layout;
-        switch (e.type)
-        {
-            case SCBattleEvent.Type.PlayerKill: icon = 6; layout = 2; break;           // 文字+击败图标+文字
-            case SCBattleEvent.Type.DeathUnattributed: icon = 0; layout = 1; break;    // 无源死亡
-            case SCBattleEvent.Type.PlayerRespawn: icon = 2; layout = 1; break;        // 玩家复活
-            case SCBattleEvent.Type.NeutralStatueCaptured: icon = 1; layout = 1; break;   // 中立雕像被击败
-            case SCBattleEvent.Type.NeutralStatueRespawn: icon = 3; layout = 1; break;    // 中立雕像刷新
-            case SCBattleEvent.Type.Nightfall: icon = 4; layout = 1; break;            // 天黑
-            case SCBattleEvent.Type.Daybreak: icon = 5; layout = 1; break;             // 天亮
-            case SCBattleEvent.Type.StatueDestroyed: icon = 7; layout = 1; break;      // 其它（雕像）
-            case SCBattleEvent.Type.CrystalStatueDestroyed: icon = 7; layout = 1; break;       // 其它（水晶雕像）
-            case SCBattleEvent.Type.Notice: icon = 0; layout = 0; break;               // 纯文字
-            default:
-                Debug.LogError($"[BattlePage] 未处理的战斗事件类型：{e.type}");
-                return;
-        }
-
-        var entry = new EventEntry
-        {
-            type = layout,
-            icon = icon,
-            text = ResolveEventText(e.textId),
-        };
-        if (layout == 2) // 文字+图标+文字
-        {
-            entry.left = entry.text;
-            entry.right = ResolveEventText(e.textId2);
-        }
-        AddEventEntry(entry);
         if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
-        else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);      // 日出横幅
-    }
-
-    // 事件文本统一按数字 id 解析：>=PlayerNameBase 映射为玩家名，否则查 notice.csv
-    private static string ResolveEventText(int id)
-    {
-        if (id >= SCBattleEvent.PlayerNameBase) return GetUnitName(id - SCBattleEvent.PlayerNameBase);
-        return ConfigManager.NoticeConfig.Get(id).text;
+        else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);   // 日出横幅
     }
 
     private void OnDamageDisplay(SCDamage d)
@@ -1063,63 +1011,6 @@ public class BattlePage : PageBase
             if (age > DamageLife * 0.5f)
                 item.label.alpha = Mathf.Clamp01(1f - (age - DamageLife * 0.5f) / (DamageLife * 0.5f));
         }
-    }
-
-    private void AddEventEntry(EventEntry entry)
-    {
-        entry.time = Time.time;
-        eventEntries.Add(entry);
-        RefreshEventItems();
-    }
-
-    private void RefreshEventItems()
-    {
-        var list = panel.m_EventList != null ? panel.m_EventList.m_EventItemContainer : null;
-        if (list == null) return;
-        list.itemRenderer = RenderEventItem;
-        list.numItems = eventEntries.Count;
-    }
-
-    private void RenderEventItem(int index, GObject obj)
-    {
-        if (obj is not UI_EventItem item || index >= eventEntries.Count) return;
-        EventEntry entry = eventEntries[index];
-        item.m_type.selectedIndex = entry.type;
-        switch (entry.type)
-        {
-            case 0:
-                item.m_type0_label.text = entry.text;
-                break;
-            case 1:
-                item.m_type1_loader.m_type.selectedIndex = entry.icon;
-                item.m_type1_label.text = entry.text;
-                break;
-            default:
-                item.m_type2_loader.m_type.selectedIndex = entry.icon;
-                item.m_type2_label1.text = entry.left;
-                item.m_type2_label2.text = entry.right;
-                break;
-        }
-    }
-
-    private void AddTextEvent(string text)
-    {
-        AddEventEntry(new EventEntry { type = 0, text = text });
-    }
-
-    private void TickEventItems()
-    {
-        int expired = 0;
-        while (expired < eventEntries.Count && Time.time - eventEntries[expired].time > EventLife) expired++;
-        if (expired == 0) return;
-        eventEntries.RemoveRange(0, expired);
-        RefreshEventItems();
-    }
-
-    private void ClearEventItems()
-    {
-        eventEntries.Clear();
-        RefreshEventItems();
     }
 
     private void RefreshTimeIcon()
