@@ -15,8 +15,9 @@ public class BattlePage : PageBase
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
     private int skillSlotCount;                           // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
     private bool skillSlotsBuilt;                         // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
-    private readonly Dictionary<ushort, UI_PlayerName> nameLabels = new();
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
+    private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
+    private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly Dictionary<ushort, int> barOwners = new();
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
@@ -43,9 +44,6 @@ public class BattlePage : PageBase
 
     private const float DamageLife = 0.8f;
     private const float EventLife = 3.5f;
-
-    private static readonly Color CampAttackColor = new Color(1f, 0.45f, 0.4f);
-    private static readonly Color CampDefenseColor = new Color(0.4f, 0.72f, 1f);
 
     // 本局会话数据全部来自加载期（不再读组队缓存）
     private static ClientLoadingManager Session => ClientLoadingManager.Current;
@@ -84,6 +82,7 @@ public class BattlePage : PageBase
     {
         panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
+        panel.m_PlayerBar.m_buffList.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, localBuffs[i]);
         ComputeMinimapItemScale();
     }
 
@@ -129,6 +128,8 @@ public class BattlePage : PageBase
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
         ClearEntityBars();
+        localBuffs.Clear();
+        panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
         ClearMinimap();
         EnsureMinimapMapLoader();
         ClearEventItems();
@@ -494,6 +495,7 @@ public class BattlePage : PageBase
         bar.m_bar_fill_health.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
         if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
         RefreshLocalAvatar(info.camp);
+        if (info.hasBuffs) RefreshBuffList(bar.m_buffList.m_list, localBuffs, info.buffs);
     }
 
     // 头像 = 本地玩家所选角色的头像（阵营由本地实体首个显示包确定）
@@ -506,7 +508,6 @@ public class BattlePage : PageBase
         int index = camp == EntityCamp.Defense ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
         bool hasIcon = icons != null && index >= 0 && index < icons.Count && icons[index] != null;
         bar.m_avater_mask.m_content.texture = hasIcon ? new NTexture(icons[index]) : null;
-    }
     }
 
     private static int GetLocalSaveIndex(EntityCamp camp)
@@ -807,36 +808,62 @@ public class BattlePage : PageBase
     #region//Local
     private void UpdateEntityBar(SCEntityDisplayInfo info, bool withName)
     {
-        bool isAttack = info.camp == EntityCamp.Attack;
-        Color campColor = isAttack ? CampAttackColor : CampDefenseColor;
-
-        if (withName)
+        if (!entityBars.TryGetValue(info.entityId, out var bar))
         {
-            if (!nameLabels.TryGetValue(info.entityId, out var nameItem))
-            {
-                nameItem = UI_PlayerName.CreateInstance();
-                Root.AddChild(nameItem);
-                nameLabels[info.entityId] = nameItem;
-            }
-            nameItem.visible = true;
-            if (nameItem.m_num != null)
-            {
-                nameItem.m_num.text = GetUnitName(EntityOwnerOf(info.entityId));
-                nameItem.m_num.color = campColor;
-            }
+            bar = CreateEntityBar(info.entityId);
+            entityBars[info.entityId] = bar;
         }
+        bar.visible = true;
 
-        if (!entityBars.TryGetValue(info.entityId, out var barItem))
-        {
-            barItem = UI_EntityBar.CreateInstance();
-            Root.AddChild(barItem);
-            entityBars[info.entityId] = barItem;
-        }
-        barItem.visible = true;
-        barItem.m_fill.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
-        barItem.m_fill.color = campColor;
-        if (barItem.m_label != null) barItem.m_label.text = $"{info.health}/{info.maxHealth}";
+        // 阵营/敌对：中立与场景物件没有攻守阵营，按进攻方档显示
+        bar.m_player_camp.selectedIndex = info.camp == EntityCamp.Defense ? 1 : 0;
+        bar.m_is_enemy.selectedIndex = IsEnemyCamp(info.camp) ? 1 : 0;
+        if (bar.m_entity_name != null) bar.m_entity_name.text = withName ? GetUnitName(EntityOwnerOf(info.entityId)) : "";
+
+        // 友/敌两条血条由 m_is_enemy 互斥显示，两条都写同一个比例
+        float ratio = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
+        bar.m_bar_fill_health_partner.fillAmount = ratio;
+        bar.m_bar_fill_health_enemy.fillAmount = ratio;
+        if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
+
+        if (info.hasBuffs) RefreshBuffList(bar.m_buff_list.m_list, entityBuffs[info.entityId], info.buffs);
         barOwners[info.entityId] = EntityOwnerOf(info.entityId);
+    }
+
+    private UI_EntityBar CreateEntityBar(ushort entityId)
+    {
+        var bar = UI_EntityBar.CreateInstance();
+        Root.AddChild(bar);
+        var buffs = new List<SCEntityDisplayInfo.BuffRuntime>();
+        entityBuffs[entityId] = buffs;
+        bar.m_buff_list.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, buffs[i]); // 必须先设渲染器再设 numItems
+        return bar;
+    }
+
+    // 敌对：只有攻/守两方算阵营；自己阵营未知或对方是中立/场景物件时都不算敌对
+    private bool IsEnemyCamp(EntityCamp camp)
+    {
+        if (localPlayerCamp != (int)EntityCamp.Attack && localPlayerCamp != (int)EntityCamp.Defense) return false;
+        if (camp != EntityCamp.Attack && camp != EntityCamp.Defense) return false;
+        return camp != (EntityCamp)localPlayerCamp;
+    }
+
+    private static void RefreshBuffList(GList list, List<SCEntityDisplayInfo.BuffRuntime> target, List<SCEntityDisplayInfo.BuffRuntime> source)
+    {
+        target.Clear();
+        if (source != null) target.AddRange(source);
+        list.numItems = target.Count;
+    }
+
+    private static void RenderBuffItem(UI_buffItem item, SCEntityDisplayInfo.BuffRuntime buff)
+    {
+        if (buff == null) return;
+        var cfg = ConfigManager.EffectConfig.Get(buff.type);
+        item.m_negative.selectedIndex = cfg.positive == true ? 0 : 1; // 0 正面 / 1 负面
+        Texture icon = null;
+        var map = Tool.AssetsManager != null ? Tool.AssetsManager.BuffIconMap : null;
+        if (map != null && map.TryGetValue(buff.type, out var tex)) icon = tex;
+        item.m_mask.m_loader.texture = icon != null ? new NTexture(icon) : null; // 没配图标 → 不显示
     }
 
     private Camera GetProjectionCamera()
@@ -868,45 +895,27 @@ public class BattlePage : PageBase
             bar.visible = visible;
             if (visible) bar.xy = local - new Vector2(bar.width * 0.5f, 0f); // 血条正中在头顶正上方
         }
-        foreach (var pair in nameLabels)
-        {
-            var name = pair.Value;
-            if (name == null) continue;
-            //名字挂在血条上方；血条不可见（实体消失/背面）时名字一并隐藏
-            bool visible = entityBars.TryGetValue(pair.Key, out var bar) && bar != null && bar.visible;
-            name.visible = visible;
-            //名字与血条同轴：以血条中心为准再补上两者宽度差的一半，名字的中间对齐血条中间
-            if (visible) name.xy = bar.xy + new Vector2((bar.width - name.width) * 0.5f, -26f);
-        }
     }
 
     private void RemoveEntityBar(ushort entityId)
     {
-        if (nameLabels.TryGetValue(entityId, out var name))
-        {
-            if (name != null) name.Dispose();
-            nameLabels.Remove(entityId);
-        }
         if (entityBars.TryGetValue(entityId, out var bar))
         {
             if (bar != null) bar.Dispose();
             entityBars.Remove(entityId);
         }
+        entityBuffs.Remove(entityId);
         barOwners.Remove(entityId);
     }
 
     private void ClearEntityBars()
     {
-        foreach (var name in nameLabels.Values)
-        {
-            if (name != null) name.Dispose();
-        }
         foreach (var bar in entityBars.Values)
         {
             if (bar != null) bar.Dispose();
         }
-        nameLabels.Clear();
         entityBars.Clear();
+        entityBuffs.Clear();
         barOwners.Clear();
     }
 
