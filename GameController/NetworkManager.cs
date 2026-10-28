@@ -28,7 +28,6 @@ public partial class NetworkManager : EnsBehaviour
 
     #region//Client 连接流程
     private static bool connecting;
-    private static bool rejected;
     private static bool connected;
     private static bool tryingEnterWorld;
     private static bool hasLobbyInfo;
@@ -39,7 +38,6 @@ public partial class NetworkManager : EnsBehaviour
     private void ResetClientNetworkInfo()
     {
         connecting = false;
-        rejected = false;
         connected = false;
         serverHello = null;
         BattleRunning = false;
@@ -74,7 +72,6 @@ public partial class NetworkManager : EnsBehaviour
 
     private void ClientBindEvents()
     {
-        EnsInstance.OnConnectionRejected += () => rejected = true;
         EnsInstance.OnServerConnect += () => connected = true;
         // 房间事件 0：服务器握手（服务器信息可达性确认）
         ClientRoomManagerEventCenter.Register(0, data =>
@@ -99,44 +96,59 @@ public partial class NetworkManager : EnsBehaviour
         if (connecting) return ConnectResult.TooFrequent;
         ResetClientNetworkInfo();
         connecting = true;
-        if (ipAddress == string.Empty)
+        try
         {
-            ipAddress = IPAddress.Loopback.ToString();
+            if (ipAddress == string.Empty)
+            {
+                ipAddress = IPAddress.Loopback.ToString();
+            }
+            else if (!IPAddress.TryParse(ipAddress, out IPAddress _))
+            {
+                Debug.LogError("输入IP地址错误");
+                return ConnectResult.Failed;
+            }
+            EnsInstance.Corr.IP = ipAddress;
+            // ShutDown 会拿上次连接残留的未握手标记补发一次 OnConnectionRejected，先关再挂监听，避免被假拒绝打断
+            EnsInstance.Corr.ShutDown();
+            bool rejected = false;
+            void OnRejected() => rejected = true;
+            EnsInstance.OnConnectionRejected += OnRejected;
+            try
+            {
+                EnsInstance.Corr.StartClient();
+                float deadline = Time.time + 5f;
+                while (!rejected && !connected && Time.time < deadline)
+                {
+                    await Task.Delay(100);
+                }
+            }
+            finally
+            {
+                EnsInstance.OnConnectionRejected -= OnRejected;
+            }
+            if (!connected)
+            {
+                Debug.LogError($"Ens层连接失败 rejected={rejected}");
+                return ConnectResult.Failed;
+            }
+            ClientRoomManagerEventCenter.TrigRpcEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
+            float helloDeadline = Time.time + 5f;
+            while (serverHello == null && Time.time < helloDeadline)
+            {
+                await Task.Delay(100);
+            }
+            if (serverHello == null)
+            {
+                Debug.LogError("服务器信息获取失败");
+                return ConnectResult.Failed;
+            }
+            EventManager.TrigEvent(ClientEvent.OnConnect);
+            return ConnectResult.Success;
         }
-        else if (!IPAddress.TryParse(ipAddress, out IPAddress _))
+        finally
         {
             connecting = false;
-            Debug.LogError("输入IP地址错误");
-            return ConnectResult.Failed;
         }
-        EnsInstance.Corr.IP = ipAddress;
-        EnsInstance.Corr.ShutDown();
-        EnsInstance.Corr.StartClient();
-        float t = Time.time;
-        while (!rejected && !connected && Time.time < t + 5f)
-        {
-            await Task.Delay(100);
-        }
-        if (!connected)
-        {
-            Debug.LogError($"Ens层连接失败 rejected={rejected}");
-            return ConnectResult.Failed;
-        }
-        ClientRoomManagerEventCenter.TrigRpcEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
-        t = Time.time;
-        while (serverHello == null && Time.time < t + 5f)
-        {
-            await Task.Delay(100);
-        }
-        if (serverHello == null)
-        {
-            connecting = false;
-            Debug.LogError("服务器信息获取失败");
-            return ConnectResult.Failed;
-        }
-        EventManager.TrigEvent(ClientEvent.OnConnect);
-        connecting = false;
-        return ConnectResult.Success;
     }
 
     public void EnterWorld()
