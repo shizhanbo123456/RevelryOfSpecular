@@ -8,7 +8,7 @@ public class HomePage : PageBase
     private bool defenseTab;
 
     private static readonly string[] StatKeys = { "生命", "力量", "魔法", "暴击", "暴伤", "视野", "技能槽" };
-    private static readonly string[] AttrSuffixes = { "", "", "", "%", "x", "m", "" }; // 与 StatKeys 一一对应
+    private static readonly string[] AttrSuffixes = { "", "", "", "%", "%", "m", "" }; // 与 StatKeys 一一对应
     private const string GainGreen = "#6BD98C";  // 已取得的累计增益
     private const string NextGainOrange = "#FF9E47"; // 下一级将获得的增益
 
