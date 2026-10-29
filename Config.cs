@@ -188,6 +188,11 @@ public static class Config
     public const float rb_angular_drag = 1f;
     #endregion
 
+    #region 地面检测（探针从脚部 +ground_probe_up 向下打 ground_probe_length；数值来自配表 global_variables）
+    public static float ground_probe_up => ConfigManager.GlobalVariableConfig.ground_probe_up;
+    public static float ground_probe_length => ConfigManager.GlobalVariableConfig.ground_probe_length;
+    #endregion
+
     #region 防守方角色下标（type.value，顺序同策划案第五章与 entity.csv）
     public const int defense_index_deer_knight = 0;    // 鹿铠怪人
     public const int defense_index_count_eye = 1;      // 白眼伯爵

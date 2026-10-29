@@ -689,8 +689,6 @@ public abstract class EntityData : MonoBehaviour
     #endregion
 
     #region//Local
-    private const float ground_probe_up = 0.1f;
-    private const float ground_probe_length = 0.6f;
     private const float GroundMaxRiseSpeed = 1f;
     private static readonly RaycastHit[] s_groundHits = new RaycastHit[4];
 
@@ -728,9 +726,9 @@ public abstract class EntityData : MonoBehaviour
 
         // 检测起点取脚部高度（约定），反映动画姿态；非人形无脚骨骼回退实体位置
         Vector3 origin = TryGetFootWorldY(out float footY)
-            ? new Vector3(transform.position.x, footY, transform.position.z) + Vector3.up * ground_probe_up
-            : transform.position + Vector3.up * ground_probe_up;
-        int count = Physics.RaycastNonAlloc(origin, Vector3.down, s_groundHits, ground_probe_length, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);
+            ? new Vector3(transform.position.x, footY, transform.position.z) + Vector3.up * Config.ground_probe_up
+            : transform.position + Vector3.up * Config.ground_probe_up;
+        int count = Physics.RaycastNonAlloc(origin, Vector3.down, s_groundHits, Config.ground_probe_length, EntityPhysics.GroundMask, QueryTriggerInteraction.Ignore);
         bool onGround = false;
         for (int i = 0; i < count; i++)
         {

@@ -698,6 +698,8 @@ public class ConfigManager : MonoBehaviour
         public static int zombie_spawn_level;           // 初始僵尸刷新等级
         public static float zombie_level_step_ratio;    // 刷新等级每 +1 所需的战斗进程比例
         public static float terrain_size;               // 地形边长（米），必须为 chunkSize 的整数倍
+        public static float ground_probe_up;            // 地面检测探针起点抬高（米）
+        public static float ground_probe_length;        // 地面检测探针向下长度（米）
 
         public string key;
         public string description;
@@ -819,6 +821,12 @@ public class ConfigManager : MonoBehaviour
                     if (terrain_size % Landscape.chunkSize != 0f)
                         throw new FormatException(
                             $"[配表] {FileName} 的 terrain_size 必须是区块边长 {Landscape.chunkSize} 的整数倍：{terrain_size}");
+                    break;
+                case "ground_probe_up":
+                    ground_probe_up = NonNegative(Float(row), row.key);
+                    break;
+                case "ground_probe_length":
+                    ground_probe_length = Positive(Float(row), row.key);
                     break;
                 default:
                     throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
