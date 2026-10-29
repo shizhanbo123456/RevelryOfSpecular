@@ -47,6 +47,9 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
+    private readonly List<int> settingTabKeys = new();   // 页签 → 配表 key（按 key 排序）
+    private readonly List<string> settingTabTexts = new(); // 每个页签对应的说明文本
+    private int settingTab; // 当前选中的页签下标
 
     // 本局会话数据全部来自加载期（不再读组队缓存）
     private static ClientLoadingManager Session => ClientLoadingManager.Current;
@@ -95,25 +98,50 @@ public class BattlePage : PageBase
         panel.m_settings_panel.touchable = false;
     }
 
-    // 整块说明来自 setting_tips：内容里的 {\n} 换成换行，其余原样按序号拼接
+    // 说明来自 setting_tips：页签列表按配表行生成，点页签把该行内容填进说明列表的唯一条目
     private void BuildSettingTips()
     {
         var keys = new List<int>(ConfigManager.SettingTipsConfig.content.Keys);
         keys.Sort();
-        var parts = new List<string>();
         foreach (int key in keys)
-            parts.Add(ConfigManager.SettingTipsConfig.content[key].text.Replace(@"{\n}", "\n"));
+        {
+            settingTabKeys.Add(key);
+            settingTabTexts.Add(ConfigManager.SettingTipsConfig.content[key].text.Replace(@"{\n}", "\n"));
+        }
 
-        string tips = string.Concat(parts);
+        var tabs = panel.m_settings_panel.m_button_list;
+        tabs.itemRenderer = (i, obj) =>
+        {
+            var tab = obj.asButton;
+            tab.title = ConfigManager.SettingTipsConfig.content[settingTabKeys[i]].name; // 页签标题取配表「栏目名称」
+            tab.selected = i == settingTab;
+            int index = i;
+            tab.onClick.Set(() => SelectSettingTab(index));
+        };
+
         var list = panel.m_settings_panel.m_content;
         list.itemRenderer = (i, obj) =>
         {
             var label = (UI_SettingsRuleLabel)obj;
             label.m_content.UBBEnabled = true; // 配表内容带 UBB 标记（加粗 / 颜色）
-            label.m_content.text = tips;
+            label.m_content.text = settingTabTexts[settingTab];
             label.height = label.m_content.height; // 条目高度跟随文本，超框时靠列表拖动
         };
-        list.numItems = 1; // 整块说明只用一个条目，用列表只为拿到滚动
+
+        tabs.numItems = settingTabKeys.Count;
+        if (settingTabKeys.Count > 0) SelectSettingTab(0);
+    }
+
+    private void SelectSettingTab(int index)
+    {
+        settingTab = index;
+        var tabs = panel.m_settings_panel.m_button_list;
+        for (int i = 0; i < tabs.numChildren; i++)
+            tabs.GetChildAt(i).asButton.selected = i == index; // 页签选中态
+
+        var list = panel.m_settings_panel.m_content;
+        list.numItems = 1; // 重设条目数触发重渲染，换成该页签的说明
+        if (list.scrollPane != null) list.scrollPane.posY = 0f; // 换栏回到顶部
     }
 
     //界面初始化时算：抵消 Minimap 等上层元素（不含页面根 UiScale 适配）的缩放，使图标最终按 FGUI 设计尺寸显示
