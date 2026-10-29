@@ -253,11 +253,11 @@ public class EntityEffectController
         return m;
     }
 
-    // 反弹量 = 实际受到伤害 × 等级 × 系数，向下取整且至少 1（有反伤才会被调用）
+    // 反弹量 = 实际受到伤害 × 等级 × 系数，向下取整且至少 1；实伤 ≤1 直接不反弹
     public float GetReflectDamage(float receivedDamage)
     {
         int level = GetLevel(EffectType.Reflect);
-        if (level <= 0) return 0f;
+        if (level <= 0 || receivedDamage <= 1f) return 0f;
         return Mathf.Max(1, Mathf.FloorToInt(receivedDamage * level * Config.reflect_rate));
     }
 
