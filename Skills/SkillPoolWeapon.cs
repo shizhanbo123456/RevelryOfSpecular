@@ -316,7 +316,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillOrbitWeaponKnockback : ShotSkillBase
@@ -372,7 +372,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillFlyingKick : SkillBase
@@ -687,7 +687,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillAllyShieldEight : SkillBase
@@ -718,7 +718,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillShieldFour : SkillBase
@@ -738,7 +738,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 
@@ -1165,7 +1165,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillAllyShieldTwentyFive : SkillBase
@@ -1189,7 +1189,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 }

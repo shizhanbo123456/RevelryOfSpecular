@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Ros.Skill;
+﻿using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
@@ -180,47 +179,7 @@ public static class Config
     public const float plague_pollute_radius = 8f;   // 珊瑚被摧毁时的瘟疫标记扩散半径
     #endregion
 
-    public static readonly Dictionary<EffectType, (SkillVfxKind kind, int index)> buff_vfx = new()
-    {
-        { EffectType.StatueReduce, (SkillVfxKind.Shield, 0) },
-        { EffectType.StatueShield, (SkillVfxKind.MagicCircle, 8) },
-        { EffectType.PopeGuard, (SkillVfxKind.Shield, 12) },
-        { EffectType.Shield, (SkillVfxKind.Shield, 2) },
-        { EffectType.Stun, (SkillVfxKind.Buff, 20) },
-        { EffectType.StatueBlaze, (SkillVfxKind.MagicCircle, 3) },
-        { EffectType.Burning, (SkillVfxKind.Buff, 11) },
-        { EffectType.EyeMark, (SkillVfxKind.Buff, 23) },
-        { EffectType.PaleLight, (SkillVfxKind.Buff, 15) },
-        { EffectType.PaleDark, (SkillVfxKind.Buff, 4) },
-        { EffectType.PaleFire, (SkillVfxKind.Buff, 3) },
-        { EffectType.PaleIce, (SkillVfxKind.Buff, 14) },
-        { EffectType.PaleThunder, (SkillVfxKind.Buff, 20) },
-        { EffectType.DeathStroll, (SkillVfxKind.Buff, 29) },
-        { EffectType.DeathCurse, (SkillVfxKind.Buff, 0) },
-        { EffectType.Silence, (SkillVfxKind.Buff, 2) },
-        { EffectType.Mire, (SkillVfxKind.Buff, 17) },
-        { EffectType.Reflect, (SkillVfxKind.MagicCircle, 6) },
-        { EffectType.Root, (SkillVfxKind.Buff, 19) },
-        { EffectType.PlagueMark, (SkillVfxKind.Buff, 30) },
-        { EffectType.PlaguePollute, (SkillVfxKind.Buff, 22) },
-        { EffectType.NightMark, (SkillVfxKind.Buff, 30) },
-        { EffectType.Poison, (SkillVfxKind.Buff, 13) },
-        { EffectType.Freeze, (SkillVfxKind.Buff, 12) },
-        { EffectType.SlowDown, (SkillVfxKind.Buff, 17) },
-        { EffectType.SpeedUp, (SkillVfxKind.Buff, 27) },
-        { EffectType.PlagueBless, (SkillVfxKind.MagicCircle, 9) },
-        { EffectType.ZombieScreamBoost, (SkillVfxKind.MagicCircle, 9) },
-
-        { EffectType.AttrStrengthBoost, (SkillVfxKind.MagicCircle, 0) },
-        { EffectType.AttrMagicBoost, (SkillVfxKind.MagicCircle, 0) },
-        { EffectType.AttrCritRateBoost, (SkillVfxKind.MagicCircle, 1) },
-        { EffectType.AttrCritDamageBoost, (SkillVfxKind.MagicCircle, 1) },
-        { EffectType.AttrStrengthDecrease, (SkillVfxKind.MagicCircle, 5) },
-        { EffectType.AttrMagicDecrease, (SkillVfxKind.MagicCircle, 5) },
-        { EffectType.AttrCritRateDecrease, (SkillVfxKind.MagicCircle, 5) },
-        { EffectType.AttrCritDamageDecrease, (SkillVfxKind.MagicCircle, 5) },
-    };
-
+    // Buff 持续表现的特效类别/下标在 effect.csv 第 11、12 列（EffectConfig.vfxKind / vfxIndex）
     #endregion
 
     #region 刚体（可移动单位的权威速度载体：位移效果只产出速度，位置由物理积分）

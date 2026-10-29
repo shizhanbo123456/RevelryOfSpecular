@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using Ros.Skill;
 using UnityEngine;
 
 // 配表读取：Assets/StreamingAssets/ConfigData/*.csv
@@ -158,6 +159,16 @@ public class ConfigManager : MonoBehaviour
         if (!Enum.IsDefined(typeof(EntityAnim.AttackType), value))
             throw new FormatException($"第 {col} 列的攻击动画 {value} 未在 EntityAnim.AttackType 中定义");
         return (int)(EntityAnim.AttackType)value;
+    }
+
+    // Buff 特效类别：留空 = 不播特效，其余必须是 SkillVfxKind 里定义的值
+    public static SkillVfxKind? ParseVfxKind(string[] rowData, int col)
+    {
+        int? raw = ParseIntOrNull(rowData, col);
+        if (!raw.HasValue) return null;
+        if (!Enum.IsDefined(typeof(SkillVfxKind), raw.Value))
+            throw new FormatException($"第 {col} 列的特效类型 {raw.Value} 未在 SkillVfxKind 中定义");
+        return (SkillVfxKind)raw.Value;
     }
 
     public static float? ParseFloatOrNull(string[] rowData, int col)
@@ -499,7 +510,7 @@ public class ConfigManager : MonoBehaviour
     public struct EffectConfig
     {
         public const string FileName = "effect.csv";
-        private const int ColumnCount = 10;
+        private const int ColumnCount = 12;
         public static readonly Dictionary<int, EffectConfig> content = new();
 
         public int key;
@@ -512,6 +523,8 @@ public class ConfigManager : MonoBehaviour
         public int? superArmorOverride;
         public bool? positive;
         public int? specialCalculate;
+        public SkillVfxKind? vfxKind;  // 第11列：持续表现的特效类别，留空 = 不播特效
+        public int? vfxIndex;          // 第12列：该类别下的特效下标
 
         public EffectConfig(string[] rowData)
         {
@@ -525,6 +538,12 @@ public class ConfigManager : MonoBehaviour
             superArmorOverride = ParseIntOrNull(rowData, 7);
             positive = ParseBoolOrNull(rowData, 8);
             specialCalculate = ParseIntOrNull(rowData, 9);
+            vfxKind = ParseVfxKind(rowData, 10);
+            vfxIndex = ParseIntOrNull(rowData, 11);
+            if (vfxKind.HasValue != vfxIndex.HasValue)
+                throw new FormatException("特效类型与特效下标必须同时填写或同时留空");
+            if (vfxIndex.HasValue && vfxIndex.Value < 0)
+                throw new FormatException($"特效下标不能为负数：{vfxIndex.Value}");
         }
 
         public static int Load(ConfigTable table)

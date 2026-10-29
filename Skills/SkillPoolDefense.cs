@@ -57,7 +57,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     // 怪力压制：自身位置连续 3 次范围攻击，命中挂 2 级减速
@@ -134,7 +134,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 
@@ -159,7 +159,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     // 黑夜标记：自身不出现在敌方小地图（世界模型与视野判定不受影响）
@@ -180,7 +180,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillForceNight : SkillBase
@@ -249,7 +249,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillSummonElites : SkillBase
@@ -303,7 +303,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillMireCast : SkillBase
@@ -326,7 +326,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillReflectCast : SkillBase
@@ -349,7 +349,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 
@@ -375,7 +375,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     // 瘟疫污染：给场上现有珊瑚挂污染，珊瑚被摧毁时把瘟疫标记扩散给附近进攻方
@@ -399,7 +399,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, TargetSelect.TargetBuffer[i], 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
     public class SkillDetonatePlague : SkillBase
@@ -434,7 +434,7 @@ namespace Ros.Skill
             }
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 
@@ -492,7 +492,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 Config.buff_vfx 统一播
+        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 }

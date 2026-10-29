@@ -322,11 +322,12 @@ public class Tool : MonoBehaviour
             Debug.LogWarning("[启动自检] AssetsManager.DefenseCharacterIcons 为空：防守方角色图标未导入");
         }
 
-        // Buff 特效按 hits[0] 贴合实体高度，缺命中球就没法定位/缩放
-        foreach (var pair in Config.buff_vfx)
+        // Buff 特效按 hits[0] 贴合实体高度，缺命中球就没法定位/缩放（映射见 effect.csv 第 11、12 列）
+        foreach (var row in ConfigManager.EffectConfig.content.Values)
         {
-            if (VfxHitSource.GetHits(pair.Value.kind, pair.Value.index).Length > 0) continue;
-            Debug.LogError($"[启动自检] Buff 特效 {pair.Key} → {pair.Value.kind}[{pair.Value.index}] 没有 BulletVfxInfo.hits：无法贴合实体高度");
+            if (!row.vfxKind.HasValue) continue;
+            if (VfxHitSource.GetHits(row.vfxKind.Value, row.vfxIndex.Value).Length > 0) continue;
+            Debug.LogError($"[启动自检] Buff {row.key}「{row.name}」→ {row.vfxKind.Value}[{row.vfxIndex.Value}] 没有 BulletVfxInfo.hits：无法贴合实体高度");
             e++;
         }
         return e;

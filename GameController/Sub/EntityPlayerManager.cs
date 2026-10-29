@@ -468,17 +468,21 @@ public class EntityPlayerManager : ClientSubManager
         {
             var b = buffs[i];
             if (b == null || !s_activeBuffs.Add(b.type)) continue;
-            if (!Config.buff_vfx.TryGetValue((EffectType)b.type, out var vfx)) continue;
+            var effect = ConfigManager.EffectConfig.Get(b.type); // 特效类别/下标取 effect.csv 第 11、12 列
+            if (!effect.vfxKind.HasValue) continue;
             if (view.buffVfx.ContainsKey(b.type)) continue;
 
+            SkillVfxKind kind = effect.vfxKind.Value;
+            int index = effect.vfxIndex.Value;
+
             // Buff 特效按 hits[0] 的竖直范围贴合实体：底对底、顶对顶，等比缩放
-            var hits = VfxHitSource.GetHits(vfx.kind, vfx.index);
+            var hits = VfxHitSource.GetHits(kind, index);
             float scale = 1f;
             float offsetY = 0f;
             if (hits.Length == 0)
             {
-                if (s_noHitBuffs.Add(((int)vfx.kind << 16) | vfx.index))
-                    Debug.LogError($"[Buff特效] {vfx.kind}[{vfx.index}] 的 BulletVfxInfo.hits 为空：无法贴合实体高度，按原始大小播放");
+                if (s_noHitBuffs.Add(((int)kind << 16) | index))
+                    Debug.LogError($"[Buff特效] {kind}[{index}] 的 BulletVfxInfo.hits 为空：无法贴合实体高度，按原始大小播放");
             }
             else if (!TryFitBuffVfxToEntity(view, hits[0], out scale, out offsetY))
             {
@@ -488,7 +492,7 @@ public class EntityPlayerManager : ClientSubManager
 
             var trajectory = new FollowTrajectory(view.id, new Vector3(0f, offsetY, 0f));
             trajectory.Duration = Config.buff_vfx_life_time;
-            var obj = PlayTrackedVfx(vfx.kind, vfx.index, trajectory, scale);
+            var obj = PlayTrackedVfx(kind, index, trajectory, scale);
             if (obj != null) view.buffVfx[b.type] = obj;
         }
 
@@ -549,7 +553,7 @@ public class EntityPlayerManager : ClientSubManager
             case SkillVfxKind.MagicCircle:
                 return vfx.Play(vfx.GetMagicCircleVfx(index), trajectory, 0f, BulletPlayer.RotationMode.Constant, scale);
             default:
-                Debug.LogError($"[Buff特效] 未处理的特效类别：{kind}（Config.buff_vfx 配置错误）");
+                Debug.LogError($"[Buff特效] 未处理的特效类别：{kind}（effect.csv 的特效类型列配置错误）");
                 return null;
         }
     }
@@ -586,7 +590,7 @@ public class EntityPlayerManager : ClientSubManager
         }
 
         // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正
-        // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 Config.buff_vfx）
+        // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 effect.csv 第 11、12 列）
         if (info.includeRuntime || info.hasBuffs) ApplyBuffVfx(view, info.buffs);
 
         // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
