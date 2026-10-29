@@ -56,6 +56,7 @@ namespace Ros.Skill
         // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
         public void BeginCast(EntityData entity, int skillId)
         {
+            BroadcastSpecial(skillId); // 每次施放请求只播报一次，不走 CastNow（多段攻击帧会重复）
             if (!HasCastAnim || entity.anim == null)
             {
                 CastNow(entity, skillId);
@@ -76,6 +77,18 @@ namespace Ros.Skill
             SkillContext context = SkillLogic(entity);
             OnCast(context);
             if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
+        }
+
+        // 配表第25列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
+        private static void BroadcastSpecial(int skillId)
+        {
+            if (!BattleManager.AtServer || Tool.NetworkManager == null) return;
+            if (!ConfigManager.SkillConfig.Get(skillId).broadcast) return;
+            Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
+            {
+                type = SCBattleEvent.Type.SkillBroadcast,
+                textId = skillId,
+            });
         }
 
         // 数值来源（力量/魔法）与击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里

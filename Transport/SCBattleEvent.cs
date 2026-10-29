@@ -17,6 +17,7 @@ namespace Ros.Transport
             public const byte StatueDestroyed = 7;     // 雕像被摧毁：textId 区分哪一座（驱动对应血条）
             public const byte CrystalStatueDestroyed = 8;      // 水晶雕像被摧毁
             public const byte Notice = 9;              // 纯文字提示：textId=notice.csv 消息 id
+            public const byte SkillBroadcast = 10;     // 特殊技能播报：textId=技能 id（名称由客户端查 skill.csv）
         }
 
         // 文本 id：<10000 查 notice.csv；≥10000 为玩家名（clientId = id - PlayerNameBase）

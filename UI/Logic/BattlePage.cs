@@ -47,6 +47,9 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
+    private readonly Queue<string> importantBannerQueue = new(); // 待播的特殊技能播报文案，按到达顺序逐条播
+    private bool importantBannerPlaying;                          // 当前 banner 动画是否在播
+    private const string ImportantBannerPrefix = "特殊能力启动-";
     private readonly List<int> settingTabKeys = new();   // 页签 → 配表 key（按 key 排序）
     private readonly List<string> settingTabTexts = new(); // 每个页签对应的说明文本
     private int settingTab; // 当前选中的页签下标
@@ -187,6 +190,7 @@ public class BattlePage : PageBase
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
         HideSettings(); // 设置面板每局从收起状态开始
+        HideImportantBanner(); // 重要事件 banner 每局从隐藏状态开始
         OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
         ClearEntityBars();
         HideAllTips();
@@ -222,6 +226,7 @@ public class BattlePage : PageBase
         spectateTargetEntityId = -1;
         if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
         HideAllTips();
+        HideImportantBanner();
     }
 
     public override void Tick(float deltaTime)
@@ -817,6 +822,47 @@ public class BattlePage : PageBase
         if (panel.m_showBanner != null) panel.m_showBanner.Play();
     }
 
+    // 重要事件 banner：技能名取 skill.csv，播报文案格式固定
+    private void EnqueueImportantBanner(int skillId)
+    {
+        importantBannerQueue.Enqueue(ImportantBannerPrefix + ConfigManager.SkillConfig.Get(skillId).name);
+        PlayNextImportantBanner();
+    }
+
+    // 一条播完（m_t0 结束回调）再取下一条；队列空则收起
+    private void PlayNextImportantBanner()
+    {
+        var banner = panel.m_important_event_banner;
+        if (banner == null || importantBannerPlaying) return;
+        if (importantBannerQueue.Count == 0)
+        {
+            banner.visible = false;
+            return;
+        }
+        importantBannerPlaying = true;
+        banner.visible = true;
+        if (banner.m_title != null) banner.m_title.text = importantBannerQueue.Dequeue();
+        if (banner.m_t0 != null) banner.m_t0.Play(OnImportantBannerPlayed);
+        else OnImportantBannerPlayed();
+    }
+
+    private void OnImportantBannerPlayed()
+    {
+        importantBannerPlaying = false;
+        PlayNextImportantBanner();
+    }
+
+    // 进/退出战斗都收起，并丢掉未播的积压
+    private void HideImportantBanner()
+    {
+        importantBannerQueue.Clear();
+        importantBannerPlaying = false;
+        var banner = panel.m_important_event_banner;
+        if (banner == null) return;
+        if (banner.m_t0 != null) banner.m_t0.Stop();
+        banner.visible = false;
+    }
+
     // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
     private void TickMinimapTimeout()
     {
@@ -830,12 +876,13 @@ public class BattlePage : PageBase
         foreach (var id in s_expiredMinimapIds) CullMinimapItem(id);
     }
 
-    // 事件条目播报在聊天面板（ChatPlugin 系统消息页签），这里只负责日夜大横幅
+    // 事件条目播报在聊天面板（ChatPlugin 系统消息页签），这里只负责日夜大横幅与技能播报 banner
     private void OnBattleEvent(SCBattleEvent e)
     {
         if (e == null) return;
         if (e.type == SCBattleEvent.Type.Nightfall) ShowEventBanner(BannerSunset);       // 日落横幅
         else if (e.type == SCBattleEvent.Type.Daybreak) ShowEventBanner(BannerSunrise);   // 日出横幅
+        else if (e.type == SCBattleEvent.Type.SkillBroadcast) EnqueueImportantBanner(e.textId); // 特殊技能播报
     }
 
     private void OnDamageDisplay(SCDamage d)

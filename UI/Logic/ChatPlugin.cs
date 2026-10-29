@@ -232,6 +232,7 @@ public class ChatPlugin
             case SCBattleEvent.Type.StatueDestroyed: icon = 7; layout = 1; break;      // 其它（雕像）
             case SCBattleEvent.Type.CrystalStatueDestroyed: icon = 7; layout = 1; break;       // 其它（水晶雕像）
             case SCBattleEvent.Type.Notice: icon = 0; layout = 0; break;               // 纯文字
+            case SCBattleEvent.Type.SkillBroadcast: return;   // 技能播报只进重要事件 banner，不进聊天列表
             default:
                 Debug.LogError($"[ChatPlugin] 未处理的战斗事件类型：{e.type}");
                 return;
