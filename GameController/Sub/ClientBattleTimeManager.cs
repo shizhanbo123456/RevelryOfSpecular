@@ -26,7 +26,7 @@ public class ClientBattleTimeManager : ClientSubManager
     {
         // 开战前与终局后都不推演，否则在菜单里待久了剩余时间会被算成 0
         if (!running || BattleOver) return;
-        RemainTime = Mathf.Max(0f, Config.battle_duration - (Time.time - startTime));
+        RemainTime = Mathf.Max(0f, ConfigManager.GlobalVariableConfig.battle_duration - (Time.time - startTime));
     }
 
     public void OnDayNightSync(SCDayNightInfo info)
@@ -51,7 +51,7 @@ public class ClientBattleTimeManager : ClientSubManager
     {
         startTime = Time.time;
         running = true;
-        RemainTime = Config.battle_duration;
+        RemainTime = ConfigManager.GlobalVariableConfig.battle_duration;
         LatestScore = null;
         BattleOver = false;
     }

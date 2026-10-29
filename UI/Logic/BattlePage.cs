@@ -229,7 +229,7 @@ public class BattlePage : PageBase
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
         if (HasSession && panel.m_batleInfoPanel.m_label_time_left != null)
         {
-            float remain = Config.battle_duration - (Time.time - battleStartTime);
+            float remain = ConfigManager.GlobalVariableConfig.battle_duration - (Time.time - battleStartTime);
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
         }
         RefreshTimeIcon();
@@ -775,13 +775,13 @@ public class BattlePage : PageBase
         TickLocalPlayerArea(myPos);
 
         float ppm = mapBase.width * 0.5f / minimapViewRadius; // 像素/米
-        float size = Config.map_terrain_size * ppm;
+        float size = Landscape.MapSize * ppm;
         float maskX = minimap.m_mask != null ? minimap.m_mask.x : 0f; // Loader 挂在遮罩里，坐标需换算成遮罩局部
         float maskY = minimap.m_mask != null ? minimap.m_mask.y : 0f;
-        // 图左上角对应世界 (0, 1000)：先按雷达坐标算它在 Minimap 坐标系的位置，再减遮罩偏移
+        // 图左上角对应世界 (0, 地图边长)：先按雷达坐标算它在 Minimap 坐标系的位置，再减遮罩偏移
         minimapMapLoader.SetXY(
             mapBase.x + mapBase.width * 0.5f - myPos.x * ppm - maskX,
-            mapBase.y + mapBase.height * 0.5f - (Config.map_terrain_size - myPos.z) * ppm - maskY);
+            mapBase.y + mapBase.height * 0.5f - (Landscape.MapSize - myPos.z) * ppm - maskY);
         minimapMapLoader.SetSize(size, size);
     }
 
@@ -796,8 +796,8 @@ public class BattlePage : PageBase
             mapAreaTexture = Tool.AssetsManager.MapArea as Texture2D;
         if (mapAreaTexture == null) return;
 
-        float u = Mathf.Clamp01(myPos.x / Config.map_terrain_size);
-        float v = Mathf.Clamp01(myPos.z / Config.map_terrain_size);
+        float u = Mathf.Clamp01(myPos.x / Landscape.MapSize);
+        float v = Mathf.Clamp01(myPos.z / Landscape.MapSize);
         Color c = mapAreaTexture.GetPixelBilinear(u, v);
         int area = c.a * 255f < 128f ? BannerWild
             : c.g >= c.r && c.g >= c.b ? BannerCity

@@ -270,7 +270,7 @@ public partial class BattleManager
             ushort existing = coralAtPoint[i];
             if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) continue; // 该点已有珊瑚
             Vector3 pos = i < points.Count ? points[i] : Landscape.MapCenter;
-            EntityType type = Random.value < Config.coral_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+            EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
             ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
             if (id == 0) continue;
             coralAtPoint[i] = id;

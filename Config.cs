@@ -5,11 +5,6 @@ using UnityEngine;
 
 public static class Config
 {
-    #region 匹配与人数
-    public const float battle_duration = 600f;
-    public const float ready_start_delay = 3f; // 全员准备后到开战的倒计时（秒）
-    #endregion
-
     #region 角色
     public const int attack_character_count = 17;
     public const int defense_character_count = 6;
@@ -44,9 +39,6 @@ public static class Config
     public const float coral_spawn_checks_per_second = 10f;
     public const float coral_spawn_min_dist = 40f;
     public const float coral_spawn_max_dist = 80f;
-    public const float coral_large_chance = 0.3f;       // 刷新时出大珊瑚的概率
-    public const float coral_small_drop_chance = 0.2f;  // 小珊瑚被摧毁时的掉武器概率
-    public const float coral_large_drop_chance = 1f;    // 大珊瑚被摧毁时的掉武器概率
 
     #region 中立雕像（中立争抢单位）
     public const int neutral_statue_variant_count = 2;   // 0 天使雕像 / 1 恶魔雕像
@@ -60,15 +52,9 @@ public static class Config
     #endregion
 
     #region 僵尸
-    public const int zombie_max = 30;
-    public const float zombie_refresh_rate_fast = 0.5f;
-    public const float zombie_refresh_rate_slow = 0.05f;
     public const float zombie_refresh_progress_max = 1f;
     public const int zombie_variant_count = 21;
     public const int elite_zombie_variant_count = 14;
-    public const int zombie_spawn_level = 1;
-    // 刷新等级随战斗时间增长：每经过 7.5% 战斗时间 +1；死亡漫步者被动再额外 +4（普通/精英不区分）
-    public const float zombie_level_step_ratio = 0.075f;
     public const int zombie_spawn_level_passive_boost = 4;
 
     // —— AI 行为（策划案第九章只写了「无目标时游荡 / 发现目标后主动追击 / 设最大追击距离」，数值均为占位初值）——
@@ -97,8 +83,6 @@ public static class Config
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
-    // 地形边长（米）：世界 x/z 范围 0~size；小地图地形底图与世界坐标的换算基准
-    public const float map_terrain_size = 1000f;
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）

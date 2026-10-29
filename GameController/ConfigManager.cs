@@ -666,6 +666,17 @@ public class ConfigManager : MonoBehaviour
         public static float move_turn_rate;             // 转向角速度（度/秒）
         public static float fly_vertical_speed;         // GM 飞行升降速度（米/秒）
         public static float gm_speed_multiplier;        // GM 极速移速倍率
+        public static float battle_duration;            // 单场战斗时长（秒）
+        public static float ready_start_delay;          // 全员准备后到开战的倒计时（秒）
+        public static float coral_spawn_as_large_chance; // 刷新珊瑚时出大型的概率
+        public static float coral_small_drop_chance;    // 小珊瑚被摧毁时的掉武器概率
+        public static float coral_large_drop_chance;    // 大珊瑚被摧毁时的掉武器概率
+        public static int zombie_max;                   // 场上僵尸数量上限
+        public static float zombie_refresh_rate_fast;   // 僵尸刷新速度上限（场上剩余越少越快，单位：只/秒）
+        public static float zombie_refresh_rate_slow;   // 僵尸刷新速度下限
+        public static int zombie_spawn_level;           // 初始僵尸刷新等级
+        public static float zombie_level_step_ratio;    // 刷新等级每 +1 所需的战斗进程比例
+        public static float terrain_size;               // 地形边长（米），必须为 chunkSize 的整数倍
 
         public string key;
         public string description;
@@ -752,6 +763,42 @@ public class ConfigManager : MonoBehaviour
                 case "gm_speed_multiplier":
                     gm_speed_multiplier = Positive(Float(row), row.key);
                     break;
+                case "battle_duration":
+                    battle_duration = Positive(Float(row), row.key);
+                    break;
+                case "ready_start_delay":
+                    ready_start_delay = NonNegative(Float(row), row.key);
+                    break;
+                case "coral_spawn_as_large_chance":
+                    coral_spawn_as_large_chance = Ratio(Float(row), row.key);
+                    break;
+                case "coral_small_drop_chance":
+                    coral_small_drop_chance = Ratio(Float(row), row.key);
+                    break;
+                case "coral_large_drop_chance":
+                    coral_large_drop_chance = Ratio(Float(row), row.key);
+                    break;
+                case "zombie_max":
+                    zombie_max = Positive(Int(row), row.key);
+                    break;
+                case "zombie_refresh_rate_fast":
+                    zombie_refresh_rate_fast = NonNegative(Float(row), row.key);
+                    break;
+                case "zombie_refresh_rate_slow":
+                    zombie_refresh_rate_slow = NonNegative(Float(row), row.key);
+                    break;
+                case "zombie_spawn_level":
+                    zombie_spawn_level = NonNegative(Int(row), row.key);
+                    break;
+                case "zombie_level_step_ratio":
+                    zombie_level_step_ratio = Positive(Float(row), row.key);
+                    break;
+                case "terrain_size":
+                    terrain_size = Positive(Float(row), row.key);
+                    if (terrain_size % Landscape.chunkSize != 0f)
+                        throw new FormatException(
+                            $"[配表] {FileName} 的 terrain_size 必须是区块边长 {Landscape.chunkSize} 的整数倍：{terrain_size}");
+                    break;
                 default:
                     throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
             }
@@ -772,6 +819,20 @@ public class ConfigManager : MonoBehaviour
         private static float Positive(float value, string key)
         {
             if (value <= 0f) throw new FormatException($"[配表] {FileName} 的行「{key}」必须大于 0：{value}");
+            return value;
+        }
+
+        private static int Positive(int value, string key)
+        {
+            if (value <= 0) throw new FormatException($"[配表] {FileName} 的行「{key}」必须大于 0：{value}");
+            return value;
+        }
+
+        // 概率行：0~1（含端点）
+        private static float Ratio(float value, string key)
+        {
+            if (value < 0f || value > 1f)
+                throw new FormatException($"[配表] {FileName} 的行「{key}」必须是 0~1 的概率：{value}");
             return value;
         }
 

@@ -79,7 +79,7 @@ public class SettlementView
             panel.visible = false;
         }
         panel.m_title.text = GetEndText(r.gameState, camp);
-        panel.m_content.text = $"战斗用时：{Mathf.RoundToInt(Mathf.Max(0f, Config.battle_duration - r.remainTime))} 秒";
+        panel.m_content.text = $"战斗用时：{Mathf.RoundToInt(Mathf.Max(0f, ConfigManager.GlobalVariableConfig.battle_duration - r.remainTime))} 秒";
 
         if (detail == null)
         {

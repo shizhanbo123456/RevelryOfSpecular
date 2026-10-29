@@ -153,7 +153,7 @@ public partial class BattleManager
         if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) return;
 
         Vector3 pos = points[picked];
-        EntityType type = Random.value < Config.coral_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+        EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
         ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
         if (id == 0) return;
         coralAtPoint[picked] = id;

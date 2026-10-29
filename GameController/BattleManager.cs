@@ -444,7 +444,7 @@ public partial class BattleManager : EnsBehaviour
             return;
         }
         SendPromptToAll(28); // 全员已准备，战斗即将开始
-        startCountdownHandle = Timer.AddTimer(0, _ => TryFireStartBattle(), Config.ready_start_delay, 1, false);
+        startCountdownHandle = Timer.AddTimer(0, _ => TryFireStartBattle(), ConfigManager.GlobalVariableConfig.ready_start_delay, 1, false);
     }
 
     // 业务取消：置空句柄并让已注册任务作废，重开倒计时才是全新计时
@@ -769,7 +769,7 @@ public partial class BattleManager : EnsBehaviour
         }
 
         BattleStarted = true;
-        BattleRemainTime = Config.battle_duration;
+        BattleRemainTime = ConfigManager.GlobalVariableConfig.battle_duration;
         if (Tool.EnvironmentManager != null)
         {
             Tool.EnvironmentManager.ResetDayNight();
@@ -998,15 +998,15 @@ public partial class BattleManager : EnsBehaviour
         Profiler.BeginSample(kZombieRefreshTag);
         if (!EnvironmentManager.IsDay) // t < 0.5 = 晚上
         {
-            if (zombieCount >= Config.zombie_max)
+            if (zombieCount >= ConfigManager.GlobalVariableConfig.zombie_max)
             {
                 zombieRefreshProgress = 0f;
             }
             else
             {
-                // 越少越快：0 只 → 0.5/s，接近上限 → 0.05/s（线性插值）
-                float rate = Mathf.Lerp(Config.zombie_refresh_rate_fast, Config.zombie_refresh_rate_slow,
-                    (float)zombieCount / Config.zombie_max);
+                // 越少越快：0 只 → zombie_refresh_rate_fast，接近上限 → zombie_refresh_rate_slow（线性插值）
+                float rate = Mathf.Lerp(ConfigManager.GlobalVariableConfig.zombie_refresh_rate_fast, ConfigManager.GlobalVariableConfig.zombie_refresh_rate_slow,
+                    (float)zombieCount / ConfigManager.GlobalVariableConfig.zombie_max);
                 zombieRefreshProgress += UnityEngine.Time.deltaTime * rate;
                 if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
                 {

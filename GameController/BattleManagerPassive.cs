@@ -62,8 +62,9 @@ public partial class BattleManager
     #region 僵尸刷新等级（按战斗剩余时间实时计算，普通/精英共用）
     public int GetZombieSpawnLevel()
     {
-        float elapsed = Mathf.Clamp01((Config.battle_duration - BattleRemainTime) / Config.battle_duration);
-        int level = Config.zombie_spawn_level + Mathf.FloorToInt(elapsed / Config.zombie_level_step_ratio);
+        float elapsed = Mathf.Clamp01((ConfigManager.GlobalVariableConfig.battle_duration - BattleRemainTime) / ConfigManager.GlobalVariableConfig.battle_duration);
+        int level = ConfigManager.GlobalVariableConfig.zombie_spawn_level
+            + Mathf.FloorToInt(elapsed / ConfigManager.GlobalVariableConfig.zombie_level_step_ratio);
         if (zombieSpawnLevelBoosted) level += Config.zombie_spawn_level_passive_boost;
         return level;
     }

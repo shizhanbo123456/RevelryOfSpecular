@@ -238,7 +238,9 @@ public partial class BattleManager
         if (!PlayerEntityId.TryGetValue(clientId, out var playerId)) return;
         if (!EntityContainer.Entities.TryGetObject(playerId, out var player) || player.skillController == null) return;
 
-        float chance = coral.type.value <= 0 ? Config.coral_small_drop_chance : Config.coral_large_drop_chance;
+        float chance = coral.type.value <= 0
+            ? ConfigManager.GlobalVariableConfig.coral_small_drop_chance
+            : ConfigManager.GlobalVariableConfig.coral_large_drop_chance;
         if (UnityEngine.Random.value > chance) return;
 
         int weaponId = Config.GetRandomWeaponId(); // 全部武器均匀随机

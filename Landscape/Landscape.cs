@@ -2,9 +2,10 @@ public static class Landscape
 {
     public const float chunkSize = 40f;
 
-    public const int chunkCount = 32;
+    // 地形边长取配表 terrain_size，区块数随之推出（加载期已校验 terrain_size 是 chunkSize 的整数倍）
+    public static float MapSize => ConfigManager.GlobalVariableConfig.terrain_size;
 
-    public static float MapSize => chunkSize * chunkCount;
+    public static int chunkCount => (int)(MapSize / chunkSize);
 
     public static UnityEngine.Vector3 MapCenter => new UnityEngine.Vector3(MapSize * 0.5f, 0f, MapSize * 0.5f);
 
