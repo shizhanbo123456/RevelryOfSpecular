@@ -788,9 +788,7 @@ public class BattlePage : PageBase
         var minimap = panel.m_Minimap;
         var mapBase = minimap != null ? minimap.m_mapBase : null;
         if (minimapMapLoader == null || minimapMapLoader.isDisposed || mapBase == null) return;
-        if (!HasSession || Tool.ClientLogicManager == null
-            || Tool.ClientLogicManager.EntityPlayers == null
-            || !Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(OwnEntityId, out var myPos)) return;
+        if (!TryGetMinimapCenter(out var myPos)) return; // 纯观战用观战目标位置作雷达中心
         TickLocalPlayerArea(myPos);
 
         float ppm = mapBase.width * 0.5f / minimapViewRadius; // 像素/米
