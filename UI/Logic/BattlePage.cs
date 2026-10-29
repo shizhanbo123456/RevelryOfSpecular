@@ -857,6 +857,8 @@ public class BattlePage : PageBase
         var map = Tool.AssetsManager != null ? Tool.AssetsManager.BuffIconMap : null;
         if (map != null && map.TryGetValue(buff.type, out var tex)) icon = tex;
         item.m_mask.m_loader.texture = icon != null ? new NTexture(icon) : null; // 没配图标 → 不显示
+        // level 即显示层数：逐层计时类 = 各层等级之和，单层类 = 该条等级（服务端已聚合）
+        item.m_layer_count.text = buff.level.ToString();
         int buffType = buff.type;
         item.onRollOver.Set(() => ShowBuffTip(buffType, item));
         item.onRollOut.Set(HideBuffTip);
