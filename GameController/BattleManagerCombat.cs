@@ -107,7 +107,7 @@ public partial class BattleManager
                     (spec.interval <= 0f || now - lastHit < spec.interval)) continue;
                 b.lastHitTime[e.id] = now;
 
-                int damage = attack.GetDamage(out DamageType type, spec.rates != null ? spec.rates[h] : 1f);
+                int damage = attack.GetDamage(out CombatLabelType type, spec.rates != null ? spec.rates[h] : 1f);
                 // 击飞方向取上一帧的命中球心：高速弹一帧穿过目标时，用当前位置算方向会反转
                 Vector3 floatPos = new Vector3(e.transform.position.x, prevCenter.y, e.transform.position.z);
                 e.ProcessHit(attack, damage, type, prevCenter, floatPos);

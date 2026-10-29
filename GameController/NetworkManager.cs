@@ -359,15 +359,15 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceivePromptLocal, SendTo.To(clientId), Delivery.Reliable, new SCPrompt() { messageId = messageId });
     }
 
-    public void SendDamage(short clientId, SCDamage d)
+    public void SendCombatLabel(short clientId, SCCombatLabel label)
     {
         if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveDamageLocal, SendTo.To(clientId), Delivery.Unreliable, d);
+        CallFuncRpc(ClientReceiveCombatLabelLocal, SendTo.To(clientId), Delivery.Unreliable, label);
     }
 
-    public void SendDamage(SCDamage d)
+    public void SendCombatLabel(SCCombatLabel label)
     {
-        CallFuncRpc(ClientReceiveDamageLocal, SendTo.ExcludeSender, Delivery.Unreliable, d);
+        CallFuncRpc(ClientReceiveCombatLabelLocal, SendTo.ExcludeSender, Delivery.Unreliable, label);
     }
 
     public void SendScoreInfo(short clientId, SCScoreInfo info)
@@ -646,10 +646,10 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
-    private void ClientReceiveDamageLocal(SCDamage d)
+    private void ClientReceiveCombatLabelLocal(SCCombatLabel label)
     {
-        if (d == null) return;
-        EventManager.TrigEvent(ClientEvent.OnDamageDisplay, d);
+        if (label == null) return;
+        EventManager.TrigEvent(ClientEvent.OnCombatLabelDisplay, label);
     }
 
     [Rpc]

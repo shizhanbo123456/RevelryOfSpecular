@@ -1,6 +1,6 @@
-// 伤害类型：描述单次伤害结算的结果，随数值一起下发。
+// 战斗飘字类型：描述单次结算的结果（伤害或治疗），随数值一起下发。
 // 枚举值必须与 FGUI UI_DamageLabel 控制器页号一一对应，新增值须同步加页。
-public enum DamageType
+public enum CombatLabelType
 {
     Normal = 0,       // 正常
     Crit = 1,         // 暴击

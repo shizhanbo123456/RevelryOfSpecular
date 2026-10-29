@@ -8,7 +8,7 @@ public class NeutralStatueEntityData : AutoCastEntityData
 
     private EntityData captor;
 
-    public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, DamageType damageType = DamageType.Normal, Vector3? hitPos = null)
+    public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, CombatLabelType damageType = CombatLabelType.Normal, Vector3? hitPos = null)
     {
         bool wasAlive = Alive;
         base.OnDamaged(damage, attacker, fixedDamage, canReflect, damageType, hitPos);

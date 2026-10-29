@@ -24,7 +24,7 @@ public static class ClientEvent
     public const int OnEntityDisplayRemove = 10231;
     public const int OnMinimapUpdate = 10233;
     public const int OnMinimapRadiusUpdate = 10234; // param=float 切换后的雷达显示半径
-    public const int OnDamageDisplay = 10235;       // param=SCDamage 伤害飘字
+    public const int OnCombatLabelDisplay = 10235;  // param=SCCombatLabel 战斗飘字（伤害/治疗）
     public const int OnPlayerEntityUpdate = 10236;  // param=SCPlayerEntity 玩家→实体关系（-1 = 无实体）
     #endregion
 

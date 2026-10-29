@@ -32,7 +32,7 @@ public class BattlePage : PageBase
     private NTexture minimapMapTexture;  // 缓存 NTexture：包一层 AssetsManager.MapTexture，重复 Enter 不重建
     private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
-    private readonly List<DamageLabelItem> damageLabels = new();
+    private readonly List<CombatLabelItem> combatLabels = new();
     private UI_SkillTip skillTip;     // 技能悬浮提示（技能栏条目）
     private UI_BuffTip buffTip;       // buff 悬浮提示（任意 buff 图标）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
@@ -46,8 +46,8 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> playerEntities = new(); // 玩家 id → 实体 id（-1 = 无实体），来自 SCPlayerEntity
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
-    private const float DamageLife = 0.8f;
-    private const int DamageLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
+    private const float CombatLabelLife = 0.8f;
+    private const int CombatLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
     private readonly Queue<string> importantBannerQueue = new(); // 待播的特殊技能播报文案，按到达顺序逐条播
     private bool importantBannerPlaying;                          // 当前 banner 动画是否在播
     private const string ImportantBannerPrefix = "特殊能力启动-";
@@ -64,7 +64,7 @@ public class BattlePage : PageBase
     // 战斗期名字一律取加载期下发的表（不再读组队期缓存）
     private static string GetUnitName(int clientId) => HasSession ? Session.GetName(clientId) : $"玩家{clientId}";
 
-    private struct DamageLabelItem
+    private struct CombatLabelItem
     {
         public UI_DamageLabel label;
         public float time;
@@ -168,7 +168,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.AddEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
+        EventManager.AddEvent<SCCombatLabel>(ClientEvent.OnCombatLabelDisplay, OnCombatLabelDisplay);
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.AddEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
@@ -213,7 +213,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
-        EventManager.RemoveEvent<SCDamage>(ClientEvent.OnDamageDisplay, OnDamageDisplay);
+        EventManager.RemoveEvent<SCCombatLabel>(ClientEvent.OnCombatLabelDisplay, OnCombatLabelDisplay);
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.RemoveEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
@@ -239,7 +239,7 @@ public class BattlePage : PageBase
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
         }
         RefreshTimeIcon();
-        TickDamageLabels(deltaTime);
+        TickCombatLabels(deltaTime);
         TickMinimapTimeout();
         TickSelfMinimapRotation();
         TickMinimapMapImage();
@@ -898,10 +898,10 @@ public class BattlePage : PageBase
         else if (e.type == SCBattleEvent.Type.SkillBroadcast) EnqueueImportantBanner(e.textId); // 特殊技能播报
     }
 
-    private void OnDamageDisplay(SCDamage d)
+    private void OnCombatLabelDisplay(SCCombatLabel label)
     {
-        if (d == null) return;
-        ShowDamage(d.value, (DamageType)d.type, (ushort)d.targetId, d.hasHitPos, d.hitPos);
+        if (label == null) return;
+        ShowCombatLabel(label.amount, (CombatLabelType)label.type, (ushort)label.targetId, label.hasHitPos, label.hitPos);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -1054,7 +1054,7 @@ public class BattlePage : PageBase
         barOwners.Clear();
     }
 
-    private void ShowDamage(int value, DamageType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
+    private void ShowCombatLabel(int value, CombatLabelType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
         Vector3 anchor;
         if (hasHitPos)
@@ -1077,65 +1077,65 @@ public class BattlePage : PageBase
 
         var label = UI_DamageLabel.CreateInstance();
         int page = (int)type;
-        if (page < 0 || page >= DamageLabelPageCount)
+        if (page < 0 || page >= CombatLabelPageCount)
         {
             label.Dispose();
-            Debug.LogError($"[伤害飘字] 未处理的伤害类型：{page}");
+            Debug.LogError($"[战斗飘字] 未处理的飘字类型：{page}");
             return;
         }
         label.m_type.selectedIndex = page; // 枚举值即 FGUI 页号
         // 闪避 / 失效页不写数字，其余页统一写下发数值
-        if (type != DamageType.Evade && type != DamageType.Invalid) label.m_num_common.text = value.ToString();
+        if (type != CombatLabelType.Evade && type != CombatLabelType.Invalid) label.m_num_common.text = value.ToString();
         panel.m_world_element_container.AddChild(label); // 挂在世界层：压在战斗界面各元素之下
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
         label.xy = ToWorldLayer(WorldToPanel(anchor, cam) + scatterPx) - new Vector2(label.width * 0.5f, 0f);
-        damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
+        combatLabels.Add(new CombatLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
     }
 
     // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤
     private void OnCameraUpdated()
     {
         UpdateEntityBarPositions();
-        ReprojectDamageLabels();
+        ReprojectCombatLabels();
     }
 
     // 飘字按世界锚点重投影（上升量仍走屏幕像素），使出生点与相机同步、不再滞后一帧
-    private void ReprojectDamageLabels()
+    private void ReprojectCombatLabels()
     {
         var cam = GetProjectionCamera();
         if (cam == null) return;
-        for (int i = 0; i < damageLabels.Count; i++)
+        for (int i = 0; i < combatLabels.Count; i++)
         {
-            var item = damageLabels[i];
+            var item = combatLabels[i];
             if (item.label == null) continue;
-            // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowDamage 的剔除一致）
+            // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowCombatLabel 的剔除一致）
             if (cam.WorldToScreenPoint(item.anchor).z <= 0f) { item.label.visible = false; continue; }
             item.label.visible = true;
             item.label.xy = ToWorldLayer(WorldToPanel(item.anchor) + item.scatterPx) - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
         }
     }
 
-    private void TickDamageLabels(float deltaTime)
+    private void TickCombatLabels(float deltaTime)
     {
-        for (int i = damageLabels.Count - 1; i >= 0; i--)
+        for (int i = combatLabels.Count - 1; i >= 0; i--)
         {
-            var item = damageLabels[i];
+            var item = combatLabels[i];
             float age = Time.time - item.time;
-            if (age > DamageLife)
+            if (age > CombatLabelLife)
             {
                 if (item.label != null) item.label.Dispose();
-                damageLabels.RemoveAt(i);
+                combatLabels.RemoveAt(i);
                 continue;
             }
             if (item.label == null)
             {
-                damageLabels.RemoveAt(i);
+                combatLabels.RemoveAt(i);
                 continue;
             }
             item.risePx += 60f * deltaTime;
-            damageLabels[i] = item;
-            if (age > DamageLife * 0.5f)
-                item.label.alpha = Mathf.Clamp01(1f - (age - DamageLife * 0.5f) / (DamageLife * 0.5f));
+            combatLabels[i] = item;
+            if (age > CombatLabelLife * 0.5f)
+                item.label.alpha = Mathf.Clamp01(1f - (age - CombatLabelLife * 0.5f) / (CombatLabelLife * 0.5f));
         }
     }
 

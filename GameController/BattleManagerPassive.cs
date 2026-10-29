@@ -40,12 +40,12 @@ public partial class BattleManager
     }
 
     // 瘟疫使者：命中类伤害结算后生命低于上限比例就挂护盾（不改伤害、不挡死亡）；每角色每冷却一次
-    public void CheckLowHealthShield(EntityData victim, DamageType damageType)
+    public void CheckLowHealthShield(EntityData victim, CombatLabelType damageType)
     {
         if (victim == null || !victim.Alive) return;
         if (victim.type != EntityType.Defense(Config.defense_index_plague_bringer)) return;
         // 只有命中类伤害参与判定，buff 伤害（DoT / 反伤 / 瘟疫引爆）不触发
-        if (damageType != DamageType.Normal && damageType != DamageType.Crit) return;
+        if (damageType != CombatLabelType.Normal && damageType != CombatLabelType.Crit) return;
 
         float health = victim.floatingAttribute.health;
         if (health <= 0f || health >= victim.baseAttribute.health * Config.plague_shield_trigger_ratio) return;
@@ -73,10 +73,10 @@ public partial class BattleManager
     #endregion
 
     #region 事件驱动被动
-    public void OnHitPassive(EntityData attacker, EntityData target, DamageType type)
+    public void OnHitPassive(EntityData attacker, EntityData target, CombatLabelType type)
     {
         // 鹿铠怪人 被动「攻击暴击时附加轻微麻痹」：目标已死则不再挂状态
-        if (type != DamageType.Crit || attacker == null || target == null || !target.Alive) return;
+        if (type != CombatLabelType.Crit || attacker == null || target == null || !target.Alive) return;
         if (attacker.type != EntityType.Defense(Config.defense_index_deer_knight)) return;
         if (target.effectController != null) target.effectController.AddEffect(EffectType.Stun, 1, Config.crit_paralysis_duration, attacker);
     }

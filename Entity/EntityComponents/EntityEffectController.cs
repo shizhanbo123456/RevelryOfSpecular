@@ -326,16 +326,16 @@ public class EntityEffectController
         switch (layer.type)
         {
             case EffectType.Burning:
-                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: DamageType.Burning);
+                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: CombatLabelType.Burning);
                 break;
             case EffectType.PaleFire:
-                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: DamageType.PaleFire);
+                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: CombatLabelType.PaleFire);
                 break;
             case EffectType.Poison:
             {
                 if (owner == null) break;
                 float stat = SourcePower(layer);
-                owner.OnDamaged(Config.poison_damage_ratio * stat * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: DamageType.Poison);
+                owner.OnDamaged(Config.poison_damage_ratio * stat * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: CombatLabelType.Poison);
                 break;
             }
             case EffectType.DeathStroll:
@@ -347,7 +347,7 @@ public class EntityEffectController
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_stroll_radius, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
                 {
-                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * layer.level, owner, fixedDamage: true, damageType: DamageType.DeathStroll);
+                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * layer.level, owner, fixedDamage: true, damageType: CombatLabelType.DeathStroll);
                 }
                 break;
             }

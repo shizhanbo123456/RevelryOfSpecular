@@ -40,9 +40,9 @@ public class AttackData
         };
     }
 
-    public int GetDamage(out DamageType type, float segmentRate = 1f)
+    public int GetDamage(out CombatLabelType type, float segmentRate = 1f)
     {
-        type = DamageType.Normal;
+        type = CombatLabelType.Normal;
         if (attribute == null) return 0;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
         final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤
@@ -50,7 +50,7 @@ public class AttackData
         final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第17列）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
-            type = DamageType.Crit;
+            type = CombatLabelType.Crit;
             final *= attribute.critDamage / 100f; // 暴击伤害为整数百分比：100 = 不加成，200 = 翻倍
         }
         if (final < 1f) return 1;

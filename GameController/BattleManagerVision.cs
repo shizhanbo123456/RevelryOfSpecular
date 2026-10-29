@@ -143,12 +143,12 @@ public partial class BattleManager
         return EntityContainer.Entities.TryGetObject(entityId, out var entity) ? entity : null;
     }
 
-    public void SendDamageToViewers(EntityData target, SCDamage d)
+    public void SendCombatLabelToViewers(EntityData target, SCCombatLabel label)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
             if (!CanSeeFromState(clientId, target)) continue;
-            Tool.NetworkManager.SendDamage(clientId, d);
+            Tool.NetworkManager.SendCombatLabel(clientId, label);
         }
     }
 

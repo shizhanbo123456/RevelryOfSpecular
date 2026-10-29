@@ -402,12 +402,12 @@ public abstract class EntityData : MonoBehaviour
         return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 
-    public void ProcessHit(AttackData attack, int damage, DamageType damageType, Vector3 hitOrigin, Vector3? floatPos = null)
+    public void ProcessHit(AttackData attack, int damage, CombatLabelType damageType, Vector3 hitOrigin, Vector3? floatPos = null)
     {
         // 闪避：带闪避 Buff 时本次命中全部闪避（没有闪避率），不结算伤害、不进入受击
         if (effectController != null && effectController.HasEffect(EffectType.DodgeBoost))
         {
-            OnDamaged(0f, damageType: DamageType.Evade, hitPos: floatPos ?? hitOrigin);
+            OnDamaged(0f, damageType: CombatLabelType.Evade, hitPos: floatPos ?? hitOrigin);
             return;
         }
         EndureType endure = GetEndureLevel();
@@ -453,7 +453,7 @@ public abstract class EntityData : MonoBehaviour
     }
 
     // 受伤计算（hitPos = 命中位置，飘字优先显示在命中处；DoT/反伤等无范围伤害传 null 回退实体头顶）
-    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, DamageType damageType = DamageType.Normal, Vector3? hitPos = null)
+    public virtual void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, CombatLabelType damageType = CombatLabelType.Normal, Vector3? hitPos = null)
     {
         if (!Alive) return;
         if (BattleManager.IsGmInvincible(id)) return; // GM 无敌：伤害按 0 处理（见 BattleManagerGm）
@@ -464,7 +464,7 @@ public abstract class EntityData : MonoBehaviour
         if (effectController != null)
         {
             // 只有命中类（正常/暴击）吃护盾；DoT、反伤、瘟疫引爆等特殊伤害无视护盾直接扣血
-            if (damageType == DamageType.Normal || damageType == DamageType.Crit)
+            if (damageType == CombatLabelType.Normal || damageType == CombatLabelType.Crit)
             {
                 float shield = effectController.GetShieldAbsorb();
                 if (shield > 0f && finalDamage > 0f)
@@ -483,39 +483,39 @@ public abstract class EntityData : MonoBehaviour
         healthDirty = true;
         if (Tool.BattleManager != null) Tool.BattleManager.CheckLowHealthShield(this, damageType); // 瘟疫使者：扣血后按血线挂盾
         // 撞盾的命中一律显示护盾页；闪避自带类型；其余 0 伤害改判失效
-        DamageType shownType = damageType;
+        CombatLabelType shownType = damageType;
         float shownDamage = finalDamage;
         if (shieldDamage > 0f)
         {
-            shownType = DamageType.Shield;
+            shownType = CombatLabelType.Shield;
             shownDamage = shieldDamage;
         }
-        else if (damageType != DamageType.Evade && finalDamage <= 0f)
+        else if (damageType != CombatLabelType.Evade && finalDamage <= 0f)
         {
-            shownType = DamageType.Invalid;
+            shownType = CombatLabelType.Invalid;
         }
-        SendDamageEvent(shownDamage, shownType, hitPos);
+        SendCombatLabelEvent(shownDamage, shownType, hitPos);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（雕像计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
-            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false, damageType: DamageType.Reflect);
+            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false, damageType: CombatLabelType.Reflect);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
-    private void SendDamageEvent(float shownDamage, DamageType damageType, Vector3? hitPos)
+    private void SendCombatLabelEvent(float shownAmount, CombatLabelType labelType, Vector3? hitPos)
     {
-        var d = new SCDamage()
+        var d = new SCCombatLabel()
         {
-            value = Mathf.RoundToInt(shownDamage),
-            type = (int)damageType,
+            amount = Mathf.RoundToInt(shownAmount),
+            type = (int)labelType,
             targetId = id,
             hasHitPos = hitPos.HasValue,
             hitPos = hitPos ?? Vector3.zero,
         };
-        if (Tool.BattleManager != null) Tool.BattleManager.SendDamageToViewers(this, d);
-        else Tool.NetworkManager.SendDamage(d);
+        if (Tool.BattleManager != null) Tool.BattleManager.SendCombatLabelToViewers(this, d);
+        else Tool.NetworkManager.SendCombatLabel(d);
     }
 
     public virtual void OnKilled()
