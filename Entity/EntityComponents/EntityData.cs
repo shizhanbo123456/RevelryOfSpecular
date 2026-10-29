@@ -460,27 +460,29 @@ public abstract class EntityData : MonoBehaviour
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
         if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.AdjustIncomingDamage(this, finalDamage); // 白眼伯爵：单次受伤上限
-        float shieldDamage = 0f; // 被护盾挡下的名义伤害（飘字用），护盾在则本次不掉血
+        float shieldDamage = 0f; // 命中类伤害面对的名义伤害（护盾飘字用）
         if (effectController != null)
         {
-            float shield = effectController.GetShieldAbsorb();
-            if (shield > 0f && finalDamage > 0f)
+            // 只有命中类（正常/暴击）吃护盾；DoT、反伤、瘟疫引爆等特殊伤害无视护盾直接扣血
+            if (damageType == DamageType.Normal || damageType == DamageType.Crit)
             {
-                shieldDamage = finalDamage;
-                effectController.ConsumeShield(Mathf.Min(shield, finalDamage)); // 盾不够则溢出部分直接丢弃
-                finalDamage = 0f;
+                float shield = effectController.GetShieldAbsorb();
+                if (shield > 0f && finalDamage > 0f)
+                {
+                    shieldDamage = finalDamage;
+                    float absorbed = Mathf.Min(shield, finalDamage);
+                    effectController.ConsumeShield(absorbed);
+                    finalDamage -= absorbed; // 盾不够的溢出部分照常扣血
+                }
             }
-            else
-            {
-                finalDamage *= 1f - effectController.GetDamageReduceRate();
-                if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
-            }
+            finalDamage *= 1f - effectController.GetDamageReduceRate();
+            if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.BlockLethalDamage(this, finalDamage); // 瘟疫使者：致命拦截
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
-        // 闪避自带类型；其余 0 伤害按「有盾=护盾 / 无盾=失效」改判
+        // 撞盾的命中一律显示护盾页；闪避自带类型；其余 0 伤害改判失效
         DamageType shownType = damageType;
         float shownDamage = finalDamage;
         if (shieldDamage > 0f)
