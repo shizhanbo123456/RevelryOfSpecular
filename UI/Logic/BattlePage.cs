@@ -48,6 +48,9 @@ public class BattlePage : PageBase
 
     private const float CombatLabelLife = 0.8f;
     private const int CombatLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
+    private const int HitVfxIndexBuff = 0;   // 命中特效列表下标：buff/DoT 类（贴实体中心）
+    private const int HitVfxIndexDirect = 1; // 命中特效列表下标：直接伤害（普通/暴击/护盾）
+    private const float HitVfxLife = 2f;
     private readonly Queue<string> importantBannerQueue = new(); // 待播的特殊技能播报文案，按到达顺序逐条播
     private bool importantBannerPlaying;                          // 当前 banner 动画是否在播
     private const string ImportantBannerPrefix = "特殊能力启动-";
@@ -901,7 +904,10 @@ public class BattlePage : PageBase
     private void OnCombatLabelDisplay(SCCombatLabel label)
     {
         if (label == null) return;
-        ShowCombatLabel(label.amount, (CombatLabelType)label.type, (ushort)label.targetId, label.hasHitPos, label.hitPos);
+        var type = (CombatLabelType)label.type;
+        var targetId = (ushort)label.targetId;
+        ShowCombatLabel(label.amount, type, targetId, label.hasHitPos, label.hitPos);
+        PlayHitVfx(type, targetId, label.hasHitPos, label.hitPos);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -1090,6 +1096,29 @@ public class BattlePage : PageBase
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
         label.xy = ToWorldLayer(WorldToPanel(anchor, cam) + scatterPx) - new Vector2(label.width * 0.5f, 0f);
         combatLabels.Add(new CombatLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
+    }
+
+    // 命中特效：直接伤害取命中点高度 + 实体所在列，buff/DoT 类贴实体中心；闪避与失效没有命中不播
+    private void PlayHitVfx(CombatLabelType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
+    {
+        if (type == CombatLabelType.Evade || type == CombatLabelType.Invalid) return;
+        if (Tool.VfxManager == null || Tool.ClientLogicManager == null || Tool.ClientLogicManager.EntityPlayers == null) return;
+        var players = Tool.ClientLogicManager.EntityPlayers;
+
+        if (type == CombatLabelType.Normal || type == CombatLabelType.Crit || type == CombatLabelType.Shield)
+        {
+            if (!players.TryGetEntityPosition(targetId, out var entityPos)) return; // 视图未建/已移除：飘字兜底逻辑不变，特效不播
+            float y;
+            if (hasHitPos) y = hitPos.y;
+            else if (players.TryGetAnchorPos(targetId, EntityAnchor.Center, out var center)) y = center.y;
+            else return;
+            Tool.VfxManager.PlayHitVFX(HitVfxIndexDirect, new Vector3(entityPos.x, y, entityPos.z), HitVfxLife);
+        }
+        else
+        {
+            if (!players.TryGetAnchorPos(targetId, EntityAnchor.Center, out var center)) return;
+            Tool.VfxManager.PlayHitVFX(HitVfxIndexBuff, center, HitVfxLife);
+        }
     }
 
     // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤

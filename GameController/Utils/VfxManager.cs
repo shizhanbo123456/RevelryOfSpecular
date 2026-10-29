@@ -37,6 +37,12 @@ public class VfxManager : MonoBehaviour
         var list = Tool.AssetsManager != null ? Tool.AssetsManager.BuffVFX : null;
         return GetVFX(list, index);
     }
+
+    public GameObject GetHitVfx(int index)
+    {
+        var list = Tool.AssetsManager != null ? Tool.AssetsManager.HitVFX : null;
+        return GetVFX(list, index);
+    }
     #endregion
 
     #region 通用播放原语（已持有模板 GameObject 时使用）
@@ -146,6 +152,11 @@ public class VfxManager : MonoBehaviour
     public GameObject PlayBuffVFX(int index, Vector3 pos, Quaternion rot, float lifeTime, float scale = 0f)
     {
         return Play(GetBuffVfx(index), pos, rot, lifeTime, scale);
+    }
+
+    public GameObject PlayHitVFX(int index, Vector3 pos, float lifeTime, float scale = 0f)
+    {
+        return Play(GetHitVfx(index), pos, Quaternion.identity, lifeTime, scale);
     }
     #endregion
 
