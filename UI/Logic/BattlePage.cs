@@ -908,6 +908,7 @@ public class BattlePage : PageBase
         var targetId = (ushort)label.targetId;
         ShowCombatLabel(label.amount, type, targetId, label.hasHitPos, label.hitPos);
         PlayHitVfx(type, targetId, label.hasHitPos, label.hitPos);
+        if (IsOwnEntity(targetId)) PlaySelfHitAnim(type);
     }
 
     private void OnReviveProgressUpdate(SCReviveInfo info)
@@ -1119,6 +1120,13 @@ public class BattlePage : PageBase
             if (!players.TryGetAnchorPos(targetId, EntityAnchor.Center, out var center)) return;
             Tool.VfxManager.PlayHitVFX(HitVfxIndexBuff, center, HitVfxLife);
         }
+    }
+
+    // 自己被打时的受击动画：只有命中伤害（正常/暴击/护盾）播，DoT 与其它结算不播；连击时从头重播
+    private void PlaySelfHitAnim(CombatLabelType type)
+    {
+        if (type != CombatLabelType.Normal && type != CombatLabelType.Crit && type != CombatLabelType.Shield) return;
+        if (panel.m_showHit != null) panel.m_showHit.Play();
     }
 
     // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤
