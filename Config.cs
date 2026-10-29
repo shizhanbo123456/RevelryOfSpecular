@@ -107,6 +107,7 @@ public static class Config
     public const KeyCode melee_key = KeyCode.J;
     public const KeyCode jump_key = KeyCode.K;
     public const KeyCode slide_key = KeyCode.LeftShift;
+    public const KeyCode camera_mode_key = KeyCode.C; // 相机模式切换（自由视角下按 C 回第三人称）
     public const float gm_teleport_height = 200f; // GM 传送的 Y（传送面板只给 x/z）
 
     // 转向 / 飞行升降 / GM 极速倍率来自配表 global_variables

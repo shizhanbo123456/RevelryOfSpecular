@@ -1,5 +1,12 @@
 using UnityEngine;
 
+public enum CameraViewMode
+{
+    ThirdPerson,
+    TopDown,
+    Free,
+}
+
 public class CameraController : MonoBehaviour
 {
     public Transform lookTarget;
@@ -31,11 +38,35 @@ public class CameraController : MonoBehaviour
     // 俯仰角自适应是否忽略玩家角色：忽略时看向敌人而非自身
     public bool autoPitchIgnoreSelf = true;
 
+    // 俯视模式：相机相对跟随点的世界偏移（yaw 恒为 0），以及位置平滑速率
+    public Vector3 topDownOffset = new Vector3(0f, 16f, -4f);
+    public float topDownSmooth = 8f;
+
+    // 自由视角（仅纯观战）：平移 / 升降 / 转向 / 俯仰速度与俯仰钳制范围
+    public float freeMoveSpeed = 12f;
+    public float freeVerticalSpeed = 8f;
+    public float freeTurnSpeed = 90f;
+    public float freePitchSpeed = 60f;
+    public Vector2 freePitchClamp = new Vector2(-89f, 89f);
+
+    public CameraViewMode Mode { get; private set; } = CameraViewMode.ThirdPerson;
+
+    public bool IsFree => Mode == CameraViewMode.Free;
+
     private float autoFrameTimer;
 
     // 俯仰偏转
     private float pitchTarget;
     private float pitchHoldTime;
+
+    // 自由视角位姿
+    private float freeYaw;
+    private float freePitch;
+
+    // 会话跟踪：新一局回第三人称，复活换实体后补发一次模式
+    private bool sessionActive;
+    private ushort lastOwnEntityId;
+    private bool pendingModeSync; // 待同步给服务器的相机模式（等视体建好再发）
 
     private void Awake()
     {
@@ -43,21 +74,122 @@ public class CameraController : MonoBehaviour
         WorldCamera = GetComponent<Camera>();
     }
 
-    public void SetLookTarget(Transform target)
+    public void SetLookTarget(Transform target, bool snap = true)
     {
         lookTarget = target;
         if (target == null) return;
 
-        Vector3 back = Quaternion.Euler(0f, target.eulerAngles.y, 0f) * Vector3.back;
+        // 俯视/自由视角下不摆位：俯视由 TickTopDown 平滑追新目标，自由视角不能被跟随点拽走
+        if (!snap || Mode == CameraViewMode.Free) return;
+        if (Mode == CameraViewMode.TopDown)
+        {
+            NotifyCameraUpdated();
+            return;
+        }
+        SnapToThirdPerson();
+        NotifyCameraUpdated();
+    }
+
+    // 瞬移到第三人称稳态位姿（绑定/换绑/从自由视角返回）
+    private void SnapToThirdPerson()
+    {
+        Vector3 back = Quaternion.Euler(0f, lookTarget.eulerAngles.y, 0f) * Vector3.back;
         float yCenter = (yRange.x + yRange.y) * 0.5f;
         float zCenter = (zRange.x + zRange.y) * 0.5f;
-        transform.position = target.position + Vector3.up * yCenter + back * zCenter;
+        transform.position = lookTarget.position + Vector3.up * yCenter + back * zCenter;
 
         transform.LookAt(lookTarget.position);
         UpdateAutoPitch();
         TickPitch();
+    }
 
-        NotifyCameraUpdated();
+    public void SetMode(CameraViewMode mode)
+    {
+        if (Mode == mode) return;
+        bool fromFree = Mode == CameraViewMode.Free;
+        Mode = mode;
+
+        if (mode == CameraViewMode.Free)
+        {
+            freeYaw = transform.eulerAngles.y;
+            freePitch = NormalizePitch(transform.eulerAngles.x);
+            return;
+        }
+        // 第三人称 ⇄ 俯视交给各自的 Tick 平滑过渡；从自由视角回来必须瞬移，否则会横穿整张地图
+        pitchHoldTime = 0f; // 丢弃切换前的取景保持，回第三人称时直接按当前几何重算俯仰
+        if (fromFree && mode == CameraViewMode.ThirdPerson && lookTarget != null)
+        {
+            SnapToThirdPerson();
+            NotifyCameraUpdated();
+        }
+    }
+
+    private static float NormalizePitch(float pitch)
+    {
+        return pitch > 180f ? pitch - 360f : pitch;
+    }
+
+    private void Update()
+    {
+        var loading = ClientLoadingManager.Current;
+        TickSession(loading);
+        if (!sessionActive) return;
+
+        bool spectator = loading.IsSpectator;
+
+        if (spectator && Mode != CameraViewMode.Free && Input.GetKeyDown(KeyCode.W))
+        {
+            SetMode(CameraViewMode.Free); // 纯观战：按 W 脱离跟随进自由视角
+        }
+
+        if (Input.GetKeyDown(Config.camera_mode_key))
+        {
+            switch (Mode)
+            {
+                case CameraViewMode.Free: SetMode(CameraViewMode.ThirdPerson); break;
+                case CameraViewMode.ThirdPerson: SetMode(CameraViewMode.TopDown); break;
+                case CameraViewMode.TopDown: SetMode(CameraViewMode.ThirdPerson); break;
+            }
+            if (!spectator) pendingModeSync = true; // 视体已在的下一帧就会发出
+        }
+
+        if (Mode == CameraViewMode.Free) TickFreeKeys();
+    }
+
+    // 会话起止与实体 id 变化：新一局回第三人称；复活/换实体后服务器侧模式需重建
+    private void TickSession(ClientLoadingManager loading)
+    {
+        bool active = loading != null && loading.HasSession;
+        if (active != sessionActive)
+        {
+            sessionActive = active;
+            lastOwnEntityId = 0;
+            pendingModeSync = false;
+            Mode = CameraViewMode.ThirdPerson;
+        }
+        if (!active) return;
+
+        ushort ownId = loading.OwnEntityId;
+        if (ownId != lastOwnEntityId)
+        {
+            lastOwnEntityId = ownId;
+            pendingModeSync = ownId != 0;
+            return;
+        }
+        if (!pendingModeSync) return;
+        if (loading.IsSpectator) { pendingModeSync = false; return; }
+
+        // 视体真正建好后再发：实体尚未创建时服务器会丢弃这次同步（复活/开局都在换实体之后才建视体）
+        var players = Tool.ClientLogicManager != null ? Tool.ClientLogicManager.EntityPlayers : null;
+        if (players == null || players.GetView(ownId) == null) return;
+        pendingModeSync = false;
+        SendModeToServer();
+    }
+
+    private void SendModeToServer()
+    {
+        if (Tool.NetworkManager == null) return;
+        Tool.NetworkManager.SendCameraMode(Mode == CameraViewMode.TopDown);
     }
 
     // 单轴平滑速率：带内 slow，带外 fast，过渡带内线性插值
@@ -78,8 +210,28 @@ public class CameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (Mode == CameraViewMode.Free)
+        {
+            TickFreeMove(Time.deltaTime);
+            NotifyCameraUpdated();
+            return;
+        }
         if (lookTarget == null) return;
 
+        if (Mode == CameraViewMode.TopDown)
+        {
+            TickTopDown(Time.deltaTime);
+            NotifyCameraUpdated();
+            return;
+        }
+
+        TickThirdPerson(Time.deltaTime);
+
+        NotifyCameraUpdated();
+    }
+
+    private void TickThirdPerson(float deltaTime)
+    {
         // 偏航不平滑：相机全程在角色正后方，自身偏航与角色一致
         float yaw = lookTarget.eulerAngles.y;
         Vector3 back = Quaternion.Euler(0f, yaw, 0f) * Vector3.back;
@@ -93,24 +245,72 @@ public class CameraController : MonoBehaviour
         float yRate = AxisRate(yCur, yRange, smoothDistance, slowSmooth, fastSmooth);
         float zCenter = (zRange.x + zRange.y) * 0.5f;
         float yCenter = (yRange.x + yRange.y) * 0.5f;
-        float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * Time.deltaTime));
-        float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * Time.deltaTime));
+        float zNew = Mathf.Lerp(zCur, zCenter, 1f - Mathf.Exp(-zRate * deltaTime));
+        float yNew = Mathf.Lerp(yCur, yCenter, 1f - Mathf.Exp(-yRate * deltaTime));
 
         float x=Vector3.Dot(lookTarget.position - transform.position, lookTarget.right);
-        float xNew=Mathf.Lerp(x, 0, 1f - Mathf.Exp(-xSmooth * Time.deltaTime));
+        float xNew=Mathf.Lerp(x, 0, 1f - Mathf.Exp(-xSmooth * deltaTime));
 
         transform.position = lookTarget.position + Vector3.up * yNew + back * zNew - lookTarget.right * xNew;
 
         // 自动取景周期遍历
-        autoFrameTimer += Time.deltaTime;
+        autoFrameTimer += deltaTime;
         if (autoFrameTimer >= autoFrameInterval)
         {
             autoFrameTimer = 0f;
             UpdateAutoPitch();
         }
         TickPitch();
-        NotifyCameraUpdated();
     }
+
+    // 俯视：位置平滑追「跟随点 + 偏移」，朝向 LookAt 跟随点但偏航恒为 0（只保留俯角）
+    private void TickTopDown(float deltaTime)
+    {
+        Vector3 target = lookTarget.position + topDownOffset;
+        // 速率为 0 即视为不平滑（瞬时跟随），避免 1-Exp(-0) = 0 卡住不动
+        float k = topDownSmooth > 0f ? 1f - Mathf.Exp(-topDownSmooth * deltaTime) : 1f;
+        transform.position = Vector3.Lerp(transform.position, target, k);
+
+        Vector3 d = lookTarget.position - transform.position;
+        float flat = Mathf.Sqrt(d.x * d.x + d.z * d.z);
+        float pitch = -Mathf.Atan2(d.y, flat) * Mathf.Rad2Deg;
+        var targetRotation = Quaternion.Euler(pitch, 0f, 0f);
+        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, 1f - Mathf.Exp(-pitchSmooth * deltaTime));
+    }
+
+    #region 自由视角（仅纯观战）
+    // 键位固定：WASD 水平平移 / K 升 J 降 / Q 左转 E 右转 / Y 抬头 H 低头
+    private void TickFreeKeys()
+    {
+        float deltaTime = Time.deltaTime;
+        if (Input.GetKey(KeyCode.Q)) freeYaw -= freeTurnSpeed * deltaTime;
+        if (Input.GetKey(KeyCode.E)) freeYaw += freeTurnSpeed * deltaTime;
+        if (Input.GetKey(KeyCode.Y)) freePitch -= freePitchSpeed * deltaTime;
+        if (Input.GetKey(KeyCode.H)) freePitch += freePitchSpeed * deltaTime;
+        freePitch = Mathf.Clamp(freePitch, freePitchClamp.x, freePitchClamp.y);
+    }
+
+    private void TickFreeMove(float deltaTime)
+    {
+        float yawRad = freeYaw * Mathf.Deg2Rad;
+        Vector3 fwd = new Vector3(Mathf.Sin(yawRad), 0f, Mathf.Cos(yawRad));
+        Vector3 right = new Vector3(Mathf.Cos(yawRad), 0f, -Mathf.Sin(yawRad));
+
+        Vector3 flat = Vector3.zero;
+        if (Input.GetKey(KeyCode.W)) flat += fwd;
+        if (Input.GetKey(KeyCode.S)) flat -= fwd;
+        if (Input.GetKey(KeyCode.D)) flat += right;
+        if (Input.GetKey(KeyCode.A)) flat -= right;
+        if (flat.sqrMagnitude > 1e-6f) flat = flat.normalized * freeMoveSpeed;
+
+        float vertical = 0f;
+        if (Input.GetKey(KeyCode.K)) vertical += 1f;
+        if (Input.GetKey(KeyCode.J)) vertical -= 1f;
+
+        transform.position += (flat + Vector3.up * (vertical * freeVerticalSpeed)) * deltaTime;
+        transform.rotation = Quaternion.Euler(freePitch, freeYaw, 0f);
+    }
+    #endregion
 
     // 自动取景：把所有可见模型的上下边界压进水平视野中间 80%，0 偏转够用时不干预（自然回正）
     // 装不下经 SetPitch 给最小修正并按周期续期；两侧都装不下取上下限平均

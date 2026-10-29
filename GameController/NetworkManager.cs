@@ -249,6 +249,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), EnsInstance.LocalClientId);
     }
 
+    // 相机模式属于移动语义的一部分（俯视 = 四向），切模式即同步一次
+    public void SendCameraMode(bool topDown)
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveCameraModeLocal, SendTo.RoomOwner, Delivery.Reliable, new CSCameraMode() { topDown = topDown }, EnsInstance.LocalClientId);
+    }
+
     public void SendChat(CSChat chat)
     {
         if (!CanSendWorldCommand) return;
@@ -519,6 +526,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SwitchMinimapRadius(clientId);
+    }
+
+    [Rpc]
+    private void ServerReceiveCameraModeLocal(CSCameraMode request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.SetCameraMode(clientId, request != null && request.topDown);
     }
 
     [Rpc]

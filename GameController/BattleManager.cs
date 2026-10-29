@@ -728,6 +728,16 @@ public partial class BattleManager : EnsBehaviour
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
         entity.RecordInput(input);
     }
+
+    // 相机模式决定 WASD 的解释口径（俯视 = 四向），由客户端在切模式时同步
+    public void SetCameraMode(short clientId, bool topDown)
+    {
+        if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
+        if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
+        var player = entity as PlayerEntityData;
+        if (player == null) return;
+        player.SetTopDown(topDown);
+    }
     #endregion
 
     #region 子弹（统一攻击实体）

@@ -6,8 +6,8 @@ public class PlayerEntityData : EntityData
     private class MoveState
     {
         public PlayerKey held;  // 当前按住的移动键
-        public bool moving;     // 是否位移中（只有 W 算移动；A/D 单独按住 = 原地转向）
-        public Vector2 dir;     // x = 转向（-1 左 / +1 右），y = W 按住标志（1/0）；S 弃用
+        public bool moving;     // 是否位移中（坦克式只认 W；俯视任意方向键都算）
+        public Vector2 dir;     // x = 横向（-1 左 / +1 右），y = 前后（坦克式只用 +1，俯视含 -1）
         public float yaw;       // 角色朝向（度）
         public float yawSpeed;  // 绕 Y 角速度（度/秒，客户端推演用）
     }
@@ -16,6 +16,8 @@ public class PlayerEntityData : EntityData
 
     private bool flightMode;
     private PlayerKey flyHeld; // 飞行垂直输入按住态（K 升 / Shift 降）
+
+    private bool topDownMode; // 俯视相机模式：WASD 映射世界轴向，角色即时转向移动方向
 
     public override bool FlightMode => flightMode;
 
@@ -37,11 +39,20 @@ public class PlayerEntityData : EntityData
         }
     }
 
-    // 操作屏蔽 → 移动键位（前后=W，旋转=A/D；带 Press/Release 对，抹除需同时清 Release 位）
+    // 俯视模式：WASD 改为世界轴向四向（W=+Z / S=-Z / D=+X / A=-X），角色即时转向移动方向
+    public void SetTopDown(bool enabled)
+    {
+        if (topDownMode == enabled) return;
+        topDownMode = enabled;
+        EnsureMoveState();
+        ApplyMoveState(); // 按住态在新口径下重新解释，避免切模式当帧仍按旧语义移动
+    }
+
+    // 操作屏蔽 → 移动键位（前后=W，俯视下含 S；旋转=A/D；带 Press/Release 对，抹除需同时清 Release 位）
     private PlayerKey BlockMoveKeys(InputBlockOp ops)
     {
         PlayerKey k = PlayerKey.None;
-        if ((ops & InputBlockOp.Forward) != 0) k |= PlayerKey.WPress;
+        if ((ops & InputBlockOp.Forward) != 0) k |= topDownMode ? (PlayerKey.WPress | PlayerKey.SPress) : PlayerKey.WPress;
         if ((ops & InputBlockOp.Rotation) != 0) k |= PlayerKey.APress | PlayerKey.DPress;
         return k;
     }
@@ -150,9 +161,11 @@ public class PlayerEntityData : EntityData
     private void ApplyMoveState()
     {
         float x = ((moveState.held & PlayerKey.DPress) != 0 ? 1f : 0f) - ((moveState.held & PlayerKey.APress) != 0 ? 1f : 0f);
-        float z = (moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f; // S 弃用：前后方向只认 W
+        float z = (moveState.held & PlayerKey.WPress) != 0 ? 1f : 0f;
+        if (topDownMode) z -= (moveState.held & PlayerKey.SPress) != 0 ? 1f : 0f; // 俯视：S 参与移动
         moveState.dir = new Vector2(x, z);
-        moveState.moving = z != 0f; // 只有 W 算移动；单独 A/D = 原地转向，不位移
+        // 俯视：任意方向键都算移动；坦克式：只有 W 算移动，单独 A/D = 原地转向，S 弃用
+        moveState.moving = topDownMode ? (x != 0f || z != 0f) : z != 0f;
         SetMoveInput(moveState.moving ? Vector3.forward : Vector3.zero);
         if (anim != null) anim.Move(moveState.moving);
     }
@@ -196,20 +209,33 @@ public class PlayerEntityData : EntityData
 
         if (canInput && MotionCanMove)
         {
-            // A/D 按住即转向，不再要求同时在移动（单独 A/D = 原地转）
-            float yawDelta = 0f;
-            if (Mathf.Abs(moveState.dir.x) > 0.01f)
+            if (topDownMode) TickTopDownYaw();
+            else
             {
-                yawDelta = Config.move_turn_rate * Mathf.Sign(moveState.dir.x) * deltaTime;
-                moveState.yaw += yawDelta;
+                // A/D 按住即转向，不再要求同时在移动（单独 A/D = 原地转）
+                float yawDelta = 0f;
+                if (Mathf.Abs(moveState.dir.x) > 0.01f)
+                {
+                    yawDelta = Config.move_turn_rate * Mathf.Sign(moveState.dir.x) * deltaTime;
+                    moveState.yaw += yawDelta;
+                }
+                moveState.yawSpeed = deltaTime > 0f ? yawDelta / deltaTime : 0f;
             }
-            moveState.yawSpeed = deltaTime > 0f ? yawDelta / deltaTime : 0f;
         }
         else
         {
             moveState.yawSpeed = 0f;
         }
         transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
+    }
+
+    // 俯视：即时转向输入方向（W=+Z、D=+X、W+D 即 45°）；转向被屏蔽时保持朝向，位移仍沿当前朝向
+    private void TickTopDownYaw()
+    {
+        moveState.yawSpeed = 0f;
+        if (InputBlocked(InputBlockOp.Rotation)) return;
+        if (Mathf.Abs(moveState.dir.x) > 0.01f || Mathf.Abs(moveState.dir.y) > 0.01f)
+            moveState.yaw = Mathf.Atan2(moveState.dir.x, moveState.dir.y) * Mathf.Rad2Deg;
     }
 
     #region AI 驱动入口（由 PlayerAiController 调用；真人玩家不走这里）

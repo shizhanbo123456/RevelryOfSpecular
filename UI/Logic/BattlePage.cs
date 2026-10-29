@@ -279,9 +279,11 @@ public class BattlePage : PageBase
         if (spectateTargetEntityId != -1 && Tool.CameraController != null
             && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
         {
+            var cam = Tool.CameraController;
             var anchor = Tool.ClientLogicManager.EntityPlayers.GetOrCreateCameraAnchor((ushort)spectateTargetEntityId);
-            if (anchor != null && Tool.CameraController.lookTarget != anchor)
-                Tool.CameraController.SetLookTarget(anchor);
+            // 自由视角下只记目标不摆位，否则每帧会被拉回目标身位
+            if (anchor != null && (cam.lookTarget != anchor || cam.IsFree))
+                cam.SetLookTarget(anchor, !cam.IsFree);
         }
 
         onlookRefreshTimer -= deltaTime;
