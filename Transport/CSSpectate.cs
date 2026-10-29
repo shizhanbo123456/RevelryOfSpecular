@@ -13,53 +13,55 @@ namespace Ros.Transport
     {
         public static bool Serialize(CSSpectate value, byte[] result, ref int indexStart)
         {
-            if (!EnsInstance.enableBitTransform) return SerializeBytes(value, result, ref indexStart);
-            if (result.Length - indexStart < (value == null ? 1 : 3)) return false;
-
-            // 位级：1+16=17 位
-            BitField.SetBuffer(result, indexStart);
-            BitField.WriteBool(value != null);
-            if (value != null)
+            if (!EnsInstance.enableBitTransform)
             {
-                BitField.WriteInt(value.targetClientId, -1, 32767);
+                if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
+                if (value == null) return true;
+                return IntSerializer.Serialize(value.targetClientId, result, ref indexStart);
             }
-            indexStart += BitField.Flush();
-            return true;
+            else
+            {
+                if (result.Length - indexStart < (value == null ? 1 : 3)) return false;
+
+                // 位级：1+16=17 位
+                BitField.SetBuffer(result, indexStart);
+                BitField.WriteBool(value != null);
+                if (value != null)
+                {
+                    BitField.WriteInt(value.targetClientId, -1, 32767);
+                }
+                indexStart += BitField.Flush();
+                return true;
+            }
         }
 
         public static CSSpectate Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
-            if (!EnsInstance.enableBitTransform) return DeserializeBytes(data, ref indexStart, invalidIndex);
-            if (invalidIndex - indexStart < 1) throw new Exception("反序列化 CSSpectate 失败：剩余数据不足");
-
-            BitField.SetBuffer(data, indexStart);
-            if (!BitField.ReadBool())
+            if (!EnsInstance.enableBitTransform)
             {
-                indexStart += 1;
-                return null;
+                if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
+                return new CSSpectate()
+                {
+                    targetClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                };
             }
-            if (invalidIndex - indexStart < 3) throw new Exception("反序列化 CSSpectate 失败：剩余数据不足");
-
-            var r = new CSSpectate();
-            r.targetClientId = BitField.ReadInt(-1, 32767);
-            indexStart += 3;
-            return r;
-        }
-
-        private static bool SerializeBytes(CSSpectate value, byte[] result, ref int indexStart)
-        {
-            if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
-            if (value == null) return true;
-            return IntSerializer.Serialize(value.targetClientId, result, ref indexStart);
-        }
-
-        private static CSSpectate DeserializeBytes(byte[] data, ref int indexStart, int invalidIndex)
-        {
-            if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            return new CSSpectate()
+            else
             {
-                targetClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-            };
+                if (invalidIndex - indexStart < 1) throw new Exception("反序列化 CSSpectate 失败：剩余数据不足");
+
+                BitField.SetBuffer(data, indexStart);
+                if (!BitField.ReadBool())
+                {
+                    indexStart += 1;
+                    return null;
+                }
+                if (invalidIndex - indexStart < 3) throw new Exception("反序列化 CSSpectate 失败：剩余数据不足");
+
+                var r = new CSSpectate();
+                r.targetClientId = BitField.ReadInt(-1, 32767);
+                indexStart += 3;
+                return r;
+            }
         }
     }
 }

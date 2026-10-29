@@ -22,67 +22,68 @@ namespace Ros.Transport
 
         public static bool Serialize(CSLobbyUpdate value, byte[] result, ref int indexStart)
         {
-            if (!EnsInstance.enableBitTransform) return SerializeBytes(value, result, ref indexStart);
-            if (result.Length - indexStart < (value == null ? NullBytes : ValueBytes)) return false;
-
-            BitField.SetBuffer(result, indexStart);
-            BitField.WriteBool(value != null);
-            if (value != null)
+            if (!EnsInstance.enableBitTransform)
             {
-                BitField.WriteInt(value.camp, CampMin, CampMax);
-                BitField.WriteBool(value.ready);
-                BitField.WriteInt(value.attackAICount, AiCountMin, AiCountMax);
-                BitField.WriteInt(value.defenseAICount, AiCountMin, AiCountMax);
+                if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
+                if (value == null) return true;
+                if (!IntSerializer.Serialize(value.camp, result, ref indexStart)) return false;
+                if (!BoolSerializer.Serialize(value.ready, result, ref indexStart)) return false;
+                if (!IntSerializer.Serialize(value.attackAICount, result, ref indexStart)) return false;
+                return IntSerializer.Serialize(value.defenseAICount, result, ref indexStart);
             }
-            indexStart += BitField.Flush();
-            return true;
+            else
+            {
+                if (result.Length - indexStart < (value == null ? NullBytes : ValueBytes)) return false;
+
+                BitField.SetBuffer(result, indexStart);
+                BitField.WriteBool(value != null);
+                if (value != null)
+                {
+                    BitField.WriteInt(value.camp, CampMin, CampMax);
+                    BitField.WriteBool(value.ready);
+                    BitField.WriteInt(value.attackAICount, AiCountMin, AiCountMax);
+                    BitField.WriteInt(value.defenseAICount, AiCountMin, AiCountMax);
+                }
+                indexStart += BitField.Flush();
+                return true;
+            }
         }
 
         public static CSLobbyUpdate Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
-            if (!EnsInstance.enableBitTransform) return DeserializeBytes(data, ref indexStart, invalidIndex);
-            if (invalidIndex - indexStart < NullBytes) throw new Exception("反序列化 CSLobbyUpdate 失败：剩余数据不足");
-
-            BitField.SetBuffer(data, indexStart);
-            if (!BitField.ReadBool())
+            if (!EnsInstance.enableBitTransform)
             {
-                indexStart += NullBytes;
-                return null;
+                if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
+                return new CSLobbyUpdate()
+                {
+                    camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    attackAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    defenseAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                };
             }
-            if (invalidIndex - indexStart < ValueBytes) throw new Exception("反序列化 CSLobbyUpdate 失败：剩余数据不足");
-
-            var value = new CSLobbyUpdate()
+            else
             {
-                camp = BitField.ReadInt(CampMin, CampMax),
-                ready = BitField.ReadBool(),
-                attackAICount = BitField.ReadInt(AiCountMin, AiCountMax),
-                defenseAICount = BitField.ReadInt(AiCountMin, AiCountMax),
-            };
-            indexStart += ValueBytes;
-            return value;
-        }
+                if (invalidIndex - indexStart < NullBytes) throw new Exception("反序列化 CSLobbyUpdate 失败：剩余数据不足");
 
-        // 字节级：14 字节，enableBitTransform 关闭时使用
-        private static bool SerializeBytes(CSLobbyUpdate value, byte[] result, ref int indexStart)
-        {
-            if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
-            if (value == null) return true;
-            if (!IntSerializer.Serialize(value.camp, result, ref indexStart)) return false;
-            if (!BoolSerializer.Serialize(value.ready, result, ref indexStart)) return false;
-            if (!IntSerializer.Serialize(value.attackAICount, result, ref indexStart)) return false;
-            return IntSerializer.Serialize(value.defenseAICount, result, ref indexStart);
-        }
+                BitField.SetBuffer(data, indexStart);
+                if (!BitField.ReadBool())
+                {
+                    indexStart += NullBytes;
+                    return null;
+                }
+                if (invalidIndex - indexStart < ValueBytes) throw new Exception("反序列化 CSLobbyUpdate 失败：剩余数据不足");
 
-        private static CSLobbyUpdate DeserializeBytes(byte[] data, ref int indexStart, int invalidIndex)
-        {
-            if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            return new CSLobbyUpdate()
-            {
-                camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                attackAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                defenseAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-            };
+                var value = new CSLobbyUpdate()
+                {
+                    camp = BitField.ReadInt(CampMin, CampMax),
+                    ready = BitField.ReadBool(),
+                    attackAICount = BitField.ReadInt(AiCountMin, AiCountMax),
+                    defenseAICount = BitField.ReadInt(AiCountMin, AiCountMax),
+                };
+                indexStart += ValueBytes;
+                return value;
+            }
         }
     }
 }
