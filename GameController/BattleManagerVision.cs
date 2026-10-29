@@ -239,11 +239,18 @@ public partial class BattleManager
             Profiler.BeginSample(kMinimapSendTag);
             foreach (var pair in PlayerInfoList)
             {
-                if (!PlayerCamps.TryGetValue(pair.Key, out var memberCamp) || !IsMemberOfCamp(memberCamp, camp)) continue;
+                if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
+                if (!PlayerCamps.TryGetValue(pair.Key, out var memberCamp)) continue;
+                if (memberCamp == PlayerCampType.Spectator)
+                {
+                    // 观战方玩家无阵营：跟随观战目标所在阵营的共享视野
+                    if (!state.spectating || !PlayerCamps.TryGetValue(state.spectateTarget, out var targetCamp)
+                        || !IsMemberOfCamp(targetCamp, camp)) continue;
+                }
+                else if (!IsMemberOfCamp(memberCamp, camp)) continue;
                 // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
                 if (lost) continue;
                 if (!loadedClients.Contains(pair.Key)) continue; // 未完成加载的客户端先不给小地图数据
-                if (!visionStates.TryGetValue(pair.Key, out var state)) continue;
                 float radiusSq = GetMinimapRadius(pair.Key);
                 radiusSq *= radiusSq;
                 var viewPos = state.position; // 视野锚点：存活/观战/死亡冻结统一由 TickVisionStates 维护

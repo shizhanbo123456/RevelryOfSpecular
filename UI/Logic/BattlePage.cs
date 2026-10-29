@@ -289,6 +289,8 @@ public class BattlePage : PageBase
             UpdateLocalPlayerBar(info);
             OnLocalSkillBarUpdate(info);
         }
+        // 纯观战无本地实体：以观战目标阵营作为「我方」基准（名牌敌我配色、小地图点位敌我识别）
+        else if (spectatorMode && info.entityId == spectateTargetEntityId) localPlayerCamp = (int)info.camp;
     }
 
     private void OnEntityDisplayRemove(int entityId)
@@ -330,20 +332,18 @@ public class BattlePage : PageBase
         // 纯观战未选目标（进场自动选 / 目标死亡后自动重选）：随机挑一名参战单位（真人或 AI）。
         // 不能在此 return，否则每帧都卡在重选、下面的下拉刷新永远执行不到，列表会一直是空的。
         if (spectatorMode && spectateTargetClientId == -1) SpectateTo(PickRandomCombatMember());
-        // 目标表现数据迟迟不到 = 目标已死亡（服务器静默拒绝），超时重选/复位
-        if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
-            && spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
+        if (spectateTargetClientId != -1)
         {
-            spectateTargetClientId = -1;
-            spectatePendingSince = 0f;
+            if (spectateTargetEntityId == -1) spectateTargetEntityId = ResolveSpectateEntityId(spectateTargetClientId);
+            // 目标实体视图未建（目标已死亡 / 表现数据没到）：3 秒后重选
+            if (HasSpectateView(spectateTargetEntityId)) spectatePendingSince = 0f;
+            else if (spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
+            {
+                spectateTargetClientId = -1;
+                spectatePendingSince = 0f;
+            }
         }
         // 目标表现数据已到达：绑定相机到其视图锚点（锚点由视图逐帧刷新）
-        if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
-            && playerEntities.TryGetValue(spectateTargetClientId, out var eid) && eid != -1)
-        {
-            spectateTargetEntityId = eid;
-            spectatePendingSince = 0f;
-        }
         if (spectateTargetEntityId != -1 && Tool.CameraController != null
             && Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
         {
@@ -367,9 +367,23 @@ public class BattlePage : PageBase
     {
         if (targetClientId == -1) return;
         spectateTargetClientId = targetClientId;
-        spectateTargetEntityId = playerEntities.TryGetValue(targetClientId, out var eid) ? eid : -1;
-        spectatePendingSince = spectateTargetEntityId == -1 ? Time.time : 0f;
+        spectateTargetEntityId = ResolveSpectateEntityId(targetClientId);
+        spectatePendingSince = HasSpectateView(spectateTargetEntityId) ? 0f : Time.time;
         NetworkManager.RequestSpectate(targetClientId);
+    }
+
+    // 关系包可能在本页 Enter 之前就广播完（观战方加载完成较晚）：回落加载期下发的预分配实体 id
+    private int ResolveSpectateEntityId(int clientId)
+    {
+        if (playerEntities.TryGetValue(clientId, out var entityId)) return entityId;
+        return HasSession && Session.TryGetEntityId(clientId, out var unitEntityId) ? unitEntityId : -1;
+    }
+
+    private static bool HasSpectateView(int entityId)
+    {
+        if (entityId <= 0) return false;
+        return Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null
+            && Tool.ClientLogicManager.EntityPlayers.GetView((ushort)entityId) != null;
     }
 
     private int PickRandomCombatMember()
@@ -676,13 +690,15 @@ public class BattlePage : PageBase
         return true;
     }
 
-    // 雷达中心 = 本地玩家实体位置
+    // 雷达中心 = 本地玩家实体位置；纯观战无本地实体时取观战目标位置
     private bool TryGetMinimapCenter(out Vector3 pos)
     {
         pos = Vector3.zero;
         if (!HasSession || Tool.ClientLogicManager == null
             || Tool.ClientLogicManager.EntityPlayers == null) return false;
-        return Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(OwnEntityId, out pos);
+        ushort centerId = OwnEntityId;
+        if (centerId == 0 && spectateTargetEntityId > 0) centerId = (ushort)spectateTargetEntityId;
+        return centerId != 0 && Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(centerId, out pos);
     }
 
     // 点位剔除：显示、收包时间与最后世界坐标一起清，回到雷达内等下一个包重建
