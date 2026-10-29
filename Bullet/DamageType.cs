@@ -13,4 +13,5 @@ public enum DamageType
     DeathStroll = 8,  // 死灵漫步（光环 DoT）
     Reflect = 9,      // 反伤（反弹给攻击者的伤害）
     PlagueBurst = 10, // 瘟疫引爆
+    Heal = 11,        // 治疗（数值为恢复量）
 }

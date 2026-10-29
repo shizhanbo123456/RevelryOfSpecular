@@ -47,7 +47,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
-    private const int DamageLabelPageCount = 11; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
+    private const int DamageLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
     private readonly Queue<string> importantBannerQueue = new(); // 待播的特殊技能播报文案，按到达顺序逐条播
     private bool importantBannerPlaying;                          // 当前 banner 动画是否在播
     private const string ImportantBannerPrefix = "特殊能力启动-";

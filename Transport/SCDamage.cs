@@ -4,11 +4,11 @@ namespace Ros.Transport
 {
     using UnityEngine;
 
-    // 服务器 → 客户端：伤害飘字（高频包；数值与类型分开传，样式由 FGUI 预设档位按类型决定）
+    // 服务器 → 客户端：伤害/治疗飘字（高频包；数值与类型分开传，样式由 FGUI 预设档位按类型决定）
     public class SCDamage
     {
-        public int value;        // 伤害数值（不再用正负号编码暴击）
-        public int type;         // 伤害类型，见 DamageType
+        public int value;        // 本次数值（伤害量或治疗量，不再用正负号编码暴击）
+        public int type;         // 飘字类型，见 DamageType
         public int targetId;     // 受击实体 id（无命中点时按实体头顶定位）
         public bool hasHitPos;
         public Vector3 hitPos;   // 命中点（可选，客户端做水平散布后投影）
