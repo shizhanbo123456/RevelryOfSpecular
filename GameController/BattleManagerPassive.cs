@@ -56,6 +56,8 @@ public partial class BattleManager
         plagueGuardReadyTime[key] = Time.time + Config.plague_shield_cooldown;
         if (victim.effectController != null)
             victim.effectController.AddEffect(EffectType.Shield, Config.plague_shield_level, Config.plague_shield_duration);
+        victim.floatingAttribute.health = Mathf.Min(victim.baseAttribute.health, health + Config.plague_shield_heal);
+        victim.healthDirty = true;
     }
     #endregion
 

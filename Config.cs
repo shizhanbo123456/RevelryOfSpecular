@@ -205,6 +205,7 @@ public static class Config
     public const int plague_shield_level = 10;             // 瘟疫使者：低血触发时给自己挂的护盾等级
     public const float plague_shield_duration = 20f;
     public const float plague_shield_trigger_ratio = 0.1f; // 命中类伤害结算后生命低于上限的此比例即触发
+    public const float plague_shield_heal = 1000f;          // 触发时额外恢复的生命值（超出上限的部分丢弃）
     public const float plague_shield_cooldown = 60f;        // 同一角色两次触发的最小间隔
     #endregion
 }
