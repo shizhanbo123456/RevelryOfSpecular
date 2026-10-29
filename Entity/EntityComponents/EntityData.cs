@@ -460,41 +460,53 @@ public abstract class EntityData : MonoBehaviour
         if (attacker != null) lastAttacker = attacker; // 记录伤害来源（掉落归属判定）
         float finalDamage = damage;
         if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.AdjustIncomingDamage(this, finalDamage); // 白眼伯爵：单次受伤上限
+        float shieldDamage = 0f; // 被护盾挡下的名义伤害（飘字用），护盾在则本次不掉血
         if (effectController != null)
         {
             float shield = effectController.GetShieldAbsorb();
-            if (shield > 0f)
+            if (shield > 0f && finalDamage > 0f)
             {
-                float absorbed = Mathf.Min(shield, finalDamage);
-                effectController.ConsumeShield(absorbed);
-                finalDamage -= absorbed;
+                shieldDamage = finalDamage;
+                effectController.ConsumeShield(Mathf.Min(shield, finalDamage)); // 盾不够则溢出部分直接丢弃
+                finalDamage = 0f;
             }
-            finalDamage *= 1f - effectController.GetDamageReduceRate();
-            if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
+            else
+            {
+                finalDamage *= 1f - effectController.GetDamageReduceRate();
+                if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
+            }
         }
         finalDamage = Mathf.Max(0f, finalDamage);
         if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.BlockLethalDamage(this, finalDamage); // 瘟疫使者：致命拦截
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
-        // 伤害被完全吸收/免疫时按「无效」飘字；闪避等已有明确类型的不覆盖
-        DamageType shownType = finalDamage <= 0f && damageType == DamageType.Normal
-            ? DamageType.Invalid
-            : damageType;
-        SendDamageEvent(finalDamage, shownType, hitPos);
+        // 闪避自带类型；其余 0 伤害按「有盾=护盾 / 无盾=失效」改判
+        DamageType shownType = damageType;
+        float shownDamage = finalDamage;
+        if (shieldDamage > 0f)
+        {
+            shownType = DamageType.Shield;
+            shownDamage = shieldDamage;
+        }
+        else if (damageType != DamageType.Evade && finalDamage <= 0f)
+        {
+            shownType = DamageType.Invalid;
+        }
+        SendDamageEvent(shownDamage, shownType, hitPos);
         OnDamageApplied(finalDamage, attacker); // 各子类在此处理自己的受击后果（雕像计分与采集量等）
         if (attacker != null && canReflect && effectController != null)
         {
             float reflect = effectController.GetReflectDamage(finalDamage); // 反弹按实际受伤（扣盾/减伤后）
-            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false);
+            if (reflect > 0f) attacker.OnDamaged(reflect, this, fixedDamage: true, canReflect: false, damageType: DamageType.Reflect);
         }
         if (floatingAttribute.health <= 0f) MarkAsKilled();
     }
 
-    private void SendDamageEvent(float finalDamage, DamageType damageType, Vector3? hitPos)
+    private void SendDamageEvent(float shownDamage, DamageType damageType, Vector3? hitPos)
     {
         var d = new SCDamage()
         {
-            value = Mathf.RoundToInt(finalDamage),
+            value = Mathf.RoundToInt(shownDamage),
             type = (int)damageType,
             targetId = id,
             hasHitPos = hitPos.HasValue,

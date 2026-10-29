@@ -429,7 +429,7 @@ namespace Ros.Skill
                 if (target == null || target.effectController == null) continue;
                 int level = target.effectController.GetLevel(EffectType.PlagueMark);
                 if (level <= 0) continue;
-                target.OnDamaged(level * Config.plague_detonate_damage, caster);
+                target.OnDamaged(level * Config.plague_detonate_damage, caster, damageType: DamageType.PlagueBurst);
                 target.effectController.RemoveEffect(EffectType.PlagueMark);
             }
         }

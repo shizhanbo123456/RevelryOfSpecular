@@ -47,6 +47,7 @@ public class BattlePage : PageBase
     private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float DamageLife = 0.8f;
+    private const int DamageLabelPageCount = 11; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
     private readonly Queue<string> importantBannerQueue = new(); // 待播的特殊技能播报文案，按到达顺序逐条播
     private bool importantBannerPlaying;                          // 当前 banner 动画是否在播
     private const string ImportantBannerPrefix = "特殊能力启动-";
@@ -1075,24 +1076,16 @@ public class BattlePage : PageBase
         var scatterPx = new Vector2(Random.Range(-50f, 50f), Random.Range(-10f, 10f));
 
         var label = UI_DamageLabel.CreateInstance();
-        switch (type)
+        int page = (int)type;
+        if (page < 0 || page >= DamageLabelPageCount)
         {
-            case DamageType.Crit:
-                label.m_type.selectedIndex = 1; // FGUI 暴击页
-                label.m_num_strike.text = value.ToString();
-                break;
-            case DamageType.Invalid:
-            case DamageType.Evade: // FGUI 暂只有「无效」页，闪避沿用该页，待补页
-                label.m_type.selectedIndex = 2;
-                break;
-            case DamageType.Normal:
-                label.m_type.selectedIndex = 0; // 普通页
-                label.m_num_common.text = value.ToString();
-                break;
-            default:
-                Debug.LogError($"[伤害飘字] 未处理的伤害类型：{(int)type}");
-                break;
+            label.Dispose();
+            Debug.LogError($"[伤害飘字] 未处理的伤害类型：{page}");
+            return;
         }
+        label.m_type.selectedIndex = page; // 枚举值即 FGUI 页号
+        // 闪避 / 失效页不写数字，其余页统一写下发数值
+        if (type != DamageType.Evade && type != DamageType.Invalid) label.m_num_common.text = value.ToString();
         panel.m_world_element_container.AddChild(label); // 挂在世界层：压在战斗界面各元素之下
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
         label.xy = ToWorldLayer(WorldToPanel(anchor, cam) + scatterPx) - new Vector2(label.width * 0.5f, 0f);
