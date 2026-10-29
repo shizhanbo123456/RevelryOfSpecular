@@ -41,7 +41,7 @@ public class LobbyPage : PageBase
         view.m_camp_defense.m_add_ai.onClick.Add(() => ChangeAICount(true, +1));
         view.m_camp_defense.m_remove_ai.onClick.Add(() => ChangeAICount(true, -1));
         view.m_btn_prepare.onClick.Add(ToggleReady);
-        panel.m_btn_exit.onClick.Add(OnExitClicked);
+        view.m_btn_exit.onClick.Add(OnExitClicked);
     }
 
     public override void Enter(ShowParam param)

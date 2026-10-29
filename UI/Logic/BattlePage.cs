@@ -73,7 +73,7 @@ public class BattlePage : PageBase
 
     public override void Construct()
     {
-        panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
+        panel.m_settings_panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
         panel.m_PlayerBar.m_buffList.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, localBuffs[i]);
         ComputeMinimapItemScale();
@@ -161,10 +161,10 @@ public class BattlePage : PageBase
     public override void Tick(float deltaTime)
     {
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
-        if (HasSession && panel.m_label_time_left != null)
+        if (HasSession && panel.m_batleInfoPanel.m_label_time_left != null)
         {
             float remain = Config.battle_duration - (Time.time - battleStartTime);
-            panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
+            panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
         }
         RefreshTimeIcon();
         TickDamageLabels(deltaTime);
@@ -445,10 +445,10 @@ public class BattlePage : PageBase
     private void OnDefensePointProgress(SCDefensePointProgress info)
     {
         if (info == null) return;
-        ApplyStatueProgress(panel.m_progressMain, info.main);
-        ApplyStatueProgress(panel.m_progressSub1, info.sub1);
-        ApplyStatueProgress(panel.m_progressSub2, info.sub2);
-        ApplyStatueProgress(panel.m_progressSub3, info.sub3);
+        ApplyStatueProgress(panel.m_barPanel.m_progressMain, info.main);
+        ApplyStatueProgress(panel.m_barPanel.m_progressSub1, info.sub1);
+        ApplyStatueProgress(panel.m_barPanel.m_progressSub2, info.sub2);
+        ApplyStatueProgress(panel.m_barPanel.m_progressSub3, info.sub3);
     }
 
     private static void ApplyStatueProgress(UI_DefensivePointBar bar, int progress)
@@ -461,10 +461,10 @@ public class BattlePage : PageBase
 
     private void ResetGuardStatues()
     {
-        ResetStatue(panel.m_progressMain);
-        ResetStatue(panel.m_progressSub1);
-        ResetStatue(panel.m_progressSub2);
-        ResetStatue(panel.m_progressSub3);
+        ResetStatue(panel.m_barPanel.m_progressMain);
+        ResetStatue(panel.m_barPanel.m_progressSub1);
+        ResetStatue(panel.m_barPanel.m_progressSub2);
+        ResetStatue(panel.m_barPanel.m_progressSub3);
     }
 
     private static void ResetStatue(UI_DefensivePointBar bar)
@@ -513,7 +513,7 @@ public class BattlePage : PageBase
     private void OnScoreUpdate(SCScoreInfo info)
     {
         if (info == null) return;
-        if (panel.m_label_time_left != null) panel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
+        if (panel.m_batleInfoPanel.m_label_time_left != null) panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, info.remainTime));
     }
 
     private void OnCampAliveCount(SCCampAliveCount info) => RefreshCampAliveCount(info);
@@ -521,12 +521,12 @@ public class BattlePage : PageBase
     private void RefreshCampAliveCount(SCCampAliveCount info)
     {
         if (info == null) return;
-        if (panel.m_attacker_member_count != null)
-            panel.m_attacker_member_count.text = $"{info.attackerAlive}/{info.attackerTotal}";
-        if (panel.m_defense_member_count != null)
-            panel.m_defense_member_count.text = $"{info.defenseAlive}/{info.defenseTotal}";
-        if (panel.m_spectater_member_count != null)
-            panel.m_spectater_member_count.text = info.spectatorCount.ToString();
+        if (panel.m_batleInfoPanel.m_attacker_member_count != null)
+            panel.m_batleInfoPanel.m_attacker_member_count.text = $"{info.attackerAlive}/{info.attackerTotal}";
+        if (panel.m_batleInfoPanel.m_defense_member_count != null)
+            panel.m_batleInfoPanel.m_defense_member_count.text = $"{info.defenseAlive}/{info.defenseTotal}";
+        if (panel.m_batleInfoPanel.m_spectater_member_count != null)
+            panel.m_batleInfoPanel.m_spectater_member_count.text = info.spectatorCount.ToString();
     }
 
     private void OnMinimapUpdate(SCMinimapEntity e)
@@ -1019,8 +1019,8 @@ public class BattlePage : PageBase
 
     private void RefreshTimeIcon()
     {
-        if (panel.m_icon_day_night == null) return;
-        panel.m_icon_day_night.rotation = 180f - EnvironmentManager.Time01 * 180f;
+        if (panel.m_batleInfoPanel.m_icon_day_night == null) return;
+        panel.m_batleInfoPanel.m_icon_day_night.rotation = 180f - EnvironmentManager.Time01 * 180f;
     }
 
     private static string FormatTime(float seconds)
