@@ -22,6 +22,7 @@ public class AnimSlideStartEvent : AnimMotionEvent
         if (main)
         {
             anim.SetVelocityForward(speedCurve.Evaluate(stateInfo.normalizedTime) * MoveSpeed);
+            anim.SetVelocityVertical(GroundAdsorptionSpeed);
             slideTime += Time.deltaTime;
             if (slideTime > 0.9f && canEnd)
             {

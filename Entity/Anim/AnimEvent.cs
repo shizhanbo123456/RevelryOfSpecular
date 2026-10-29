@@ -16,6 +16,8 @@ public class AnimEvent : StateMachineBehaviour
     protected float JumpSpeed=>anim.animData.JumpSpeed;
     protected bool initialized = false;
 
+    protected float GroundAdsorptionSpeed = -0.5f;
+
     public void Init(EntityAnim anim, EntityData data,bool mainAnim)//仅仅主动画机的片段会触发事件
     {
         this.anim = anim;
