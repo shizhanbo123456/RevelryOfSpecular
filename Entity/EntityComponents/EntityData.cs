@@ -479,9 +479,9 @@ public abstract class EntityData : MonoBehaviour
             if (!fixedDamage) finalDamage *= effectController.GetInDamageMultiplier();
         }
         finalDamage = Mathf.Max(0f, finalDamage);
-        if (Tool.BattleManager != null) finalDamage = Tool.BattleManager.BlockLethalDamage(this, finalDamage); // 瘟疫使者：致命拦截
         floatingAttribute.health = Mathf.Max(0f, floatingAttribute.health - finalDamage);
         healthDirty = true;
+        if (Tool.BattleManager != null) Tool.BattleManager.CheckLowHealthShield(this, damageType); // 瘟疫使者：扣血后按血线挂盾
         // 撞盾的命中一律显示护盾页；闪避自带类型；其余 0 伤害改判失效
         DamageType shownType = damageType;
         float shownDamage = finalDamage;

@@ -105,7 +105,7 @@
 | 66 | 苍白蚀影 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
 | 67 | 蔽目之雾 | SkillFogCast | 无 | 敌人挂 Fog |
 
-**被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、单次受伤不超过生命上限 5%（`AdjustIncomingDamage`）、致命伤害拦截 + 20s 10 级护盾（`BlockLethalDamage`，每角色 60s 一次）、光暗转化（`CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升等全局被动见策划案第二十章。
+**被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、单次受伤不超过生命上限 5%（`AdjustIncomingDamage`）、命中类伤害结算后生命低于上限 10% 即挂 20s 10 级护盾（`CheckLowHealthShield`，每角色 60s 一次）、光暗转化（`CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升等全局被动见策划案第二十章。
 
 ### 1.3 非玩家单位与空手（68~79）
 

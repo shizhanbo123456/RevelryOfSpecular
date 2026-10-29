@@ -7,7 +7,7 @@ public partial class BattleManager
 
     private readonly HashSet<int> defenseCharacters = new();
 
-    // 瘟疫使者「致命伤害拦截」的冷却：按玩家角色记（复活后仍占用），无归属实体按 id 记
+    // 瘟疫使者「低血挂盾」的冷却：按玩家角色记（复活后仍占用），无归属实体按 id 记
     private readonly Dictionary<int, float> plagueGuardReadyTime = new();
 
     #region 开局全局参数（一次结算）
@@ -39,23 +39,23 @@ public partial class BattleManager
         return damage > cap ? cap : damage;
     }
 
-    // 瘟疫使者：会致死的伤害改成「剩余血量 -1」，同时挂护盾；每个角色每冷却只触发一次
-    public float BlockLethalDamage(EntityData victim, float damage)
+    // 瘟疫使者：命中类伤害结算后生命低于上限比例就挂护盾（不改伤害、不挡死亡）；每角色每冷却一次
+    public void CheckLowHealthShield(EntityData victim, DamageType damageType)
     {
-        if (victim == null || damage <= 0f) return damage;
-        if (victim.type != EntityType.Defense(Config.defense_index_plague_bringer)) return damage;
+        if (victim == null || !victim.Alive) return;
+        if (victim.type != EntityType.Defense(Config.defense_index_plague_bringer)) return;
+        // 只有命中类伤害参与判定，buff 伤害（DoT / 反伤 / 瘟疫引爆）不触发
+        if (damageType != DamageType.Normal && damageType != DamageType.Crit) return;
 
         float health = victim.floatingAttribute.health;
-        if (damage < health) return damage; // 不致死
-        if (health <= 1f) return damage;    // 已只剩 1 血，留不出 1 血，正常死亡
+        if (health <= 0f || health >= victim.baseAttribute.health * Config.plague_shield_trigger_ratio) return;
 
         int key = EntityOwnerClient.TryGetValue(victim.id, out short owner) ? owner : 100000 + victim.id;
-        if (plagueGuardReadyTime.TryGetValue(key, out float readyTime) && Time.time < readyTime) return damage;
+        if (plagueGuardReadyTime.TryGetValue(key, out float readyTime) && Time.time < readyTime) return;
 
         plagueGuardReadyTime[key] = Time.time + Config.plague_shield_cooldown;
         if (victim.effectController != null)
             victim.effectController.AddEffect(EffectType.Shield, Config.plague_shield_level, Config.plague_shield_duration);
-        return health - 1f;
     }
     #endregion
 

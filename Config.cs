@@ -202,8 +202,9 @@ public static class Config
     public const int pale_full_stacks = 10;
     public const int pale_mixed_stacks = 8;
     public const float count_eye_damage_cap_ratio = 0.05f; // 白眼伯爵：单次受伤不超过生命上限的此比例
-    public const int plague_shield_level = 10;             // 瘟疫使者：致命伤害拦截后给自己挂的护盾等级
+    public const int plague_shield_level = 10;             // 瘟疫使者：低血触发时给自己挂的护盾等级
     public const float plague_shield_duration = 20f;
+    public const float plague_shield_trigger_ratio = 0.1f; // 命中类伤害结算后生命低于上限的此比例即触发
     public const float plague_shield_cooldown = 60f;        // 同一角色两次触发的最小间隔
     #endregion
 }
