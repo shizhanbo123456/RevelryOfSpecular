@@ -8,7 +8,7 @@ namespace Ros.UI.Main
     public partial class UI_DefensivePointBar : GComponent
     {
         public Controller m_destroyed;
-        public GGraph m_fill;
+        public GImage m_fill;
         public const string URL = "ui://q68vr2bfrzmhih";
 
         public static UI_DefensivePointBar CreateInstance()
@@ -21,7 +21,7 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_destroyed = GetControllerAt(0);
-            m_fill = (GGraph)GetChildAt(1);
+            m_fill = (GImage)GetChildAt(1);
         }
     }
 }

@@ -8,7 +8,6 @@ namespace Ros.UI.Main
     public partial class UI_LobbyPanel : GComponent
     {
         public UI_LobbyMemberList m_mainView;
-        public GButton m_btn_exit;
         public const string URL = "ui://q68vr2bftwqeh8";
 
         public static UI_LobbyPanel CreateInstance()
@@ -21,7 +20,6 @@ namespace Ros.UI.Main
             base.ConstructFromXML(xml);
 
             m_mainView = (UI_LobbyMemberList)GetChildAt(0);
-            m_btn_exit = (GButton)GetChildAt(1);
         }
     }
 }

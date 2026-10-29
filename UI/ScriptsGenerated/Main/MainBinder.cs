@@ -14,6 +14,10 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_SkillTip.URL, typeof(UI_SkillTip));
             UIObjectFactory.SetPackageItemExtension(UI_TipLevel.URL, typeof(UI_TipLevel));
             UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
+            UIObjectFactory.SetPackageItemExtension(UI_BattleInfoPanel.URL, typeof(UI_BattleInfoPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_BattleBarPanel.URL, typeof(UI_BattleBarPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_SettingsPanel.URL, typeof(UI_SettingsPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_SettingsRuleLabel.URL, typeof(UI_SettingsRuleLabel));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
             UIObjectFactory.SetPackageItemExtension(UI_BattlePanel.URL, typeof(UI_BattlePanel));
@@ -30,6 +34,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_empty_container.URL, typeof(UI_empty_container));
             UIObjectFactory.SetPackageItemExtension(UI_iconEmerald.URL, typeof(UI_iconEmerald));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberContent.URL, typeof(UI_LobbyMemberContent));
             UIObjectFactory.SetPackageItemExtension(UI_ImportantEventBanner.URL, typeof(UI_ImportantEventBanner));

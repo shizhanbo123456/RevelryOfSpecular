@@ -12,6 +12,7 @@ namespace Ros.UI.Main
         public UI_LobbyMemberContent m_camp_defense;
         public UI_LobbyMemberContent m_camp_spectate;
         public GButton m_btn_prepare;
+        public GButton m_btn_exit;
         public const string URL = "ui://q68vr2bftwqeh9";
 
         public static UI_LobbyMemberList CreateInstance()
@@ -28,6 +29,7 @@ namespace Ros.UI.Main
             m_camp_defense = (UI_LobbyMemberContent)GetChildAt(2);
             m_camp_spectate = (UI_LobbyMemberContent)GetChildAt(3);
             m_btn_prepare = (GButton)GetChildAt(4);
+            m_btn_exit = (GButton)GetChildAt(5);
         }
     }
 }
