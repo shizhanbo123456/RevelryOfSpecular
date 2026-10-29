@@ -881,10 +881,14 @@ public class BattlePage : PageBase
         barOwners[info.entityId] = EntityOwnerOf(info.entityId);
     }
 
+    // 场景 UI（血条 / 伤害飘字）挂在世界层容器上，坐标从面板空间换到容器局部空间
+    private Vector2 ToWorldLayer(Vector2 panelPoint)
+        => panel.m_world_element_container.GlobalToLocal(Root.LocalToGlobal(panelPoint));
+
     private UI_EntityBar CreateEntityBar(ushort entityId)
     {
         var bar = UI_EntityBar.CreateInstance();
-        Root.AddChild(bar);
+        panel.m_world_element_container.AddChild(bar); // 挂在世界层：压在战斗界面各元素之下
         var buffs = new List<SCEntityDisplayInfo.BuffRuntime>();
         entityBuffs[entityId] = buffs;
         bar.m_buff_list.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, buffs[i]); // 必须先设渲染器再设 numItems
@@ -963,7 +967,7 @@ public class BattlePage : PageBase
                 float distance = Vector3.Distance(cam.transform.position, headPos);
                 float scale = barDefaultSizeDistance / Mathf.Max(distance, 0.01f); // 相机贴到锚点时按 1 厘米算，避免除零
                 bar.SetScale(scale, scale);
-                bar.xy = local - new Vector2(bar.width * 0.5f * scale, 0f); // 缩放后正中仍落在头顶正上方
+                bar.xy = ToWorldLayer(local) - new Vector2(bar.width * 0.5f * scale, 0f); // 缩放后正中仍落在头顶正上方
             }
         }
     }
@@ -1030,9 +1034,9 @@ public class BattlePage : PageBase
                 Debug.LogError($"[伤害飘字] 未处理的伤害类型：{(int)type}");
                 break;
         }
-        Root.AddChild(label);
+        panel.m_world_element_container.AddChild(label); // 挂在世界层：压在战斗界面各元素之下
         //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
-        label.xy = WorldToPanel(anchor, cam) + scatterPx - new Vector2(label.width * 0.5f, 0f);
+        label.xy = ToWorldLayer(WorldToPanel(anchor, cam) + scatterPx) - new Vector2(label.width * 0.5f, 0f);
         damageLabels.Add(new DamageLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
     }
 
@@ -1055,7 +1059,7 @@ public class BattlePage : PageBase
             // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowDamage 的剔除一致）
             if (cam.WorldToScreenPoint(item.anchor).z <= 0f) { item.label.visible = false; continue; }
             item.label.visible = true;
-            item.label.xy = WorldToPanel(item.anchor) + item.scatterPx - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
+            item.label.xy = ToWorldLayer(WorldToPanel(item.anchor) + item.scatterPx) - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
         }
     }
 
