@@ -4,6 +4,7 @@ public enum EntityAnchor
 {
     //完全不依赖人物骨骼的
     GameObjectPosition,
+    Center,
     WeaponSlot1,
     WeaponSlot2,
     WeaponSlot3,
@@ -70,6 +71,7 @@ public static class EntityAnchorExtensions
         switch (anchor)
         {
             case EntityAnchor.GameObjectPosition: return model.transform.ToAnchorInfo();
+            case EntityAnchor.Center: return model.transform.ToAnchorInfo() + (model.yRange.x + model.yRange.y) * 0.5f * Vector3.up;
             case EntityAnchor.WeaponSlot1:
             case EntityAnchor.WeaponSlot2:
             case EntityAnchor.WeaponSlot3:
