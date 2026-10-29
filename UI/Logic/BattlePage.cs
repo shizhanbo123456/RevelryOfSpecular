@@ -109,6 +109,7 @@ public class BattlePage : PageBase
         list.itemRenderer = (i, obj) =>
         {
             var label = (UI_SettingsRuleLabel)obj;
+            label.m_content.UBBEnabled = true; // 配表内容带 UBB 标记（加粗 / 颜色）
             label.m_content.text = tips;
             label.height = label.m_content.height; // 条目高度跟随文本，超框时靠列表拖动
         };
