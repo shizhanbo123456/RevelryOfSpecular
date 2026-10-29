@@ -7,7 +7,6 @@ namespace Ros.UI.Main
 {
     public partial class UI_SkillTip : GComponent
     {
-        public GLoader m_icon;
         public GTextField m_SkillName;
         public GTextField m_label_cd;
         public GTextField m_label_store;
@@ -23,11 +22,10 @@ namespace Ros.UI.Main
         {
             base.ConstructFromXML(xml);
 
-            m_icon = (GLoader)GetChildAt(1);
-            m_SkillName = (GTextField)GetChildAt(2);
-            m_label_cd = (GTextField)GetChildAt(4);
-            m_label_store = (GTextField)GetChildAt(6);
-            m_score_list = (GList)GetChildAt(7);
+            m_SkillName = (GTextField)GetChildAt(1);
+            m_label_cd = (GTextField)GetChildAt(3);
+            m_label_store = (GTextField)GetChildAt(5);
+            m_score_list = (GList)GetChildAt(6);
         }
     }
 }

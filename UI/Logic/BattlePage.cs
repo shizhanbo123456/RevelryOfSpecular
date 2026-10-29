@@ -1231,8 +1231,6 @@ public class BattlePage : PageBase
         if (skillTip.parent == null) Root.AddChild(skillTip);
 
         skillTip.m_SkillName.text = cfg.name;
-        Texture icon = ResolveSkillIcon(skillId);
-        skillTip.m_icon.texture = icon != null ? new NTexture(icon) : null;
         skillTip.m_label_cd.text = $"{cfg.cd:0.#}s";
         skillTip.m_label_store.text = cfg.storeLimit < 0 ? "∞" : cfg.storeLimit.ToString();
 
