@@ -329,6 +329,9 @@ public class CameraController : MonoBehaviour
         if (fwd.sqrMagnitude < 0.0001f) return;
         fwd.Normalize();
 
+        // 角色水平朝向：只对角色前方的实体做取景，身后的实体会贴到镜头上、不该拽俯仰角
+        Vector3 charFwd = Quaternion.Euler(0f, lookTarget.eulerAngles.y, 0f) * Vector3.forward;
+
         float pitchTop = float.MaxValue;    // 上限：最高的所需视线（数值最小，向下为正）
         float pitchBottom = float.MinValue; // 下限：最低的所需视线（数值最大）
         bool any = false;
@@ -344,6 +347,8 @@ public class CameraController : MonoBehaviour
             float dz = p.z - camPos.z;
             float dist = Mathf.Sqrt(dx * dx + dz * dz);
             if (dist < 0.05f) continue; // 与相机几乎同位置：水平视线角无定义
+            // 必须在角色前方（角色后方＝相机与角色之间或更远，全部跳过）
+            if ((p.x - lookTarget.position.x) * charFwd.x + (p.z - lookTarget.position.z) * charFwd.z < 0f) continue;
 
             // 俯仰近似为 0 的水平视野测试：只取水平视场中间 80% 的实体
             float angle = Vector2.SignedAngle(new Vector2(fwd.x, fwd.z), new Vector2(dx / dist, dz / dist));
