@@ -32,7 +32,7 @@ public partial class BattleManager
         public Vector3 position;                          // 视野判定圆心
         public float viewRadius;                          // 视野判定半径
         public bool spectating;                           // 是否正在观战
-        public short spectateTarget = -1;                 // 观战目标玩家 id（-1 = 无）
+        public short spectateTarget = -1;                 // 观战目标 id（-1 = 无；AI 为虚拟负数 id）
         public readonly List<short> spectators = new();   // 观战我的玩家列表
     }
 
@@ -61,22 +61,24 @@ public partial class BattleManager
         }
     }
 
-    // 观战请求：目标须为同阵营存活玩家（不可是自己）；非法 / 死亡 / 异阵营目标 = 退出观战
+    // 观战请求：目标须为参战单位（真人或 AI）、存活且不可是自己；非法 / 死亡 / 异阵营目标 = 退出观战
     public void SpectateRequest(short clientId, int targetClientId)
     {
         if (!AtServer || !BattleStarted) return;
         ExitSpectate(clientId);
         if (!visionStates.TryGetValue(clientId, out var state)) return;
-        if (targetClientId < 0 || targetClientId == clientId || !PlayerInfoList.ContainsKey((short)targetClientId)) return;
+        if (targetClientId == -1 || targetClientId == clientId) return; // -1 = 无目标
+        if (targetClientId < short.MinValue || targetClientId > short.MaxValue) return; // 超出 clientId 值域
         short target = (short)targetClientId;
+        if (!PlayerInfoList.ContainsKey(target) || !visionStates.TryGetValue(target, out var targetState)) return;
         if (!PlayerCamps.TryGetValue(clientId, out var myCamp) || !PlayerCamps.TryGetValue(target, out var targetCamp)) return;
         if (targetCamp == PlayerCampType.Spectator) return; // 观战方玩家无实体，无可跟随视角
-        // 观战方玩家可观战任意存活玩家；攻/守玩家只能观战同阵营
+        // 观战方玩家可观战任意存活单位；攻/守玩家只能观战同阵营
         if (myCamp != PlayerCampType.Spectator && myCamp != targetCamp) return;
         if (GetEntityOfClient(target) == null) return; // 目标死亡
         state.spectating = true;
         state.spectateTarget = target;
-        visionStates[target].spectators.Add(clientId);
+        targetState.spectators.Add(clientId);
     }
 
     // 退出观战：复活 / 换目标 / 退场时调用
@@ -84,7 +86,7 @@ public partial class BattleManager
     {
         if (!visionStates.TryGetValue(clientId, out var state) || !state.spectating) return;
         state.spectating = false;
-        if (state.spectateTarget >= 0 && visionStates.TryGetValue(state.spectateTarget, out var target))
+        if (state.spectateTarget != -1 && visionStates.TryGetValue(state.spectateTarget, out var target))
             target.spectators.Remove(clientId);
         state.spectateTarget = -1;
     }

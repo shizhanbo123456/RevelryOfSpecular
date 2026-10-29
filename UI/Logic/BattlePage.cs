@@ -327,12 +327,9 @@ public class BattlePage : PageBase
         if (box == null) return;
         box.visible = spectatorMode || !localPlayerAlive; // 观战目标下拉：纯观战/死亡观战可见
 
-        // 纯观战未选目标（进场自动选 / 目标死亡后自动重选）：随机挑一名攻/守成员
-        if (spectatorMode && spectateTargetClientId == -1)
-        {
-            SpectateTo(PickRandomCombatMember());
-            return;
-        }
+        // 纯观战未选目标（进场自动选 / 目标死亡后自动重选）：随机挑一名参战单位（真人或 AI）。
+        // 不能在此 return，否则每帧都卡在重选、下面的下拉刷新永远执行不到，列表会一直是空的。
+        if (spectatorMode && spectateTargetClientId == -1) SpectateTo(PickRandomCombatMember());
         // 目标表现数据迟迟不到 = 目标已死亡（服务器静默拒绝），超时重选/复位
         if (spectateTargetClientId != -1 && spectateTargetEntityId == -1
             && spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
@@ -365,9 +362,10 @@ public class BattlePage : PageBase
         }
     }
 
+    // 观战目标：真人（正数 id）与 AI（虚拟负数 id，从 -1000 起）都合法；-1 仅作「无目标」哨兵
     private void SpectateTo(int targetClientId)
     {
-        if (targetClientId < 0) return;
+        if (targetClientId == -1) return;
         spectateTargetClientId = targetClientId;
         spectateTargetEntityId = playerEntities.TryGetValue(targetClientId, out var eid) ? eid : -1;
         spectatePendingSince = spectateTargetEntityId == -1 ? Time.time : 0f;
