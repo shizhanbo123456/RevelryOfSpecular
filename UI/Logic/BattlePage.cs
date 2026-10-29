@@ -95,20 +95,16 @@ public class BattlePage : PageBase
         panel.m_settings_panel.touchable = false;
     }
 
-    // 玩法说明整块来自 setting_tips：一栏一段「栏目名称 + 内容」，未填内容的栏目跳过
+    // 整块说明来自 setting_tips：内容里的 {\n} 换成换行，其余原样按序号拼接
     private void BuildSettingTips()
     {
         var keys = new List<int>(ConfigManager.SettingTipsConfig.content.Keys);
         keys.Sort();
-        var sections = new List<string>();
+        var parts = new List<string>();
         foreach (int key in keys)
-        {
-            var row = ConfigManager.SettingTipsConfig.content[key];
-            if (row.text.Length == 0) continue;
-            sections.Add($"{row.name}\n{row.text}");
-        }
+            parts.Add(ConfigManager.SettingTipsConfig.content[key].text.Replace(@"{\n}", "\n"));
 
-        string tips = string.Join("\n\n", sections);
+        string tips = string.Concat(parts);
         var list = panel.m_settings_panel.m_content;
         list.itemRenderer = (i, obj) =>
         {
