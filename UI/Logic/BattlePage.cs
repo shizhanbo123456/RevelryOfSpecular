@@ -73,10 +73,50 @@ public class BattlePage : PageBase
 
     public override void Construct()
     {
+        panel.m_batleInfoPanel.m_btn_setting.onClick.Add(ShowSettings);
+        panel.m_settings_panel.m_panrl.m_close.onClick.Add(HideSettings);
         panel.m_settings_panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
+        BuildSettingTips();
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
         panel.m_PlayerBar.m_buffList.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, localBuffs[i]);
         ComputeMinimapItemScale();
+    }
+
+    // 设置面板常驻战斗界面，开关只改显隐与点击拦截
+    private void ShowSettings()
+    {
+        panel.m_settings_panel.visible = true;
+        panel.m_settings_panel.touchable = true;
+    }
+
+    private void HideSettings()
+    {
+        panel.m_settings_panel.visible = false;
+        panel.m_settings_panel.touchable = false;
+    }
+
+    // 玩法说明整块来自 setting_tips：一栏一段「栏目名称 + 内容」，未填内容的栏目跳过
+    private void BuildSettingTips()
+    {
+        var keys = new List<int>(ConfigManager.SettingTipsConfig.content.Keys);
+        keys.Sort();
+        var sections = new List<string>();
+        foreach (int key in keys)
+        {
+            var row = ConfigManager.SettingTipsConfig.content[key];
+            if (row.text.Length == 0) continue;
+            sections.Add($"{row.name}\n{row.text}");
+        }
+
+        string tips = string.Join("\n\n", sections);
+        var list = panel.m_settings_panel.m_content;
+        list.itemRenderer = (i, obj) =>
+        {
+            var label = (UI_SettingsRuleLabel)obj;
+            label.m_content.text = tips;
+            label.height = label.m_content.height; // 条目高度跟随文本，超框时靠列表拖动
+        };
+        list.numItems = 1; // 整块说明只用一个条目，用列表只为拿到滚动
     }
 
     //界面初始化时算：抵消 Minimap 等上层元素（不含页面根 UiScale 适配）的缩放，使图标最终按 FGUI 设计尺寸显示
@@ -121,6 +161,7 @@ public class BattlePage : PageBase
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
+        HideSettings(); // 设置面板每局从收起状态开始
         OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
         ClearEntityBars();
         HideAllTips();

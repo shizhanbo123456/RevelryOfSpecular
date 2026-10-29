@@ -34,9 +34,10 @@ public class ConfigManager : MonoBehaviour
         int global = GlobalVariableConfig.Load(ReadTable(dir, GlobalVariableConfig.FileName));
         int notice = NoticeConfig.Load(ReadTable(dir, NoticeConfig.FileName));
         int attrRange = AttrRangeConfig.Load(ReadTable(dir, AttrRangeConfig.FileName));
+        int settingTips = SettingTipsConfig.Load(ReadTable(dir, SettingTipsConfig.FileName));
 
         Debug.Log($"[配表] {dir} 加载完成 | battle_fury_layer {battleFury} | entity {entity} | skill {skill} | effect {effect} | " +
-                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice} | attr_range {attrRange}");
+                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice} | attr_range {attrRange} | setting_tips {settingTips}");
     }
 
     #region 文件读取与拆分
@@ -877,6 +878,34 @@ public class ConfigManager : MonoBehaviour
         {
             return Mathf.Clamp01((value - min) / (max - min));
         }
+    }
+    #endregion
+
+    #region 设置界面玩法说明表：0 序号 / 1 栏目名称 / 2 内容
+    public struct SettingTipsConfig
+    {
+        public const string FileName = "setting_tips.csv";
+        private const int ColumnCount = 3;
+        public static readonly Dictionary<int, SettingTipsConfig> content = new();
+
+        public int key;
+        public string name;
+        public string text;
+
+        public SettingTipsConfig(string[] rowData)
+        {
+            key = ParseInt(rowData, 0);
+            name = ParseString(rowData, 1);
+            text = ParseString(rowData, 2);
+        }
+
+        public static int Load(ConfigTable table)
+        {
+            table.RequireColumnCount(ColumnCount);
+            return Fill(table, content, row => new SettingTipsConfig(row), row => row.key);
+        }
+
+        public static SettingTipsConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 }
