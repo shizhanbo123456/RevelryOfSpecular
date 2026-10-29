@@ -395,9 +395,10 @@ public abstract class EntityData : MonoBehaviour
 
     public EndureType GetEndureLevel()
     {
+        // 配表「霸体等级覆盖」优先于强控/位移/动画状态
+        if (effectController != null && effectController.TryGetEndureOverride(out var endure)) return endure;
         if (effectController != null && effectController.IsActionBlocked()) return EndureType.None;
         if (motion != null) return EndureType.Common;
-        if (effectController != null && effectController.HasSuperArmor()) return EndureType.Super;
         return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
     }
 

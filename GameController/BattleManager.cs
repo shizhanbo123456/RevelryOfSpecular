@@ -699,7 +699,10 @@ public partial class BattleManager : EnsBehaviour
         {
             if (guardStatue != null && guardStatue.type == EntityType.KingStatue)
             {
-                if (guardStatue.effectController != null) guardStatue.effectController.AddEffect(EffectType.StatueReduce, aliveOuter, float.MaxValue);
+                if (guardStatue.effectController == null) continue;
+                // 分层减伤是独立计时类，重算前必须先移除，否则每次调用都会压一层
+                guardStatue.effectController.RemoveEffect(EffectType.StatueReduce);
+                if (aliveOuter > 0) guardStatue.effectController.AddEffect(EffectType.StatueReduce, aliveOuter, float.MaxValue);
             }
         }
     }

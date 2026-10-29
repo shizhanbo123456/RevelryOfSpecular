@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
@@ -85,79 +86,78 @@ public static class EffectTypeExt
 public class EntityEffectController
 {
     private const float TickInterval = 1f; // 固定间隔生效统一 1s 一跳
+    private const int MaxSyncLevel = 15;   // 协议 level 字段 4bit
 
-    public struct EffectRuntime
+    // 一层运行时：叠加模式 1 下一层一条，其它模式恒为一条
+    public struct EffectLayer
     {
         public EffectType type;
+        public int serial;                      // 层身份，OnUpdate 快照遍历后按 id 回写/移除
         public int level;
-        public float shieldValue;              // 护盾剩余值（仅护盾类）
-        public ushort sourceId;                // 施加者 id（DoT 击杀归属）
+        public float shieldValue;               // 护盾剩余值（仅护盾类，每层独立）
+        public ushort sourceId;                 // 施加者 id（DoT 击杀归属）
         public EntityAttribute sourceAttribute; // 施加者属性快照（施加时的独立克隆，不随后续变化）
-        public float endTime;                  // 生效结束时间戳（永久 = float.MaxValue）
-        public float nextTickTime;             // 下次生效时刻
+        public float endTime;                   // 本层结束时间戳（永久 = float.MaxValue）
+        public float nextTickTime;              // 本层下次生效时刻
         public bool isNegative;
     }
 
     public EntityData owner;
 
-    public void Clear()
-    {
-        effects.Clear();
-        if (owner != null) owner.buffDirty = true;
-    }
-
-    private readonly Dictionary<EffectType, EffectRuntime> effects = new();
-    private readonly List<EffectType> iterateKeys = new(); // OnUpdate 遍历快照：DoT tick 会走 OnDamaged，可能增删效果
-    private readonly List<EffectType> expiredKeys = new(); // OnUpdate 待移除列表（不共用 s_expired，避免被嵌套的清空调用打断）
-    private static readonly List<EffectType> s_expired = new();
+    private readonly Dictionary<EffectType, List<EffectLayer>> effects = new();
+    private readonly List<EffectType> iterateKeys = new();
+    private readonly List<EffectLayer> layerSnapshot = new();
+    private readonly List<int> shieldOrder = new();
     private static readonly List<EntityData> s_tickTargets = new();
+
+    private int nextSerial = 1;
+    private bool blockMove;              // 任一存在层禁止移动输入
+    private bool blockSkill;             // 任一存在层禁止技能输入
+    private bool pauseAnim;              // 任一存在层冻结动画
+    private EndureType? endureOverride;  // 霸体等级覆盖（多层取最高）
 
     public void Init(EntityData data)
     {
         owner = data;
         effects.Clear();
+        nextSerial = 1;
+        RefreshState();
+    }
+
+    public void Clear()
+    {
+        effects.Clear();
+        nextSerial = 1;
+        if (owner != null) owner.buffDirty = true;
+        RefreshState();
     }
 
     #region//增删查（简易统一入口）
+    // 叠加语义完全由 effect.csv「叠加模式」决定，见 ApplyStackMode
     public void AddEffect(EffectType type, int level = 1, float duration = -1f, EntityData source = null)
     {
         if (owner != null) owner.buffDirty = true;
         float endTime = duration < 0f ? float.MaxValue : Time.time + duration;
-        if (effects.TryGetValue(type, out var rt))
+        if (!effects.TryGetValue(type, out var layers))
         {
-            // 叠层语义（11.3 特征列）：等级累加 + 时间刷新；施加者与快照以最新一次为准
-            rt.level += level;
-            rt.endTime = endTime;
-            rt.sourceId = source != null ? source.id : (ushort)0;
-            rt.sourceAttribute = source != null && source.floatingAttribute != null ? source.floatingAttribute.Clone() : null;
-            if (type.IsShield()) rt.shieldValue = ShieldValueOf(rt.level);
-            effects[type] = rt;
+            layers = new List<EffectLayer>();
+            effects[type] = layers;
         }
-        else
+        ApplyStackMode(layers, type, level, endTime, source);
+        if (layers.Count == 0)
         {
-            rt = new EffectRuntime()
-            {
-                type = type,
-                level = level,
-                shieldValue = type.IsShield() ? ShieldValueOf(level) : 0f,
-                sourceId = source != null ? source.id : (ushort)0,
-                sourceAttribute = source != null && source.floatingAttribute != null ? source.floatingAttribute.Clone() : null,
-                endTime = endTime,
-                nextTickTime = Time.time + TickInterval,
-                isNegative = type.IsNegative(),
-            };
-            effects[type] = rt;
+            effects.Remove(type); // 模式 0 的低等级添加不生效，别留下空表
+            return;
         }
 
-        // 按类别分发
         if (type.IsAttribute()) RecomputeAttributes();
-        else if (type.IsControl()) ApplyControl();
-        else if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
+        RefreshState();
+        if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
 
         // 苍白之光/暗叠层后判定转化（苍白舞者被动：满层转冰/雷、双高转火，见 BattleManagerPassive）；转化出的控制/燃烧归属原施加者
         if (type == EffectType.PaleLight || type == EffectType.PaleDark)
         {
-            if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner, FindEntity(rt.sourceId));
+            if (Tool.BattleManager != null) Tool.BattleManager.CheckPaleConversion(owner, FindEntity(GetSourceId(type)));
         }
     }
 
@@ -166,61 +166,75 @@ public class EntityEffectController
         if (!effects.Remove(type)) return;
         if (owner != null) owner.buffDirty = true;
         if (type.IsAttribute()) RecomputeAttributes();
-        if (type.IsControl()) RefreshControlPause();
+        RefreshState();
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
     }
 
     public void RemoveAllNegative()
     {
-        s_expired.Clear();
+        iterateKeys.Clear();
         foreach (var pair in effects)
         {
-            if (pair.Value.isNegative) s_expired.Add(pair.Key);
+            if (pair.Value.Count > 0 && pair.Value[0].isNegative) iterateKeys.Add(pair.Key);
         }
-        foreach (var type in s_expired) RemoveEffect(type);
+        for (int i = 0; i < iterateKeys.Count; i++) RemoveEffect(iterateKeys[i]);
     }
 
     // GM：移除全部 Buff（逐个走 RemoveEffect，保证属性/控制/移速按类重算）
     public void RemoveAll()
     {
-        s_expired.Clear();
-        foreach (var pair in effects) s_expired.Add(pair.Key);
-        foreach (var type in s_expired) RemoveEffect(type);
+        iterateKeys.Clear();
+        foreach (var pair in effects) iterateKeys.Add(pair.Key);
+        for (int i = 0; i < iterateKeys.Count; i++) RemoveEffect(iterateKeys[i]);
     }
 
-    public bool HasEffect(EffectType type) => effects.ContainsKey(type);
-    public int GetLevel(EffectType type) => effects.TryGetValue(type, out var rt) ? rt.level : 0;
-    public ushort GetSourceId(EffectType type) => effects.TryGetValue(type, out var rt) ? rt.sourceId : (ushort)0;
-    public float GetRemainTime(EffectType type) => effects.TryGetValue(type, out var rt) ? Mathf.Max(0f, rt.endTime - Time.time) : 0f;
+    public bool HasEffect(EffectType type) => effects.TryGetValue(type, out var layers) && layers.Count > 0;
+
+    // 层数 = 各层等级之和
+    public int GetLevel(EffectType type)
+    {
+        if (!effects.TryGetValue(type, out var layers)) return 0;
+        int level = 0;
+        for (int i = 0; i < layers.Count; i++) level += layers[i].level;
+        return level;
+    }
+
+    // 以最新施加的一层为准
+    public ushort GetSourceId(EffectType type)
+    {
+        if (!effects.TryGetValue(type, out var layers) || layers.Count == 0) return 0;
+        return layers[layers.Count - 1].sourceId;
+    }
+
+    // 多层独立计时 → 取剩余时间最长的一层
+    public float GetRemainTime(EffectType type)
+    {
+        if (!effects.TryGetValue(type, out var layers) || layers.Count == 0) return 0f;
+        float remain = 0f;
+        for (int i = 0; i < layers.Count; i++) remain = Mathf.Max(remain, layers[i].endTime - Time.time);
+        return Mathf.Max(0f, remain);
+    }
     #endregion
 
     #region//战斗管线查询（由战斗代码在明确时机调用，非每帧计算）
     public float GetShieldAbsorb()
     {
         float sum = 0f;
-        if (effects.TryGetValue(EffectType.Shield, out var s)) sum += s.shieldValue;
-        if (effects.TryGetValue(EffectType.StatueShield, out var t)) sum += t.shieldValue;
+        sum += ShieldSumOf(EffectType.Shield);
+        sum += ShieldSumOf(EffectType.StatueShield);
         return sum;
     }
 
+    // 护盾逐层抵消：优先扣剩余时间最短的层，扣空即移除该层
     public void ConsumeShield(float amount)
     {
-        foreach (var type in new[] { EffectType.Shield, EffectType.StatueShield })
-        {
-            if (amount <= 0f) break;
-            if (!effects.TryGetValue(type, out var rt)) continue;
-            float used = Mathf.Min(rt.shieldValue, amount);
-            rt.shieldValue -= used;
-            amount -= used;
-            if (rt.shieldValue <= 0f) effects.Remove(type);
-            else effects[type] = rt;
-        }
+        ConsumeShieldOf(EffectType.Shield, ref amount);
+        ConsumeShieldOf(EffectType.StatueShield, ref amount);
     }
 
     public float GetDamageReduceRate()
     {
-        float rate = 0f;
-        if (effects.TryGetValue(EffectType.StatueReduce, out var b)) rate += b.level * 0.25f;
+        float rate = GetLevel(EffectType.StatueReduce) * 0.25f;
         if (HasEffect(EffectType.PopeGuard)) rate += Config.pope_guard_reduce_rate;
         return Mathf.Clamp01(rate);
     }
@@ -242,20 +256,30 @@ public class EntityEffectController
     // 反弹量 = 实际受到伤害 × 等级 × 系数，向下取整且至少 1（有反伤才会被调用）
     public float GetReflectDamage(float receivedDamage)
     {
-        if (!effects.TryGetValue(EffectType.Reflect, out var rt)) return 0f;
-        return Mathf.Max(1, Mathf.FloorToInt(receivedDamage * rt.level * Config.reflect_rate));
+        int level = GetLevel(EffectType.Reflect);
+        if (level <= 0) return 0f;
+        return Mathf.Max(1, Mathf.FloorToInt(receivedDamage * level * Config.reflect_rate));
     }
 
-    public bool IsActionBlocked() => HasEffect(EffectType.Stun) || HasEffect(EffectType.Freeze) || HasEffect(EffectType.Root)
-        || HasEffect(EffectType.PaleIce) || HasEffect(EffectType.PaleThunder);
+    public bool IsActionBlocked() => blockMove;
 
-    public bool IsSilenced() => HasEffect(EffectType.Silence);
+    public bool IsSilenced() => blockSkill;
 
-    public bool CanCastSkill() => !IsActionBlocked() && !IsSilenced();
+    public bool CanCastSkill() => !blockMove && !blockSkill;
 
-    public bool CanMove() => !IsActionBlocked();
+    public bool CanMove() => !blockMove;
 
-    public bool HasSuperArmor() => HasEffect(EffectType.DeathStroll);
+    // 配表「霸体等级覆盖」留空的 Buff 不参与覆盖
+    public bool TryGetEndureOverride(out EndureType endure)
+    {
+        if (endureOverride.HasValue)
+        {
+            endure = endureOverride.Value;
+            return true;
+        }
+        endure = EndureType.None;
+        return false;
+    }
 
     public float GetMoveAnimSpeedMultiplier()
     {
@@ -273,54 +297,55 @@ public class EntityEffectController
     public void OnUpdate()
     {
         if (effects.Count == 0) return;
-        expiredKeys.Clear();
-        // 先快照 key：TickDamage 会走 OnDamaged → 可能施加/移除效果（苍白转化、死亡清空等），不能直接遍历字典
+        // 先快照 key 与层：TickDamage 会走 OnDamaged → 可能施加/移除效果（苍白转化、死亡清空等）
         iterateKeys.Clear();
         iterateKeys.AddRange(effects.Keys);
         foreach (var key in iterateKeys)
         {
-            if (!effects.TryGetValue(key, out var rt)) continue; // 已被本轮 tick 移掉
-            if (Time.time >= rt.endTime)
+            if (!effects.TryGetValue(key, out var layers)) continue;
+            layerSnapshot.Clear();
+            layerSnapshot.AddRange(layers);
+            for (int i = 0; i < layerSnapshot.Count; i++)
             {
-                expiredKeys.Add(key);
-                continue;
-            }
-            // 固定间隔生效（燃烧/中毒/死灵漫步，1s 一跳），是否 tick 由类型决定
-            if (rt.type.IsTicking() && Time.time >= rt.nextTickTime)
-            {
-                rt.nextTickTime = Time.time + TickInterval;
-                effects[key] = rt; // 先写回再结算：结算里若刷新了该效果，以结算写入的为准
-                TickDamage(rt);
+                var layer = layerSnapshot[i];
+                if (Time.time >= layer.endTime)
+                {
+                    RemoveLayer(key, layer.serial);
+                    continue;
+                }
+                if (!layer.type.IsTicking() || Time.time < layer.nextTickTime) continue;
+                layer.nextTickTime = Time.time + TickInterval;
+                if (!WriteBackLayer(key, layer)) continue; // 快照层已被本轮结算移除
+                TickDamage(layer);
             }
         }
-        for (int i = 0; i < expiredKeys.Count; i++) RemoveEffect(expiredKeys[i]);
     }
 
-    private void TickDamage(EffectRuntime rt)
+    private void TickDamage(EffectLayer layer)
     {
-        switch (rt.type)
+        switch (layer.type)
         {
             case EffectType.Burning:
             case EffectType.PaleFire:
-                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
+                if (owner != null) owner.OnDamaged(Config.burning_damage_per_tick * layer.level, FindEntity(layer.sourceId), fixedDamage: true);
                 break;
             case EffectType.Poison:
             {
                 if (owner == null) break;
-                float stat = SourcePower(rt);
-                owner.OnDamaged(Config.poison_damage_ratio * stat * rt.level, FindEntity(rt.sourceId), fixedDamage: true);
+                float stat = SourcePower(layer);
+                owner.OnDamaged(Config.poison_damage_ratio * stat * layer.level, FindEntity(layer.sourceId), fixedDamage: true);
                 break;
             }
             case EffectType.DeathStroll:
             {
                 if (owner == null) break;
-                float stat = SourcePower(rt);
+                float stat = SourcePower(layer);
                 EntityCamp enemyCamp = EntityCampUtil.HostileOf(owner.camp);
                 s_tickTargets.Clear();
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_stroll_radius, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)
                 {
-                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * rt.level, owner, fixedDamage: true);
+                    if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * layer.level, owner, fixedDamage: true);
                 }
                 break;
             }
@@ -328,9 +353,9 @@ public class EntityEffectController
     }
 
     // 施加者快照里的 max(力量, 魔力)；无施加者时为 0
-    private static float SourcePower(EffectRuntime rt)
+    private static float SourcePower(EffectLayer layer)
     {
-        return rt.sourceAttribute != null ? Mathf.Max(rt.sourceAttribute.strength, rt.sourceAttribute.magic) : 0f;
+        return layer.sourceAttribute != null ? Mathf.Max(layer.sourceAttribute.strength, layer.sourceAttribute.magic) : 0f;
     }
 
     private static EntityData FindEntity(ushort entityId)
@@ -340,6 +365,162 @@ public class EntityEffectController
     #endregion
 
     #region//Local
+    // 叠加模式（effect.csv 第 4 列），留空属配表错配
+    private static int StackModeOf(EffectType type)
+    {
+        var mode = ConfigManager.EffectConfig.Get((int)type).stackMode;
+        if (mode == null) throw new FormatException($"[配表] effect.csv 第 {(int)type} 行缺少叠加模式");
+        return mode.Value;
+    }
+
+    private void ApplyStackMode(List<EffectLayer> layers, EffectType type, int level, float endTime, EntityData source)
+    {
+        int mode = StackModeOf(type);
+        switch (mode)
+        {
+            case 0: ApplyOverwrite(layers, type, level, endTime, source); break;
+            case 1: layers.Add(NewLayer(type, level, endTime, source)); break;
+            case 2: ApplyAccumulate(layers, type, level, endTime, source); break;
+            case 3: ApplyMaxTime(layers, type, endTime, source); break;
+            default: throw new FormatException($"[配表] effect.csv 第 {(int)type} 行叠加模式非法：{mode}（只允许 0~3）");
+        }
+    }
+
+    // 0：高等级覆盖低等级，相同等级刷新时间；低等级添加不生效
+    private void ApplyOverwrite(List<EffectLayer> layers, EffectType type, int level, float endTime, EntityData source)
+    {
+        if (layers.Count == 0)
+        {
+            layers.Add(NewLayer(type, level, endTime, source));
+            return;
+        }
+        var layer = layers[0];
+        if (level < layer.level) return;
+        if (level > layer.level)
+        {
+            layer.level = level;
+            if (type.IsShield()) layer.shieldValue = ShieldValueOf(level);
+        }
+        layer.endTime = endTime;
+        ApplySource(ref layer, source);
+        layers[0] = layer;
+    }
+
+    // 2：刷新时间并叠加等级
+    private void ApplyAccumulate(List<EffectLayer> layers, EffectType type, int level, float endTime, EntityData source)
+    {
+        if (layers.Count == 0)
+        {
+            layers.Add(NewLayer(type, level, endTime, source));
+            return;
+        }
+        var layer = layers[0];
+        layer.level += level;
+        layer.endTime = endTime;
+        if (type.IsShield()) layer.shieldValue = ShieldValueOf(layer.level);
+        ApplySource(ref layer, source);
+        layers[0] = layer;
+    }
+
+    // 3：强制 1 级，重复添加仅取最大时间
+    private void ApplyMaxTime(List<EffectLayer> layers, EffectType type, float endTime, EntityData source)
+    {
+        if (layers.Count == 0)
+        {
+            layers.Add(NewLayer(type, 1, endTime, source));
+            return;
+        }
+        var layer = layers[0];
+        layer.level = 1;
+        layer.endTime = Mathf.Max(layer.endTime, endTime);
+        if (type.IsShield()) layer.shieldValue = ShieldValueOf(1);
+        ApplySource(ref layer, source);
+        layers[0] = layer;
+    }
+
+    private EffectLayer NewLayer(EffectType type, int level, float endTime, EntityData source)
+    {
+        var layer = new EffectLayer()
+        {
+            type = type,
+            serial = nextSerial++,
+            level = level,
+            shieldValue = type.IsShield() ? ShieldValueOf(level) : 0f,
+            endTime = endTime,
+            nextTickTime = Time.time + TickInterval,
+            isNegative = type.IsNegative(),
+        };
+        ApplySource(ref layer, source);
+        return layer;
+    }
+
+    private static void ApplySource(ref EffectLayer layer, EntityData source)
+    {
+        layer.sourceId = source != null ? source.id : (ushort)0;
+        layer.sourceAttribute = source != null && source.floatingAttribute != null ? source.floatingAttribute.Clone() : null;
+    }
+
+    private bool WriteBackLayer(EffectType type, EffectLayer layer)
+    {
+        if (!effects.TryGetValue(type, out var layers)) return false;
+        for (int i = 0; i < layers.Count; i++)
+        {
+            if (layers[i].serial != layer.serial) continue;
+            layers[i] = layer;
+            return true;
+        }
+        return false;
+    }
+
+    private void RemoveLayer(EffectType type, int serial)
+    {
+        if (!effects.TryGetValue(type, out var layers)) return;
+        for (int i = 0; i < layers.Count; i++)
+        {
+            if (layers[i].serial != serial) continue;
+            layers.RemoveAt(i);
+            break;
+        }
+        if (layers.Count == 0) effects.Remove(type);
+        if (owner != null) owner.buffDirty = true;
+        if (type.IsAttribute()) RecomputeAttributes();
+        RefreshState();
+        if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
+    }
+
+    private float ShieldSumOf(EffectType type)
+    {
+        if (!effects.TryGetValue(type, out var layers)) return 0f;
+        float sum = 0f;
+        for (int i = 0; i < layers.Count; i++) sum += layers[i].shieldValue;
+        return sum;
+    }
+
+    private void ConsumeShieldOf(EffectType type, ref float amount)
+    {
+        if (amount <= 0f || !effects.TryGetValue(type, out var layers) || layers.Count == 0) return;
+        shieldOrder.Clear();
+        for (int i = 0; i < layers.Count; i++) shieldOrder.Add(i);
+        shieldOrder.Sort((a, b) => layers[a].endTime.CompareTo(layers[b].endTime));
+        for (int i = 0; i < shieldOrder.Count; i++)
+        {
+            if (amount <= 0f) break;
+            int index = shieldOrder[i];
+            var layer = layers[index];
+            float used = Mathf.Min(layer.shieldValue, amount);
+            layer.shieldValue -= used;
+            amount -= used;
+            layers[index] = layer;
+        }
+        for (int i = layers.Count - 1; i >= 0; i--)
+        {
+            if (layers[i].shieldValue > 0f) continue;
+            layers.RemoveAt(i);
+        }
+        if (layers.Count == 0) effects.Remove(type);
+        if (owner != null) owner.buffDirty = true;
+    }
+
     // Health / WeaponSlotCount 不允许被 Buff 修改，走到这里属效果配置错误
     private static float UnsupportedAttrField(EntityAttributeDelta.Field field)
     {
@@ -356,6 +537,32 @@ public class EntityEffectController
         owner.anim.SetMoveSpeedScale(GetMoveAnimSpeedMultiplier());
     }
 
+    // 控制/动画冻结/霸体覆盖全部由配表列驱动，增删层后统一重算
+    private void RefreshState()
+    {
+        bool move = false, skill = false, anim = false;
+        EndureType? endure = null;
+        foreach (var pair in effects)
+        {
+            if (pair.Value.Count == 0) continue;
+            var cfg = ConfigManager.EffectConfig.Get((int)pair.Key);
+            if (cfg.lockMoveInput == true) move = true;
+            if (cfg.lockSkillInput == true) skill = true;
+            if (cfg.freezeAnimation == true) anim = true;
+            if (cfg.superArmorOverride != null)
+            {
+                var value = (EndureType)cfg.superArmorOverride.Value;
+                if (endure == null || value > endure.Value) endure = value;
+            }
+        }
+        bool animChanged = anim != pauseAnim;
+        blockMove = move;
+        blockSkill = skill;
+        pauseAnim = anim;
+        endureOverride = endure;
+        if (animChanged && owner != null) owner.SetAnimPaused(pauseAnim);
+    }
+
     private void RecomputeAttributes()
     {
         if (owner == null) return;
@@ -364,7 +571,10 @@ public class EntityEffectController
         foreach (var pair in effects)
         {
             if (!pair.Key.IsAttribute()) continue;
-            attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), AttributeDeltaOf(pair.Key, pair.Value.level)));
+            for (int i = 0; i < pair.Value.Count; i++)
+            {
+                attr.ApplyDelta(new EntityAttributeDelta(FieldFromType(pair.Key), AttributeDeltaOf(pair.Key, pair.Value[i].level)));
+            }
         }
         // 夹取上限读 base：生命值上限只由 base 承担（升级时定一次）。当前也无可达的生命类 Buff（不存在 AttrHealth）
         attr.health = Mathf.Clamp(currentHealth, 0f, owner.baseAttribute.health);
@@ -387,25 +597,10 @@ public class EntityEffectController
         return type.IsNegative() ? -amount : amount;
     }
 
-    // 护盾初始值 = 被施加者生命值上限 × 系数 × 等级
+    // 护盾每层初始值 = 被施加者生命值上限 × 系数 × 该层等级
     private float ShieldValueOf(int level)
     {
         return owner != null ? owner.baseAttribute.health * Config.shield_health_ratio * level : 0f;
-    }
-
-    //强控施加
-    private void ApplyControl()
-    {
-        owner.SetAnimPaused(true);
-    }
-
-    private void RefreshControlPause()
-    {
-        foreach (var type in effects.Keys)
-        {
-            if (type.IsControl()) return;
-        }
-        owner.SetAnimPaused(false);
     }
 
     private static EntityAttributeDelta.Field FieldFromType(EffectType type)
@@ -428,15 +623,19 @@ public class EntityEffectController
         }
     }
 
+    // 按 type 聚合成一条下发：level = 各层等级之和（协议 4bit，超出部分截断，客户端看不到）
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;
         foreach (var pair in effects)
         {
+            if (pair.Value.Count == 0) continue;
+            int level = 0;
+            for (int i = 0; i < pair.Value.Count; i++) level += pair.Value[i].level;
             info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
             {
-                type = (int)pair.Value.type,
-                level = pair.Value.level,
+                type = (int)pair.Key,
+                level = Mathf.Min(level, MaxSyncLevel),
             });
         }
     }
