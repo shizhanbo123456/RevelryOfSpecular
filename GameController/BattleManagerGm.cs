@@ -236,13 +236,13 @@ public partial class BattleManager
         {
             case GmEntityType.Zombie:
                 for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(),
-                        LandscapeSpawns.RandomOf(spawns.zombieSpawnPositions), EntityCamp.Zombie);
+                    if (Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 zPos))
+                        SpawnEntity(EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(), zPos, EntityCamp.Zombie);
                 break;
             case GmEntityType.EliteZombie:
                 for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(),
-                        LandscapeSpawns.RandomOf(spawns.zombieSpawnPositions), EntityCamp.Zombie);
+                    if (Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 ePos))
+                        SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(), ePos, EntityCamp.Zombie);
                 break;
             case GmEntityType.Coral: GmSpawnCorals(count); break;
             case GmEntityType.Neutral:
@@ -259,23 +259,14 @@ public partial class BattleManager
         }
     }
 
-    // 珊瑚：与 TickCoralSpawn 共用 coralAtPoint 占用簿记，只刷当前空着的刷新点
+    // 珊瑚：直接采样 MapSpace 合法位置，与 TickCoralSpawn 同一套采样
     private void GmSpawnCorals(int count)
     {
-        if (coralAtPoint == null || coralAtPoint.Length == 0) return;
-        var points = Tool.LandscapeSpawns.coralSpawnPositions;
-        int spawned = 0;
-        for (int i = 0; i < coralAtPoint.Length && spawned < count; i++)
+        for (int i = 0; i < count; i++)
         {
-            ushort existing = coralAtPoint[i];
-            if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) continue; // 该点已有珊瑚
-            Vector3 pos = i < points.Count ? points[i] : Landscape.MapCenter;
+            if (!Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 pos)) continue;
             EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
-            ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
-            if (id == 0) continue;
-            coralAtPoint[i] = id;
-            if (GetEntity(id) is CoralEntityData coral) coral.spawnPointIndex = i;
-            spawned++;
+            SpawnEntity(type, 1, pos, EntityCamp.Prop);
         }
     }
 

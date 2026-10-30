@@ -38,6 +38,7 @@ public static class Config
     public const float coral_spawn_checks_per_second = 10f;
     public const float coral_spawn_min_dist = 40f;
     public const float coral_spawn_max_dist = 80f;
+    public const float coral_min_separation = 2f;        // 新珊瑚与已有珊瑚的最小间距
 
     #region 中立雕像（中立争抢单位）
     public const int neutral_statue_variant_count = 2;   // 0 天使雕像 / 1 恶魔雕像

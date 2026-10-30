@@ -4,7 +4,7 @@ using UnityEngine;
 public class LandscapeSpawns : MonoBehaviour
 {
     [Header("地形")]
-    [Tooltip("右键菜单生成珊瑚/僵尸点位时用于贴合表面")]
+    [Tooltip("点位贴合表面用；地形被 8×8 拆分后仍指向原始地形")]
     [SerializeField] private Terrain terrain;
 
     [Header("地形块")]
@@ -20,19 +20,16 @@ public class LandscapeSpawns : MonoBehaviour
 
     private void Start()
     {
+        if (terrain == null)
+        {
+            Debug.LogError("[LandscapeSpawns] 未指定 Terrain：点位无法贴合表面，珊瑚/僵尸将无法生成。");
+            return;
+        }
         SnapCombatPointsToTerrain();
     }
 
     private void SnapCombatPointsToTerrain()
     {
-        if (terrain == null)
-        {
-            Debug.LogWarning("[LandscapeSpawns] 未指定 Terrain，跳过战斗点位运行时贴合（保持原 Y）。");
-            return;
-        }
-        // 坐标类点位（Vector3）
-        SnapListToSurface(coralSpawnPositions);
-        SnapListToSurface(zombieSpawnPositions);
         // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
         SnapTransformsToSurface(subGuardStatueSpawnPositions);
         SnapTransformToSurface(mainGuardStatueSpawnPosition);
@@ -40,18 +37,6 @@ public class LandscapeSpawns : MonoBehaviour
         SnapTransformsToSurface(neutralStatueSpawnPositions);
         SnapTransformsToSurface(attackPositions);
         SnapTransformsToSurface(defensePositions);
-    }
-
-    private void SnapListToSurface(List<Vector3> list)
-    {
-        if (list == null || list.Count == 0) return;
-        Vector3 origin = terrain.transform.position;
-        for (int i = 0; i < list.Count; i++)
-        {
-            Vector3 p = list[i];
-            float y = origin.y + terrain.SampleHeight(new Vector3(p.x, 0f, p.z)) + SurfaceOffset;
-            list[i] = new Vector3(p.x, y, p.z);
-        }
     }
 
     private void SnapTransformsToSurface(List<Transform> list)
@@ -78,13 +63,6 @@ public class LandscapeSpawns : MonoBehaviour
     [Tooltip("国王雕像 ×1")]
     public Transform mainGuardStatueSpawnPosition;
 
-    [Header("珊瑚刷新点")]
-    [Tooltip("由右键菜单生成")]
-    public List<Vector3> coralSpawnPositions = new();
-
-    [Tooltip("右键菜单「随机生成珊瑚刷新点」单次生成的数量；生成时会先清空 coralSpawnPositions")]
-    [Min(1)] public int coralGenerateCount = 100;
-
     [Header("水晶雕像位置")]
     [Tooltip("被摧毁后不会复活")]
     public List<Transform> crystalStatueSpawnPositions = new();
@@ -92,13 +70,6 @@ public class LandscapeSpawns : MonoBehaviour
     [Header("中立雕像位置")]
     [Tooltip("中立争抢单位，多个候选随机取一个")]
     public List<Transform> neutralStatueSpawnPositions = new();
-
-    [Header("僵尸出生点")]
-    [Tooltip("由右键菜单生成，分布偏道路/墓地/雕像外围，随机取一个")]
-    public List<Vector3> zombieSpawnPositions = new();
-
-    [Tooltip("右键菜单「随机生成僵尸出生点」单次生成的数量；生成时会先清空 zombieSpawnPositions")]
-    [Min(1)] public int zombieGenerateCount = 100;
 
     [Header("进攻方出生/复活位置")]
     public List<Transform> attackPositions = new();
@@ -115,10 +86,7 @@ public class LandscapeSpawns : MonoBehaviour
     public Transform cameraPreviewPos;
 
     [Header("Gizmos 半径")]
-    [Tooltip("珊瑚刷新点与僵尸出生点（两个 Vector3 列表共用）的球半径，仅编辑期可视化")]
-    [Min(0.1f)] public float coralGizmoRadius = 1f;
-
-    [Tooltip("其余 Transform 锚点的球半径，仅编辑期可视化")]
+    [Tooltip("Transform 锚点的球半径，仅编辑期可视化")]
     [Min(0.1f)] public float otherGizmoRadius = 1f;
 
     #region 点位读取（锚点列表允许留空位，读取时自动跳过）
@@ -134,185 +102,68 @@ public class LandscapeSpawns : MonoBehaviour
         return Landscape.MapCenter; // 全部是空位
     }
 
-    public static Vector3 RandomOf(List<Vector3> list)
+    #endregion
+
+    #region 刷新区采样（MapSpace 合法区 + Terrain 表面）
+
+    private const int MaxSampleAttempts = 32;
+
+    private const float SurfaceOffset = 0.1f;
+
+    private const float GizmoPinFactor = 2f;
+
+    // 全图均匀取一个合法刷新点（僵尸用）
+    public bool TrySampleSpawnPoint(out Vector3 result)
     {
-        if (list == null || list.Count == 0) return Landscape.MapCenter;
-        return list[Random.Range(0, list.Count)];
+        result = default;
+        if (!CanSample) return false;
+
+        for (int i = 0; i < MaxSampleAttempts; i++)
+        {
+            float x = Random.value * Landscape.MapSize;
+            float z = Random.value * Landscape.MapSize;
+            if (!Tool.AssetsManager.IsLegalSpawnXZ(x, z)) continue;
+            result = SnapToSurface(x, z);
+            return true;
+        }
+        return false;
+    }
+
+    // 在 center 的 [minRadius, maxRadius] 环带内均匀取一个合法刷新点（珊瑚用）
+    public bool TrySampleSpawnPointInRing(Vector3 center, float minRadius, float maxRadius, out Vector3 result)
+    {
+        result = default;
+        if (!CanSample) return false;
+
+        float minSq = minRadius * minRadius;
+        float maxSq = maxRadius * maxRadius;
+        for (int i = 0; i < MaxSampleAttempts; i++)
+        {
+            // 半径按面积均匀（sqrt 修正），否则会明显堆在环带内侧
+            float angle = Random.value * (Mathf.PI * 2f);
+            float radius = Mathf.Sqrt(Mathf.Lerp(minSq, maxSq, Random.value));
+            float x = center.x + Mathf.Cos(angle) * radius;
+            float z = center.z + Mathf.Sin(angle) * radius;
+            if (!Tool.AssetsManager.IsLegalSpawnXZ(x, z)) continue;
+            result = SnapToSurface(x, z);
+            return true;
+        }
+        return false;
+    }
+
+    // 缺地形或缺 AssetsManager 时启动自检/Start 已报过错，这里不再逐次刷日志
+    private bool CanSample => terrain != null && Tool.AssetsManager != null;
+
+    private Vector3 SnapToSurface(float x, float z)
+    {
+        float y = terrain.transform.position.y + terrain.SampleHeight(new Vector3(x, 0f, z)) + SurfaceOffset;
+        return new Vector3(x, y, z);
     }
 
     #endregion
 
-    #region 点位生成（编辑器工具）
-
-    private const float ClearanceRadius = 0.5f;
-
-    private const float SurfaceOffset = 0.1f;
-
-    private const int MaxAttemptsPerPoint = 500;
-
-    private const float GizmoPinFactor = 2f;
-
-    private static readonly Collider[] s_overlapBuffer = new Collider[32];
-
-    private enum DensityBias
-    {
-        Center,
-
-        Boundary,
-    }
-
-    [ContextMenu("随机生成珊瑚刷新点（清空后重建）")]
-    public void GenerateCoralSpawnPositions()
-    {
-        GeneratePointsOnTerrain(coralSpawnPositions, coralGenerateCount, DensityBias.Center, "珊瑚刷新点");
-    }
-
-    [ContextMenu("随机生成僵尸出生点（清空后重建）")]
-    public void GenerateZombieSpawnPositions()
-    {
-        GeneratePointsOnTerrain(zombieSpawnPositions, zombieGenerateCount, DensityBias.Boundary, "僵尸出生点");
-    }
-
-    private void GeneratePointsOnTerrain(List<Vector3> target, int count, DensityBias bias, string label)
-    {
-        if (terrain == null)
-        {
-            Debug.LogError($"[LandscapeSpawns] 未在主控面板的 Inspector 中指定 Terrain，无法生成{label}。");
-            return;
-        }
-
-        target.Clear();
-
-        int failed = 0;
-        for (int i = 0; i < count; i++)
-        {
-            if (TryFindFreePointOnTerrain(terrain, bias, out Vector3 pos)) target.Add(pos);
-            else failed++;
-        }
-
-        if (failed > 0)
-        {
-            Debug.LogWarning($"[LandscapeSpawns] {label}：已生成 {target.Count} 个，{failed} 个因找不到净空位置而放弃（Terrain = {terrain.name}）。");
-        }
-        else
-        {
-            Debug.Log($"[LandscapeSpawns] {label}：已生成 {target.Count} 个（Terrain = {terrain.name}）。");
-        }
-    }
-
-    private bool TryFindFreePointOnTerrain(Terrain terrain, DensityBias bias, out Vector3 result)
-    {
-        Vector3 origin = terrain.transform.position;
-        Vector3 size = terrain.terrainData.size;
-
-        for (int i = 0; i < MaxAttemptsPerPoint; i++)
-        {
-            float x = origin.x + Random.value * size.x;
-            float z = origin.z + Random.value * size.z;
-
-            if (Random.value > AcceptProbability(x, z, origin, size, bias)) continue;
-
-            // 高度贴 Terrain 表面（SampleHeight 返回相对 Terrain 原点的高度，需加回 transform.position.y）
-            float y = origin.y + terrain.SampleHeight(new Vector3(x, 0f, z));
-            var pos = new Vector3(x, y, z);
-
-            if (!IsClear(pos, terrain)) continue;
-
-            result = pos;
-            return true;
-        }
-
-        result = default;
-        return false;
-    }
-
-    private static float AcceptProbability(float x, float z, Vector3 origin, Vector3 size, DensityBias bias)
-    {
-        float minX = origin.x, maxX = origin.x + size.x;
-        float minZ = origin.z, maxZ = origin.z + size.z;
-
-        if (bias == DensityBias.Center)
-        {
-            float centerX = (minX + maxX) * 0.5f;
-            float centerZ = (minZ + maxZ) * 0.5f;
-            float radius = new Vector2(size.x * 0.5f, size.z * 0.5f).magnitude;
-            return 1f - new Vector2(x - centerX, z - centerZ).magnitude / radius;
-        }
-
-        // 矩形中心处「到最近边的距离」最大，等于短边的一半，用它做归一化上限
-        float halfShort = Mathf.Min(size.x, size.z) * 0.5f;
-        float toEdge = Mathf.Min(Mathf.Min(x - minX, maxX - x), Mathf.Min(z - minZ, maxZ - z));
-        return 1f - toEdge / halfShort;
-    }
-
-    private bool IsClear(Vector3 pos, Terrain terrain)
-    {
-        // 先做便宜的检查：与已配置点位的距离
-        if (IsNearExistingPoint(pos)) return false;
-
-        int count = Physics.OverlapSphereNonAlloc(pos, ClearanceRadius, s_overlapBuffer, ~0, QueryTriggerInteraction.Collide);
-        if (count >= s_overlapBuffer.Length) return false; // 缓冲塞满，视为拥挤
-
-        for (int i = 0; i < count; i++)
-        {
-            var col = s_overlapBuffer[i];
-            if (col == null) continue;
-            // Terrain 自身（含其子物体）的 collider 就是地面，不算阻挡
-            if (col.transform == terrain.transform || col.transform.IsChildOf(terrain.transform)) continue;
-            return false;
-        }
-        return true;
-    }
-
-    private bool IsNearExistingPoint(Vector3 pos)
-    {
-        return NearIn(subGuardStatueSpawnPositions, pos)
-            || NearIn(mainGuardStatueSpawnPosition, pos)
-            || NearIn(coralSpawnPositions, pos)
-            || NearIn(crystalStatueSpawnPositions, pos)
-            || NearIn(neutralStatueSpawnPositions, pos)
-            || NearIn(zombieSpawnPositions, pos)
-            || NearIn(attackPositions, pos)
-            || NearIn(defensePositions, pos);
-    }
-
-    private static bool NearIn(List<Transform> list, Vector3 pos)
-    {
-        if (list == null) return false;
-        float sqr = ClearanceRadius * ClearanceRadius;
-        for (int i = 0; i < list.Count; i++)
-        {
-            var t = list[i];
-            if (t == null) continue;
-            if ((t.position - pos).sqrMagnitude < sqr) return true;
-        }
-        return false;
-    }
-
-    private static bool NearIn(Transform t, Vector3 pos)
-    {
-        if (t == null) return false;
-        float sqr = ClearanceRadius * ClearanceRadius;
-        return (t.position - pos).sqrMagnitude < sqr;
-    }
-
-    private static bool NearIn(List<Vector3> list, Vector3 pos)
-    {
-        if (list == null) return false;
-        float sqr = ClearanceRadius * ClearanceRadius;
-        for (int i = 0; i < list.Count; i++)
-        {
-            if ((list[i] - pos).sqrMagnitude < sqr) return true;
-        }
-        return false;
-    }
-
     private void OnDrawGizmos()
     {
-        // 菜单生成的坐标点位（Vector3 列表）——与珊瑚共用 coralGizmoRadius
-        DrawPoints(coralSpawnPositions, new Color(0.25f, 0.80f, 1.00f), coralGizmoRadius); // 珊瑚：青
-        DrawPoints(zombieSpawnPositions, new Color(1.00f, 0.65f, 0.20f), coralGizmoRadius);  // 僵尸：橙
-
         // Transform 锚点——共用 otherGizmoRadius
         DrawPoints(subGuardStatueSpawnPositions, new Color(0.25f, 0.85f, 0.35f), otherGizmoRadius);  // 副守护点：绿
         if (mainGuardStatueSpawnPosition != null) { Gizmos.color = new Color(1.00f, 0.85f, 0.25f); DrawPoint(mainGuardStatueSpawnPosition.position, otherGizmoRadius); } // 主守护点：金
@@ -339,18 +190,9 @@ public class LandscapeSpawns : MonoBehaviour
         }
     }
 
-    private static void DrawPoints(List<Vector3> list, Color color, float radius)
-    {
-        if (list == null || list.Count == 0) return;
-        Gizmos.color = color;
-        for (int i = 0; i < list.Count; i++) DrawPoint(list[i], radius);
-    }
-
     private static void DrawPoint(Vector3 pos, float radius)
     {
         Gizmos.DrawSphere(pos, radius);
         Gizmos.DrawLine(pos, pos + Vector3.up * (radius * GizmoPinFactor));
     }
-
-    #endregion
 }

@@ -9,6 +9,7 @@ public class AssetsManager : MonoBehaviour
         Tool.AssetsManager = this;
         SkillIconMap = BuildIconMap(skillIconTextures, nameof(skillIconTextures));
         BuffIconMap = BuildIconMap(buffIconTextures, nameof(buffIconTextures));
+        BuildSpawnMask();
     }
 
     // 图标 id 取贴图名前 3 位（如 "015_霜棱散" → 15）；名字不合规或 id 重复属资源配置错配，直接抛
@@ -71,6 +72,50 @@ public class AssetsManager : MonoBehaviour
 
     public Dictionary<int, Texture> SkillIconMap { get; private set; } = new();
     public Dictionary<int, Texture> BuffIconMap { get; private set; } = new();
+    #endregion
+
+    #region 合法刷新区（MapSpace 掩膜，珊瑚/僵尸采样用）
+    [Tooltip("合法刷新位置掩膜：红通道 > 128 的像素视为合法；图左下 = 世界(0,0)，上 = +Z，需开 Read/Write")]
+    public Texture MapSpace;
+
+    private bool[] spawnMask;   // [v * width + u]，true = 合法（与贴图像素行序一致，左下为 0）
+    private int spawnMaskWidth;
+    private int spawnMaskHeight;
+
+    // 加载期把掩膜烘成 bool 数组，运行期采样只查数组
+    private void BuildSpawnMask()
+    {
+        if (MapSpace == null)
+            throw new FormatException("[刷新区] AssetsManager.MapSpace 未赋值：珊瑚/僵尸无法判断合法刷新位置");
+
+        if (MapSpace is not Texture2D tex || !tex.isReadable)
+            throw new FormatException($"[刷新区] AssetsManager.MapSpace「{MapSpace.name}」不是可读的 Texture2D，请在贴图导入设置里勾 Read/Write");
+
+        spawnMaskWidth = tex.width;
+        spawnMaskHeight = tex.height;
+        Color32[] pixels = tex.GetPixels32();
+        spawnMask = new bool[pixels.Length];
+
+        // Unity 的 GetPixels32 与 GetPixelBilinear 同样以左下角为原点，行序与 uv 的 v 一致
+        int legalCount = 0;
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            if (pixels[i].r <= 128) continue;
+            spawnMask[i] = true;
+            legalCount++;
+        }
+
+        if (legalCount == 0)
+            throw new FormatException($"[刷新区] AssetsManager.MapSpace「{tex.name}」没有任何红通道 > 128 的像素：合法刷新区为空，珊瑚/僵尸将永远无法生成");
+    }
+
+    public bool IsLegalSpawnXZ(float x, float z)
+    {
+        float u = x / Landscape.MapSize;
+        float v = z / Landscape.MapSize;
+        if (u < 0f || v < 0f || u >= 1f || v >= 1f) return false;
+        return spawnMask[(int)(v * spawnMaskHeight) * spawnMaskWidth + (int)(u * spawnMaskWidth)];
+    }
     #endregion
 
     public bool TryGetGraphic(EntityType type, out GameObject graphic)

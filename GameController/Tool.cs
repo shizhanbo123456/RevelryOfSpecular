@@ -123,7 +123,7 @@ public class Tool : MonoBehaviour
         errors += CheckObject(nameof(BattleManager), BattleManager);
         errors += CheckObject(nameof(InfoManager), InfoManager);
         errors += CheckObject(nameof(EnvironmentManager), EnvironmentManager);
-        errors += CheckObject("地形 LandscapeSpawns（唯一点位来源）", s_landscapeSpawns);
+        errors += CheckObject("地形 LandscapeSpawns（固定点位来源）", s_landscapeSpawns);
         errors += CheckObject(nameof(AssetsManager), AssetsManager);
         if (!isServer)
         {

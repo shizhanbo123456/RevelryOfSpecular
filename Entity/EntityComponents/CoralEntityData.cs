@@ -2,8 +2,6 @@ using UnityEngine;
 
 public class CoralEntityData : EntityData
 {
-    public int spawnPointIndex = -1;
-
     public override void OnKilled()
     {
         SpreadPlaguePollute(); // 必须在实体销毁（OnDestroyed 会清 Buff）之前结算
@@ -12,7 +10,6 @@ public class CoralEntityData : EntityData
         if (battle == null) return;
 
         battle.OnCoralDestroyed(this); // 回血 + 掉武器
-        battle.NotifyCoralDestroyed(this); // 释放刷新点占用，可被邻近机制再次生成
     }
 
     // 瘟疫污染：被打碎时给附近进攻方单位各挂 1 层瘟疫标记，归属施加污染的瘟疫使者

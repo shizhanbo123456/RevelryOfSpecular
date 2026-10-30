@@ -4,9 +4,9 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    private ushort[] coralAtPoint = System.Array.Empty<ushort>();
     private float coralSpawnAccumulator;
     private static readonly List<Vector3> s_playerPosScratch = new();
+    private static readonly List<Vector3> s_coralPosScratch = new();
 
     private float neutralStatueRespawnTime = -1f;
 
@@ -27,9 +27,7 @@ public partial class BattleManager
         var kingAnchor = spawns.mainGuardStatueSpawnPosition;
         if (kingAnchor != null) SpawnEntity(EntityType.KingStatue, 1, kingAnchor.position, EntityCamp.Defense);
 
-        // 珊瑚：不再开局全量生成（按玩家邻近动态生成，见 TickCoralSpawn）；
-        // 这里只按刷新点数量重建"哪一点有珊瑚"的占用记录
-        ResetCoralSpawnState(spawns.coralSpawnPositions.Count);
+        // 珊瑚：开局不生成，按玩家邻近采样 MapSpace 合法位置动态生成（见 TickCoralSpawn）
 
         // 水晶雕像（瘟疫孢子，不复活；锚点未赋值的槽位跳过）
         for (int i = 0; i < spawns.crystalStatueSpawnPositions.Count; i++)
@@ -45,10 +43,10 @@ public partial class BattleManager
 
     private void SpawnZombie()
     {
-        var list = Tool.LandscapeSpawns.zombieSpawnPositions;
-        if (list == null || list.Count == 0) return; // 未配置僵尸出生点则不刷新
+        // 出生点在 MapSpace 合法区均匀采样；采样失败（合法区太小/地形缺失）本次就不刷
+        if (!Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 pos)) return;
         int variant = Random.Range(0, Config.zombie_variant_count);
-        SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), LandscapeSpawns.RandomOf(list), EntityCamp.Zombie);
+        SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), pos, EntityCamp.Zombie);
     }
 
     private void SpawnNeutralStatue()
@@ -82,38 +80,21 @@ public partial class BattleManager
     }
 
     #region 珊瑚（按玩家邻近动态生成）
-    private void ResetCoralSpawnState(int pointCount)
-    {
-        if (coralAtPoint == null || coralAtPoint.Length != pointCount)
-            coralAtPoint = pointCount > 0 ? new ushort[pointCount] : System.Array.Empty<ushort>();
-        else
-            System.Array.Clear(coralAtPoint, 0, pointCount);
-        coralSpawnAccumulator = 0f;
-    }
-
-    public void NotifyCoralDestroyed(CoralEntityData coral)
-    {
-        if (coral == null || coralAtPoint == null) return;
-        int idx = coral.spawnPointIndex;
-        if (idx >= 0 && idx < coralAtPoint.Length && coralAtPoint[idx] == coral.id) coralAtPoint[idx] = 0;
-    }
+    private const int CoralSampleAttempts = 8;
 
     private void TickCoralSpawn(float dt)
     {
-        int count = coralAtPoint != null ? coralAtPoint.Length : 0;
-        if (count == 0) return;
-
         float rate = Config.coral_spawn_checks_per_second;
         // 累计检测次数；上限压到"1 秒的量"，避免掉帧后单帧爆发式生成
         coralSpawnAccumulator = Mathf.Min(coralSpawnAccumulator + dt * rate, rate);
         while (coralSpawnAccumulator >= 1f)
         {
             coralSpawnAccumulator -= 1f;
-            TrySpawnOneCoral(count);
+            TrySpawnOneCoral();
         }
     }
 
-    private void TrySpawnOneCoral(int count)
+    private void TrySpawnOneCoral()
     {
         // 收集全部存活玩家位置（玩家数很少，一次收集供本次检测复用；阵亡/复活等待中返回 null）
         s_playerPosScratch.Clear();
@@ -125,39 +106,28 @@ public partial class BattleManager
         }
         if (s_playerPosScratch.Count == 0) return;
 
-        var points = Tool.LandscapeSpawns.coralSpawnPositions;
-        Vector3 center = s_playerPosScratch[Random.Range(0, s_playerPosScratch.Count)];
-
-        float minDist = Config.coral_spawn_min_dist;
-        float minSq = minDist * minDist;
-        float maxSq = Config.coral_spawn_max_dist * Config.coral_spawn_max_dist;
-
-        // 在"位于所选玩家的环带内、且 minDist 内无任何玩家"的候选点中均匀随机取一个（蓄水池抽样，零分配）
-        int picked = -1;
-        int hits = 0;
-        int scan = Mathf.Min(count, points.Count); // 两者理论一致，取小值防御越界
-        for (int i = 0; i < scan; i++)
+        // 场上已有珊瑚位置，用于保持最小间距
+        s_coralPosScratch.Clear();
+        foreach (var entity in EntityContainer.Entities)
         {
-            Vector3 p = points[i];
-            float dx = p.x - center.x;
-            float dz = p.z - center.z;
-            float d = dx * dx + dz * dz;
-            if (d < minSq || d > maxSq) continue;        // 不在所选玩家的环带内
-            if (IsAnyPlayerWithin(p, minDist)) continue; // 该点近处还有别的玩家
-            if (++hits == 1 || Random.Range(0, hits) == 0) picked = i;
+            if (entity == null || !entity.Alive || entity.type.category != EntityCategory.Coral) continue;
+            s_coralPosScratch.Add(entity.transform.position);
         }
-        if (picked < 0) return;
 
-        // 该点已有珊瑚（且实体仍在）→ 不处理
-        ushort existing = coralAtPoint[picked];
-        if (existing != 0 && EntityContainer.Entities.TryGetObject(existing, out _)) return;
+        Vector3 center = s_playerPosScratch[Random.Range(0, s_playerPosScratch.Count)];
+        float minDist = Config.coral_spawn_min_dist;
 
-        Vector3 pos = points[picked];
-        EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
-        ushort id = SpawnEntity(type, 1, pos, EntityCamp.Prop);
-        if (id == 0) return;
-        coralAtPoint[picked] = id;
-        if (GetEntity(id) is CoralEntityData coral) coral.spawnPointIndex = picked;
+        for (int attempt = 0; attempt < CoralSampleAttempts; attempt++)
+        {
+            // 采样：所选玩家的环带内 + MapSpace 合法区
+            if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, Config.coral_spawn_max_dist, out Vector3 pos)) continue;
+            if (IsAnyPlayerWithin(pos, minDist)) continue;              // 该点近处还有别的玩家
+            if (IsAnyCoralWithin(pos, Config.coral_min_separation)) continue; // 与已有珊瑚过近
+
+            EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+            SpawnEntity(type, 1, pos, EntityCamp.Prop);
+            return;
+        }
     }
 
     private static bool IsAnyPlayerWithin(Vector3 pos, float radius)
@@ -166,6 +136,19 @@ public partial class BattleManager
         for (int i = 0; i < s_playerPosScratch.Count; i++)
         {
             Vector3 p = s_playerPosScratch[i];
+            float dx = p.x - pos.x;
+            float dz = p.z - pos.z;
+            if (dx * dx + dz * dz <= rSq) return true;
+        }
+        return false;
+    }
+
+    private static bool IsAnyCoralWithin(Vector3 pos, float radius)
+    {
+        float rSq = radius * radius;
+        for (int i = 0; i < s_coralPosScratch.Count; i++)
+        {
+            Vector3 p = s_coralPosScratch[i];
             float dx = p.x - pos.x;
             float dz = p.z - pos.z;
             if (dx * dx + dz * dz <= rSq) return true;
