@@ -35,25 +35,25 @@ namespace Ros.Transport
             }
             else
             {
-                if (result.Length - indexStart < (value == null ? 1 : 10)) return false;
+                if (result.Length - indexStart < (value == null ? 1 : 12)) return false;
 
-                // 位级：1+16+8+15+15+9+1+4+6=75 位
+                // 位级：1+15+32+10+2+6+3+12+1+3+7=92 位
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
                 {
-                    BitField.WriteInt(value.entityId, 0, 65535);
-                    BitField.WriteInt(value.animId, 0, 255);
-                    BitField.WriteFloat(value.animFrame, 0f, 256f, 0.01f);
-                    BitField.WriteInt(value.animParams.characterType, 0, 15);
-                    BitField.WriteInt(value.animParams.attackId, 0, 255);
+                    BitField.WriteInt(value.entityId, 0, SyncRanges.EntityIdMax);
+                    BitField.WriteInt(value.animId, int.MinValue, int.MaxValue);   // 动画状态 fullPathHash，可为负
+                    BitField.WriteFloat(value.animFrame, 0f, 1f, 0.001f);          // 归一化播放进度
+                    BitField.WriteInt(value.animParams.characterType, 0, 3);
+                    BitField.WriteInt(value.animParams.attackId, 0, 63);
                     BitField.WriteBool(value.animParams.inAir);
                     BitField.WriteBool(value.animParams.moving);
                     BitField.WriteBool(value.animParams.slide);
-                    BitField.WriteFloat(value.moveSpeedScale, 0f, 4f, 0.01f);
+                    BitField.WriteFloat(value.moveSpeedScale, 0f, SyncRanges.MoveSpeedScaleMax, 0.01f);
                     BitField.WriteBool(value.paused);
-                    BitField.WriteInt(value.heldWeaponCategory, 0, 15);
-                    BitField.WriteInt(value.heldWeaponIndex, 0, 63);
+                    BitField.WriteInt(value.heldWeaponCategory, 0, 7);
+                    BitField.WriteInt(value.heldWeaponIndex, -1, 63);              // -1 = 空手 / 无武器
                 }
                 indexStart += BitField.Flush();
                 return true;
@@ -88,18 +88,18 @@ namespace Ros.Transport
                     indexStart += 1;
                     return null;
                 }
-                if (invalidIndex - indexStart < 10) throw new Exception("反序列化 SCEntityAnimInfo 失败：剩余数据不足");
+                if (invalidIndex - indexStart < 12) throw new Exception("反序列化 SCEntityAnimInfo 失败：剩余数据不足");
 
                 var r = new SCEntityAnimInfo();
-                r.entityId = (ushort)BitField.ReadInt(0, 65535);
-                r.animId = BitField.ReadInt(0, 255);
-                r.animFrame = BitField.ReadFloat(0f, 256f, 0.01f);
-                r.animParams = new AnimParamPack() { characterType = BitField.ReadInt(0, 15), attackId = BitField.ReadInt(0, 255), inAir = BitField.ReadBool(), moving = BitField.ReadBool(), slide = BitField.ReadBool() };
-                r.moveSpeedScale = BitField.ReadFloat(0f, 4f, 0.01f);
+                r.entityId = (ushort)BitField.ReadInt(0, SyncRanges.EntityIdMax);
+                r.animId = BitField.ReadInt(int.MinValue, int.MaxValue);
+                r.animFrame = BitField.ReadFloat(0f, 1f, 0.001f);
+                r.animParams = new AnimParamPack() { characterType = BitField.ReadInt(0, 3), attackId = BitField.ReadInt(0, 63), inAir = BitField.ReadBool(), moving = BitField.ReadBool(), slide = BitField.ReadBool() };
+                r.moveSpeedScale = BitField.ReadFloat(0f, SyncRanges.MoveSpeedScaleMax, 0.01f);
                 r.paused = BitField.ReadBool();
-                r.heldWeaponCategory = BitField.ReadInt(0, 15);
-                r.heldWeaponIndex = BitField.ReadInt(0, 63);
-                indexStart += 10;
+                r.heldWeaponCategory = BitField.ReadInt(0, 7);
+                r.heldWeaponIndex = BitField.ReadInt(-1, 63);
+                indexStart += 12;
                 return r;
             }
         }

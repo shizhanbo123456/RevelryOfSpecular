@@ -87,58 +87,56 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：id16+type11+camp5+5flag+health17*2+列表+可选位姿45/12/33/11
+                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount4 + 9/slot + 位姿83
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
                 {
-                    BitField.WriteInt(value.entityId, 0, 65535);
+                    BitField.WriteInt(value.entityId, 0, SyncRanges.EntityIdMax);
                     BitField.WriteInt((int)value.type.category, 0, 7);
-                    BitField.WriteInt(value.type.value, 0, 255);
+                    BitField.WriteInt(value.type.value, 0, 31);
                     BitField.WriteInt((int)value.camp, 0, 31);
                     BitField.WriteBool(value.includeRuntime);
                     BitField.WriteBool(value.hasTransform);
                     BitField.WriteBool(value.hasHealth);
                     BitField.WriteBool(value.hasBuffs);
                     BitField.WriteBool(value.hasSkills);
-                    BitField.WriteInt(value.health, 0, 100000);
-                    BitField.WriteInt(value.maxHealth, 0, 100000);
+                    BitField.WriteInt(value.health, 0, SyncRanges.MaxHealth);
+                    BitField.WriteInt(value.maxHealth, 0, SyncRanges.MaxHealth);
 
+                    // 条数按配表上限截断：写出的条数必须与计数一致，否则读端错位
                     int buffCount = value.buffs != null ? value.buffs.Count : 0;
-                    BitField.WriteInt(buffCount, 0, 15);
-                    if (value.buffs != null)
+                    if (buffCount > SyncRanges.MaxBuffCount) buffCount = SyncRanges.MaxBuffCount;
+                    BitField.WriteInt(buffCount, 0, SyncRanges.MaxBuffCount);
+                    for (int i = 0; i < buffCount; i++)
                     {
-                        foreach (var buff in value.buffs)
-                        {
-                            BitField.WriteBool(buff != null);
-                            if (buff == null) continue;
-                            BitField.WriteInt(buff.type, 0, 255);
-                            BitField.WriteInt(buff.level, 0, 15);
-                        }
+                        var buff = value.buffs[i];
+                        BitField.WriteBool(buff != null);
+                        if (buff == null) continue;
+                        BitField.WriteInt(buff.type, 0, 63);
+                        BitField.WriteInt(buff.level, 0, 15);
                     }
 
-                    int skillCount = value.skills != null ? value.skills.Count : 0;
+                    int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, 15) : 0;
                     BitField.WriteInt(skillCount, 0, 15);
-                    if (value.skills != null)
+                    for (int i = 0; i < skillCount; i++)
                     {
-                        foreach (var slot in value.skills)
-                        {
-                            BitField.WriteBool(slot != null);
-                            if (slot == null) continue;
-                            BitField.WriteInt(slot.skillId, -1, 255);
-                        }
+                        var slot = value.skills[i];
+                        BitField.WriteBool(slot != null);
+                        if (slot == null) continue;
+                        BitField.WriteInt(slot.skillId, -1, 127);
                     }
 
                     if (value.hasTransform)
                     {
-                        BitField.WriteFloat(value.position.x, -500f, 500f, 0.05f);
-                        BitField.WriteFloat(value.position.y, -500f, 500f, 0.05f);
-                        BitField.WriteFloat(value.position.z, -500f, 500f, 0.05f);
-                        BitField.WriteFloat(value.yaw, 0f, 360f, 0.1f);
-                        BitField.WriteFloat(value.velocity.x, -50f, 50f, 0.05f);
-                        BitField.WriteFloat(value.velocity.y, -50f, 50f, 0.05f);
-                        BitField.WriteFloat(value.velocity.z, -50f, 50f, 0.05f);
-                        BitField.WriteFloat(value.yawSpeed, -720f, 720f, 1f);
+                        BitField.WriteFloat(value.position.x, 0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                        BitField.WriteFloat(value.position.y, 0f, SyncRanges.PositionYMax, SyncRanges.PositionYStep);
+                        BitField.WriteFloat(value.position.z, 0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                        BitField.WriteFloat(value.yaw, 0f, SyncRanges.YawMax, SyncRanges.YawStep);
+                        BitField.WriteFloat(value.velocity.x, -SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
+                        BitField.WriteFloat(value.velocity.y, -SyncRanges.VelocityYRange, SyncRanges.VelocityYRange, SyncRanges.VelocityYStep);
+                        BitField.WriteFloat(value.velocity.z, -SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
+                        BitField.WriteFloat(value.yawSpeed, -SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, 1f);
                     }
                 }
                 indexStart += BitField.Flush();
@@ -204,24 +202,24 @@ namespace Ros.Transport
                 }
 
                 var r = new SCEntityDisplayInfo();
-                r.entityId = (ushort)BitField.ReadInt(0, 65535);
-                r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 255));
+                r.entityId = (ushort)BitField.ReadInt(0, SyncRanges.EntityIdMax);
+                r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 31));
                 r.camp = (EntityCamp)BitField.ReadInt(0, 31);
                 r.includeRuntime = BitField.ReadBool();
                 r.hasTransform = BitField.ReadBool();
                 r.hasHealth = BitField.ReadBool();
                 r.hasBuffs = BitField.ReadBool();
                 r.hasSkills = BitField.ReadBool();
-                r.health = BitField.ReadInt(0, 100000);
-                r.maxHealth = BitField.ReadInt(0, 100000);
+                r.health = BitField.ReadInt(0, SyncRanges.MaxHealth);
+                r.maxHealth = BitField.ReadInt(0, SyncRanges.MaxHealth);
 
-                int buffCount = BitField.ReadInt(0, 15);
+                int buffCount = BitField.ReadInt(0, SyncRanges.MaxBuffCount);
                 for (int i = 0; i < buffCount; i++)
                 {
                     if (!BitField.ReadBool()) { r.buffs.Add(null); continue; }
                     r.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
                     {
-                        type = BitField.ReadInt(0, 255),
+                        type = BitField.ReadInt(0, 63),
                         level = BitField.ReadInt(0, 15),
                     });
                 }
@@ -232,20 +230,20 @@ namespace Ros.Transport
                     if (!BitField.ReadBool()) { r.skills.Add(null); continue; }
                     r.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
                     {
-                        skillId = BitField.ReadInt(-1, 255),
+                        skillId = BitField.ReadInt(-1, 127),
                     });
                 }
 
                 if (r.hasTransform)
                 {
-                    r.position.x = BitField.ReadFloat(-500f, 500f, 0.05f);
-                    r.position.y = BitField.ReadFloat(-500f, 500f, 0.05f);
-                    r.position.z = BitField.ReadFloat(-500f, 500f, 0.05f);
-                    r.yaw = BitField.ReadFloat(0f, 360f, 0.1f);
-                    r.velocity.x = BitField.ReadFloat(-50f, 50f, 0.05f);
-                    r.velocity.y = BitField.ReadFloat(-50f, 50f, 0.05f);
-                    r.velocity.z = BitField.ReadFloat(-50f, 50f, 0.05f);
-                    r.yawSpeed = BitField.ReadFloat(-720f, 720f, 1f);
+                    r.position.x = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                    r.position.y = BitField.ReadFloat(0f, SyncRanges.PositionYMax, SyncRanges.PositionYStep);
+                    r.position.z = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                    r.yaw = BitField.ReadFloat(0f, SyncRanges.YawMax, SyncRanges.YawStep);
+                    r.velocity.x = BitField.ReadFloat(-SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
+                    r.velocity.y = BitField.ReadFloat(-SyncRanges.VelocityYRange, SyncRanges.VelocityYRange, SyncRanges.VelocityYStep);
+                    r.velocity.z = BitField.ReadFloat(-SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
+                    r.yawSpeed = BitField.ReadFloat(-SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, 1f);
                 }
                 indexStart += BitField.ReadByteLength;
                 return r;

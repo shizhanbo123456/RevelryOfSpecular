@@ -887,9 +887,13 @@ public class ConfigManager : MonoBehaviour
         // 精度必须小于量程，否则量化后位宽为 0、数据被静默丢弃（跨行校验，须在全部行 Apply 之后执行）
         private static void Validate()
         {
-            // 量程行缺失会退化成 0，让下面的比较报出误导性信息，先显式拦下
-            if (terrain_size <= 0f || terrain_height <= 0f || sync_entity_velocity_xz <= 0f || sync_entity_velocity_y <= 0f)
-                throw new FormatException($"[配表] {FileName} 缺少 terrain_size / terrain_height / sync_entity_velocity_xz / sync_entity_velocity_y，无法校验同步精度");
+            // 位级同步全靠这些行确定范围；缺行会退化成 0，让位宽变 0 静默丢数据，先显式拦下
+            if (terrain_size <= 0f || terrain_height <= 0f
+                || sync_precision_entity_xz <= 0f || sync_precision_entity_y <= 0f || sync_precision_entity_yaw <= 0f
+                || sync_entity_velocity_xz <= 0f || sync_precision_entity_velocity_xz <= 0f
+                || sync_entity_velocity_y <= 0f || sync_precision_entity_velocity_y <= 0f
+                || sync_precision_minimap_xz <= 0f || sync_max_buff_count <= 0 || max_entity_health <= 0)
+                throw new FormatException($"[配表] {FileName} 缺少位级同步所需参数行（terrain_size/terrain_height/sync_*/max_entity_health）");
             if (sync_precision_entity_xz >= terrain_size)
                 throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_xz 必须小于 terrain_size：{sync_precision_entity_xz} vs {terrain_size}");
             if (sync_precision_entity_y >= terrain_height)

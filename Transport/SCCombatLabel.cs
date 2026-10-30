@@ -31,20 +31,20 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：1+16+4+16+1[+3*15]=38/83 位；命中点按 -500~500 / 0.05 量化
+                // 位级：1+20+4+15+1[+15+13+15]=41/84 位
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(label != null);
                 if (label != null)
                 {
-                    BitField.WriteInt(label.amount, 0, 65535);
+                    BitField.WriteInt(label.amount, 0, SyncRanges.CombatLabelAmountMax);
                     BitField.WriteInt(label.type, 0, 15);
-                    BitField.WriteInt(label.targetId, -1, 32767);
+                    BitField.WriteInt(label.targetId, -1, SyncRanges.EntityIdMax);
                     BitField.WriteBool(label.hasHitPos);
                     if (label.hasHitPos)
                     {
-                        BitField.WriteFloat(label.hitPos.x, -500f, 500f, 0.05f);
-                        BitField.WriteFloat(label.hitPos.y, -500f, 500f, 0.05f);
-                        BitField.WriteFloat(label.hitPos.z, -500f, 500f, 0.05f);
+                        BitField.WriteFloat(label.hitPos.x, 0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                        BitField.WriteFloat(label.hitPos.y, 0f, SyncRanges.PositionYMax, SyncRanges.PositionYStep);
+                        BitField.WriteFloat(label.hitPos.z, 0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
                     }
                 }
                 indexStart += BitField.Flush();
@@ -79,15 +79,15 @@ namespace Ros.Transport
                 }
 
                 var r = new SCCombatLabel();
-                r.amount = BitField.ReadInt(0, 65535);
+                r.amount = BitField.ReadInt(0, SyncRanges.CombatLabelAmountMax);
                 r.type = BitField.ReadInt(0, 15);
-                r.targetId = BitField.ReadInt(-1, 32767);
+                r.targetId = BitField.ReadInt(-1, SyncRanges.EntityIdMax);
                 r.hasHitPos = BitField.ReadBool();
                 if (r.hasHitPos)
                 {
-                    r.hitPos.x = BitField.ReadFloat(-500f, 500f, 0.05f);
-                    r.hitPos.y = BitField.ReadFloat(-500f, 500f, 0.05f);
-                    r.hitPos.z = BitField.ReadFloat(-500f, 500f, 0.05f);
+                    r.hitPos.x = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
+                    r.hitPos.y = BitField.ReadFloat(0f, SyncRanges.PositionYMax, SyncRanges.PositionYStep);
+                    r.hitPos.z = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.PositionXZStep);
                 }
                 indexStart += BitField.ReadByteLength;
                 return r;

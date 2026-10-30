@@ -32,19 +32,19 @@ namespace Ros.Transport
             }
             else
             {
-                if (result.Length - indexStart < (value == null ? 1 : 8)) return false;
+                if (result.Length - indexStart < (value == null ? 1 : 7)) return false;
 
-                // 位级：1+16+3+8+5+15+15+1=64 位
+                // 位级：1+15+3+5+5+12+12+1=54 位
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
                 {
-                    BitField.WriteInt(value.entityId, 0, 65535);
+                    BitField.WriteInt(value.entityId, 0, SyncRanges.EntityIdMax);
                     BitField.WriteInt((int)value.type.category, 0, 7);
-                    BitField.WriteInt(value.type.value, 0, 255);
+                    BitField.WriteInt(value.type.value, 0, 31);
                     BitField.WriteInt((int)value.camp, 0, 31);
-                    BitField.WriteFloat(value.posX, -500f, 500f, 0.05f);
-                    BitField.WriteFloat(value.posZ, -500f, 500f, 0.05f);
+                    BitField.WriteFloat(value.posX, 0f, SyncRanges.PositionXZMax, SyncRanges.MinimapPositionStep);
+                    BitField.WriteFloat(value.posZ, 0f, SyncRanges.PositionXZMax, SyncRanges.MinimapPositionStep);
                     BitField.WriteBool(value.marked);
                 }
                 indexStart += BitField.Flush();
@@ -77,16 +77,16 @@ namespace Ros.Transport
                     indexStart += 1;
                     return null;
                 }
-                if (invalidIndex - indexStart < 8) throw new Exception("反序列化 SCMinimapEntity 失败：剩余数据不足");
+                if (invalidIndex - indexStart < 7) throw new Exception("反序列化 SCMinimapEntity 失败：剩余数据不足");
 
                 var r = new SCMinimapEntity();
-                r.entityId = (ushort)BitField.ReadInt(0, 65535);
-                r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 255));
+                r.entityId = (ushort)BitField.ReadInt(0, SyncRanges.EntityIdMax);
+                r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 31));
                 r.camp = (EntityCamp)BitField.ReadInt(0, 31);
-                r.posX = BitField.ReadFloat(-500f, 500f, 0.05f);
-                r.posZ = BitField.ReadFloat(-500f, 500f, 0.05f);
+                r.posX = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.MinimapPositionStep);
+                r.posZ = BitField.ReadFloat(0f, SyncRanges.PositionXZMax, SyncRanges.MinimapPositionStep);
                 r.marked = BitField.ReadBool();
-                indexStart += 8;
+                indexStart += 7;
                 return r;
             }
         }
