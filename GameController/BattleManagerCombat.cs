@@ -129,9 +129,9 @@ public partial class BattleManager
         public float lastSentProgress = -1f;
         public EntitySkillController.Loadout? loadout; // 死亡瞬间的技能快照，复活重建实体后归还
     }
-    private readonly Dictionary<short, ReviveState> reviveStates = new();
+    private readonly Dictionary<int, ReviveState> reviveStates = new();
 
-    public readonly Dictionary<short, int> KillCountByClient = new();
+    public readonly Dictionary<int, int> KillCountByClient = new();
 
     private void HandleDeath(EntityData entity)
     {
@@ -238,7 +238,7 @@ public partial class BattleManager
     }
 
     // 击败珊瑚的玩家角色实体（含 AI 代打）；击杀者未归属任何客户端时返回 null
-    private EntityData GetCoralKillerPlayer(EntityData coral, out short clientId)
+    private EntityData GetCoralKillerPlayer(EntityData coral, out int clientId)
     {
         clientId = -1;
         var killer = coral.lastAttacker;
@@ -264,7 +264,7 @@ public partial class BattleManager
     // 掉武器：服务器只记持有，已持有就不重复加；能装进技能栏几个由客户端决定
     public void TryDropCoralWeapon(EntityData coral)
     {
-        var player = GetCoralKillerPlayer(coral, out short clientId);
+        var player = GetCoralKillerPlayer(coral, out int clientId);
         if (player == null || player.skillController == null) return;
 
         float chance = coral.type.value <= 0
@@ -280,7 +280,7 @@ public partial class BattleManager
     }
 
     // 战斗事件列表的纯文字提示（文本走 notice.csv）
-    private void NotifyPlayer(short clientId, int messageId)
+    private void NotifyPlayer(int clientId, int messageId)
     {
         Tool.NetworkManager.SendBattleEvent(clientId, new SCBattleEvent()
         {
@@ -294,7 +294,7 @@ public partial class BattleManager
         float dt = UnityEngine.Time.deltaTime;
         foreach (var pair in reviveStates)
         {
-            short clientId = pair.Key;
+            int clientId = pair.Key;
             if (PlayerEntityId.ContainsKey(clientId)) continue; // 已复活
 
             var rs = pair.Value;
@@ -322,7 +322,7 @@ public partial class BattleManager
         }
     }
 
-    private void RespawnPlayer(short clientId, ReviveState rs)
+    private void RespawnPlayer(int clientId, ReviveState rs)
     {
         if (!PlayerCamps.TryGetValue(clientId, out var camp)) return;
         if (!PlayerInfoList.TryGetValue(clientId, out var info)) return;
@@ -375,7 +375,7 @@ public partial class BattleManager
         });
     }
 
-    private void SendReviveProgress(short clientId, ReviveState rs, ushort entityId, bool ready)
+    private void SendReviveProgress(int clientId, ReviveState rs, ushort entityId, bool ready)
     {
         rs.lastSentProgress = rs.progress;
         Tool.NetworkManager.SendReviveInfo(clientId, new SCReviveInfo()
@@ -461,7 +461,7 @@ public partial class BattleManager
 
     #region 技能释放回执
     private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏
-    private readonly Dictionary<short, float> skillFailPromptTime = new();
+    private readonly Dictionary<int, float> skillFailPromptTime = new();
 
     // 技能失败回包：只有玩家看得懂的原因才提示（沉默/强控），AI 与配置错误不提示
     public void NotifySkillUseFailed(EntityData entity, EntitySkillController.UseResult result)

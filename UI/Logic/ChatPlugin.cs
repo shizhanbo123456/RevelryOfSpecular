@@ -22,7 +22,7 @@ public class ChatPlugin
     {
         public int channel;        // 0 全频道 / 1 阵营频道，页签按它过滤
         public bool isSelf;
-        public short senderClientId;
+        public int senderClientId;
         public int camp;           // 发送方阵营：0 进攻 / 1 防守
         public int characterIndex; // 发送方角色下标（-1 无头像）
         public string name;
@@ -181,7 +181,7 @@ public class ChatPlugin
         {
             channel = sendChannel,
             isSelf = true,
-            senderClientId = EnsInstance.LocalClientId,
+            senderClientId = NetworkManager.LocalToken,
             camp = GetMyCamp(),
             characterIndex = self != null ? self.characterIndex : -1,
             name = GetMyName(),
@@ -197,7 +197,7 @@ public class ChatPlugin
     private void OnChatMessage(SCChat chat)
     {
         if (chat == null) return;
-        if (chat.senderClientId == EnsInstance.LocalClientId) return; // 自己的已本地回显
+        if (chat.senderClientId == NetworkManager.LocalToken) return; // 自己的已本地回显
         // 阵营频道客户端过滤；GM「敌方对话」开启时放行敌方阵营消息
         if (chat.channel == ChannelCamp && chat.camp != GetMyCamp() && !ShowEnemyDialog) return;
         entries.Add(new ChatEntry()
@@ -336,7 +336,7 @@ public class ChatPlugin
     {
         var info = NetworkManager.LatestLobbyInfo;
         if (info == null || info.members == null) return null;
-        return info.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
+        return info.members.Find(m => m != null && m.clientId == NetworkManager.LocalToken);
     }
 
     private int GetMyCamp()
@@ -355,9 +355,9 @@ public class ChatPlugin
     private string GetMyName()
     {
         var loading = ClientLoadingManager.Current;
-        if (NetworkManager.BattleRunning && loading != null && loading.HasSession) return loading.GetName(EnsInstance.LocalClientId);
-        if (NetworkManager.TryGetLobbyPlayerName(EnsInstance.LocalClientId, out var lobbyName)) return lobbyName;
-        return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{EnsInstance.LocalClientId}";
+        if (NetworkManager.BattleRunning && loading != null && loading.HasSession) return loading.GetName(NetworkManager.LocalToken);
+        if (NetworkManager.TryGetLobbyPlayerName(NetworkManager.LocalToken, out var lobbyName)) return lobbyName;
+        return !string.IsNullOrEmpty(ClientSelection.playerName) ? ClientSelection.playerName : $"玩家{NetworkManager.LocalToken}";
     }
     #endregion
 }

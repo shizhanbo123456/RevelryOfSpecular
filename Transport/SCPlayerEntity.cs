@@ -3,7 +3,7 @@ namespace Ros.Transport
     // 玩家 → 实体 id（每玩家一条独立包），-1 = 无实体（死亡 / 观战 / 退场）；开局全量，此后仅变更时下发
     public class SCPlayerEntity
     {
-        public short clientId;
+        public int clientId; // 玩家令牌（非连接 id）
         public int entityId;
     }
 
@@ -22,7 +22,7 @@ namespace Ros.Transport
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             return new SCPlayerEntity()
             {
-                clientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                clientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 entityId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }

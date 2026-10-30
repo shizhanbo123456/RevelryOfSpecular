@@ -21,7 +21,7 @@ public partial class BattleManager
         gmInvincible.Clear();
     }
 
-    public void ExecuteGm(short clientId, CSGm gm)
+    public void ExecuteGm(int clientId, CSGm gm)
     {
         if (!AtServer) return;
         Debug.Log($"[GM] {gm.type}(int1={gm.int1},int2={gm.int2},f1={gm.float1},f2={gm.float2},f3={gm.float3}) client={clientId}");
@@ -126,59 +126,59 @@ public partial class BattleManager
         BattleRemainTime = Mathf.Max(0.01f, seconds);
     }
 
-    private EntityData GetGmPlayerEntity(short clientId) =>
+    private EntityData GetGmPlayerEntity(int clientId) =>
         PlayerEntityId.TryGetValue(clientId, out var id) ? GetEntity(id) : null;
 
-    private EntitySkillController GetGmSkillController(short clientId)
+    private EntitySkillController GetGmSkillController(int clientId)
     {
         var owner = GetGmPlayerEntity(clientId);
         return owner != null ? owner.skillController : null;
     }
 
-    private EntityEffectController GetGmEffectController(short clientId)
+    private EntityEffectController GetGmEffectController(int clientId)
     {
         var owner = GetGmPlayerEntity(clientId);
         return owner != null ? owner.effectController : null;
     }
 
     // 技能 / buff：GM 指令作用于发送者自己，取不到实体就静默跳过
-    private void GmAddSkill(short clientId, int skillId)
+    private void GmAddSkill(int clientId, int skillId)
     {
         var skills = GetGmSkillController(clientId);
         if (skills != null) skills.AddSkill(skillId);
     }
 
-    private void GmForceUseSkill(short clientId, int skillId)
+    private void GmForceUseSkill(int clientId, int skillId)
     {
         var skills = GetGmSkillController(clientId);
         if (skills != null) skills.GmForceUseSkill(skillId);
     }
 
-    private void GmClearSkill(short clientId)
+    private void GmClearSkill(int clientId)
     {
         var skills = GetGmSkillController(clientId);
         if (skills != null) skills.SetSkillList(null);
     }
 
-    private void GmAddBuff(short clientId, EffectType type)
+    private void GmAddBuff(int clientId, EffectType type)
     {
         var effect = GetGmEffectController(clientId);
         if (effect != null) effect.AddEffect(type);
     }
 
-    private void GmRemoveBuff(short clientId, EffectType type)
+    private void GmRemoveBuff(int clientId, EffectType type)
     {
         var effect = GetGmEffectController(clientId);
         if (effect != null) effect.RemoveEffect(type);
     }
 
-    private void GmRemoveAllBuff(short clientId)
+    private void GmRemoveAllBuff(int clientId)
     {
         var effect = GetGmEffectController(clientId);
         if (effect != null) effect.RemoveAll();
     }
 
-    private void GmSetInvincible(short clientId, bool on)
+    private void GmSetInvincible(int clientId, bool on)
     {
         var target = GetGmPlayerEntity(clientId);
         if (target == null) return;
@@ -187,7 +187,7 @@ public partial class BattleManager
     }
 
     // 传送：直接落点（y = Config.gm_teleport_height），并清速度与位移，避免刚体/位移效果把角色拉回
-    private void GmTeleport(short clientId, Vector3 pos)
+    private void GmTeleport(int clientId, Vector3 pos)
     {
         var target = GetGmPlayerEntity(clientId);
         if (target == null) return;
@@ -201,7 +201,7 @@ public partial class BattleManager
         target.motion = null;
     }
 
-    private void GmTeleportToStatue(short clientId, int guardStatueIndex)
+    private void GmTeleportToStatue(int clientId, int guardStatueIndex)
     {
         foreach (var guardStatue in EntityContainer.GuardStatues)
         {
@@ -216,7 +216,7 @@ public partial class BattleManager
         Debug.LogWarning($"[GM] 场上没有可用的雕像（{guardStatueIndex}），传送取消");
     }
 
-    private void GmRevive(short clientId)
+    private void GmRevive(int clientId)
     {
         if (!BattleStarted) return;
         if (PlayerEntityId.ContainsKey(clientId)) return; // 还活着
@@ -270,7 +270,7 @@ public partial class BattleManager
         }
     }
 
-    private void GmKill(short clientId, GmEntityType type, GmFilterType filter, float amount)
+    private void GmKill(int clientId, GmEntityType type, GmFilterType filter, float amount)
     {
         if (!BattleStarted) return;
         var targets = CollectGmTargets(clientId, GmCategoryOf(type), filter, amount);
@@ -278,7 +278,7 @@ public partial class BattleManager
     }
 
     // 击飞：从 GM 自己实体向外；不判霸体；飞行（FlightMode）与无刚体单位跳过
-    private void GmKnockback(short clientId, float horizontal, float vertical, GmFilterType filter, float radius)
+    private void GmKnockback(int clientId, float horizontal, float vertical, GmFilterType filter, float radius)
     {
         if (!BattleStarted) return;
         var source = GetGmPlayerEntity(clientId);
@@ -308,7 +308,7 @@ public partial class BattleManager
     private readonly List<EntityData> gmTargetScratch = new();
 
     // 目标筛选（都以 GM 自己实体为参照）：All 全部 / Nearest 最近 1 个 / Count 就近 amount 个 / Radius amount 米内
-    private List<EntityData> CollectGmTargets(short clientId, EntityCategory? category, GmFilterType filter, float amount)
+    private List<EntityData> CollectGmTargets(int clientId, EntityCategory? category, GmFilterType filter, float amount)
     {
         gmTargetScratch.Clear();
         var source = GetGmPlayerEntity(clientId);

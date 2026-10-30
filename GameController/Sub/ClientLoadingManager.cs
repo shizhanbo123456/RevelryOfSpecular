@@ -14,9 +14,9 @@ public class ClientLoadingManager : ClientSubManager
     }
 
     private readonly List<LoadingUnitEntry> units = new(); // 三步汇总：真人玩家 + AI 单位
-    private readonly Dictionary<short, string> names = new(); // clientId → 名字
-    private readonly Dictionary<ushort, short> entityOwners = new(); // 实体 id → clientId（名牌反查）
-    private readonly Dictionary<short, int> playerEntities = new(); // clientId → 实体 id（-1 = 无实体）
+    private readonly Dictionary<int, string> names = new(); // 玩家令牌 → 名字
+    private readonly Dictionary<ushort, int> entityOwners = new(); // 实体 id → 玩家令牌（名牌反查）
+    private readonly Dictionary<int, int> playerEntities = new(); // 玩家令牌 → 实体 id（-1 = 无实体）
 
     private Step step = Step.Idle;
 
@@ -103,7 +103,7 @@ public class ClientLoadingManager : ClientSubManager
     // 战斗期玩家名字（AI 也在这套表里，直接带名字下发）
     public string GetName(int clientId)
     {
-        if (names.TryGetValue((short)clientId, out var name) && !string.IsNullOrEmpty(name)) return name;
+        if (names.TryGetValue(clientId, out var name) && !string.IsNullOrEmpty(name)) return name;
         return $"玩家{clientId}";
     }
 
@@ -115,7 +115,7 @@ public class ClientLoadingManager : ClientSubManager
     // clientId → 当前实体 id；-1 = 无实体（死亡 / 观战 / 离场）
     public int GetEntityId(int clientId)
     {
-        return playerEntities.TryGetValue((short)clientId, out var entityId) ? entityId : -1;
+        return playerEntities.TryGetValue(clientId, out var entityId) ? entityId : -1;
     }
 
     // 所有参战单位（真人 + AI），供死亡观战/纯观战的目标列表使用
@@ -149,7 +149,7 @@ public class ClientLoadingManager : ClientSubManager
         playerEntities[info.clientId] = info.entityId;
         if (info.entityId > 0) entityOwners[(ushort)info.entityId] = info.clientId;
 
-        if (info.clientId == EnsInstance.LocalClientId)
+        if (info.clientId == NetworkManager.LocalToken)
             OwnEntityId = info.entityId > 0 ? (ushort)info.entityId : (ushort)0;
     }
 

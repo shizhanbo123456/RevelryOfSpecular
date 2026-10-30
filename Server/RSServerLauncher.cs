@@ -7,6 +7,7 @@ public class RSServerLauncher : MonoBehaviour
     {
         EnsServer.RoomManagerFactory = () => new RSRoomManager();
         EnsServer.RoomFactory = i => new RSRoom(i);
+        RSPlayerRegistry.Clear();
         StartCoroutine(StartHost());
     }
     public IEnumerator StartHost()

@@ -11,7 +11,7 @@ namespace Ros.Transport
 
         public class LobbyMemberInfo
         {
-            public short clientId;
+            public int clientId; // 玩家令牌（非连接 id）
             public int camp = -1;      // 0 进攻 / 1 防守 / 2 观战（-1 仅协议兼容，进大厅即默认观战）
             public int characterIndex = -1;
             public bool ready;         // 组队界面准备状态（全员准备后服务器倒计时开战）
@@ -61,7 +61,7 @@ namespace Ros.Transport
                 if (!hasMember) { info.members.Add(null); continue; }
                 info.members.Add(new SCLobbyInfo.LobbyMemberInfo()
                 {
-                    clientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    clientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),

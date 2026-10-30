@@ -2,7 +2,7 @@ namespace Ros.Transport
 {
     public class SCChat
     {
-        public short senderClientId;
+        public int senderClientId; // 玩家令牌（非连接 id）
         public int channel;          // 0 全频道 / 1 阵营频道
         public int camp;             // 发送方阵营：0 进攻 / 1 防守 / -1 未定
         public int characterIndex;   // 发送方角色下标（客户端取头像用）
@@ -29,7 +29,7 @@ namespace Ros.Transport
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             return new SCChat()
             {
-                senderClientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                senderClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 channel = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),

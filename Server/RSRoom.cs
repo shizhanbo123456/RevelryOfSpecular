@@ -33,6 +33,7 @@ public class RSRoom : EnsRoom
     {
         ClientConnections.Remove(conn.ClientId);
         conn.room = null;
+        RSPlayerRegistry.Unbind(conn.ClientId);
 
         // 房主离开只通知同伴，不销毁房间
         Broadcast(conn.ClientId, Delivery.Reliable, new MessageBody_E_SC { eventId = 2, clientId = conn.ClientId }, Pkt.scE);

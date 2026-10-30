@@ -20,8 +20,8 @@ public partial class BattleManager
 
     private float minimapTimer;
 
-    private readonly Dictionary<short, HashSet<ushort>> visibleByClient = new();
-    private readonly Dictionary<short, float> minimapRadiusByClient = new(); // 各客户端雷达显示半径（F 键切换，缺省 = minimap_view_radius）
+    private readonly Dictionary<int, HashSet<ushort>> visibleByClient = new();
+    private readonly Dictionary<int, float> minimapRadiusByClient = new(); // 各客户端雷达显示半径（F 键切换，缺省 = minimap_view_radius）
 
     #region 视野锚点与观战
     // 每个玩家的视野锚点：位置/半径随操控实体逐帧刷新；实体销毁（死亡）后冻结在死亡位置；
@@ -32,14 +32,14 @@ public partial class BattleManager
         public Vector3 position;                          // 视野判定圆心
         public float viewRadius;                          // 视野判定半径
         public bool spectating;                           // 是否正在观战
-        public short spectateTarget = -1;                 // 观战目标 id（-1 = 无；AI 为虚拟负数 id）
-        public readonly List<short> spectators = new();   // 观战我的玩家列表
+        public int spectateTarget = -1;                   // 观战目标令牌（-1 = 无）
+        public readonly List<int> spectators = new();     // 观战我的玩家列表
         public bool freeLook;                             // 纯观战自由视角：锚点改用客户端上报的相机位置
         public float freeX;                               // 自由相机世界坐标 X
         public float freeZ;                               // 自由相机世界坐标 Z
     }
 
-    private readonly Dictionary<short, VisionState> visionStates = new();
+    private readonly Dictionary<int, VisionState> visionStates = new();
 
     // 每帧刷新：自由视角 = 客户端上报的相机位置；存活且未观战 = 自己实体；观战中 = 目标实体；
     // 无实体可跟随（死亡/目标死亡）时保持冻结
@@ -73,15 +73,14 @@ public partial class BattleManager
     }
 
     // 观战请求：目标须为参战单位（真人或 AI）、存活且不可是自己；非法 / 死亡 / 异阵营目标 = 退出观战
-    public void SpectateRequest(short clientId, int targetClientId)
+    public void SpectateRequest(int clientId, int targetClientId)
     {
         if (!AtServer || !BattleStarted) return;
         ExitSpectate(clientId);
         if (!visionStates.TryGetValue(clientId, out var state)) return;
         state.freeLook = false; // 请求观战 = 回到跟随实体锚点
         if (targetClientId == -1 || targetClientId == clientId) return; // -1 = 无目标
-        if (targetClientId < short.MinValue || targetClientId > short.MaxValue) return; // 超出 clientId 值域
-        short target = (short)targetClientId;
+        int target = targetClientId;
         if (!PlayerInfoList.ContainsKey(target) || !visionStates.TryGetValue(target, out var targetState)) return;
         if (!PlayerCamps.TryGetValue(clientId, out var myCamp) || !PlayerCamps.TryGetValue(target, out var targetCamp)) return;
         if (targetCamp == PlayerCampType.Spectator) return; // 观战方玩家无实体，无可跟随视角
@@ -94,7 +93,7 @@ public partial class BattleManager
     }
 
     // 退出观战：复活 / 换目标 / 退场时调用
-    public void ExitSpectate(short clientId)
+    public void ExitSpectate(int clientId)
     {
         if (!visionStates.TryGetValue(clientId, out var state) || !state.spectating) return;
         state.spectating = false;
@@ -104,7 +103,7 @@ public partial class BattleManager
     }
 
     // 观战自由视角位置：仅纯观战方生效；free=false 表示已切回跟随实体，锚点交还 TickVisionStates
-    public void ReceiveFreeCamera(short clientId, CSFreeCamera request)
+    public void ReceiveFreeCamera(int clientId, CSFreeCamera request)
     {
         if (!AtServer || !BattleStarted) return;
         if (request == null) return;
@@ -117,7 +116,7 @@ public partial class BattleManager
     }
 
     // 清空某玩家的观战列表（其操控实体死亡时）
-    private void ClearSpectators(short clientId)
+    private void ClearSpectators(int clientId)
     {
         if (!visionStates.TryGetValue(clientId, out var state)) return;
         foreach (var spectator in state.spectators)
@@ -132,7 +131,7 @@ public partial class BattleManager
     }
 
     // 以玩家视野锚点（而非其实体）判定可见性：同阵营恒可见，否则 XZ 距离 ≤ 锚点半径
-    private bool CanSeeFromState(short clientId, EntityData target)
+    private bool CanSeeFromState(int clientId, EntityData target)
     {
         if (target == null) return false;
         if (!visionStates.TryGetValue(clientId, out var state)) return false;
@@ -151,7 +150,7 @@ public partial class BattleManager
     private static readonly HashSet<ushort> s_visibleScratch = new();
     private static readonly HashSet<ushort> s_dirtySweep = new(); // 本轮至少被一个客户端可见的实体（用于清 health/buff 脏标记）
     private static readonly HashSet<ushort> s_removedScratch = new();
-    private static readonly HashSet<short> s_clientScratch = new();
+    private static readonly HashSet<int> s_clientScratch = new();
 
     private struct CampVisionSource
     {
@@ -162,7 +161,7 @@ public partial class BattleManager
     private static readonly List<CampVisionSource> s_campVisionSources = new();
 
     #region 世界可见（模型同步过滤）
-    private EntityData GetEntityOfClient(short clientId)
+    private EntityData GetEntityOfClient(int clientId)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return null;
         return EntityContainer.Entities.TryGetObject(entityId, out var entity) ? entity : null;
@@ -177,7 +176,7 @@ public partial class BattleManager
         }
     }
 
-    private void BeginClientVisibility(short clientId)
+    private void BeginClientVisibility(int clientId)
     {
         if (!visibleByClient.TryGetValue(clientId, out var seen))
         {
@@ -193,7 +192,7 @@ public partial class BattleManager
         s_dirtySweep.Add(entityId);
     }
 
-    private void EndClientVisibility(short clientId)
+    private void EndClientVisibility(int clientId)
     {
         if (!visibleByClient.TryGetValue(clientId, out var seen)) return;
         if (seen.Count > 0)
@@ -385,7 +384,7 @@ public partial class BattleManager
     }
 
     //F 键切换雷达显示半径：在档位间循环并回应新值
-    public void SwitchMinimapRadius(short clientId)
+    public void SwitchMinimapRadius(int clientId)
     {
         var radii = ConfigManager.GlobalVariableConfig.minimap_view_radius;
         if (radii == null || radii.Count == 0)
@@ -404,7 +403,7 @@ public partial class BattleManager
         Tool.NetworkManager.SendMinimapRadius(clientId, next);
     }
 
-    private float GetMinimapRadius(short clientId)
+    private float GetMinimapRadius(int clientId)
     {
         if (minimapRadiusByClient.TryGetValue(clientId, out var r)) return r;
 

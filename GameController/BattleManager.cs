@@ -27,29 +27,30 @@ public partial class BattleManager : EnsBehaviour
     private int zombieCount;
 
     #region 玩家进出与组队大厅
-    public readonly Dictionary<short, CSLobbyPlayerInfo> PlayerInfoList = new();
-    public readonly Dictionary<short, PlayerCampType> PlayerCamps = new(); // 玩家阵营三分类（攻/守/观战），与实体阵营分离
-    private readonly Dictionary<short, bool> readyByClient = new(); // 组队界面准备状态（真人专用）
+    public readonly Dictionary<int, CSLobbyPlayerInfo> PlayerInfoList = new();
+    public readonly Dictionary<int, PlayerCampType> PlayerCamps = new(); // 玩家阵营三分类（攻/守/观战），与实体阵营分离
+    private readonly Dictionary<int, bool> readyByClient = new(); // 组队界面准备状态（真人专用）
     private Timer.TimerHandle startCountdownHandle; // 非 null 即开战倒计时进行中；取消时须 Cancel，否则残留任务会提前开局
-    public readonly Dictionary<short, ushort> PlayerEntityId = new();
-    public readonly Dictionary<ushort, short> EntityOwnerClient = new();
+    public readonly Dictionary<int, ushort> PlayerEntityId = new();
+    public readonly Dictionary<ushort, int> EntityOwnerClient = new();
 
-    private const short AIClientIdStart = -1000;
-    private short nextAIClientId = AIClientIdStart;
-    public readonly HashSet<short> AIClients = new();
+    // AI 玩家令牌段：与真人令牌（[1, 1e9)）不重叠，且 PlayerNameBase + token 仍在 int 内不溢出
+    public const int AI_TOKEN_BASE = 1_000_000_000;
+    private int nextAIToken = AI_TOKEN_BASE;
+    public readonly HashSet<int> AIClients = new();
 
     // 加载阶段：已完成的客户端（战斗表现包只发给它们；观战未完成时不阻塞开战）
     private bool LoadingStarted;
-    private readonly HashSet<short> loadedClients = new();
+    private readonly HashSet<int> loadedClients = new();
     // 已预分配的实体 id（尚未 Spawn），分配器跳过它们，避免重复
     private readonly HashSet<ushort> reservedEntityIds = new();
 
     public int AttackAICount { get; private set; }
     public int DefenseAICount { get; private set; }
 
-    public readonly Dictionary<short, float> HarvestByClient = new();
+    public readonly Dictionary<int, float> HarvestByClient = new();
 
-    public void AddHarvest(short clientId, float damage)
+    public void AddHarvest(int clientId, float damage)
     {
         if (damage <= 0f) return;
         HarvestByClient.TryGetValue(clientId, out float sum);
@@ -58,11 +59,12 @@ public partial class BattleManager : EnsBehaviour
 
     public EntityData GetTopHarvester()
     {
-        short bestClient = -1;
+        int bestClient = -1;
         float bestValue = 0f;
         foreach (var pair in HarvestByClient)
         {
             if (pair.Value <= bestValue) continue;
+            if (IsAIToken(pair.Key)) continue; // AI 不参与采集榜首
             if (!PlayerEntityId.TryGetValue(pair.Key, out var entityId)) continue;
             if (!EntityContainer.Entities.TryGetObject(entityId, out var e) || e == null) continue;
             if (e.camp != EntityCamp.Attack) continue;
@@ -314,7 +316,7 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 玩家进出
-    public void AddPlayer(short clientId, CSLobbyPlayerInfo info)
+    public void AddPlayer(int clientId, CSLobbyPlayerInfo info)
     {
         if (PlayerInfoList.ContainsKey(clientId)) return;
         PlayerInfoList[clientId] = info;
@@ -325,19 +327,19 @@ public partial class BattleManager : EnsBehaviour
     }
 
     // 新玩家进房：新玩家名字广播给所有人，再把房间里已有玩家的名字逐条发给新玩家（AI 不下发名字）
-    private void SendLobbyPlayerNames(short newClientId)
+    private void SendLobbyPlayerNames(int newClientId)
     {
         if (PlayerInfoList.TryGetValue(newClientId, out var me))
             Tool.NetworkManager.SendLobbyPlayerName(new SCLobbyPlayerName { clientId = newClientId, name = me.name });
 
         foreach (var pair in PlayerInfoList)
         {
-            if (pair.Key < 0) continue; // AI 无名字
+            if (IsAIToken(pair.Key)) continue; // AI 无名字
             Tool.NetworkManager.SendLobbyPlayerName(newClientId, new SCLobbyPlayerName { clientId = pair.Key, name = pair.Value.name });
         }
     }
 
-    public void RemovePlayer(short clientId)
+    public void RemovePlayer(int clientId)
     {
         if (PlayerEntityId.TryGetValue(clientId, out var entityId))
         {
@@ -372,20 +374,20 @@ public partial class BattleManager : EnsBehaviour
         }
         AIClients.Clear();
 
-        nextAIClientId = AIClientIdStart;
+        nextAIToken = AI_TOKEN_BASE;
         for (int i = 0; i < AttackAICount; i++) AddAIPlayer(PlayerCampType.Attack);
         for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(PlayerCampType.Defense);
     }
 
     private void AddAIPlayer(PlayerCampType camp)
     {
-        short aiClientId = nextAIClientId--;
+        int aiClientId = nextAIToken++;
         var info = new CSLobbyPlayerInfo()
         {
             attackLevel = 1,
             defenseLevel = 1,
-            // 名字由虚拟 clientId 推导：重建时 id 源归位，编号稳定且不与真人（正数 id）冲突
-            name = $"AI玩家{AIClientIdStart - aiClientId + 1}",
+            // 名字由令牌推导：重建时令牌源归位，编号稳定且不与真人令牌冲突
+            name = $"AI玩家{aiClientId - AI_TOKEN_BASE + 1}",
         };
         if (camp == PlayerCampType.Attack)
         {
@@ -400,7 +402,7 @@ public partial class BattleManager : EnsBehaviour
         AIClients.Add(aiClientId);
     }
 
-    public void ReceiveLobbyUpdate(short clientId, CSLobbyUpdate update)
+    public void ReceiveLobbyUpdate(int clientId, CSLobbyUpdate update)
     {
         // 加载阶段与对局中都不再接受组队大厅的改动
         if (update == null || BattleStarted || LoadingStarted || !PlayerInfoList.ContainsKey(clientId)) return;
@@ -437,7 +439,7 @@ public partial class BattleManager : EnsBehaviour
         return true;
     }
 
-    private void SetReady(short clientId, bool ready)
+    private void SetReady(int clientId, bool ready)
     {
         if (BattleStarted || LoadingStarted || AIClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
         readyByClient[clientId] = ready;
@@ -539,7 +541,7 @@ public partial class BattleManager : EnsBehaviour
         Debug.Log($"[加载] 开始：真人 {PlayerInfoList.Count - AIClients.Count}，预留实体 id {reservedEntityIds.Count} 个");
     }
 
-    private EntityCamp CampOf(short clientId)
+    private EntityCamp CampOf(int clientId)
     {
         if (!PlayerCamps.TryGetValue(clientId, out var camp)) return EntityCamp.None;
         if (camp == PlayerCampType.Attack) return EntityCamp.Attack;
@@ -547,15 +549,15 @@ public partial class BattleManager : EnsBehaviour
         return EntityCamp.None;
     }
 
-    public void OnLoadingRequestAttackPlayers(short clientId) =>
+    public void OnLoadingRequestAttackPlayers(int clientId) =>
         Tool.NetworkManager.SendLoadingAttackPlayerResponse(clientId,
             new SCLoadingAttackPlayerResponse { list = BuildLoadingUnits(PlayerCampType.Attack) });
 
-    public void OnLoadingRequestDefensePlayers(short clientId) =>
+    public void OnLoadingRequestDefensePlayers(int clientId) =>
         Tool.NetworkManager.SendLoadingDefensePlayerResponse(clientId,
             new SCLoadingDefensePlayerResponse { list = BuildLoadingUnits(PlayerCampType.Defense) });
 
-    public void OnLoadingRequestAiUnits(short clientId) =>
+    public void OnLoadingRequestAiUnits(int clientId) =>
         Tool.NetworkManager.SendLoadingAiUnitResponse(clientId,
             new SCLoadingAiUnitResponse { list = BuildLoadingUnits(null) });
 
@@ -585,10 +587,13 @@ public partial class BattleManager : EnsBehaviour
         return list;
     }
 
-    private static string NameOf(short clientId, CSLobbyPlayerInfo info)
+    // AI 令牌落在 [AI_TOKEN_BASE, …) 段，与真人令牌段互不重叠
+    public static bool IsAIToken(int clientId) => clientId >= AI_TOKEN_BASE;
+
+    private static string NameOf(int clientId, CSLobbyPlayerInfo info)
     {
         if (info != null && !string.IsNullOrEmpty(info.name)) return info.name;
-        return clientId < 0 ? $"AI玩家{AIClientIdStart - clientId + 1}" : $"玩家{clientId}";
+        return IsAIToken(clientId) ? $"AI玩家{clientId - AI_TOKEN_BASE + 1}" : $"玩家{clientId}";
     }
 
     // 攻守真人全部回执完成后才真正开战；观战方不阻塞
@@ -603,7 +608,7 @@ public partial class BattleManager : EnsBehaviour
         return true;
     }
 
-    public void OnClientLoadingComplete(short clientId)
+    public void OnClientLoadingComplete(int clientId)
     {
         if (AIClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
         if (!LoadingStarted && !BattleStarted) return;
@@ -635,7 +640,7 @@ public partial class BattleManager : EnsBehaviour
         };
         foreach (var pair in PlayerInfoList)
         {
-            if (pair.Key < 0) continue; // AI 不进成员列表，只通过两个数量表达
+            if (IsAIToken(pair.Key)) continue; // AI 不进成员列表，只通过两个数量表达
             int campValue = PlayerCamps.TryGetValue(pair.Key, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
             //所选角色：按成员最终阵营取 CSLobbyPlayerInfo 里对应一侧（首页选择随加入上报）
             int characterIndex = -1;
@@ -656,7 +661,7 @@ public partial class BattleManager : EnsBehaviour
     }
 
     //聊天只转发不存历史；发送方名字/阵营/角色由服务器补齐（客户端不知道别人的）
-    public void ReceiveChat(short clientId, CSChat chat)
+    public void ReceiveChat(int clientId, CSChat chat)
     {
         if (chat == null) return;
         PlayerInfoList.TryGetValue(clientId, out var info);
@@ -740,7 +745,7 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 输入与技能接收（服务器）
-    public void ReceiveInput(short clientId, CSPlayerInput input)
+    public void ReceiveInput(int clientId, CSPlayerInput input)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
@@ -748,7 +753,7 @@ public partial class BattleManager : EnsBehaviour
     }
 
     // 技能键：客户端已经把按键解析成技能 id（技能栏只在客户端），这里只校验持有与状态
-    public void ReceiveSkillCast(short clientId, int skillId)
+    public void ReceiveSkillCast(int clientId, int skillId)
     {
         if (skillId < 0) return;
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
@@ -759,7 +764,7 @@ public partial class BattleManager : EnsBehaviour
     }
 
     // 相机模式决定 WASD 的解释口径（俯视 = 四向），由客户端在切模式时同步
-    public void SetCameraMode(short clientId, bool topDown)
+    public void SetCameraMode(int clientId, bool topDown)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
@@ -815,7 +820,7 @@ public partial class BattleManager : EnsBehaviour
         // 玩家实体重与 AI 同路径（AI clientId 为负虚拟 id），仅输入来源不同：真人 CSPlayerInput、AI UpdateAI
         foreach (var pair in PlayerInfoList)
         {
-            short clientId = pair.Key;
+            int clientId = pair.Key;
             var campType = PlayerCamps[clientId];
             if (campType == PlayerCampType.Spectator)
             {
@@ -1140,7 +1145,7 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    private void SendEntityAnim(short clientId, EntityData entity)
+    private void SendEntityAnim(int clientId, EntityData entity)
     {
         entity.anim.GetDisplayAnim(out int animId, out float frame);
         var held = entity.anim.GetDisplayHeldWeapon(entity.heldWeapon); // 按当前动画状态解析手持武器（非武器类攻击 = 空手）

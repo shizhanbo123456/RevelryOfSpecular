@@ -50,7 +50,7 @@ public partial class BattleManager
         float health = victim.floatingAttribute.health;
         if (health <= 0f || health >= victim.baseAttribute.health * Config.plague_shield_trigger_ratio) return;
 
-        int key = EntityOwnerClient.TryGetValue(victim.id, out short owner) ? owner : 100000 + victim.id;
+        int key = EntityOwnerClient.TryGetValue(victim.id, out int owner) ? owner : 100000 + victim.id;
         if (plagueGuardReadyTime.TryGetValue(key, out float readyTime) && Time.time < readyTime) return;
 
         plagueGuardReadyTime[key] = Time.time + Config.plague_shield_cooldown;

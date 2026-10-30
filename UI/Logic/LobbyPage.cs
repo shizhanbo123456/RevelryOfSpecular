@@ -118,7 +118,7 @@ public class LobbyPage : PageBase
         RefreshAICountLabels();
 
         // 回显自己的队伍选择
-        var me = info.members.Find(m => m != null && m.clientId == EnsInstance.LocalClientId);
+        var me = info.members.Find(m => m != null && m.clientId == NetworkManager.LocalToken);
         int myServerCamp = -1;
         if (me != null) myServerCamp = me.camp;
         myCamp = myServerCamp;

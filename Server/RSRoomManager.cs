@@ -10,8 +10,13 @@ public class RSRoomManager:EnsRoomManager
     {
         if (type == 0)
         {
-            // 客户端握手：返回服务器可达确认（版本号占位）
-            var cid = short.Parse(content);
+            // 客户端握手：上报令牌，建立「令牌 → 当前连接 id」映射；返回服务器可达确认（版本号占位）
+            int token = int.Parse(content);
+            short replaced = RSPlayerRegistry.Bind(token, conn.ClientId);
+            if (replaced >= 0)
+            {
+                Utils.Debug.Log($"[连接] 令牌 {token} 顶号：旧连接 {replaced} → 新连接 {conn.ClientId}");
+            }
             TrigClientEvent(conn, Delivery.Reliable, 0, "ok");
         }
     }

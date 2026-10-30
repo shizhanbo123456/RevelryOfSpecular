@@ -19,6 +19,12 @@ public class SaveManager : MonoBehaviour
 
     public string playerName = "";
 
+    // 玩家令牌：身份凭据，跨断线/跨进程稳定；只用正数段，AI 占另一段（见 BattleManager.AI_TOKEN_BASE）
+    public int token;
+
+    public const int TokenMinInclusive = 1;
+    public const int TokenMaxExclusive = 1_000_000_000;
+
     public List<int> characterLevels = new();
     public List<int> characterExp = new();
     public List<bool> characterUnlocked = new();
@@ -106,6 +112,7 @@ public class SaveManager : MonoBehaviour
             for (int i = 0; i < count && idx < parts.Length; i++) characterExp[i] = int.Parse(parts[idx++]);
             for (int i = 0; i < count && idx < parts.Length; i++) characterUnlocked[i] = parts[idx++] == "1";
             if (idx < parts.Length) playerName = parts[idx++];
+            if (idx < parts.Length) int.TryParse(parts[idx++], out token);
         }
         catch (System.Exception e)
         {
@@ -119,8 +126,20 @@ public class SaveManager : MonoBehaviour
         {
             Debug.LogWarning("存档玩家名为空，视为无效，新建存档");
             CreateNewSave();
+            return;
+        }
+
+        // 令牌缺失/越界（旧存档或损坏）→ 补生成并立即落盘，保证一次会话内只有一个令牌
+        if (!IsTokenValid(token))
+        {
+            token = GenerateToken();
+            Save();
         }
     }
+
+    private static bool IsTokenValid(int value) => value >= TokenMinInclusive && value < TokenMaxExclusive;
+
+    private static int GenerateToken() => UnityEngine.Random.Range(TokenMinInclusive, TokenMaxExclusive);
 
     public void Save()
     {
@@ -131,7 +150,8 @@ public class SaveManager : MonoBehaviour
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterLevels[i]).Append('|');
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterExp[i]).Append('|');
         for (int i = 0; i < CharacterTotalCount; i++) sb.Append(characterUnlocked[i] ? "1" : "0").Append('|');
-        sb.Append((playerName ?? "").Replace("|", ""));
+        sb.Append((playerName ?? "").Replace("|", "")).Append('|');
+        sb.Append(token);
         PlayerPrefs.SetString(SaveKey, sb.ToString());
         PlayerPrefs.Save();
     }
@@ -151,6 +171,7 @@ public class SaveManager : MonoBehaviour
         characterUnlocked.Clear();
         EnsureListSize(0);
         playerName = GenerateRandomName();
+        token = GenerateToken();
         Save();
     }
 

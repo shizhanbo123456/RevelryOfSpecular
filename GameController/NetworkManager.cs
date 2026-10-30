@@ -35,6 +35,9 @@ public partial class NetworkManager : EnsBehaviour
 
     public static bool CanSendWorldCommand => connected && hasLobbyInfo;
 
+    // 本机玩家令牌（存档持有，跨断线/跨进程不变）：协议里的玩家标识一律是它，连接 id 只用于寻址
+    public static int LocalToken { get; private set; }
+
     private void ResetClientNetworkInfo()
     {
         connecting = false;
@@ -94,6 +97,12 @@ public partial class NetworkManager : EnsBehaviour
     public async Task<ConnectResult> TryConnect(string ipAddress)
     {
         if (connecting) return ConnectResult.TooFrequent;
+        if (Tool.SaveManager == null)
+        {
+            Debug.LogError("未找到存档管理器，无法取得玩家令牌");
+            return ConnectResult.Failed;
+        }
+        LocalToken = Tool.SaveManager.token;
         ResetClientNetworkInfo();
         connecting = true;
         try
@@ -131,7 +140,7 @@ public partial class NetworkManager : EnsBehaviour
                 Debug.LogError($"Ens层连接失败 rejected={rejected}");
                 return ConnectResult.Failed;
             }
-            ClientRoomManagerEventCenter.TrigRpcEvent(Delivery.Reliable, 0, EnsInstance.LocalClientId.ToString());
+            ClientRoomManagerEventCenter.TrigRpcEvent(Delivery.Reliable, 0, LocalToken.ToString());
             float helloDeadline = Time.time + 5f;
             while (serverHello == null && Time.time < helloDeadline)
             {
@@ -164,7 +173,7 @@ public partial class NetworkManager : EnsBehaviour
         intentionalExitWorld = true;
         if (EnsInstance.LocalClientId >= 0 && EnsInstance.PresentRoomId != 0)
         {
-            CallFuncRpc(ServerReceiveExitWorldLocal, SendTo.RoomOwner, Delivery.Reliable, EnsInstance.LocalClientId);
+            CallFuncRpc(ServerReceiveExitWorldLocal, SendTo.RoomOwner, Delivery.Reliable, LocalToken);
             EnsInstance.Corr.FlushSendBufferNow();
         }
         hasLobbyInfo = false;
@@ -196,7 +205,7 @@ public partial class NetworkManager : EnsBehaviour
             defenseLevel = Tool.SaveManager != null ? Tool.SaveManager.GetCharacterLevel(Config.attack_character_count + ClientSelection.selectedDefenseIndex) : 1,
             name = ClientSelection.playerName,
         };
-        CallFuncRpc(ServerReceivePlayerInfoLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceivePlayerInfoLocal, SendTo.RoomOwner, Delivery.Reliable, info, LocalToken);
     }
     #endregion
 
@@ -204,20 +213,20 @@ public partial class NetworkManager : EnsBehaviour
     public void SendInput(CSPlayerInput input)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, LocalToken);
     }
 
     // 技能键：客户端已把按键解析成技能 id，服务器只做持有/沉默/强控校验
     public void SendSkillCastInput(int skillId)
     {
         if (!CanSendWorldCommand || skillId < 0) return;
-        CallFuncRpc(ServerReceiveSkillCastInputLocal, SendTo.RoomOwner, Delivery.Strive, new CSSkillCast() { skillId = skillId }, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveSkillCastInputLocal, SendTo.RoomOwner, Delivery.Strive, new CSSkillCast() { skillId = skillId }, LocalToken);
     }
 
     public void SendLobbyUpdate(CSLobbyUpdate update)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveLobbyUpdateLocal, SendTo.RoomOwner, Delivery.Reliable, update, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveLobbyUpdateLocal, SendTo.RoomOwner, Delivery.Reliable, update, LocalToken);
     }
 
     #region 加载期请求（客户端 → 服务器，逐步发送）
@@ -225,141 +234,148 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveLoadingAttackPlayerRequestLocal, SendTo.RoomOwner, Delivery.Reliable,
-            new CSLoadingAttackPlayerRequest(), EnsInstance.LocalClientId);
+            new CSLoadingAttackPlayerRequest(), LocalToken);
     }
 
     public void SendLoadingDefensePlayerRequest()
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveLoadingDefensePlayerRequestLocal, SendTo.RoomOwner, Delivery.Reliable,
-            new CSLoadingDefensePlayerRequest(), EnsInstance.LocalClientId);
+            new CSLoadingDefensePlayerRequest(), LocalToken);
     }
 
     public void SendLoadingAiUnitRequest()
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveLoadingAiUnitRequestLocal, SendTo.RoomOwner, Delivery.Reliable,
-            new CSLoadingAiUnitRequest(), EnsInstance.LocalClientId);
+            new CSLoadingAiUnitRequest(), LocalToken);
     }
 
     public void SendLoadingComplete()
     {
         if (!CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveLoadingCompleteLocal, SendTo.RoomOwner, Delivery.Reliable,
-            new CSLoadingComplete(), EnsInstance.LocalClientId);
+            new CSLoadingComplete(), LocalToken);
     }
     #endregion
 
     public void SendMinimapRadiusSwitch()
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveMinimapRadiusSwitchLocal, SendTo.RoomOwner, Delivery.Reliable, new CSMinimapRadiusSwitch(), LocalToken);
     }
 
     // 相机模式属于移动语义的一部分（俯视 = 四向），切模式即同步一次
     public void SendCameraMode(bool topDown)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveCameraModeLocal, SendTo.RoomOwner, Delivery.Reliable, new CSCameraMode() { topDown = topDown }, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveCameraModeLocal, SendTo.RoomOwner, Delivery.Reliable, new CSCameraMode() { topDown = topDown }, LocalToken);
     }
 
     // 观战自由视角：位置上报（仅纯观战方），由 CameraController 按 1s / 1m 阈值节流
     public void SendFreeCamera(CSFreeCamera info)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveFreeCameraLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveFreeCameraLocal, SendTo.RoomOwner, Delivery.Reliable, info, LocalToken);
     }
 
     public void SendChat(CSChat chat)
     {
         if (!CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, chat, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, chat, LocalToken);
     }
 
     public void SendGm(CSGm gm)
     {
         if (gm == null || !CanSendWorldCommand) return;
-        CallFuncRpc(ServerReceiveGmLocal, SendTo.RoomOwner, Delivery.Reliable, gm, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveGmLocal, SendTo.RoomOwner, Delivery.Reliable, gm, LocalToken);
     }
     #endregion
 
     #region//发送封装：服务器 → 客户端
-    private static bool HasClient(short clientId) => clientId >= 0;
+    // 令牌 → 当前连接 id：查不到说明该玩家没有连接（AI 玩家 / 已断线），直接不发
+    private static bool TryGetSendTo(int clientId, out SendTo to)
+    {
+        to = default;
+        if (!RSPlayerRegistry.TryGetPhys(clientId, out var physId)) return false;
+        to = SendTo.To(physId);
+        return true;
+    }
 
     #region 加载期下发（服务器 → 客户端）
-    public void SendLoadingStart(short clientId, SCLoadingStart info)
+    public void SendLoadingStart(int clientId, SCLoadingStart info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLoadingStartLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLoadingStartLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendLoadingPrepared(short clientId, SCLoadingPrepared info)
+    public void SendLoadingPrepared(int clientId, SCLoadingPrepared info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLoadingPreparedLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLoadingPreparedLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendLoadingAttackPlayerResponse(short clientId, SCLoadingAttackPlayerResponse info)
+    public void SendLoadingAttackPlayerResponse(int clientId, SCLoadingAttackPlayerResponse info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLoadingAttackPlayerResponseLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLoadingAttackPlayerResponseLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendLoadingDefensePlayerResponse(short clientId, SCLoadingDefensePlayerResponse info)
+    public void SendLoadingDefensePlayerResponse(int clientId, SCLoadingDefensePlayerResponse info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLoadingDefensePlayerResponseLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLoadingDefensePlayerResponseLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendLoadingAiUnitResponse(short clientId, SCLoadingAiUnitResponse info)
+    public void SendLoadingAiUnitResponse(int clientId, SCLoadingAiUnitResponse info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLoadingAiUnitResponseLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLoadingAiUnitResponseLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendBattleStart(short clientId)
+    public void SendBattleStart(int clientId)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveBattleStartLocal, SendTo.To(clientId), Delivery.Reliable, new SCBattleStart());
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveBattleStartLocal, to, Delivery.Reliable, new SCBattleStart());
     }
     #endregion
 
-    public void SendEntityDisplay(short clientId, SCEntityDisplayInfo info)
+    public void SendEntityDisplay(int clientId, SCEntityDisplayInfo info)
     {
-        if (!HasClient(clientId)) return;
+        if (!TryGetSendTo(clientId, out var to)) return;
         // 含 buff 信息的包走尽力传输（丢一包下轮脏标记还会补）；纯位姿包走不可靠（丢了等下个快包）
         var delivery = info.includeRuntime || info.hasBuffs ? Delivery.Strive : Delivery.Unreliable;
-        CallFuncRpc(ClientReceiveEntityDisplayLocal, SendTo.To(clientId), delivery, info);
+        CallFuncRpc(ClientReceiveEntityDisplayLocal, to, delivery, info);
     }
 
-    public void SendEntityAnim(short clientId, SCEntityAnimInfo info)
+    public void SendEntityAnim(int clientId, SCEntityAnimInfo info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveEntityAnimLocal, SendTo.To(clientId), Delivery.Strive, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveEntityAnimLocal, to, Delivery.Strive, info);
     }
 
-    public void SendRemoveEntity(short clientId, int entityId)
+    public void SendRemoveEntity(int clientId, int entityId)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientRemoveEntityLocal, SendTo.To(clientId), Delivery.Reliable, entityId);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientRemoveEntityLocal, to, Delivery.Reliable, entityId);
     }
 
-    public void SendMinimapEntity(short clientId, SCMinimapEntity e)
+    public void SendMinimapEntity(int clientId, SCMinimapEntity e)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveMinimapEntityLocal, SendTo.To(clientId), Delivery.Unreliable, e);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveMinimapEntityLocal, to, Delivery.Unreliable, e);
     }
 
-    public void SendMinimapRadius(short clientId, float radius)
+    public void SendMinimapRadius(int clientId, float radius)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveMinimapRadiusLocal, SendTo.To(clientId), Delivery.Reliable, new SCMinimapRadius() { radius = radius });
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveMinimapRadiusLocal, to, Delivery.Reliable, new SCMinimapRadius() { radius = radius });
     }
 
-    public void SendBattleEvent(short clientId, SCBattleEvent e)
+    public void SendBattleEvent(int clientId, SCBattleEvent e)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.To(clientId), Delivery.Strive, e);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveBattleEventLocal, to, Delivery.Strive, e);
     }
 
     public void SendBattleEvent(SCBattleEvent e)
@@ -367,23 +383,23 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveBattleEventLocal, SendTo.ExcludeSender, Delivery.Strive, e);
     }
 
-    public void SendPrompt(short clientId, int messageId)
+    public void SendPrompt(int clientId, int messageId)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceivePromptLocal, SendTo.To(clientId), Delivery.Reliable, new SCPrompt() { messageId = messageId });
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceivePromptLocal, to, Delivery.Reliable, new SCPrompt() { messageId = messageId });
     }
 
     // 技能受理成功回执：只回施法者，客户端收到才扣一次可用次数
-    public void SendSkillUsed(short clientId, int skillId)
+    public void SendSkillUsed(int clientId, int skillId)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveSkillUsedLocal, SendTo.To(clientId), Delivery.Reliable, new SCSkillUsed() { skillId = skillId });
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveSkillUsedLocal, to, Delivery.Reliable, new SCSkillUsed() { skillId = skillId });
     }
 
-    public void SendCombatLabel(short clientId, SCCombatLabel label)
+    public void SendCombatLabel(int clientId, SCCombatLabel label)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveCombatLabelLocal, SendTo.To(clientId), Delivery.Unreliable, label);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveCombatLabelLocal, to, Delivery.Unreliable, label);
     }
 
     public void SendCombatLabel(SCCombatLabel label)
@@ -391,16 +407,16 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveCombatLabelLocal, SendTo.ExcludeSender, Delivery.Unreliable, label);
     }
 
-    public void SendScoreInfo(short clientId, SCScoreInfo info)
+    public void SendScoreInfo(int clientId, SCScoreInfo info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveScoreInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveScoreInfoLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendReviveInfo(short clientId, SCReviveInfo info)
+    public void SendReviveInfo(int clientId, SCReviveInfo info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveReviveInfoLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveReviveInfoLocal, to, Delivery.Reliable, info);
     }
 
     public void SendLobbyInfo(SCLobbyInfo info)
@@ -415,13 +431,13 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     // 名字定向（给新玩家补发房间里每个玩家的名字；组队期专用）
-    public void SendLobbyPlayerName(short clientId, SCLobbyPlayerName info)
+    public void SendLobbyPlayerName(int clientId, SCLobbyPlayerName info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveLobbyPlayerNameLocal, SendTo.To(clientId), Delivery.Reliable, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLobbyPlayerNameLocal, to, Delivery.Reliable, info);
     }
 
-    public void SendPlayerEntity(short clientId, int entityId)
+    public void SendPlayerEntity(int clientId, int entityId)
     {
         CallFuncRpc(ClientReceivePlayerEntityLocal, SendTo.ExcludeSender, Delivery.Reliable,
             new SCPlayerEntity() { clientId = clientId, entityId = entityId });
@@ -437,7 +453,7 @@ public partial class NetworkManager : EnsBehaviour
 
     public void SendSpectate(CSSpectate request)
     {
-        CallFuncRpc(ServerReceiveSpectateLocal, SendTo.RoomOwner, Delivery.Reliable, request, EnsInstance.LocalClientId);
+        CallFuncRpc(ServerReceiveSpectateLocal, SendTo.RoomOwner, Delivery.Reliable, request, LocalToken);
     }
 
     // 观战接口：传目标玩家 clientId（客户端可从 SCPlayerEntity 关系包 / 房间成员表取得）；
@@ -459,10 +475,10 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveDefensePointProgressLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
-    public void SendDayNightInfo(short clientId, SCDayNightInfo info)
+    public void SendDayNightInfo(int clientId, SCDayNightInfo info)
     {
-        if (!HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.To(clientId), Delivery.Strive, info);
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveDayNightInfoLocal, to, Delivery.Strive, info);
     }
 
     public void SendDayNightInfo(SCDayNightInfo info)
@@ -482,100 +498,100 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     //GM 指令回包（服务器帧率 / 服务器时间等）
-    public void SendGm(short clientId, SCGm gm)
+    public void SendGm(int clientId, SCGm gm)
     {
-        if (gm == null || !HasClient(clientId)) return;
-        CallFuncRpc(ClientReceiveGmLocal, SendTo.To(clientId), Delivery.Reliable, gm);
+        if (gm == null || !TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveGmLocal, to, Delivery.Reliable, gm);
     }
     #endregion
 
     #region//[Rpc] 服务器侧接收（客户端 → 服务器）
     [Rpc]
-    private void ServerReceivePlayerInfoLocal(CSLobbyPlayerInfo info, short clientId)
+    private void ServerReceivePlayerInfoLocal(CSLobbyPlayerInfo info, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.AddPlayer(clientId, info);
     }
 
     [Rpc]
-    private void ServerReceiveInputLocal(CSPlayerInput input, short clientId)
+    private void ServerReceiveInputLocal(CSPlayerInput input, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveInput(clientId, input);
     }
 
     [Rpc]
-    private void ServerReceiveSkillCastInputLocal(CSSkillCast cast, short clientId)
+    private void ServerReceiveSkillCastInputLocal(CSSkillCast cast, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveSkillCast(clientId, cast.skillId);
     }
 
     [Rpc]
-    private void ServerReceiveExitWorldLocal(short clientId)
+    private void ServerReceiveExitWorldLocal(int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.RemovePlayer(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveLobbyUpdateLocal(CSLobbyUpdate update, short clientId)
+    private void ServerReceiveLobbyUpdateLocal(CSLobbyUpdate update, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveLobbyUpdate(clientId, update);
     }
 
     [Rpc]
-    private void ServerReceiveLoadingAttackPlayerRequestLocal(CSLoadingAttackPlayerRequest request, short clientId)
+    private void ServerReceiveLoadingAttackPlayerRequestLocal(CSLoadingAttackPlayerRequest request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.OnLoadingRequestAttackPlayers(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveLoadingDefensePlayerRequestLocal(CSLoadingDefensePlayerRequest request, short clientId)
+    private void ServerReceiveLoadingDefensePlayerRequestLocal(CSLoadingDefensePlayerRequest request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.OnLoadingRequestDefensePlayers(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveLoadingAiUnitRequestLocal(CSLoadingAiUnitRequest request, short clientId)
+    private void ServerReceiveLoadingAiUnitRequestLocal(CSLoadingAiUnitRequest request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.OnLoadingRequestAiUnits(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveLoadingCompleteLocal(CSLoadingComplete complete, short clientId)
+    private void ServerReceiveLoadingCompleteLocal(CSLoadingComplete complete, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.OnClientLoadingComplete(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveSpectateLocal(CSSpectate request, short clientId)
+    private void ServerReceiveSpectateLocal(CSSpectate request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SpectateRequest(clientId, request != null ? request.targetClientId : -1);
     }
 
     [Rpc]
-    private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, short clientId)
+    private void ServerReceiveMinimapRadiusSwitchLocal(CSMinimapRadiusSwitch request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SwitchMinimapRadius(clientId);
     }
 
     [Rpc]
-    private void ServerReceiveCameraModeLocal(CSCameraMode request, short clientId)
+    private void ServerReceiveCameraModeLocal(CSCameraMode request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SetCameraMode(clientId, request != null && request.topDown);
     }
 
     [Rpc]
-    private void ServerReceiveFreeCameraLocal(CSFreeCamera request, short clientId)
+    private void ServerReceiveFreeCameraLocal(CSFreeCamera request, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveFreeCamera(clientId, request);
     }
 
     [Rpc]
-    private void ServerReceiveChatLocal(CSChat chat, short clientId)
+    private void ServerReceiveChatLocal(CSChat chat, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveChat(clientId, chat);
     }
 
     [Rpc]
-    private void ServerReceiveGmLocal(CSGm gm, short clientId)
+    private void ServerReceiveGmLocal(CSGm gm, int clientId)
     {
         if (gm == null) return;
         if (Tool.BattleManager != null) Tool.BattleManager.ExecuteGm(clientId, gm);
@@ -722,7 +738,7 @@ public partial class NetworkManager : EnsBehaviour
     public static SCLobbyInfo LatestLobbyInfo { get; private set; }
 
     // clientId → 名字：组队期专用（战斗期名字来自加载期请求的数据）
-    private static readonly Dictionary<short, string> lobbyPlayerNames = new();
+    private static readonly Dictionary<int, string> lobbyPlayerNames = new();
 
     [Rpc]
     private void ClientReceiveLobbyPlayerNameLocal(SCLobbyPlayerName info)
@@ -733,7 +749,7 @@ public partial class NetworkManager : EnsBehaviour
 
     public static bool TryGetLobbyPlayerName(int clientId, out string name)
     {
-        return lobbyPlayerNames.TryGetValue((short)clientId, out name) && !string.IsNullOrEmpty(name);
+        return lobbyPlayerNames.TryGetValue(clientId, out name) && !string.IsNullOrEmpty(name);
     }
 
     [Rpc]

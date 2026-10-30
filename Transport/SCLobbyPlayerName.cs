@@ -3,7 +3,7 @@ namespace Ros.Transport
     // 服务器 → 客户端：单个玩家的名字（组队期专用；与成员列表分开下发，避免成员包被长名字撑大）
     public class SCLobbyPlayerName
     {
-        public short clientId;
+        public int clientId; // 玩家令牌（非连接 id）
         public string name = "";
     }
 
@@ -22,7 +22,7 @@ namespace Ros.Transport
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             return new SCLobbyPlayerName()
             {
-                clientId = (short)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                clientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 name = StringSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }

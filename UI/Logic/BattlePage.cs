@@ -1,4 +1,4 @@
-﻿using Ros.UI.Main;
+using Ros.UI.Main;
 using System.Collections.Generic;
 using Ros.Transport;
 using FairyGUI;
@@ -397,7 +397,7 @@ public class BattlePage : PageBase
             {
                 var unit = units[i];
                 if (unit == null) continue;
-                if (unit.clientId == EnsInstance.LocalClientId) continue; // 自己不进观战列表
+                if (unit.clientId == NetworkManager.LocalToken) continue; // 自己不进观战列表
                 names.Add(Session.GetName(unit.clientId));
                 values.Add(unit.clientId.ToString());
             }
