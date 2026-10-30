@@ -261,7 +261,7 @@ public partial class BattleManager
         player.healthDirty = true;
     }
 
-    // 掉武器：只有「未持有且槽未满」才入槽；已持有 / 槽满都不产生任何变化
+    // 掉武器：服务器只记持有，已持有就不重复加；能装进技能栏几个由客户端决定
     public void TryDropCoralWeapon(EntityData coral)
     {
         var player = GetCoralKillerPlayer(coral, out short clientId);
@@ -274,7 +274,7 @@ public partial class BattleManager
 
         int weaponId = Config.GetRandomWeaponId(); // 全部武器均匀随机
         var ids = player.skillController.GetSkillIds();
-        if (ids.Contains(weaponId) || ids.Count >= player.floatingAttribute.weaponSlotCount) return;
+        if (ids.Contains(weaponId)) return;
         player.skillController.AddSkill(weaponId);
         NotifyPlayer(clientId, 14); // 获得新武器
     }

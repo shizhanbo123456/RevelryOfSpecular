@@ -45,11 +45,6 @@ public static class SkillManager
         return ids;
     }
 
-    public static WeaponRef GetFlyWeapon(int id)
-    {
-        return s_map.TryGetValue(id, out var skill) ? skill.Weapon : WeaponRef.None;
-    }
-
     public static void PlayVFX(int id, SkillContext context)
     {
         if (!s_map.TryGetValue(id, out var skill))

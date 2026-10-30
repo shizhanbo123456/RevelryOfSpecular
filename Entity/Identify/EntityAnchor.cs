@@ -5,14 +5,6 @@ public enum EntityAnchor
     //完全不依赖人物骨骼的
     GameObjectPosition,
     Center,
-    WeaponSlot1,
-    WeaponSlot2,
-    WeaponSlot3,
-    WeaponSlot4,
-    WeaponSlot5,
-    WeaponSlot6,
-    WeaponSlot7,
-    WeaponSlot8,
     LabelFallBack,//伤害飘字回退位置
 
     //可依赖人物骨骼，但也支持非人形的
@@ -48,7 +40,7 @@ public struct EntityAnchorInfo
 }
 public static class EntityAnchorExtensions
 {
-    public static EntityAnchorInfo GetTransform(this EntityAnchor anchor, EntityModelInfo model,EntityAnim anim,SpringWeapon springWeapon)
+    public static EntityAnchorInfo GetTransform(this EntityAnchor anchor, EntityModelInfo model,EntityAnim anim)
     {
         if (anim != null)
         {
@@ -61,33 +53,17 @@ public static class EntityAnchorExtensions
                 case EntityAnchor.LeftFoot: return anim.GetBoneTransform(HumanBodyBones.LeftFoot).ToAnchorInfo(model.transform.rotation);
                 case EntityAnchor.RightFoot: return anim.GetBoneTransform(HumanBodyBones.RightFoot).ToAnchorInfo(model.transform.rotation);
                 case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo(model.transform.rotation);
-                case EntityAnchor.Camera: return EntityAnchor.ModelRootPosition.GetTransform(model, anim, springWeapon) + (model.yRange.y*0.5f + 0.5f) * Vector3.up;
+                case EntityAnchor.Camera: return EntityAnchor.ModelRootPosition.GetTransform(model, anim) + (model.yRange.y*0.5f + 0.5f) * Vector3.up;
 
-                case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim,springWeapon) + Vector3.up * 0.5f;
-                case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon);
-                case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(model, anim,springWeapon) + (model.zRange.y+0.5f) * model.transform.forward;
+                case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim) + Vector3.up * 0.5f;
+                case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim);
+                case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(model, anim) + (model.zRange.y+0.5f) * model.transform.forward;
             }
         }
         switch (anchor)
         {
             case EntityAnchor.GameObjectPosition: return model.transform.ToAnchorInfo();
             case EntityAnchor.Center: return model.transform.ToAnchorInfo() + (model.yRange.x + model.yRange.y) * 0.5f * Vector3.up;
-            case EntityAnchor.WeaponSlot1:
-            case EntityAnchor.WeaponSlot2:
-            case EntityAnchor.WeaponSlot3:
-            case EntityAnchor.WeaponSlot4:
-            case EntityAnchor.WeaponSlot5:
-            case EntityAnchor.WeaponSlot6:
-            case EntityAnchor.WeaponSlot7:
-            case EntityAnchor.WeaponSlot8:
-                int weaponSlotIndex = (int)anchor - (int)EntityAnchor.WeaponSlot1;
-                springWeapon.GetPos(weaponSlotIndex, out var v, out var q);
-                return new EntityAnchorInfo()
-                {
-                    transform = null,
-                    position = v,
-                    rotation = q
-                };
             case EntityAnchor.LabelFallBack: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.75f) * Vector3.up;
 
             case EntityAnchor.Bar: return model.transform.ToAnchorInfo() + (model.yRange.y + 0.5f) * Vector3.up;

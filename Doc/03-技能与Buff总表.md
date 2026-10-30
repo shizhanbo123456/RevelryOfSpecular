@@ -8,7 +8,7 @@
 ### 1.1 武器技能总览（0~49）
 
 > 技能与 id 的对应由 `SkillTypes` 枚举顺序决定（段长：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16），措辞取《特效清单分别表1019》的定稿描述。
-> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`），不用悬浮武器槽位。**落点**：不索敌 = 与起点同高水平射出；标 `[索敌]` 的 9 个 = 朝目标体中心水平锁定。
+> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 与起点同高水平射出；标 `[索敌]` 的 9 个 = 朝目标体中心水平锁定。
 
 #### 近战刀（0~10）
 
@@ -178,9 +178,9 @@
 ## 三、实现口径
 
 Skills文件夹：
-**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 水晶雕像孢子 3 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的值由枚举顺序自动分配（**禁止手写数字**），段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3，**段长与顺序不可调整**（`Config.weapon_id_*` 与 `WeaponRef` 依赖段连续）；技能与武器槽位的对应是临时顺序分配（槽位 = 武器段内偏移），调整时同步改 skill.csv 的「武器分类 / 武器细分id」与枚举顺序。技能图标需按当前技能表重建（分配工具待重做）。
+**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 水晶雕像孢子 3 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的值由枚举顺序自动分配（**禁止手写数字**），段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3，**段长与顺序不可调整**（`Config.weapon_id_*` 与 `WeaponRef` 依赖段连续）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
 [E]外部调用只向SkillManager传入技能id即可。
-技能双端执行模型：EntitySkillController.TryUseSkill是全部释放路径（技能槽/J键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 18 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
+技能双端执行模型：EntitySkillController.TryUseSkill 是全部释放路径（技能栏按键/J 键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 18 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 
 **技能上下文（SkillContext）**：`ints` / `vectors` / `floats` 三个可变长列表，语义 = **能复原技能表现的最小可变数据包**。
 ① 只放运行时才确定、两端无法推导的东西：施法者 id、随机种子、瞄准点/落点、目标 id、档位、时间（放 floats）。发数、散布角、波次表、时长、轨迹形状、特效下标一律写死在技能类常量里，读包时用「变参 + 技能常量」复原——包体不随发数膨胀。伤害范围不写进包：有本体特效的取该特效预制体的命中球，无特效近战取 skill.csv 第 15 列半径；伤害倍率与再伤害间隔取 skill.csv 第 17 / 16 列。
@@ -190,7 +190,7 @@ Skills文件夹：
 ⑤ **禁止给子弹加跨端回调**：分裂 / 弹跳 / 延时等二次效果，施放时就算好时刻与点位，两端到点各自创建——弹跳 = 起点 + 8 跳共 9 个点整串下发；分裂 = 母弹终点 + 按弹速与距离动态算出的时刻。
 包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B。
 
-**发射点**：只用实体骨骼锚点，**没有「漂浮武器槽位」发射点**。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；水晶雕像与中立雕像也是 `UpCenter`（不走雕像顶部）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
+**发射点**：只用实体骨骼锚点。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；水晶雕像与中立雕像也是 `UpCenter`（不走雕像顶部）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
 **索敌与落点**：文档 `[索敌]` 标记 = 覆盖 `AutoAim => true`，其余默认 `false`（朝自身面向）。落点统一走 `AimPoint(entity, origin)`：
 - 不索敌：`origin + forward × ForwardAimDistance`，**高度 = 起点高度**（水平射出）；
 - 索敌：水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**落点高度 = 目标体中心**（不锁 `transform.position` / 脚部），距离取技能 `CastRange`；

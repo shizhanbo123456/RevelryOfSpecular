@@ -39,8 +39,6 @@ public abstract class EntityData : MonoBehaviour
 
     public EntityAnim anim;
 
-    public SpringWeapon springWeapon; // 双端共用：服务器发射点 / 客户端视觉都走它
-
     [HideInInspector] public MotionBase motion;
 
     [HideInInspector] public Rigidbody rb;
@@ -138,38 +136,11 @@ public abstract class EntityData : MonoBehaviour
 
         ModelInfo.BuildCapsuleCollider();
         InitDynamicCapsule();
-
-        // 武器漂浮弹簧：双端共用，服务器发射点 / 客户端视觉都走它（挂载在实体根，不跟随 Hips）
-        // 服务器生成时位置已就位，先抬好高度再快照锚点
-        springWeapon = SpringWeapon.Attach(gameObject);
-        if (springWeapon != null)
-        {
-            TickWeaponFloat();
-            springWeapon.Init();
-        }
     }
 
     public virtual void OnUpdate()
     {
         if (effectController != null) effectController.OnUpdate();
-        TickWeaponFloat();
-    }
-
-    // 武器漂浮高度跟随根骨骼 Hips（无骨骼回退模型高度中心）；XY/旋转仍由实体根决定
-    private void TickWeaponFloat()
-    {
-        if (springWeapon == null) return;
-        float localY;
-        if (anim != null)
-        {
-            var hips = EntityAnchor.ModelRootPosition.GetTransform(ModelInfo, anim, springWeapon);
-            localY = hips.transform != null ? hips.position.y - transform.position.y : (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
-        }
-        else
-        {
-            localY = (ModelInfo.yRange.y - ModelInfo.yRange.x) * 0.5f;
-        }
-        springWeapon.transform.localPosition = new Vector3(0f, localY, 0f);
     }
 
     public virtual void OnTickMove(float deltaTime, bool canInput) { }
@@ -529,11 +500,6 @@ public abstract class EntityData : MonoBehaviour
             anim.OnDeathEventEnd -= OnDeathAnimEnd;
         }
         if (effectController != null) effectController.Clear();
-        if (springWeapon != null)
-        {
-            Destroy(springWeapon.gameObject);
-            springWeapon = null;
-        }
     }
 
     // 显示同步脏标记：health 只在当前生命值变化时置脏（上限全程不变）、buff 只在增删时置脏、skill 只在持有列表变化时置脏、
@@ -587,13 +553,14 @@ public abstract class EntityData : MonoBehaviour
         return v.x * v.x + v.z * v.z;
     }
 
-    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
+    // withSkills：持有技能列表只发给该实体所属客户端（技能栏在客户端，别人不消费）
+    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime, bool withSkills)
     {
         // 各段按脏标记选择性携带（完整同步 / 首见必带全量）
         bool withTransform = includeRuntime || transformDirty < 2;
         bool withHealth = includeRuntime || healthDirty;
         bool withBuffs = includeRuntime || buffDirty;
-        bool withSkills = includeRuntime || skillDirty;
+        bool withSkillsNow = withSkills && (includeRuntime || skillDirty);
         var info = new SCEntityDisplayInfo()
         {
             entityId = id,
@@ -603,7 +570,7 @@ public abstract class EntityData : MonoBehaviour
             hasTransform = withTransform,
             hasHealth = withHealth,
             hasBuffs = withBuffs,
-            hasSkills = withSkills,
+            hasSkills = withSkillsNow,
         };
         if (withTransform)
         {
@@ -616,7 +583,7 @@ public abstract class EntityData : MonoBehaviour
             info.maxHealth = (int)baseAttribute.health;    // 生命值上限（全程不变，随 health 包顺带携带）
         }
         if (withBuffs && effectController != null) effectController.FillDisplayInfo(info);
-        if (withSkills && skillController != null) skillController.FillDisplayInfo(info);
+        if (withSkillsNow && skillController != null) skillController.FillDisplayInfo(info);
         return info;
     }
 
@@ -675,9 +642,9 @@ public abstract class EntityData : MonoBehaviour
     {
         footY = headY = 0f;
         if (anim == null) return false;
-        var head = EntityAnchor.Head.GetTransform(ModelInfo, anim, springWeapon);
-        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim, springWeapon);
-        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim, springWeapon);
+        var head = EntityAnchor.Head.GetTransform(ModelInfo, anim);
+        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim);
+        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim);
         if (head.transform == null || (footL.transform == null && footR.transform == null)) return false;
 
         headY = space.InverseTransformPoint(head.position).y;
@@ -696,8 +663,8 @@ public abstract class EntityData : MonoBehaviour
     {
         y = 0f;
         if (anim == null) return false;
-        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim, springWeapon);
-        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim, springWeapon);
+        var footL = EntityAnchor.LeftFoot.GetTransform(ModelInfo, anim);
+        var footR = EntityAnchor.RightFoot.GetTransform(ModelInfo, anim);
         if (footL.transform == null && footR.transform == null) return false;
         y = float.MaxValue;
         if (footL.transform != null) y = Mathf.Min(y, footL.position.y);

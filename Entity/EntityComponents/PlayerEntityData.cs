@@ -57,17 +57,13 @@ public class PlayerEntityData : EntityData
         return k;
     }
 
-    // 操作屏蔽 → 动作键位（跳跃=K，滑铲=LShift，攻击=J+技能槽；单一位、边沿触发，只需抹去自身）
+    // 操作屏蔽 → 动作键位（跳跃=K，滑铲=LShift；单一位、边沿触发，只需抹去自身）
+    // 攻击屏蔽不在这里：技能键已改成客户端直接上行技能 id，由 BattleManager.ReceiveSkillCast 拦截
     private PlayerKey BlockActionKeys(InputBlockOp ops)
     {
         PlayerKey k = PlayerKey.None;
         if ((ops & InputBlockOp.Jump) != 0) k |= PlayerKey.K;
         if ((ops & InputBlockOp.Slide) != 0) k |= PlayerKey.LShift;
-        if ((ops & InputBlockOp.Attack) != 0)
-        {
-            k |= PlayerKey.J;
-            foreach (var slotKey in Config.skill_slot_player_keys) k |= slotKey;
-        }
         return k;
     }
 
@@ -119,24 +115,6 @@ public class PlayerEntityData : EntityData
             if (anim != null) anim.DoSlide();
             Debug.Log($"[输入处理] id={id} 滑铲键(Shift) 下沿 → 滑铲");
         }
-        // 空手攻击走技能释放链路（策划案 12 章）：静止 = 原地砸击，移动 = 随机左右拳
-        if ((input.pressed & PlayerKey.J) != 0)
-        {
-            int meleeSkill = moving
-                ? (Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right)
-                : Config.unarmed_attack_smash;
-            var result = skillController.TryUseSkill(meleeSkill);
-            if (result != EntitySkillController.UseResult.Success && Tool.BattleManager != null)
-                Tool.BattleManager.NotifySkillUseFailed(this, result);
-        }
-
-        // 技能槽：键位 → 槽位下标（技能 id 由服务器权威决定）
-        for (int i = 0; i < Config.skill_slot_player_keys.Length; i++)
-        {
-            if ((input.pressed & Config.skill_slot_player_keys[i]) == 0) continue;
-            UseSkillSlot(i);
-            break;
-        }
     }
 
     // 设置屏蔽的瞬间立即抬起对应操作涉及的键：存操作 + 复用抬起逻辑（不等下一帧读掩码）
@@ -173,17 +151,6 @@ public class PlayerEntityData : EntityData
     private void Jump()
     {
         if (anim != null) anim.DoJump();
-    }
-
-    public void UseSkillSlot(int slot)
-    {
-        if (skillController == null) return;
-        var ids = skillController.GetSkillIds();
-        if (slot < 0 || slot >= ids.Count || ids[slot] < 0) return; // 槽位空：客户端本地就该拦掉
-
-        var result = skillController.TryUseSkill(ids[slot]);
-        if (result != EntitySkillController.UseResult.Success && Tool.BattleManager != null)
-            Tool.BattleManager.NotifySkillUseFailed(this, result);
     }
 
     public override void OnTickMove(float deltaTime, bool canInput)

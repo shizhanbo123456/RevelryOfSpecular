@@ -11,8 +11,6 @@ public class InfoManager : MonoBehaviour
 
     public int ground_layer;
 
-    public GameObject SpringWeapon;//挂载SpringWeapon组件
-
     #region 属性（数据源：StreamingAssets/ConfigData/entity.csv）
     public EntityAttribute GetAttribute(EntityType type, int level)
     {

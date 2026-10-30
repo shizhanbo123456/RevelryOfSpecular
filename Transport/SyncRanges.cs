@@ -23,6 +23,10 @@ public static class SyncRanges
     public static int MaxBuffCount => ConfigManager.GlobalVariableConfig.sync_max_buff_count;
     public static int EntityIdMax => Config.entity_id_max;
 
+    // 持有技能条数与 id 上界：全武器 50 + 初始技能余量，配表无对应项
+    public const int MaxSkillCount = 64;
+    public const int MaxSkillId = 127;
+
     // 单次飘字数值上限：出伤乘区可叠多层，配表无对应项，留足余量
     public const int CombatLabelAmountMax = 1000000;
 }

@@ -732,6 +732,17 @@ public partial class BattleManager : EnsBehaviour
         entity.RecordInput(input);
     }
 
+    // 技能键：客户端已经把按键解析成技能 id（技能栏只在客户端），这里只校验持有与状态
+    public void ReceiveSkillCast(short clientId, int skillId)
+    {
+        if (skillId < 0) return;
+        if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
+        if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
+        if (entity.InputBlocked(InputBlockOp.Attack)) return; // 攻击动画等期间的输入阻断
+        var result = entity.skillController.TryUseSkill(skillId);
+        if (result != EntitySkillController.UseResult.Success) NotifySkillUseFailed(entity, result);
+    }
+
     // 相机模式决定 WASD 的解释口径（俯视 = 四向），由客户端在切模式时同步
     public void SetCameraMode(short clientId, bool topDown)
     {
@@ -1078,7 +1089,9 @@ public partial class BattleManager : EnsBehaviour
                 MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
                 bool full = includeRuntime || firstSeen;
-                var info = entity.GetDisplayInfo(full);
+                // 持有技能列表只发给该实体所属客户端（技能栏只在客户端，别人不消费）
+                bool ownEntity = EntityOwnerClient.TryGetValue(entity.id, out var ownerClient) && ownerClient == clientId;
+                var info = entity.GetDisplayInfo(full, ownEntity);
                 info.includeRuntime = full;
                 // 位姿/血量/buff/技能全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
                 if (info.hasTransform || info.hasHealth || info.hasBuffs || info.hasSkills)

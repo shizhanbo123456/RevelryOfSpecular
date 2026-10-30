@@ -4,12 +4,15 @@ using UnityEngine;
 namespace Ros.Skill.Utils
 {
     // 技能冷却状态的唯一表达 = (skillId, cd 根时间戳)，根 = now − CD × (已恢复次数 + 当前轮进度)
-    // 内部持有技能列表；未满时根不动、满库存后根与时间同速前进，用一次只把根前移一个 CD
+    // 内部持有全部技能的记录；Tick 只推进「技能栏内」的，栏外的根随时间平移 = 进度冻结
     public class SkillRecharge
     {
         private readonly Dictionary<int, float> cdRoots = new();
 
         private readonly List<int> tickBuffer = new(); // Tick 的遍历缓冲，避免每帧新列表
+
+        private bool hasLastTickTime;
+        private float lastTickTime;
 
         // 时间源：服务器侧偏移恒为 0，等于 Time.time；客户端把本地时间换算成服务器时间
         public virtual float GetServerTime()
@@ -40,6 +43,7 @@ namespace Ros.Skill.Utils
         public void Clear()
         {
             cdRoots.Clear();
+            hasLastTickTime = false;
         }
 
         // 库存整体回满：复活重建实体等场景
@@ -64,14 +68,28 @@ namespace Ros.Skill.Utils
         #endregion
 
         #region 推演
-        // 每帧推进：满库存的根顶到「now − CD×max」，未满的原样保留
-        public void Tick()
+        // 每帧推进：advancing 里的技能正常恢复；其余技能把根与时间同步平移，进度原地冻结
+        public void Tick(IReadOnlyList<int> advancing)
         {
             if (cdRoots.Count == 0) return;
             float now = GetServerTime();
+            if (!hasLastTickTime)
+            {
+                hasLastTickTime = true;
+                lastTickTime = now;
+                return;
+            }
+
+            float frozenDelta = now - lastTickTime;
+            lastTickTime = now;
+
             tickBuffer.Clear();
             tickBuffer.AddRange(cdRoots.Keys);
-            foreach (var skillId in tickBuffer) cdRoots[skillId] = Advance(skillId, cdRoots[skillId], now);
+            foreach (var skillId in tickBuffer)
+            {
+                float root = cdRoots[skillId];
+                cdRoots[skillId] = IsAdvancing(advancing, skillId) ? Advance(skillId, root, now) : root + frozenDelta;
+            }
         }
 
         // 使用一次：根前移一个 CD；无库存或无限库存时不动
@@ -109,6 +127,16 @@ namespace Ros.Skill.Utils
         #endregion
 
         #region//Local
+        private static bool IsAdvancing(IReadOnlyList<int> advancing, int skillId)
+        {
+            if (advancing == null) return false;
+            for (int i = 0; i < advancing.Count; i++)
+            {
+                if (advancing[i] == skillId) return true;
+            }
+            return false;
+        }
+
         // 满库存时的根：与时间同速前进，任何时刻要用都重新取，不能缓存
         private static float FullRoot(int skillId, float now)
         {

@@ -132,7 +132,7 @@ namespace Ros.Skill.Utils
 
         // 体中心（脚部以上）：索敌取点用这个，不能锁 transform.position（那是脚）
         public static Vector3 BodyPos(EntityData entity)
-            => EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
+            => EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
 
         public static Vector3 AimPos(EntityData entity, float castRange,bool normalizeDistance = true, bool forceHorizontal = true, bool frontSector = true)
         {

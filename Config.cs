@@ -84,12 +84,12 @@ public static class Config
     public const KeyCode minimap_radius_key = KeyCode.F;
     #endregion
 
-    #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H 技能槽）
+    #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H Y 技能槽 / Tab 技能选择）
     public static readonly KeyCode[] skill_slot_keys = { KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.L, KeyCode.H, KeyCode.Y };
-    public static readonly PlayerKey[] skill_slot_player_keys = { PlayerKey.U, PlayerKey.I, PlayerKey.O, PlayerKey.L, PlayerKey.H, PlayerKey.Y };
     public const KeyCode melee_key = KeyCode.J;
     public const KeyCode jump_key = KeyCode.K;
     public const KeyCode slide_key = KeyCode.LeftShift;
+    public const KeyCode skill_select_key = KeyCode.Tab; // 技能选择面板开关
     public const KeyCode camera_mode_key = KeyCode.C; // 相机模式切换（自由视角下按 C 回第三人称）
     public const float gm_teleport_height = 200f; // GM 传送的 Y（传送面板只给 x/z）
 

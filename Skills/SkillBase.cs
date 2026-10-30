@@ -45,7 +45,7 @@ namespace Ros.Skill
         {
             if (entity == null) return default;
             return (leftHand ? EntityAnchor.LeftHand : EntityAnchor.RightHand)
-                .GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon);
+                .GetTransform(entity.ModelInfo, entity.anim);
         }
 
         // —— 显式参数原语：不解析 SkillContext，参数含义由各技能自己决定 ——

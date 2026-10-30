@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using Ros.Skill;
+﻿using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
@@ -30,11 +29,7 @@ public class EntityPlayerManager : ClientSubManager
         public int pendingPlayTick;
 
         public WeaponRef heldWeapon;
-        public GameObject[] weaponVisuals;
-        public WeaponRef[] weaponRefs;
-        public SpringWeapon springWeapon; // 武器漂浮弹簧实例（InfoManager.SpringWeapon 复制，挂表现体下自动跟随）
         public EntityModelInfo modelInfo; // 烘焙包围盒（CreateView 时缓存，发射点/头顶锚点共用）
-        private bool springInited;        // 弹簧仅初始化一次，避免每帧重置把武器重新吸附到抖动位姿
         public Transform cameraAnchor;    // 相机注视点 = EntityAnchor.Camera；旋转取实体根，供相机偏航同步
 
         public readonly Dictionary<int, GameObject> buffVfx = new();
@@ -92,7 +87,7 @@ public class EntityPlayerManager : ClientSubManager
             if (cameraAnchor != null)
             {
                 cameraAnchor.position = anim != null
-                    ? EntityAnchor.Camera.GetTransform(modelInfo, anim, springWeapon).position
+                    ? EntityAnchor.Camera.GetTransform(modelInfo, anim).position
                     : transform.position;
                 cameraAnchor.rotation = transform.rotation;
             }
@@ -121,30 +116,6 @@ public class EntityPlayerManager : ClientSubManager
                     if (logForcedAnimSwitch)
                     {
                         pendingForcedSwitch = $"[动画强制切换] 实体{id}({type}) hash={target} 要求进度={progress:F2}";
-                    }
-                }
-            }
-
-            // 武器漂浮：弹簧只在角色首次定位后初始化一次（锚点快照世界坐标，提前快照会从旧位置飞过来）；
-            // 之后由弹簧自身 Update 平滑，不再每帧 Init，否则会把武器重新吸附到随网络抖动的同步位姿上，造成抽搐
-            if (springWeapon != null && predictedInit)
-            {
-                // 高度跟随 Hips（局部 Y 抬到 Hips 相对实体根的高度），XY/旋转保持实体根（不继承 Hips 旋转）
-                float hipsLocalY = 0f;
-                if (anim != null)
-                {
-                    var hipsInfo = EntityAnchor.ModelRootPosition.GetTransform(modelInfo, anim, springWeapon);
-                    if (hipsInfo.transform != null) hipsLocalY = hipsInfo.position.y - transform.position.y;
-                }
-                springWeapon.transform.localPosition = new Vector3(0f, hipsLocalY, 0f);
-                if (!springInited) { springWeapon.Init(); springInited = true; }
-                if (weaponVisuals != null)
-                {
-                    for (int i = 0; i < weaponVisuals.Length; i++)
-                    {
-                        if (weaponVisuals[i] == null) continue;
-                        springWeapon.GetPos(i, out var p, out var q);
-                        weaponVisuals[i].transform.SetPositionAndRotation(p, q);
                     }
                 }
             }
@@ -187,15 +158,12 @@ public class EntityPlayerManager : ClientSubManager
         {
             view.cameraAnchor = new GameObject("CameraAnchor").transform;
             view.cameraAnchor.position = view.anim != null
-                ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position
+                ? EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim).position
                 : view.transform.position;
             view.cameraAnchor.rotation = view.transform.rotation;
         }
         return view.cameraAnchor;
     }
-
-    // 实体持有技能列表缓存（随显示包的 hasSkills 标记更新，供悬浮武器渲染）
-    private readonly Dictionary<ushort, List<SCEntityDisplayInfo.SkillSlotRuntime>> entitySkills = new();
 
     // 服务端已同步给本客户端的实体视图集合（即客户端可见实体），供相机自动取景等系统遍历
     public IEnumerable<ClientEntityView> AllViews => views.Values;
@@ -262,6 +230,14 @@ public class EntityPlayerManager : ClientSubManager
         // UI/逻辑层事件：完整同步（0.2s / 首见）或本包携带了 health/buff 变化时触发
         if (info.includeRuntime || info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
+        // 持有技能只发给本人：直接交给客户端技能状态（不走上面的 UI 事件，纯技能包不带 health，会把血条刷成 0）
+        if (info.hasSkills && Tool.ClientLogicManager != null)
+        {
+            var self = ClientLoadingManager.Current;
+            if (self != null && self.HasSession && info.entityId == self.OwnEntityId)
+                Tool.ClientLogicManager.SkillVfx.SetHeldSkills(info.skills);
+        }
+
         // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
         var loading = ClientLoadingManager.Current;
         if (loading != null && loading.HasSession && info.entityId == loading.OwnEntityId)
@@ -275,7 +251,7 @@ public class EntityPlayerManager : ClientSubManager
                     view.transform.position = info.position;
                     view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
                     view.cameraAnchor = new GameObject("CameraAnchor").transform;
-                    view.cameraAnchor.position = EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim, view.springWeapon).position;
+                    view.cameraAnchor.position = EntityAnchor.Camera.GetTransform(view.modelInfo, view.anim).position;
                     view.cameraAnchor.rotation = view.transform.rotation;
                     Tool.CameraController.SetLookTarget(view.cameraAnchor);
                 }
@@ -345,7 +321,6 @@ public class EntityPlayerManager : ClientSubManager
             if (view != null) UnityEngine.Object.Destroy(view.gameObject);
         }
         views.Clear();
-        entitySkills.Clear();
         pendingAnim.Clear();
     }
 
@@ -355,7 +330,7 @@ public class EntityPlayerManager : ClientSubManager
         pos = Vector3.zero;
         var view = GetView(id);
         if (view == null) return false;
-        pos = anchor.GetTransform(view.modelInfo, view.anim, view.springWeapon).position;
+        pos = anchor.GetTransform(view.modelInfo, view.anim).position;
         return true;
     }
 
@@ -385,10 +360,8 @@ public class EntityPlayerManager : ClientSubManager
         view.id = info.entityId;
         view.type = info.type;
         view.camp = info.camp;
-        // 武器漂浮弹簧：复用共享挂载（挂根骨骼 Hips，无骨骼回退角色高度中心；Scale=模型高度/2）
         view.modelInfo = go.GetComponentInChildren<EntityModelInfo>();
         if (view.modelInfo == null) Debug.LogError($"客户端实体缺少 EntityModelInfo：{info.type}（id={info.entityId}）");
-        view.springWeapon = SpringWeapon.Attach(go);
         view.animator = go.GetComponentInChildren<Animator>();
         if (view.animator != null)
         {
@@ -425,36 +398,6 @@ public class EntityPlayerManager : ClientSubManager
             return;
         }
         view.anim.SetHeldObject(prefab); // 挂点未配置时自动取 Humanoid 手部骨骼，无需手工配置
-    }
-
-    private void ApplyFloatingWeapons(ClientEntityView view, ushort entityId)
-    {
-        int count = SpringWeapon.slotCount;
-        if (view.weaponVisuals == null || view.weaponVisuals.Length != count)
-        {
-            view.weaponVisuals = new GameObject[count];
-            view.weaponRefs = new WeaponRef[count];
-        }
-        var slots = entitySkills.TryGetValue(entityId, out var s) ? s : null;
-        for (int i = 0; i < count; i++)
-        {
-            var weapon = WeaponRef.None;
-            if (slots != null && i < slots.Count && slots[i] != null)
-            {
-                weapon = SkillManager.GetFlyWeapon(slots[i].skillId);
-                if (weapon == view.heldWeapon) weapon = WeaponRef.None; // 已拿到手上，不重复漂浮
-            }
-            if (view.weaponRefs[i] == weapon) continue;
-            view.weaponRefs[i] = weapon;
-            if (view.weaponVisuals[i] != null) UnityEngine.Object.Destroy(view.weaponVisuals[i]);
-            view.weaponVisuals[i] = null;
-            if (!weapon.IsValid || Tool.AssetsManager == null
-                || !Tool.AssetsManager.TryGetWeaponPrefab(weapon, out var prefab)) continue;
-
-            // 挂在表现体下，初始位姿由每帧弹簧位姿（ClientEntityView.Update）驱动，不再写死偏移
-            var obj = UnityEngine.Object.Instantiate(prefab, view.transform);
-            view.weaponVisuals[i] = obj;
-        }
     }
 
     private static readonly HashSet<int> s_activeBuffs = new();
@@ -578,15 +521,6 @@ public class EntityPlayerManager : ClientSubManager
                 view.transform.position = info.position;
                 view.transform.rotation = Quaternion.Euler(0f, info.yaw, 0f);
             }
-        }
-
-        // 悬浮武器按技能槽推算（手持中的武器不再漂浮）：仅在完整同步或技能变化时刷新
-        if (info.includeRuntime || info.hasSkills)
-        {
-            var slots = new List<SCEntityDisplayInfo.SkillSlotRuntime>();
-            if (info.skills != null) slots.AddRange(info.skills);
-            entitySkills[info.entityId] = slots;
-            ApplyFloatingWeapons(view, info.entityId);
         }
 
         // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正

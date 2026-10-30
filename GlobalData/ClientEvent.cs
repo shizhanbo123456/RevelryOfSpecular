@@ -12,11 +12,12 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     public const int OnScoreUpdate = 10213;
     public const int OnSettlementResult = 10214;
-    // 10218~10219 未占用：技能槽位与武器等信息随实体表现摘要下发（见 OnEntityDisplayUpdate）
+    // 10218~10219 未占用：技能列表只下发给该实体所属客户端（见 SCEntityDisplayInfo.hasSkills）
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;
     public const int OnDefensePointProgress = 10217; // param=SCDefensePointProgress 四个守护点的开采进度（0~100）
     public const int OnSkillUsed = 10220; // param=int 技能 id（SCSkillUsed，只发给施法者本人，收到才扣一次可用次数）
+    public const int OnSkillBarRefresh = 10221; // 技能栏需要重渲染（持有表变化 / 选择面板应用 / 消耗回执）
     public const int OnLobbyInfoUpdate = 10222; // param=SCLobbyInfo 组队期房间成员/阵营/准备/AI 数量
     #endregion
 

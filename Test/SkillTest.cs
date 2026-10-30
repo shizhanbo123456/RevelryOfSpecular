@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using Ros.Skill;
@@ -80,19 +80,6 @@ public class SkillTest : MonoBehaviour
         }
     }
 
-    // 画武器漂浮槽位：球=浮动位置（ShotOrigin 取值处），线=该槽位朝向
-    private void OnDrawGizmos()
-    {
-        if (entity == null || entity.springWeapon == null) return;
-        int slot = entity.skillController != null && entity.skillController.CastingSlotIndex >= 0
-            ? entity.skillController.CastingSlotIndex : 0;
-        entity.springWeapon.GetPos(slot, out Vector3 pos, out Quaternion rot);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(pos, 0.12f);
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawLine(pos, pos + rot * Vector3.forward * 2f);
-    }
-
     private void OnGUI()
     {
         Matrix4x4 oldMatrix = GUI.matrix;
@@ -146,7 +133,7 @@ public class SkillTest : MonoBehaviour
         status = "";
         if (Tool.InfoManager == null)
         {
-            status = "场景中没有 InfoManager：请放置一个配置完整的 InfoManager（属性模板 + SpringWeapon）后重新运行";
+            status = "场景中没有 InfoManager：请放置一个配置完整的 InfoManager（属性模板）后重新运行";
             return;
         }
         GameObject prefab = FirstGraphic(Tool.AssetsManager != null ? Tool.AssetsManager.AttackCharacterGraphics : null);
@@ -164,8 +151,6 @@ public class SkillTest : MonoBehaviour
             entity.OnCreate(1, new EntityType(EntityCategory.Character_Attack, 0), 1, EntityCamp.Attack);
             // 注册进战斗容器：ShotOrigin 才能查到实体，弹道起点 = 真实武器锚点（否则兜底 Vector3.zero）
             BattleManager.EntityContainer.Entities.Add(entity.id, entity);
-            if (entity.springWeapon == null)
-                status = "InfoManager.SpringWeapon 未配置：武器类技能会释放失败（空手/近战不受影响），请检查 InfoManager 配置";
         }
         catch (System.Exception ex)
         {

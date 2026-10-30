@@ -13,11 +13,12 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_PlayerCampIcon.URL, typeof(UI_PlayerCampIcon));
             UIObjectFactory.SetPackageItemExtension(UI_SkillTip.URL, typeof(UI_SkillTip));
             UIObjectFactory.SetPackageItemExtension(UI_TipLevel.URL, typeof(UI_TipLevel));
-            UIObjectFactory.SetPackageItemExtension(UI_FullScreenMask.URL, typeof(UI_FullScreenMask));
             UIObjectFactory.SetPackageItemExtension(UI_BattleInfoPanel.URL, typeof(UI_BattleInfoPanel));
             UIObjectFactory.SetPackageItemExtension(UI_BattleBarPanel.URL, typeof(UI_BattleBarPanel));
             UIObjectFactory.SetPackageItemExtension(UI_SettingsPanel.URL, typeof(UI_SettingsPanel));
             UIObjectFactory.SetPackageItemExtension(UI_SettingsRuleLabel.URL, typeof(UI_SettingsRuleLabel));
+            UIObjectFactory.SetPackageItemExtension(UI_SkillSelectPanel.URL, typeof(UI_SkillSelectPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_SkillSelectButton.URL, typeof(UI_SkillSelectButton));
             UIObjectFactory.SetPackageItemExtension(UI_HomeConnect.URL, typeof(UI_HomeConnect));
             UIObjectFactory.SetPackageItemExtension(UI_InputField.URL, typeof(UI_InputField));
             UIObjectFactory.SetPackageItemExtension(UI_BattlePanel.URL, typeof(UI_BattlePanel));

@@ -141,7 +141,7 @@ namespace Ros.Skill
         // 服务器：实体锚点（含偏移）；客户端：表现体锚点；两者都拿不到才用包里冻结点
         protected static Vector3 OriginPos(EntityData entity, EntityAnchor anchor, Vector3 offset)
         {
-            Vector3 p = anchor.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
+            Vector3 p = anchor.GetTransform(entity.ModelInfo, entity.anim).position;
             return p + entity.transform.rotation * offset;
         }
 

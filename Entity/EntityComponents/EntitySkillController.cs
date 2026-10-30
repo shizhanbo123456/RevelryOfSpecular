@@ -8,14 +8,10 @@ public class EntitySkillController
 
     private readonly List<int> skillIds = new();
 
-
-    public int CastingSlotIndex { get; private set; } = -1;
-
     public void Init(EntityData data)
     {
         owner = data;
         skillIds.Clear();
-        CastingSlotIndex = -1;
     }
 
     #region 技能列表管理
@@ -48,13 +44,7 @@ public class EntitySkillController
     public void FillDisplayInfo(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        foreach (var skillId in skillIds)
-        {
-            info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
-            {
-                skillId = skillId,
-            });
-        }
+        foreach (var skillId in skillIds) info.skills.Add(skillId);
     }
 
     #endregion
@@ -73,7 +63,7 @@ public class EntitySkillController
         };
     }
 
-    // 复活重建实体后归还技能；库存不继承，按上限回满（策划口径）
+    // 复活重建实体后归还持有技能（技能栏与库存都在客户端，不随实体走）
     public void ApplyLoadout(Loadout loadout)
     {
         SetSkillList(loadout.skillIds);
@@ -84,13 +74,13 @@ public class EntitySkillController
     public enum UseResult
     {
         Success,
-        NoSkill,     // 该槽位没有技能（客户端与服务器技能表不一致）
+        NoSkill,     // 该技能不在持有表里（客户端技能栏与服务器技能表不一致）
         Silenced,
         Controlled,  // 强控（麻痹/冰冻/定身）
         Unregistered,
     }
 
-    // 冷却与库存由客户端自己推演，服务器只做硬校验：通过即回一条成功回执，客户端收到才扣一次次数
+    // 服务器只记录持有、只做硬校验：通过即回一条成功回执，冷却与库存全在客户端推演
     public UseResult TryUseSkill(int skillId)
     {
         if (skillId < 0) return UseResult.NoSkill;
@@ -106,10 +96,8 @@ public class EntitySkillController
             return UseResult.Unregistered;
         }
 
-        CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
-        // 只有技能槽内的技能才有库存可扣；通用技能（空手三连）不在槽内，不回执
-        if (CastingSlotIndex >= 0 && Tool.BattleManager != null) Tool.BattleManager.NotifySkillUsed(owner, skillId);
+        if (Tool.BattleManager != null) Tool.BattleManager.NotifySkillUsed(owner, skillId);
         return UseResult.Success;
     }
 
@@ -128,7 +116,6 @@ public class EntitySkillController
     {
         if (skillId < 0) return false;
         if (!SkillManager.TryGet(skillId, out var skill)) return false;
-        CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
         return true;
     }

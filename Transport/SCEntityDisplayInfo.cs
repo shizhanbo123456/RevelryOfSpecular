@@ -18,21 +18,16 @@ namespace Ros.Transport
         public bool hasTransform; // 本包含有效位姿（position/yaw/velocity/yawSpeed）；无变化时整包可能不下发
         public bool hasHealth;   // 本包含有效 health/maxHealth（实体 health 脏标记置位 / 完整同步 / 首见）
         public bool hasBuffs;    // 本包含有效 buffs（实体 buff 脏标记置位 / 完整同步 / 首见）
-        public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；仅技能 id，无冷却/库存
+        public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；只发持有 id，无冷却/库存
         public int health;
         public int maxHealth;
         public List<BuffRuntime> buffs = new();
-        public List<SkillSlotRuntime> skills = new();
+        public List<int> skills = new();
 
         public class BuffRuntime
         {
             public int type;
             public int level = 1;
-        }
-
-        public class SkillSlotRuntime
-        {
-            public int skillId = -1;
         }
     }
 
@@ -72,11 +67,9 @@ namespace Ros.Transport
                 if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
                 if (value.skills != null)
                 {
-                    foreach (var slot in value.skills)
+                    foreach (var skillId in value.skills)
                     {
-                        if (!BoolSerializer.Serialize(slot != null, result, ref indexStart)) return false;
-                        if (slot == null) continue;
-                        if (!IntSerializer.Serialize(slot.skillId, result, ref indexStart)) return false;
+                        if (!IntSerializer.Serialize(skillId, result, ref indexStart)) return false;
                     }
                 }
                 if (!value.hasTransform) return true;
@@ -87,7 +80,7 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount4 + 9/slot + 位姿81
+                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount7 + 8/技能 + 位姿81
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
@@ -117,14 +110,11 @@ namespace Ros.Transport
                         BitField.WriteInt(buff.level, 0, 15);
                     }
 
-                    int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, 15) : 0;
-                    BitField.WriteInt(skillCount, 0, 15);
+                    int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, SyncRanges.MaxSkillCount) : 0;
+                    BitField.WriteInt(skillCount, 0, SyncRanges.MaxSkillCount);
                     for (int i = 0; i < skillCount; i++)
                     {
-                        var slot = value.skills[i];
-                        BitField.WriteBool(slot != null);
-                        if (slot == null) continue;
-                        BitField.WriteInt(slot.skillId, -1, 127);
+                        BitField.WriteInt(value.skills[i], -1, SyncRanges.MaxSkillId);
                     }
 
                     if (value.hasTransform)
@@ -176,12 +166,7 @@ namespace Ros.Transport
                 int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
                 for (int i = 0; i < skillCount; i++)
                 {
-                    bool hasSlot = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
-                    if (!hasSlot) { info.skills.Add(null); continue; }
-                    info.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
-                    {
-                        skillId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    });
+                    info.skills.Add(IntSerializer.Deserialize(data, ref indexStart, invalidIndex));
                 }
                 if (!info.hasTransform) return info;
                 info.position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
@@ -224,14 +209,10 @@ namespace Ros.Transport
                     });
                 }
 
-                int skillCount = BitField.ReadInt(0, 15);
+                int skillCount = BitField.ReadInt(0, SyncRanges.MaxSkillCount);
                 for (int i = 0; i < skillCount; i++)
                 {
-                    if (!BitField.ReadBool()) { r.skills.Add(null); continue; }
-                    r.skills.Add(new SCEntityDisplayInfo.SkillSlotRuntime()
-                    {
-                        skillId = BitField.ReadInt(-1, 127),
-                    });
+                    r.skills.Add(BitField.ReadInt(-1, SyncRanges.MaxSkillId));
                 }
 
                 if (r.hasTransform)

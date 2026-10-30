@@ -207,6 +207,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, EnsInstance.LocalClientId);
     }
 
+    // 技能键：客户端已把按键解析成技能 id，服务器只做持有/沉默/强控校验
+    public void SendSkillCastInput(int skillId)
+    {
+        if (!CanSendWorldCommand || skillId < 0) return;
+        CallFuncRpc(ServerReceiveSkillCastInputLocal, SendTo.RoomOwner, Delivery.Strive, new CSSkillCast() { skillId = skillId }, EnsInstance.LocalClientId);
+    }
+
     public void SendLobbyUpdate(CSLobbyUpdate update)
     {
         if (!CanSendWorldCommand) return;
@@ -493,6 +500,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveInputLocal(CSPlayerInput input, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveInput(clientId, input);
+    }
+
+    [Rpc]
+    private void ServerReceiveSkillCastInputLocal(CSSkillCast cast, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveSkillCast(clientId, cast.skillId);
     }
 
     [Rpc]

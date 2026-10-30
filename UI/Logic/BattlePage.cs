@@ -1,6 +1,5 @@
 ﻿using Ros.UI.Main;
 using System.Collections.Generic;
-using Ros.Skill.Utils;
 using Ros.Transport;
 using FairyGUI;
 using UnityEngine;
@@ -10,11 +9,11 @@ public class BattlePage : PageBase
     private readonly UI_BattlePanel panel;
     private float battleStartTime;
 
-    private readonly List<SCEntityDisplayInfo.SkillSlotRuntime> skillSummary = new(); // 渲染器按索引读取的技能摘要缓存（仅技能 id）
-    private readonly SkillRecharge skillRecharge = new(); // 本地冷却/库存推演：服务器只下发技能 id，不发冷却进度
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
-    private int skillSlotCount;                           // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
-    private bool skillSlotsBuilt;                         // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
+    private int skillSlotCount;          // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
+    private bool skillSlotsBuilt;        // 技能栏骨架是否已搭好（搭好前渲染器不读数据）
+    private bool skillSelectOpen;        // 技能选择面板是否展开
+    private readonly List<int> skillSelectBuffer = new(); // 选择面板当前的勾选集合
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
@@ -58,6 +57,9 @@ public class BattlePage : PageBase
     // 本局会话数据全部来自加载期（不再读组队缓存）
     private static ClientLoadingManager Session => ClientLoadingManager.Current;
     private static bool HasSession => Session != null && Session.HasSession;
+
+    // 客户端技能状态（持有表 / 技能栏 / 冷却库存）全在它身上
+    private static ClientSkillManager Skills => Tool.ClientLogicManager != null ? Tool.ClientLogicManager.SkillVfx : null;
     private static ushort OwnEntityId => HasSession ? Session.OwnEntityId : (ushort)0;
     private bool IsOwnEntity(int entityId) => HasSession && OwnEntityId == entityId;
 
@@ -83,6 +85,10 @@ public class BattlePage : PageBase
         BuildSettingTips();
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
         panel.m_PlayerBar.m_buffList.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, localBuffs[i]);
+        panel.m_skillSelectPanel.m_panel.title = "技能选择";
+        panel.m_skillSelectPanel.m_panel.m_close.onClick.Add(CloseSkillSelect);
+        panel.m_skillSelectPanel.m_list.itemRenderer = RenderSkillSelectItem;
+        HideSkillSelect();
         ComputeMinimapItemScale();
     }
 
@@ -169,7 +175,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.AddEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
-        EventManager.AddEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
+        EventManager.AddEvent(ClientEvent.OnSkillBarRefresh, OnSkillBarRefresh);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
@@ -194,8 +200,9 @@ public class BattlePage : PageBase
         panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
         ClearMinimap();
         EnsureMinimapMapLoader();
-        skillRecharge.Clear();
-        BuildSkillSlots(HasSession ? Session.Camp : EntityCamp.None);
+        HideSkillSelect();
+        Skills?.ResetBattle();
+        BuildSkillSlots();
         RefreshTimeIcon();
     }
 
@@ -212,19 +219,21 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.RemoveEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
-        EventManager.RemoveEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
+        EventManager.RemoveEvent(ClientEvent.OnSkillBarRefresh, OnSkillBarRefresh);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
         spectatorMode = false;
         localPlayerAlive = true;
         spectateTargetClientId = -1;
         spectateTargetEntityId = -1;
         if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
+        HideSkillSelect();
         HideAllTips();
         HideImportantBanner();
     }
 
     public override void Tick(float deltaTime)
     {
+        if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
         //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
         if (HasSession && panel.m_batleInfoPanel.m_label_time_left != null)
         {
@@ -241,24 +250,22 @@ public class BattlePage : PageBase
         TickLocalSkillCd(deltaTime);
     }
 
-    // 本地推演：每帧推进库存恢复，周期重渲染冷却环与库存数；扣减只由服务器回执（OnSkillUsed）驱动
+    // 冷却推演在 ClientSkillManager，这里只按节流重渲染冷却环与库存数
     private void TickLocalSkillCd(float deltaTime)
     {
         if (!skillSlotsBuilt || spectatorMode) return;
-        skillRecharge.Tick();
         skillCdRefreshTimer -= deltaTime;
         if (skillCdRefreshTimer > 0f) return;
         skillCdRefreshTimer = 0.1f;
-        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
-        if (list != null) list.numItems = skillSlotCount; // 触发原地重渲染：冷却环按本地模拟推进
+        RefreshSkillBar();
     }
 
-    // 服务器受理成功才扣一次：被沉默/强控/死亡/连点被抹掉的请求都不会有这条包
-    private void OnSkillUsed(int skillId)
+    // 持有表变化 / 选择面板应用 / 消耗回执：下一帧立刻重画技能栏
+    private void OnSkillBarRefresh()
     {
-        if (!skillSlotsBuilt || skillId < 0) return;
-        skillRecharge.Consume(skillId);
-        skillCdRefreshTimer = 0f; // 下一帧立刻重渲染冷却环与库存数
+        if (!skillSlotsBuilt) BuildSkillSlots(); // 首包到达时兜底搭栏
+        skillCdRefreshTimer = 0f;
+        if (skillSelectOpen) RefreshSkillSelectList();
     }
 
     #region 事件处理
@@ -283,7 +290,6 @@ public class BattlePage : PageBase
             spectateTargetClientId = -1; // 本地实体出现（复活/正常出战）：服务器已退出观战，视角回自身
             spectateTargetEntityId = -1;
             UpdateLocalPlayerBar(info);
-            OnLocalSkillBarUpdate(info);
         }
         // 纯观战无本地实体：以观战目标阵营作为「我方」基准（名牌敌我配色、小地图点位敌我识别）
         else if (spectatorMode && info.entityId == spectateTargetEntityId) localPlayerCamp = (int)info.camp;
@@ -416,51 +422,102 @@ public class BattlePage : PageBase
     }
     #endregion
 
-    private void OnLocalSkillBarUpdate(SCEntityDisplayInfo info)
-    {
-        if (!info.hasSkills) return; // 无技能变化的包不重建摘要（保留本地冷却状态）
-        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
-        if (list == null) return;
-        skillSummary.Clear();
-        if (info.skills != null) skillSummary.AddRange(info.skills);
-        SyncSkillRecharge();
-        if (!skillSlotsBuilt && HasSession) BuildSkillSlots(Session.Camp); // 兜底：进战斗时若槽位数取不到（理论不会），首包摘要时再搭一次
-        // 数量与边框样式已定，这里重新设置 numItems 只是按新数据原地重渲染（FGUI 规定的刷新方式，不改变条目数）
-        list.numItems = skillSlotCount;
-    }
-
-    // 技能摘要与库存表对齐：新增的按满库存入列，已消失的移除；已有的保留原库存（重复获得不补库存）
-    private void SyncSkillRecharge()
-    {
-        var owned = skillRecharge.GetSkillIds();
-        for (int i = 0; i < owned.Count; i++)
-        {
-            bool still = false;
-            for (int j = 0; j < skillSummary.Count; j++)
-            {
-                if (skillSummary[j] != null && skillSummary[j].skillId == owned[i]) { still = true; break; }
-            }
-            if (!still) skillRecharge.RemoveSkill(owned[i]);
-        }
-        for (int i = 0; i < skillSummary.Count; i++)
-        {
-            if (skillSummary[i] != null && !skillRecharge.HasSkill(skillSummary[i].skillId))
-                skillRecharge.AddSkill(skillSummary[i].skillId);
-        }
-    }
-
-    private void BuildSkillSlots(EntityCamp camp)
+    // 技能栏条目数 = 本局角色技能槽位数
+    private void BuildSkillSlots()
     {
         var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
         if (list == null) return;
-        int capacity = ResolveSkillSlotCapacity(camp);
-        if (capacity <= 0) capacity = Mathf.Max(1, skillSummary.Count); // 取不到属性时退化为"已持有技能数"，至少露出一格
-        skillSlotCount = capacity;
+        skillSlotCount = Skills != null ? Skills.SlotCapacity : 0;
+        if (skillSlotCount <= 0) skillSlotCount = 1; // 观战/属性取不到时至少露出一格
         list.itemRenderer = RenderSkillSlot;
-        list.numItems = capacity; // 非虚拟列表会同步建出全部条目并回调渲染器
+        list.numItems = skillSlotCount; // 非虚拟列表会同步建出全部条目并回调渲染器
         RefreshSkillListWidth(list);
         skillSlotsBuilt = true;
     }
+
+    private void RefreshSkillBar()
+    {
+        if (!skillSlotsBuilt) return;
+        var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
+        if (list != null) list.numItems = skillSlotCount; // 原地重渲染（不改条目数）
+    }
+
+    #region 技能选择面板
+    private void ToggleSkillSelect()
+    {
+        if (spectatorMode || !HasSession || !skillSlotsBuilt) return;
+        if (skillSelectOpen) CloseSkillSelect();
+        else OpenSkillSelect();
+    }
+
+    // 打开时默认勾选当前技能栏；列表按服务器下发的持有顺序排（空手三连不参与）
+    private void OpenSkillSelect()
+    {
+        skillSelectOpen = true;
+        skillSelectBuffer.Clear();
+        if (Skills != null)
+        {
+            foreach (var skillId in Skills.ActiveSkills) skillSelectBuffer.Add(skillId);
+        }
+        panel.m_skillSelectPanel.visible = true;
+        panel.m_skillSelectPanel.touchable = true;
+        RefreshSkillSelectList();
+    }
+
+    // 关闭即应用：勾选集合按技能 id 升序进栏
+    private void CloseSkillSelect()
+    {
+        if (skillSelectOpen && Skills != null) Skills.TrySetActiveSkills(skillSelectBuffer);
+        HideSkillSelect();
+        RefreshSkillBar();
+    }
+
+    private void HideSkillSelect()
+    {
+        skillSelectOpen = false;
+        skillSelectBuffer.Clear();
+        panel.m_skillSelectPanel.visible = false;
+        panel.m_skillSelectPanel.touchable = false;
+    }
+
+    private void RefreshSkillSelectList()
+    {
+        var list = panel.m_skillSelectPanel.m_list;
+        if (list == null || Skills == null) return;
+        list.numItems = Skills.HeldSkills.Count;
+    }
+
+    private void RenderSkillSelectItem(int index, GObject obj)
+    {
+        if (obj is not UI_SkillSelectButton item || Skills == null) return;
+        var held = Skills.HeldSkills;
+        if (index < 0 || index >= held.Count) return;
+        int skillId = held[index];
+
+        Texture icon = ResolveSkillIcon(skillId);
+        if (item.m_loader_icon != null)
+        {
+            item.m_loader_icon.texture = icon != null ? new NTexture(icon) : null;
+            item.m_loader_icon.visible = icon != null;
+        }
+        item.selected = skillSelectBuffer.Contains(skillId);
+        item.onClick.Set(() => ToggleSkillSelectItem(skillId));
+    }
+
+    // 勾选/取消：超过槽位数只提示，不改当前选择
+    private void ToggleSkillSelectItem(int skillId)
+    {
+        if (Skills == null) return;
+        if (skillSelectBuffer.Contains(skillId)) skillSelectBuffer.Remove(skillId);
+        else if (skillSelectBuffer.Count >= Skills.SlotCapacity)
+        {
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("已达到技能选择上限");
+            return;
+        }
+        else skillSelectBuffer.Add(skillId);
+        RefreshSkillSelectList();
+    }
+    #endregion
 
     private static void RefreshSkillListWidth(GList list)
     {
@@ -480,17 +537,13 @@ public class BattlePage : PageBase
         if (slot.m_key != null)
             slot.m_key.text = index < Config.skill_slot_keys.Length ? Config.skill_slot_keys[index].ToString() : "";
 
-        // 该槽位还没拿到技能（服务器摘要还没下发，或这个槽位本来就是空的）
-        var data = index < skillSummary.Count ? skillSummary[index] : null;
-        bool empty = data == null || data.skillId < 0;
+        // 技能栏内容由客户端决定：槽位为空就显示空格
+        int skillId = Skills != null ? Skills.GetSlotSkillId(index) : -1;
+        bool empty = skillId < 0;
         if (slot.m_empty != null) slot.m_empty.selectedIndex = empty ? 1 : 0;
         if (empty) ClearSkillSlot(slot);
-        else
-        {
-            RefreshSkillSlot(slot, data);
-        }
+        else RefreshSkillSlot(slot, skillId);
         // 悬浮显示技能提示（空槽不提示，但离开时照常收起）
-        int skillId = empty ? -1 : data.skillId;
         slot.onRollOver.Set(() => { if (skillId >= 0) ShowSkillTip(skillId, slot); });
         slot.onRollOut.Set(HideSkillTip);
     }
@@ -564,20 +617,6 @@ public class BattlePage : PageBase
         int index = camp == EntityCamp.Defense ? ClientSelection.selectedDefenseIndex : ClientSelection.selectedAttackIndex;
         bool hasIcon = icons != null && index >= 0 && index < icons.Count && icons[index] != null;
         bar.m_avater_mask.m_content.texture = hasIcon ? new NTexture(icons[index]) : null;
-    }
-
-    private static int GetLocalSaveIndex(EntityCamp camp)
-    {
-        if (camp == EntityCamp.Attack) return ClientSelection.selectedAttackIndex;
-        if (camp == EntityCamp.Defense) return Config.attack_character_count + ClientSelection.selectedDefenseIndex;
-        return -1;
-    }
-
-    private static int ResolveSkillSlotCapacity(EntityCamp camp)
-    {
-        int saveIndex = GetLocalSaveIndex(camp);
-        if (saveIndex < 0 || Tool.InfoManager == null || Tool.SaveManager == null) return 0;
-        return Tool.InfoManager.GetPlayerCharacterInfo(saveIndex).GetAttribute(Tool.SaveManager.GetCharacterLevel(saveIndex)).weaponSlotCount;
     }
 
     private void OnScoreUpdate(SCScoreInfo info)
@@ -1179,9 +1218,9 @@ public class BattlePage : PageBase
         return map.TryGetValue(skillId, out var icon) ? icon : null; // 该技能没配图标 → 不显示图标
     }
 
-    private void RefreshSkillSlot(UI_SkillListItem item, SCEntityDisplayInfo.SkillSlotRuntime slot)
+    private void RefreshSkillSlot(UI_SkillListItem item, int skillId)
     {
-        Texture iconTexture = ResolveSkillIcon(slot.skillId);
+        Texture iconTexture = ResolveSkillIcon(skillId);
 
         if (item.m_loader_icon != null)
         {
@@ -1196,11 +1235,12 @@ public class BattlePage : PageBase
         }
 
 
-        //CD 与库存：客户端本地推演（TickLocalSkillCd），服务器只下发技能 id 列表，不携带冷却进度
-        int storeLimit = SkillManager.GetSkillStore(slot.skillId);
+        //CD 与库存：客户端本地推演（ClientSkillManager），栏外的技能冷却不推进
+        int storeLimit = SkillManager.GetSkillStore(skillId);
         bool unlimited = storeLimit < 0; // 无限库存没有充能概念，不显示库存数
-        item.m_loader_icon.fillAmount = unlimited ? 1f : skillRecharge.GetCycleProgress(slot.skillId);
-        if (item.m_storeList != null) item.m_storeList.numItems = unlimited ? 0 : skillRecharge.GetStore(slot.skillId);
+        var recharge = Skills != null ? Skills.Recharge : null;
+        item.m_loader_icon.fillAmount = unlimited || recharge == null ? 1f : recharge.GetCycleProgress(skillId);
+        if (item.m_storeList != null) item.m_storeList.numItems = unlimited || recharge == null ? 0 : recharge.GetStore(skillId);
     }
 
     #region 悬浮提示
