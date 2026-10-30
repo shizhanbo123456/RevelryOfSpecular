@@ -8,7 +8,7 @@
 ### 1.1 武器技能总览（0~49）
 
 > 技能与 id 的对应由 `SkillTypes` 枚举顺序决定（段长：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16），措辞取《特效清单分别表1019》的定稿描述。
-> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 与起点同高水平射出；标 `[索敌]` 的 9 个 = 朝目标体中心水平锁定。
+> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 朝自身面向、水平距离 = 技能射程（未配射程取 8 米）、高度与起点同高；夹角 > 0 的 12 个（8 个武器技能 + 4 个雕像孢子）= 朝范围内最近敌人的体中心，水平距离仍取技能射程、高度取体中心。
 
 #### 近战刀（0~10）
 
@@ -191,11 +191,15 @@ Skills文件夹：
 包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B。
 
 **发射点**：只用实体骨骼锚点。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；水晶雕像与中立雕像也是 `UpCenter`（不走雕像顶部）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
-**索敌与落点**：文档 `[索敌]` 标记 = 覆盖 `AutoAim => true`，其余默认 `false`（朝自身面向）。落点统一走 `AimPoint(entity, origin)`：
-- 不索敌：`origin + forward × ForwardAimDistance`，**高度 = 起点高度**（水平射出）；
-- 索敌：水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**落点高度 = 目标体中心**（不锁 `transform.position` / 脚部），距离取技能 `CastRange`；
-- 专门做上下变化的技能自己覆盖 `AimPoint`（「天罗」「兵雨」→ 自身脚下）或整段覆写 `TrajectoryFor`。
-`TargetSelect.AimPos` 保留给非射击类索敌（防守方 / 塔 / 树），内部同样按体中心取点；雕像孢子技能传 `frontSector:false`，是**全向索敌**（不受前向扇区限制）。
+**索敌与落点**：索敌开关与范围逐技能读 `skill.csv` 第 19 列夹角 / 第 20 列半径，代码里没有技能级开关。落点走 `AimPoint(entity, origin, target)`：
+- 夹角 ≤ 0.1：**完全不索敌**，落点 = `origin + forward × ForwardAimDistance`（= 技能射程，未配取 8 米），**高度 = 起点高度**（水平射出）；
+- 夹角 > 0.1：在自身朝向左右各夹角内（扇区 = 夹角 × 2）锁最近的敌人，水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**水平距离仍取技能射程**、落点高度 = 目标体中心（不锁 `transform.position` / 脚部）；
+- 夹角 > 179.9：**不限方向**（360°），雕像孢子与「周围 / 全场」类技能用这个；
+- 半径 > 9999：**不限距离**（建议写 10000，填更大值等价）；
+- 范围内一个敌人都没有时，落点与「不索敌」完全一致（朝面向、定距射出），**不回退到自身**；
+- 专门做上下变化的技能自己覆盖 `AimPoint`（天罗 / 兵雨 → 自身脚下）；不写瞄准点的 6 个（回锋环 / 腾跃散华 / 旋枪荡 / 静滞矩阵 / 六芒连射 / 六点灼阵）落点由各自轨迹常量决定。
+
+`TargetSelect.AimPos(entity, 夹角, 半径, 射程)` 给非射击类索敌用（防守方 / 塔 / 树），取点口径与上面一致：同样按体中心、水平距离取射程。
 **轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `TrialConstructor.Line(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；也可直接 new 对应 `BulletTrajectory` 子类。
 **多目标**：需要锁多个目标时由技能自己在 `SkillLogic` 里写（`ints[2..]` = 目标 id、`vectors[2..]` = 位置兜底，上限与排序规则写进技能常量）；纯范围效果优先只传「中心 + 半径 + 阵营」，由服务器自己取，不逐个下发。
 **命中附加效果**：`AttackData.addEffectEvent`（命中挂 Buff）与 `AttackData.onHit`（命中额外逻辑）；子弹路径由 `BattleManagerCombat.TryHitBullet` 消费、近战球判定由 `SkillBase.StrikeSphere` 消费。`SkillBase` 提供 `ApplyEffect`（命中挂 Buff 回调）、`GiveEffect`（直接挂 Buff）、`PullTo`（命中拉拽）。**击退/击飞不是回调**：力度写在 `AttackData.knockbackPower` 上，由命中管线统一处理（见速度节⑥）。
@@ -204,7 +208,8 @@ Skills文件夹：
 **命中判定（`BulletVfxInfo.hits`）**：伤害范围不再存在于攻击数据里（`AttackData` 已无 radius 字段），改为读特效预制体上的命中球——`start`/`end` 是特效出生后的秒数窗口（`end = 0` 表示全程有效），`center` 是相对特效根节点的局部球心（资产位姿归零后即特效实际位置），`radius` 是局部半径。服务器每帧按「上一帧球心 → 本帧球心」的胶囊判定，球心 = 轨迹位置 + 朝向（与客户端 `BulletPlayer.Tangent` 同算法）+ 技能缩放倍率。多段各自独立按窗口结算。**有本体特效的伤害技能一律发一颗子弹**（原地范围技能用 `TrialConstructor.Point` 定在原地陪特效走），伤害只走命中球；**只有无特效的近战/飞踢**才用 `SkillBase.StrikeSphere` 一次性球形 Overlap，半径取第 15 列。
 **伤害间隔（第 16 列）与段倍率（第 17 列）**：第 16 列 = 同一目标最短再伤害间隔（秒），**留空解析为 100**（相当于只结算一次），需要反复结算的才填值；第 17 列 = 伤害倍率列表，空 = 全 1，只填 1 项 = 所有段共用，填多项 = 按段序取（项数少于段数抛错）。缺命中球的子弹会打一条 `[子弹]` 报错日志（同一特效只报一次），因为它不会造成任何伤害。
 **攻击动画（第 18 列）**：填 `EntityAnim.AttackType` 的数值——1 左拳 / 2 右拳 / 12 跳砸 / 21 右手武器 / 31 短大招 / 32 中程大招 / 33 远程大招 / 41 僵尸右爪 / 42 僵尸左爪 / 43 僵尸嘶吼；留空或 0 = 无动画（水晶雕像与中立雕像的孢子技能，按下即施放）。动画由 `SkillBase.CastAnim` / `HasCastAnim` 统一读表，技能类不再声明；填了非 0 且不在枚举内的值，加载期直接抛 `FormatException`。
-**六项评分（第 19~24 列）**：依次为 输出 / 冷却恢复 / 控制 / 支援 / 攻击范围 / 攻击速度，取值 0~4 对应 D / C / B / A / S，留空按 0 解析。只用于 UI 展示（技能栏条目悬浮的 `UI_SkillTip`，每项一行 `UI_TipLevel`，`m_level` 档位 = 评分值），不参与任何战斗计算。
+**索敌夹角与半径（第 19 / 20 列）**：第 19 列 = 索敌范围夹角（度，实际扇区 = 该值 × 2），`≤0.1` 完全不索敌、`>179.9` 不限方向；第 20 列 = 索敌半径，`>9999` 不限距离（建议写 10000）。夹角 >0.1 时半径必填，留空或 ≤0 在加载期抛 `FormatException`；夹角 ≤0.1 时半径不参与、可留空。取谁（最近 / 范围内全体 / 链式 / 友方 / 指定物件）仍由技能代码决定，本两列只限定搜索范围。
+**六项评分（第 21~26 列）**：依次为 输出 / 冷却恢复 / 控制 / 支援 / 攻击范围 / 攻击速度，取值 0~4 对应 D / C / B / A / S，留空按 0 解析。只用于 UI 展示（技能栏条目悬浮的 `UI_SkillTip`，每项一行 `UI_TipLevel`，`m_level` 档位 = 评分值），不参与任何战斗计算。
 **位移**：统一走 `MotionBase`（`Entity/Motion/`），由 `EntityData.TickVelocity` 逐帧驱动（Enter / Update / 到期 Exit 三态都在 TickVelocity 内，见速度节⑤），禁止直接改 position 以免穿模；现有 `MotionDash`（恒定朝前）、`MotionToPoint`（固定点）、`MotionAttract`（持续被目标吸引，距离越远速度越大、上限封顶；目标可传 `Transform` / 固定点 / 位置来源——服务器子弹没有 Transform，用「轨迹 + 出生时间」算实时位置）。
 **延时 / 多段 / 重复结算：统一用 `Timer.AddTimer`**（见 Utils 节），不要在技能里自己写计时字段——多段命中、延时爆炸、引导间隔、姿态持续期结束等都在 `SkillLogic`/`OnCast` 里注册即可，服务端与客户端（`PlayVFX` 内）都能调。`AddTimer` 没有取消句柄，注册的闭包请自行判空（实体可能已销毁）；需要中途取消的过渡动画用 `Timer.AddTransition`（有句柄）。
 
