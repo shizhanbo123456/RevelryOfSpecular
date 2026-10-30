@@ -87,7 +87,7 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount4 + 9/slot + 位姿83
+                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount4 + 9/slot + 位姿81
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
@@ -136,7 +136,7 @@ namespace Ros.Transport
                         BitField.WriteFloat(value.velocity.x, -SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
                         BitField.WriteFloat(value.velocity.y, -SyncRanges.VelocityYRange, SyncRanges.VelocityYRange, SyncRanges.VelocityYStep);
                         BitField.WriteFloat(value.velocity.z, -SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
-                        BitField.WriteFloat(value.yawSpeed, -SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, 1f);
+                        BitField.WriteFloat(value.yawSpeed, -SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, SyncRanges.YawSpeedStep);
                     }
                 }
                 indexStart += BitField.Flush();
@@ -243,7 +243,7 @@ namespace Ros.Transport
                     r.velocity.x = BitField.ReadFloat(-SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
                     r.velocity.y = BitField.ReadFloat(-SyncRanges.VelocityYRange, SyncRanges.VelocityYRange, SyncRanges.VelocityYStep);
                     r.velocity.z = BitField.ReadFloat(-SyncRanges.VelocityXZRange, SyncRanges.VelocityXZRange, SyncRanges.VelocityXZStep);
-                    r.yawSpeed = BitField.ReadFloat(-SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, 1f);
+                    r.yawSpeed = BitField.ReadFloat(-SyncRanges.YawSpeedRange, SyncRanges.YawSpeedRange, SyncRanges.YawSpeedStep);
                 }
                 indexStart += BitField.ReadByteLength;
                 return r;

@@ -13,7 +13,8 @@ public static class SyncRanges
     public static float VelocityXZStep => ConfigManager.GlobalVariableConfig.sync_precision_entity_velocity_xz;
     public static float VelocityYRange => ConfigManager.GlobalVariableConfig.sync_entity_velocity_y;
     public static float VelocityYStep => ConfigManager.GlobalVariableConfig.sync_precision_entity_velocity_y;
-    public static float YawSpeedRange => ConfigManager.GlobalVariableConfig.move_turn_rate;     // 角速度不会超过转向角速度
+    public static float YawSpeedRange => ConfigManager.GlobalVariableConfig.sync_entity_turn_rate;      // 角速度量程（±度/秒）
+    public static float YawSpeedStep => ConfigManager.GlobalVariableConfig.sync_precision_entity_turn_rate;
 
     public static float MinimapPositionStep => ConfigManager.GlobalVariableConfig.sync_precision_minimap_xz;
     public static float MoveSpeedScaleMax => 32f;   // GM 极速 10 × 死灵漫步 2.2 × 加速 1.2 的余量，配表无对应项

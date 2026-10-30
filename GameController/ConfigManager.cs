@@ -711,6 +711,8 @@ public class ConfigManager : MonoBehaviour
         public static float sync_precision_entity_velocity_xz;   // 位姿：水平速度精度
         public static float sync_entity_velocity_y;              // 位姿：垂直速度范围（±米/秒）
         public static float sync_precision_entity_velocity_y;    // 位姿：垂直速度精度
+        public static float sync_entity_turn_rate;               // 位姿：转向角速度范围（±度/秒）
+        public static float sync_precision_entity_turn_rate;     // 位姿：转向角速度精度（度/秒）
         public static float sync_precision_minimap_xz;           // 小地图：位置精度（米）
         public static int sync_max_buff_count;                   // 单实体最多下发的 buff 条数
         public static int max_entity_health;                     // 实体生命值上限
@@ -870,6 +872,12 @@ public class ConfigManager : MonoBehaviour
                 case "sync_precision_entity_velocity_y":
                     sync_precision_entity_velocity_y = Positive(Float(row), row.key);
                     break;
+                case "sync_entity_turn_rate":
+                    sync_entity_turn_rate = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_entity_turn_rate":
+                    sync_precision_entity_turn_rate = Positive(Float(row), row.key);
+                    break;
                 case "sync_precision_minimap_xz":
                     sync_precision_minimap_xz = Positive(Float(row), row.key);
                     break;
@@ -892,7 +900,8 @@ public class ConfigManager : MonoBehaviour
                 || sync_precision_entity_xz <= 0f || sync_precision_entity_y <= 0f || sync_precision_entity_yaw <= 0f
                 || sync_entity_velocity_xz <= 0f || sync_precision_entity_velocity_xz <= 0f
                 || sync_entity_velocity_y <= 0f || sync_precision_entity_velocity_y <= 0f
-                || sync_precision_minimap_xz <= 0f || sync_max_buff_count <= 0 || max_entity_health <= 0)
+                || sync_precision_minimap_xz <= 0f || sync_max_buff_count <= 0 || max_entity_health <= 0
+                || sync_entity_turn_rate <= 0f || sync_precision_entity_turn_rate <= 0f)
                 throw new FormatException($"[配表] {FileName} 缺少位级同步所需参数行（terrain_size/terrain_height/sync_*/max_entity_health）");
             if (sync_precision_entity_xz >= terrain_size)
                 throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_xz 必须小于 terrain_size：{sync_precision_entity_xz} vs {terrain_size}");
@@ -906,6 +915,8 @@ public class ConfigManager : MonoBehaviour
                 throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_velocity_xz 必须小于速度量程 2×{sync_entity_velocity_xz}：{sync_precision_entity_velocity_xz}");
             if (sync_precision_entity_velocity_y >= 2f * sync_entity_velocity_y)
                 throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_velocity_y 必须小于速度量程 2×{sync_entity_velocity_y}：{sync_precision_entity_velocity_y}");
+            if (sync_precision_entity_turn_rate >= 2f * sync_entity_turn_rate)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_turn_rate 必须小于转速量程 2×{sync_entity_turn_rate}：{sync_precision_entity_turn_rate}");
         }
 
         private static float NonNegative(float value, string key)
