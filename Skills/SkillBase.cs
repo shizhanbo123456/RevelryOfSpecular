@@ -12,6 +12,9 @@ namespace Ros.Skill
     {
         public abstract int Id { get; }
         public virtual float CastRange => 0f;
+        // 索敌口径读 skill.csv 第 19/20 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
+        protected float TargetSector => ConfigManager.SkillConfig.Get(Id).targetSector;
+        protected float TargetRadius => ConfigManager.SkillConfig.Get(Id).targetRadius;
         // 攻击动画读 skill.csv 第 18 列，空/0 = 无动画（按下立刻施放）
         protected bool HasCastAnim => (int)CastAnim != 0;
         protected EntityAnim.AttackType CastAnim => (EntityAnim.AttackType)ConfigManager.SkillConfig.Get(Id).attackAnim;
@@ -49,6 +52,18 @@ namespace Ros.Skill
         }
 
         // —— 显式参数原语：不解析 SkillContext，参数含义由各技能自己决定 ——
+
+        // 本次施法的索敌目标：只在服务器 SkillLogic 里解析一次并随包下发，客户端不复算
+        protected EntityData ResolveTarget(EntityData entity)
+            => TargetSelect.GetNearestEnemy(entity, TargetRadius, TargetSector);
+
+        // 按配表半径收集场内敌对目标（半径 >9999 = 不限距离）；center 由技能决定
+        protected void CollectEnemies(EntityData caster, Vector3 center)
+            => TargetSelect.SetEnemiesInRangeToBuffer(center, TargetRadius, caster.camp);
+
+        // 按配表半径筛选指定集合（半径 >9999 = 不限距离），如水晶雕像 / 守护雕像 / 珊瑚
+        protected void CollectInRange(EntityData caster, IEnumerable<EntityData> bucket)
+            => TargetSelect.SetEntitiesInRangeToBuffer(bucket, caster.transform.position, TargetRadius);
 
         // 按 id 找实体（服务器权威容器；客户端查不到返回 null）
         protected static EntityData FindEntity(ushort id) => BattleManager.GetEntity(id);

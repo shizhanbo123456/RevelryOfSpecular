@@ -45,7 +45,7 @@ namespace Ros.Skill
             var context = new SkillContext();
             context.AddInts(entity.id);
             var crystalStatue = TargetSelect.SelectNearest(BattleManager.EntityContainer.CrystalStatues, entity.transform.position,
-                Config.defense_ally_cast_radius);
+                TargetRadius);
             context.AddInts(crystalStatue != null ? crystalStatue.id : entity.id); // 附近没塔就给自己
             return context;
         }
@@ -122,7 +122,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.CrystalStatues);
+            CollectInRange(entity, BattleManager.EntityContainer.CrystalStatues);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -291,7 +291,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            CollectEnemies(entity, entity.transform.position);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -314,7 +314,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            CollectEnemies(entity, entity.transform.position);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -337,7 +337,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.GuardStatues);
+            CollectInRange(entity, BattleManager.EntityContainer.GuardStatues);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -363,7 +363,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEnemiesInRangeToBuffer(entity.transform.position, Config.defense_nearby_radius, entity.camp);
+            CollectEnemies(entity, entity.transform.position);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }
@@ -394,7 +394,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            TargetSelect.SetEntitiesToBuffer(BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的珊瑚
+            CollectInRange(caster, BattleManager.EntityContainer.Corals); // 只针对施放瞬间场上的珊瑚
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
                 ApplyConfigBuff(caster, TargetSelect.TargetBuffer[i], 0);
         }
@@ -410,7 +410,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            CollectEnemies(entity, entity.transform.position);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
             {
                 var marked = TargetSelect.TargetBuffer[i];
@@ -480,7 +480,7 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            TargetSelect.SetEntitiesInCampToBuffer(TargetSelect.HostileOf(entity.camp));
+            CollectEnemies(entity, entity.transform.position);
             for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++) context.AddInts(TargetSelect.TargetBuffer[i].id);
             return context;
         }

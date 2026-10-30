@@ -442,7 +442,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 25;
+        private const int ColumnCount = 27;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -463,8 +463,10 @@ public class ConfigManager : MonoBehaviour
         public float damageInterval;     // 第16列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
         public List<float> damageRates;  // 第17列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
         public int attackAnim;           // 第18列：EntityAnim.AttackType 数值，空 = 0 = 无动画
-        public List<int> scores;         // 第19~24列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
-        public bool broadcast;           // 第25列：使用时是否全场播报，1 = 播报，空/0 = 不播报
+        public float targetSector;       // 第19列：索敌扇形半角（度，实际扇区 = 该值×2）；<=0.1 = 不索敌；>179.9 = 不限方向
+        public float targetRadius;       // 第20列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
+        public List<int> scores;         // 第21~26列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
+        public bool broadcast;           // 第27列：使用时是否全场播报，1 = 播报，空 = 不播报
 
         public SkillConfig(string[] rowData)
         {
@@ -486,16 +488,22 @@ public class ConfigManager : MonoBehaviour
             damageInterval = ParseFloatOrNull(rowData, 15) ?? 100f;
             damageRates = ParseFloatList(rowData, 16);
             attackAnim = ParseAttackAnim(rowData, 17);
+            targetSector = ParseFloat(rowData, 18);
+            targetRadius = ParseFloatOrNull(rowData, 19) ?? 0f;
+            if (targetSector < 0f || targetSector > 180f)
+                throw new FormatException($"[配表] skill.csv 技能 {key} 的索敌范围夹角 {targetSector} 超出 [0,180]");
+            if (targetSector > Config.skill_target_no_sector && targetRadius <= 0f)
+                throw new FormatException($"[配表] skill.csv 技能 {key} 配了索敌夹角 {targetSector} 但索敌半径为空或非正数");
             scores = new List<int>
             {
-                ParseIntOrNull(rowData, 18) ?? 0,
-                ParseIntOrNull(rowData, 19) ?? 0,
                 ParseIntOrNull(rowData, 20) ?? 0,
                 ParseIntOrNull(rowData, 21) ?? 0,
                 ParseIntOrNull(rowData, 22) ?? 0,
                 ParseIntOrNull(rowData, 23) ?? 0,
+                ParseIntOrNull(rowData, 24) ?? 0,
+                ParseIntOrNull(rowData, 25) ?? 0,
             };
-            broadcast = ParseBoolOrNull(rowData, 24) ?? false;
+            broadcast = ParseBoolOrNull(rowData, 26) ?? false;
         }
 
         public static int Load(ConfigTable table)

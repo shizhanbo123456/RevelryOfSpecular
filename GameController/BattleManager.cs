@@ -93,24 +93,38 @@ public partial class BattleManager : EnsBehaviour
 
         private static readonly HashSet<int> s_buffer = new();
 
-        public static EntityData GetNearestEnemy(EntityData entity, float radius = Config.default_skill_auto_target_radius)
+        // AI 侧索敌（不限方向）；技能索敌一律走带夹角的那个重载，夹角与半径读 skill.csv
+        public static EntityData GetNearestEnemy(EntityData entity, float radius)
         {
             if (entity == null) return null;
             return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.camp), entity.id);
         }
 
-        // 仅索敌前方扇形内的敌人（水平夹角 <= halfAngleDeg）：用于技能自动索敌，避免锁到背后目标
-        public static EntityData GetNearestEnemyInFront(EntityData entity, float radius, float halfAngleDeg)
+        // 索敌：夹角 <= skill_target_no_sector = 不索敌；> skill_target_full_sector = 不限方向；半径 > skill_target_unlimited_radius = 不限距离
+        public static EntityData GetNearestEnemy(EntityData entity, float radius, float sectorHalfAngle)
         {
-            if (entity == null) return null;
+            if (entity == null || sectorHalfAngle <= Config.skill_target_no_sector) return null;
             Vector3 pos = entity.transform.position;
             Vector3 fwd = entity.transform.forward;
             fwd.y = 0f;
-            if (fwd.sqrMagnitude < 1e-6f) return null;
+            bool inSector = sectorHalfAngle <= Config.skill_target_full_sector;
+            if (inSector && fwd.sqrMagnitude < 1e-6f) return null; // 朝向退化时不猜方向
             fwd.Normalize();
-            float cosLimit = Mathf.Cos(halfAngleDeg * Mathf.Deg2Rad);
+            float cosLimit = inSector ? Mathf.Cos(sectorHalfAngle * Mathf.Deg2Rad) : -1f;
+            bool unlimited = radius > Config.skill_target_unlimited_radius;
+            float sqrLimit = unlimited ? float.MaxValue : radius * radius;
+
+            s_buffer.Clear();
+            if (unlimited)
+            {
+                foreach (var id in Entities.Keys) s_buffer.Add(id); // 不限距离：连地图外的实体一起算
+            }
+            else
+            {
+                Entities.GetIdsInRange(pos, radius, s_buffer);
+            }
+
             EntityCamp hostile = EntityCampUtil.HostileOf(entity.camp);
-            Entities.GetIdsInRange(pos, radius, s_buffer);
             EntityData target = null;
             float bestSqr = float.MaxValue;
             foreach (var id in s_buffer)
@@ -120,7 +134,8 @@ public partial class BattleManager : EnsBehaviour
                 Vector3 to = e.transform.position - pos;
                 to.y = 0f;
                 float dsqr = to.sqrMagnitude;
-                if (dsqr > radius * radius || dsqr < 1e-6f) continue;
+                if (dsqr > sqrLimit) continue;
+                if (inSector && dsqr < 1e-6f) continue; // 与自己重合时方向无意义
                 if (Vector3.Dot(fwd, to.normalized) < cosLimit) continue;
                 if (dsqr < bestSqr)
                 {

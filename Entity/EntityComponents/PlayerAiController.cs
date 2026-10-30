@@ -7,6 +7,7 @@ public class PlayerAiController
     private const float RetargetInterval = 1f;
     private const float MaxChaseDistance = 40f;
     private const float DefaultEngageRange = 12f;
+    private const float AcquireRadiusFallback = 20f; // 视野未配时的接敌半径兜底（与技能索敌无关）
     private const float RetreatHealthRatio = 0.3f;
     private const float RetreatDistance = 25f;
     private const float MaxRetreatTime = 4f;
@@ -162,7 +163,7 @@ public class PlayerAiController
         {
             float view = entity.floatingAttribute.viewDistance > 0f
                 ? entity.floatingAttribute.viewDistance
-                : Config.default_skill_auto_target_radius;
+                : AcquireRadiusFallback;
             return Mathf.Min(view, MaxChaseDistance);
         }
     }

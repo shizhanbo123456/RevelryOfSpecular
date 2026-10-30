@@ -140,10 +140,10 @@ public static class Config
     public static float anim_move_speed_down => ConfigManager.GlobalVariableConfig.buff_speed_down;
     public static float anim_move_speed_mire => ConfigManager.GlobalVariableConfig.buff_mire_speed_rate;
 
-    public const float default_skill_auto_target_radius = 20f;
-
-    // 技能自动索敌前方扇形半角（度）；敌人在朝向左右各该角度内才索敌
-    public const float default_skill_auto_target_sector_half_angle = 30f;
+    // 技能索敌阈值（索敌夹角与半径逐技能读 skill.csv，这里只定义约定的边界）
+    public const float skill_target_no_sector = 0.1f;        // 夹角 <= 此值 = 完全不索敌
+    public const float skill_target_full_sector = 179.9f;    // 夹角 > 此值 = 不限方向（360°）
+    public const float skill_target_unlimited_radius = 9999f; // 半径 > 此值 = 不限距离
 
     public const float buff_vfx_life_time = 3600f;
 
@@ -166,8 +166,6 @@ public static class Config
     public const int summon_zombie_count = 5;
     public const int summon_elite_count = 3;
     public const float plague_detonate_damage = 20f;
-    public const float defense_ally_cast_radius = 15f;
-    public const float defense_nearby_radius = 8f;
     public const int power_suppress_hits = 3;
     public const float power_suppress_interval = 0.4f;
     public const float power_suppress_rate = 1f;

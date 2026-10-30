@@ -209,7 +209,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillThrowWeapon;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 10f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.RightHand;
         protected override int Shots => 1;
@@ -236,7 +235,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSkyfallWeapon;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
@@ -279,7 +277,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillBackstabWeapon;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 11f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override Vector3 OriginOffset => new Vector3(0f, 0f, -2f);
@@ -465,7 +462,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillRootShot;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
@@ -542,7 +538,7 @@ namespace Ros.Skill
         protected override SkillVfxKind VfxKind => SkillVfxKind.RangeMagic;
         protected override int VfxIndex => 2;
 
-        protected override Vector3 AimPoint(EntityData entity, Vector3 origin) => entity.transform.position; // 落点中心是自己脚下
+        protected override Vector3 AimPoint(EntityData entity, Vector3 origin, EntityData target) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 4f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -556,7 +552,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponVolley;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 2;
@@ -589,7 +584,7 @@ namespace Ros.Skill
         protected override SkillVfxKind VfxKind => SkillVfxKind.Weapon;
         protected override int VfxIndex => (int)Weapon;
 
-        protected override Vector3 AimPoint(EntityData entity, Vector3 origin) => entity.transform.position; // 落点中心是自己脚下
+        protected override Vector3 AimPoint(EntityData entity, Vector3 origin, EntityData target) => entity.transform.position; // 落点中心是自己脚下
         private const float Ring = 3f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
@@ -605,7 +600,6 @@ namespace Ros.Skill
     public class SkillPullSmash : SkillBase
     {
         public override int Id => (int)SkillType.SkillPullSmash;
-        private const float PullRadius = 8f;
         private const float PullTime = 0.5f;
         private const float LandVfxLife = 0.8f;
 
@@ -622,7 +616,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             Vector3 center = caster.transform.position;
-            Utils.TargetSelect.SetEnemiesInRangeToBuffer(center, PullRadius, caster.camp);
+            CollectEnemies(caster, center);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 var target = Utils.TargetSelect.TargetBuffer[i];
@@ -693,7 +687,6 @@ namespace Ros.Skill
     public class SkillAllyShieldEight : SkillBase
     {
         public override int Id => (int)SkillType.SkillAllyShieldEight;
-        private const float Radius = 10f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -713,7 +706,7 @@ namespace Ros.Skill
             for (int i = 1; i < context.ints.Count; i++)
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
-                if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
+                if (ally == null || (ally.transform.position - center).sqrMagnitude > TargetRadius * TargetRadius) continue;
                 ApplyConfigBuff(caster, ally, 0);
             }
         }
@@ -748,7 +741,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSplitShot;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
@@ -882,7 +874,6 @@ namespace Ros.Skill
         public override float CastRange => 16f;
         private const int Jumps = 8;
         private const float JumpLife = 0.18f;
-        private const float JumpRadius = 8f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -894,7 +885,7 @@ namespace Ros.Skill
             ushort lastId = entity.id;
             for (int i = 0; i < Jumps; i++)
             {
-                Utils.TargetSelect.SetEnemiesInRangeToBuffer(last, JumpRadius, entity.camp);
+                Utils.TargetSelect.SetEnemiesInRangeToBuffer(last, TargetRadius, entity.camp); // 配表半径 = 每跳搜索半径
                 EntityData next = null;
                 float best = float.MaxValue;
                 for (int j = 0; j < Utils.TargetSelect.TargetBuffer.Count; j++)
@@ -988,8 +979,6 @@ namespace Ros.Skill
     public class SkillHookFan : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillHookFan;
-        public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
@@ -998,11 +987,19 @@ namespace Ros.Skill
         protected override int VfxIndex => 14;
         private const float HookTime = 0.35f;
 
+        // 索敌只做一次：瞄准用的目标随包下发，OnCast 直接复用（ints[1]）
+        public override SkillContext SkillLogic(EntityData entity)
+        {
+            var context = ShotContext(entity, seed: false, aim: true, out var target);
+            if (target != null) context.AddInts(target.id);
+            return context;
+        }
+
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            var target = Utils.TargetSelect.GetNearestEnemy(caster, CastRange);
+            var target = context.ints.Count > 1 ? FindEntity((ushort)context.ints[1]) : null;
             if (target != null)
             {
                 Vector3 front = caster.transform.position + caster.transform.forward * 3f;
@@ -1023,7 +1020,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillVortexBomb;
         public override float CastRange => 12f;
         private const float PullTime = 1.2f;
-        private const float PullRadius = 6f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -1039,7 +1035,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             Vector3 center = context.vectors[0];
-            Utils.TargetSelect.SetEnemiesInRangeToBuffer(center, PullRadius, caster.camp);
+            CollectEnemies(caster, center);
             for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
             {
                 var target = Utils.TargetSelect.TargetBuffer[i];
@@ -1080,7 +1076,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSkyfallSilence;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 16f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
@@ -1116,7 +1111,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillBackArcWeapons;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        protected override bool AutoAim => true; // 1019 标 [索敌]
         public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override Vector3 OriginOffset => new Vector3(0f, 0f, -2f);
@@ -1139,7 +1133,6 @@ namespace Ros.Skill
     public class SkillAllyCritBoost : SkillBase
     {
         public override int Id => (int)SkillType.SkillAllyCritBoost;
-        private const float Radius = 10f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -1159,7 +1152,7 @@ namespace Ros.Skill
             for (int i = 1; i < context.ints.Count; i++)
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
-                if (ally == null || (ally.transform.position - center).sqrMagnitude > Radius * Radius) continue;
+                if (ally == null || (ally.transform.position - center).sqrMagnitude > TargetRadius * TargetRadius) continue;
                 ApplyConfigBuff(caster, ally, 0);
                 ApplyConfigBuff(caster, ally, 1);
             }

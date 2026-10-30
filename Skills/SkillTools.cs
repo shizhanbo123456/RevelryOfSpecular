@@ -47,13 +47,10 @@ namespace Ros.Skill.Utils
     public static class TargetSelect
     {
         public static readonly List<EntityData> TargetBuffer = new();
-        public static EntityData GetNearestEnemy(EntityData entity, float radius = 10f, bool frontSector = true)
-        {
-            if (entity == null) return null;
-            if (frontSector)
-                return BattleManager.EntityContainer.GetNearestEnemyInFront(entity, radius, Config.default_skill_auto_target_sector_half_angle);
-            return BattleManager.EntityContainer.GetNearestEnemy(entity, radius);
-        }
+
+        // 索敌口径统一读 skill.csv：夹角 <=0.1 不索敌，>179.9 不限方向，半径 >9999 不限距离
+        public static EntityData GetNearestEnemy(EntityData entity, float radius, float sectorHalfAngle)
+            => BattleManager.EntityContainer.GetNearestEnemy(entity, radius, sectorHalfAngle);
 
         public static void SetEntitiesInCampToBuffer(EntityCamp camp)
         {
@@ -87,10 +84,13 @@ namespace Ros.Skill.Utils
         public static void SetEntitiesInRangeToBuffer(IEnumerable<EntityData> bucket, Vector3 pos, float radius)
         {
             TargetBuffer.Clear();
+            bool unlimited = radius > Config.skill_target_unlimited_radius;
             float sqr = radius * radius;
             foreach (var e in bucket)
             {
-                if (e != null && e.Alive && (e.transform.position - pos).sqrMagnitude <= sqr) TargetBuffer.Add(e);
+                if (e == null || !e.Alive) continue;
+                if (!unlimited && (e.transform.position - pos).sqrMagnitude > sqr) continue;
+                TargetBuffer.Add(e);
             }
         }
 
@@ -116,11 +116,13 @@ namespace Ros.Skill.Utils
         {
             TargetBuffer.Clear();
             EntityCamp hostile = EntityCampUtil.HostileOf(ownCamp);
+            bool unlimited = radius > Config.skill_target_unlimited_radius;
             float sqr = radius * radius;
             foreach (var e in BattleManager.EntityContainer.Entities)
             {
                 if (e == null || !e.Alive || (hostile & e.camp) == 0) continue;
-                if ((e.transform.position - center).sqrMagnitude <= sqr) TargetBuffer.Add(e);
+                if (!unlimited && (e.transform.position - center).sqrMagnitude > sqr) continue;
+                TargetBuffer.Add(e);
             }
         }
 
@@ -134,15 +136,14 @@ namespace Ros.Skill.Utils
         public static Vector3 BodyPos(EntityData entity)
             => EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
 
-        public static Vector3 AimPos(EntityData entity, float castRange,bool normalizeDistance = true, bool forceHorizontal = true, bool frontSector = true)
+        // 索敌命中点：夹角 <=0.1 或范围内无敌人 → 朝自身面向 fallbackDistance；否则朝目标体中心、水平距离 = fallbackDistance
+        public static Vector3 AimPos(EntityData entity, float sectorHalfAngle, float radius, float fallbackDistance,
+            bool normalizeDistance = true, bool forceHorizontal = true)
         {
-            // 索敌与终点距离统一用技能自身 CastRange（真实攻击距离），再不行才用视野
-            float view = entity.floatingAttribute.viewDistance;
-            float searchRadius = castRange > 0f ? castRange : view;
-            var target = GetNearestEnemy(entity, searchRadius, frontSector);
+            var target = GetNearestEnemy(entity, radius, sectorHalfAngle);
             if (target == null)
             {
-                return entity.transform.position + entity.transform.forward * searchRadius;
+                return entity.transform.position + entity.transform.forward * fallbackDistance;
             }
             Vector3 body = BodyPos(target);
             Vector3 offset = body - entity.transform.position;
@@ -151,8 +152,8 @@ namespace Ros.Skill.Utils
             Vector3 dir = offset.sqrMagnitude > 0.0001f ? offset.normalized : entity.transform.forward;
             if (!normalizeDistance) return body; // 自身位置即落点：取体中心
             // 方向水平、高度取目标体中心（不落到脚上）
-            return new Vector3(entity.transform.position.x + dir.x * searchRadius, body.y,
-                entity.transform.position.z + dir.z * searchRadius);
+            return new Vector3(entity.transform.position.x + dir.x * fallbackDistance, body.y,
+                entity.transform.position.z + dir.z * fallbackDistance);
         }
     }
     public static class TrialConstructor

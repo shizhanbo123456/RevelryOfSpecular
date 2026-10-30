@@ -37,26 +37,29 @@ namespace Ros.Skill
 
         // 包内容由子类决定：显式声明要不要 seed / aim；需要别的内容就自己写 SkillLogic
         protected SkillContext ShotContext(EntityData entity, bool seed = false, bool aim = true)
+            => ShotContext(entity, seed, aim, out _);
+
+        // 同上，并把本次索敌目标交出去（需要复用目标做后续效果的技能用这个重载）
+        protected SkillContext ShotContext(EntityData entity, bool seed, bool aim, out EntityData target)
         {
             var context = new SkillContext();
             Vector3 origin = OriginPos(entity, OriginAnchor, OriginOffset);
             context.AddInts(entity.id);
             if (seed) context.AddInts(SkillSeed.New());
             context.AddVectors(origin);
-            if (aim) context.AddVectors(AimPoint(entity, origin));
+            target = aim ? ResolveTarget(entity) : null;
+            if (aim) context.AddVectors(AimPoint(entity, origin, target));
             return context;
         }
 
-        // 文档标 [索敌] 的技能覆盖为 true，其余一律朝自身面向
-        protected virtual bool AutoAim => false;
+        // 无目标时朝自身面向射出的距离（配了射程用射程，否则 8m）
         protected virtual float ForwardAimDistance => CastRange > 0f ? CastRange : 8f;
 
         // 落点高度规则：不索敌 = 与起点同高（水平射出）；索敌 = 目标体中心（不锁脚）。
-        // 专门做上下变化的技能（天降/头顶/贝塞尔等）自己覆盖这里或轨迹。
-        protected virtual Vector3 AimPoint(EntityData entity, Vector3 origin)
+        // 索敌与否、索敌范围全部读配表；专门做上下变化的技能（天降/头顶/贝塞尔等）自己覆盖这里或轨迹。
+        protected virtual Vector3 AimPoint(EntityData entity, Vector3 origin, EntityData target)
         {
             Vector3 forward = entity.transform.forward;
-            var target = AutoAim ? Utils.TargetSelect.GetNearestEnemy(entity, ForwardAimDistance) : null;
             if (target == null)
                 return new Vector3(origin.x + forward.x * ForwardAimDistance, origin.y,
                     origin.z + forward.z * ForwardAimDistance);
