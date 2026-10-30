@@ -318,7 +318,11 @@ public partial class BattleManager : EnsBehaviour
     #region 玩家进出
     public void AddPlayer(int clientId, CSLobbyPlayerInfo info)
     {
-        if (PlayerInfoList.ContainsKey(clientId)) return;
+        if (PlayerInfoList.ContainsKey(clientId))
+        {
+            NotifyPlayerOnline(clientId); // 同一令牌再次进房 = 断线重连，数据都还在，只需补发
+            return;
+        }
         PlayerInfoList[clientId] = info;
         PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
         SendLobbyPlayerNames(clientId); // 名字单独下发，先把映射铺好再播房间成员列表
@@ -903,6 +907,7 @@ public partial class BattleManager : EnsBehaviour
         PlayerEntityId.Clear();
         EntityOwnerClient.Clear();
         zombieCount = 0;
+        RemoveOfflineSessions(); // 掉线者不再有重连意义，回大厅前清出成员表
 
         BroadcastLobbyInfo(); // battleStarted = false：客户端结算页关闭后回组队大厅准备下一轮
     }
@@ -935,6 +940,8 @@ public partial class BattleManager : EnsBehaviour
     {
         Profiler.BeginSample(kManagedUpdateProfilerTag);
         if (!AtServer || !BattleStarted) { Profiler.EndSample(); return; }
+
+        CheckOfflineTimeout();
 
         // 计时
         Profiler.BeginSample(kTimerTag);

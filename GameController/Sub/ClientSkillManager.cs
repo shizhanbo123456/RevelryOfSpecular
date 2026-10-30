@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
@@ -13,6 +13,7 @@ public class ClientSkillManager : ClientSubManager
 
     private int slotCapacity;
     private ushort lastOwnEntityId;
+    private bool resyncPending; // 重连补发尚未收到新的持有表：期间库存从 0 起算，且不许回满
 
     // 空手三连绑 J：不属于技能栏，冷却照常推进
     private static readonly int[] UnarmedSkills =
@@ -53,6 +54,8 @@ public class ClientSkillManager : ClientSubManager
         advancing.Clear();
         recharge.Clear();
         lastOwnEntityId = 0;
+        // 重连补发时保留清零状态（等服务器重发持有表再按 0 库存登记），正常开战则清掉残留标记
+        if (ClientLoadingManager.Current == null || !ClientLoadingManager.Current.IsResync) resyncPending = false;
         slotCapacity = ResolveSlotCapacity();
         foreach (var id in UnarmedSkills) recharge.AddSkill(id);
         RebuildAdvancing();
@@ -64,13 +67,29 @@ public class ClientSkillManager : ClientSubManager
         if (loading != null && loading.HasSession && loading.OwnEntityId != lastOwnEntityId)
         {
             lastOwnEntityId = loading.OwnEntityId;
-            if (lastOwnEntityId != 0) recharge.ResetAll(); // 复活重建实体：库存按上限回满
+            // 重连补发期间不回满（库存已在 BeginResync 清零）；复活重建等其它情况仍按上限回满
+            if (lastOwnEntityId != 0 && !resyncPending) recharge.ResetAll();
         }
         recharge.Tick(advancing);
     }
     #endregion
 
     #region 持有与技能栏
+    // 断线重连：库存与恢复进度清零，持有表原样保留，之后按各自 CD 重新恢复（断线惩罚）
+    public void BeginResync()
+    {
+        float now = recharge.GetServerTime();
+        var held = recharge.GetSkillIds();
+        recharge.Clear(); // 一并重置 Tick 的时间基准，否则断线期间的时间跳变会把根顶到满库存
+        foreach (var skillId in held) recharge.SetRoot(skillId, now);
+        foreach (var skillId in UnarmedSkills)
+        {
+            if (!recharge.HasSkill(skillId)) recharge.AddSkill(skillId);
+        }
+        resyncPending = true;
+        EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
+    }
+
     // 服务器下发的持有表（全量替换）：新技能栏内没有就自动选中，栏满后不再自动选中
     public void SetHeldSkills(List<int> ids)
     {
@@ -98,8 +117,12 @@ public class ClientSkillManager : ClientSubManager
         }
         foreach (var skillId in heldSkills)
         {
-            if (!recharge.HasSkill(skillId)) recharge.AddSkill(skillId);
+            if (recharge.HasSkill(skillId)) continue;
+            // 重连补发：持有表重建时从 0 库存起算，之后按各自 CD 恢复
+            if (resyncPending) recharge.SetRoot(skillId, recharge.GetServerTime());
+            else recharge.AddSkill(skillId);
         }
+        resyncPending = false; // 持有表已按服务器下发重建，恢复正常逻辑
         RebuildAdvancing();
         EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
     }

@@ -32,6 +32,9 @@ public partial class NetworkManager : EnsBehaviour
     private static bool tryingEnterWorld;
     private static bool hasLobbyInfo;
     private static bool intentionalExitWorld;
+    private static bool kicked;      // 被同令牌的新连接顶掉：断开后不再自动重连
+    private static bool reconnecting;
+    private static string lastIpAddress = IPAddress.Loopback.ToString();
 
     public static bool CanSendWorldCommand => connected && hasLobbyInfo;
 
@@ -82,6 +85,12 @@ public partial class NetworkManager : EnsBehaviour
             serverHello = data;
         });
         EnsInstance.OnJoinRoom += ClientSendInfo;
+        // 房间事件 2：服务器顶号通知（同一令牌在别处登录），本端自行断开且不再自动重连
+        ClientRoomManagerEventCenter.Register(2, data =>
+        {
+            kicked = true;
+            EnsInstance.Corr.ShutDown();
+        });
 
         EnsInstance.OnServerDisconnect += () =>
         {
@@ -90,7 +99,18 @@ public partial class NetworkManager : EnsBehaviour
                 intentionalExitWorld = false;
                 return;
             }
-            EventManager.TrigEvent(ClientEvent.OnRestartGame);
+            if (kicked)
+            {
+                kicked = false;
+                if (Tool.UIManager != null)
+                {
+                    Tool.UIManager.HideLoading();
+                    Tool.UIManager.ShowFlyText("账号已在别处登录");
+                }
+                EventManager.TrigEvent(ClientEvent.OnRestartGame);
+                return;
+            }
+            BeginReconnect();
         };
     }
 
@@ -103,6 +123,7 @@ public partial class NetworkManager : EnsBehaviour
             return ConnectResult.Failed;
         }
         LocalToken = Tool.SaveManager.token;
+        kicked = false;
         ResetClientNetworkInfo();
         connecting = true;
         try
@@ -117,6 +138,7 @@ public partial class NetworkManager : EnsBehaviour
                 return ConnectResult.Failed;
             }
             EnsInstance.Corr.IP = ipAddress;
+            lastIpAddress = ipAddress;
             // ShutDown 会拿上次连接残留的未握手标记补发一次 OnConnectionRejected，先关再挂监听，避免被假拒绝打断
             EnsInstance.Corr.ShutDown();
             bool rejected = false;
@@ -159,6 +181,52 @@ public partial class NetworkManager : EnsBehaviour
             connecting = false;
         }
     }
+
+    #region 断线重连
+    private const int ReconnectMaxAttempts = 5;
+    private const int ReconnectIntervalMs = 2000;
+
+    // 断线后自动重连：连上即重新进房，服务器按令牌认回会话（战斗期会补发全量）
+    private async void BeginReconnect()
+    {
+        if (reconnecting) return;
+        reconnecting = true;
+        try
+        {
+            if (Tool.UIManager != null)
+            {
+                Tool.UIManager.ShowLoading();
+                Tool.UIManager.SetLoadingProgress(0f, "网络中断，正在重连…");
+            }
+            for (int attempt = 1; attempt <= ReconnectMaxAttempts; attempt++)
+            {
+                if (Tool.UIManager != null)
+                    Tool.UIManager.SetLoadingProgress(
+                        (attempt - 1) / (float)ReconnectMaxAttempts,
+                        $"网络中断，正在重连…（{attempt}/{ReconnectMaxAttempts}）");
+
+                ConnectResult result = await TryConnect(lastIpAddress);
+                if (result == ConnectResult.Success)
+                {
+                    reconnecting = false;
+                    EnterWorld();
+                    return;
+                }
+                await Task.Delay(ReconnectIntervalMs);
+            }
+            if (Tool.UIManager != null)
+            {
+                Tool.UIManager.HideLoading();
+                Tool.UIManager.ShowFlyText("重连失败，已返回主界面");
+            }
+            EventManager.TrigEvent(ClientEvent.OnRestartGame);
+        }
+        finally
+        {
+            reconnecting = false;
+        }
+    }
+    #endregion
 
     public void EnterWorld()
     {

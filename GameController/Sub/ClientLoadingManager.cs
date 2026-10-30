@@ -24,6 +24,7 @@ public class ClientLoadingManager : ClientSubManager
         Tool.ClientLogicManager != null ? Tool.ClientLogicManager.Loading : null;
 
     public bool HasSession { get; private set; }
+    public bool IsResync { get; private set; } // 本次会话是断线重连的补发（技能库存按零起算）
     public EntityCamp Camp { get; private set; }
     public ushort OwnEntityId { get; private set; }
     public EntityType CharacterType { get; private set; } // 本局使用的角色（结算算角色经验用）
@@ -46,6 +47,13 @@ public class ClientLoadingManager : ClientSubManager
     public void OnLoadingStart(SCLoadingStart info)
     {
         ClearData();
+        IsResync = info.resync;
+        if (info.resync)
+        {
+            // 断线重连：本地实体视图全部作废，等服务器按「首见全量」重发；技能库存清零后按 CD 重新恢复
+            Tool.ClientLogicManager.EntityPlayers.ClearAll();
+            Tool.ClientLogicManager.SkillVfx.BeginResync();
+        }
         HasSession = true;
         Camp = info.camp;
         OwnEntityId = 0;
@@ -156,6 +164,7 @@ public class ClientLoadingManager : ClientSubManager
     private void Clear()
     {
         ClearData();
+        IsResync = false;
         HasSession = false;
         Camp = EntityCamp.None;
         OwnEntityId = 0;

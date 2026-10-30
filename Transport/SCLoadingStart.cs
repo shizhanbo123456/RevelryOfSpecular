@@ -4,6 +4,7 @@ namespace Ros.Transport
     public class SCLoadingStart
     {
         public EntityCamp camp; // Attack / Defense / None（None = 观战方）
+        public bool resync;     // true = 断线重连的补发（客户端需清空视图、技能库存按零起算）
     }
 
     public struct SCLoadingStartSerializer
@@ -12,7 +13,8 @@ namespace Ros.Transport
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
-            return IntSerializer.Serialize((int)value.camp, result, ref indexStart);
+            if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
+            return BoolSerializer.Serialize(value.resync, result, ref indexStart);
         }
 
         public static SCLoadingStart Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -21,6 +23,7 @@ namespace Ros.Transport
             return new SCLoadingStart()
             {
                 camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                resync = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
             };
         }
     }

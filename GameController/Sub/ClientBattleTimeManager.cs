@@ -44,6 +44,14 @@ public class ClientBattleTimeManager : ClientSubManager
             BattleOver = true;
             RemainTime = Mathf.Max(0f, info.remainTime);
         }
+        else if (info.resync)
+        {
+            // 重连中途快照：用服务器剩余时间反推本地起点，否则断线期间的时间会被算成已消耗
+            startTime = Time.time - Mathf.Max(0f, ConfigManager.GlobalVariableConfig.battle_duration - info.remainTime);
+            running = true;
+            BattleOver = false;
+            RemainTime = Mathf.Max(0f, info.remainTime);
+        }
         EventManager.TrigEvent(ClientEvent.OnScoreUpdate, info);
     }
 

@@ -16,6 +16,7 @@ public class RSRoomManager:EnsRoomManager
             if (replaced >= 0)
             {
                 Utils.Debug.Log($"[连接] 令牌 {token} 顶号：旧连接 {replaced} → 新连接 {conn.ClientId}");
+                if (rooms.TryGetValue(roomIdStart, out var room) && room is RSRoom rsRoom) rsRoom.KickConnection(replaced);
             }
             TrigClientEvent(conn, Delivery.Reliable, 0, "ok");
         }

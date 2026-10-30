@@ -403,6 +403,13 @@ public partial class BattleManager
         plagueGuardReadyTime.Clear();
     }
 
+    // 重连补发：把「已发送快照」作废，下一帧的变更检测会自然重播一次（值不变，对其它客户端无害）
+    private void InvalidateBroadcastSnapshots()
+    {
+        lastAttackerTotal = lastDefenseTotal = lastAttackerAlive = lastDefenseAlive = lastSpectatorCount = -1;
+        for (int i = 0; i < sentDefensePointProgress.Length; i++) sentDefensePointProgress[i] = -1;
+    }
+
     #region 守护点开采进度（0~100，与视野解耦，变更即广播）
     private readonly int[] defensePointProgress = new int[4];       // 0 主点 / 1~3 副点
     private readonly int[] sentDefensePointProgress = { -1, -1, -1, -1 };
