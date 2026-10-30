@@ -47,29 +47,39 @@ namespace Ros.Transport
                 if (!BoolSerializer.Serialize(value.hasHealth, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasBuffs, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasSkills, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
 
-                int buffCount = value.buffs != null ? value.buffs.Count : 0;
-                if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
-                if (value.buffs != null)
+                if (value.hasHealth)
                 {
-                    foreach (var buff in value.buffs)
+                    if (!IntSerializer.Serialize(value.health, result, ref indexStart)) return false;
+                    if (!IntSerializer.Serialize(value.maxHealth, result, ref indexStart)) return false;
+                }
+
+                if (value.hasBuffs)
+                {
+                    int buffCount = value.buffs != null ? value.buffs.Count : 0;
+                    if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
+                    if (value.buffs != null)
                     {
-                        if (!BoolSerializer.Serialize(buff != null, result, ref indexStart)) return false;
-                        if (buff == null) continue;
-                        if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
-                        if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
+                        foreach (var buff in value.buffs)
+                        {
+                            if (!BoolSerializer.Serialize(buff != null, result, ref indexStart)) return false;
+                            if (buff == null) continue;
+                            if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
+                            if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
+                        }
                     }
                 }
 
-                int skillCount = value.skills != null ? value.skills.Count : 0;
-                if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
-                if (value.skills != null)
+                if (value.hasSkills)
                 {
-                    foreach (var skillId in value.skills)
+                    int skillCount = value.skills != null ? value.skills.Count : 0;
+                    if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
+                    if (value.skills != null)
                     {
-                        if (!IntSerializer.Serialize(skillId, result, ref indexStart)) return false;
+                        foreach (var skillId in value.skills)
+                        {
+                            if (!IntSerializer.Serialize(skillId, result, ref indexStart)) return false;
+                        }
                     }
                 }
                 if (!value.hasTransform) return true;
@@ -80,7 +90,7 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：1+15+3+5+5+5flag + health16*2 + buffCount4 + 11/buff + skillCount7 + 8/技能 + 位姿81
+                // 位级：1+15+3+5+5+5flag + [health16*2] + [buffCount4+11/buff] + [skillCount7+8/技能] + [位姿81]
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
@@ -94,27 +104,37 @@ namespace Ros.Transport
                     BitField.WriteBool(value.hasHealth);
                     BitField.WriteBool(value.hasBuffs);
                     BitField.WriteBool(value.hasSkills);
-                    BitField.WriteInt(value.health, 0, SyncRanges.MaxHealth);
-                    BitField.WriteInt(value.maxHealth, 0, SyncRanges.MaxHealth);
 
-                    // 条数按配表上限截断：写出的条数必须与计数一致，否则读端错位
-                    int buffCount = value.buffs != null ? value.buffs.Count : 0;
-                    if (buffCount > SyncRanges.MaxBuffCount) buffCount = SyncRanges.MaxBuffCount;
-                    BitField.WriteInt(buffCount, 0, SyncRanges.MaxBuffCount);
-                    for (int i = 0; i < buffCount; i++)
+                    if (value.hasHealth)
                     {
-                        var buff = value.buffs[i];
-                        BitField.WriteBool(buff != null);
-                        if (buff == null) continue;
-                        BitField.WriteInt(buff.type, 0, 63);
-                        BitField.WriteInt(buff.level, 0, 15);
+                        BitField.WriteInt(value.health, 0, SyncRanges.MaxHealth);
+                        BitField.WriteInt(value.maxHealth, 0, SyncRanges.MaxHealth);
                     }
 
-                    int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, SyncRanges.MaxSkillCount) : 0;
-                    BitField.WriteInt(skillCount, 0, SyncRanges.MaxSkillCount);
-                    for (int i = 0; i < skillCount; i++)
+                    if (value.hasBuffs)
                     {
-                        BitField.WriteInt(value.skills[i], -1, SyncRanges.MaxSkillId);
+                        // 条数按配表上限截断：写出的条数必须与计数一致，否则读端错位
+                        int buffCount = value.buffs != null ? value.buffs.Count : 0;
+                        if (buffCount > SyncRanges.MaxBuffCount) buffCount = SyncRanges.MaxBuffCount;
+                        BitField.WriteInt(buffCount, 0, SyncRanges.MaxBuffCount);
+                        for (int i = 0; i < buffCount; i++)
+                        {
+                            var buff = value.buffs[i];
+                            BitField.WriteBool(buff != null);
+                            if (buff == null) continue;
+                            BitField.WriteInt(buff.type, 0, 63);
+                            BitField.WriteInt(buff.level, 0, 15);
+                        }
+                    }
+
+                    if (value.hasSkills)
+                    {
+                        int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, SyncRanges.MaxSkillCount) : 0;
+                        BitField.WriteInt(skillCount, 0, SyncRanges.MaxSkillCount);
+                        for (int i = 0; i < skillCount; i++)
+                        {
+                            BitField.WriteInt(value.skills[i], -1, SyncRanges.MaxSkillId);
+                        }
                     }
 
                     if (value.hasTransform)
@@ -149,24 +169,33 @@ namespace Ros.Transport
                     hasHealth = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasBuffs = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasSkills = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 };
-                int buffCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
-                for (int i = 0; i < buffCount; i++)
+                if (info.hasHealth)
                 {
-                    bool hasBuff = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
-                    if (!hasBuff) { info.buffs.Add(null); continue; }
-                    info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
-                    {
-                        type = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                        level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    });
+                    info.health = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                    info.maxHealth = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
                 }
-                int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
-                for (int i = 0; i < skillCount; i++)
+                if (info.hasBuffs)
                 {
-                    info.skills.Add(IntSerializer.Deserialize(data, ref indexStart, invalidIndex));
+                    int buffCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                    for (int i = 0; i < buffCount; i++)
+                    {
+                        bool hasBuff = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                        if (!hasBuff) { info.buffs.Add(null); continue; }
+                        info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
+                        {
+                            type = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                            level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                        });
+                    }
+                }
+                if (info.hasSkills)
+                {
+                    int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
+                    for (int i = 0; i < skillCount; i++)
+                    {
+                        info.skills.Add(IntSerializer.Deserialize(data, ref indexStart, invalidIndex));
+                    }
                 }
                 if (!info.hasTransform) return info;
                 info.position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
@@ -195,24 +224,34 @@ namespace Ros.Transport
                 r.hasHealth = BitField.ReadBool();
                 r.hasBuffs = BitField.ReadBool();
                 r.hasSkills = BitField.ReadBool();
-                r.health = BitField.ReadInt(0, SyncRanges.MaxHealth);
-                r.maxHealth = BitField.ReadInt(0, SyncRanges.MaxHealth);
 
-                int buffCount = BitField.ReadInt(0, SyncRanges.MaxBuffCount);
-                for (int i = 0; i < buffCount; i++)
+                if (r.hasHealth)
                 {
-                    if (!BitField.ReadBool()) { r.buffs.Add(null); continue; }
-                    r.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
-                    {
-                        type = BitField.ReadInt(0, 63),
-                        level = BitField.ReadInt(0, 15),
-                    });
+                    r.health = BitField.ReadInt(0, SyncRanges.MaxHealth);
+                    r.maxHealth = BitField.ReadInt(0, SyncRanges.MaxHealth);
                 }
 
-                int skillCount = BitField.ReadInt(0, SyncRanges.MaxSkillCount);
-                for (int i = 0; i < skillCount; i++)
+                if (r.hasBuffs)
                 {
-                    r.skills.Add(BitField.ReadInt(-1, SyncRanges.MaxSkillId));
+                    int buffCount = BitField.ReadInt(0, SyncRanges.MaxBuffCount);
+                    for (int i = 0; i < buffCount; i++)
+                    {
+                        if (!BitField.ReadBool()) { r.buffs.Add(null); continue; }
+                        r.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
+                        {
+                            type = BitField.ReadInt(0, 63),
+                            level = BitField.ReadInt(0, 15),
+                        });
+                    }
+                }
+
+                if (r.hasSkills)
+                {
+                    int skillCount = BitField.ReadInt(0, SyncRanges.MaxSkillCount);
+                    for (int i = 0; i < skillCount; i++)
+                    {
+                        r.skills.Add(BitField.ReadInt(-1, SyncRanges.MaxSkillId));
+                    }
                 }
 
                 if (r.hasTransform)
