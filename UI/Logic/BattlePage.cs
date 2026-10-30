@@ -713,10 +713,17 @@ public class BattlePage : PageBase
         return true;
     }
 
-    // 雷达中心 = 本地玩家实体位置；纯观战无本地实体时取观战目标位置
+    // 雷达中心 = 本地玩家实体位置；纯观战无本地实体时取观战目标位置；自由视角下取相机自身
     private bool TryGetMinimapCenter(out Vector3 pos)
     {
         pos = Vector3.zero;
+        // 自由视角相机已脱离跟随点：圆心必须跟相机，否则服务器按相机下发的点位会被按旧圆心换算而漂出雷达
+        var cam = Tool.CameraController;
+        if (cam != null && cam.IsFree)
+        {
+            pos = cam.transform.position;
+            return true;
+        }
         if (!HasSession || Tool.ClientLogicManager == null
             || Tool.ClientLogicManager.EntityPlayers == null) return false;
         ushort centerId = OwnEntityId;
