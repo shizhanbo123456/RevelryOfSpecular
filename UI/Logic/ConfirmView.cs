@@ -4,10 +4,9 @@ using Ros.UI.Main;
 using UnityEngine;
 
 // 确认弹窗：全局子界面（不挂任何页面，挂 GRoot）。
-// 弹出时先铺满屏遮罩挡住底层点击，再把弹窗本体叠在其上。
+// 全屏拦截层已并入 ConfirmPanel 内部，弹窗本体 opaque 吞掉点击。
 public class ConfirmView
 {
-    private UI_FullScreenMask mask;
     private UI_ConfirmPanel panel;
     private Action onConfirm;
     private Action onCancel;
@@ -17,12 +16,9 @@ public class ConfirmView
 
     public void Construct()
     {
-        mask = UI_FullScreenMask.CreateInstance();
-        mask.opaque = true; // 吞掉点击：底层页面/聊天/GM 面板都不再响应
-        GRoot.inst.AddChild(mask);
-        mask.visible = false;
-
         panel = UI_ConfirmPanel.CreateInstance();
+        panel.opaque = true; // 吞掉点击：底层页面/聊天/GM 面板都不再响应
+        panel.touchable = true;
         GRoot.inst.AddChild(panel);
         panel.visible = false;
 
@@ -51,10 +47,7 @@ public class ConfirmView
         onCancel = cancel;
         if (panel.m_content != null) panel.m_content.text = content;
 
-        // 每次弹出都重新置顶：先遮罩后弹窗，加入顺序即层级
-        GRoot.inst.AddChild(mask);
-        GRoot.inst.AddChild(panel);
-        mask.visible = true;
+        GRoot.inst.AddChild(panel); // 每次弹出都重新置顶
         panel.visible = true;
         ApplyTransform();
         IsOpen = true;
@@ -65,7 +58,6 @@ public class ConfirmView
         onConfirm = null;
         onCancel = null;
         IsOpen = false;
-        if (mask != null) mask.visible = false;
         if (panel != null) panel.visible = false;
     }
 
@@ -85,14 +77,14 @@ public class ConfirmView
         if (act != null) act();
     }
 
-    // 居中：GRoot 坐标是屏幕像素，面板按页面同规则缩放
+    // 居中：面板带全屏拦截层时尺寸不等于弹窗本身，按中心锚点定位才不会被拉偏
     private void ApplyTransform()
     {
         if (panel == null) return;
         panel.scale = new Vector2(uiScale, uiScale);
-        panel.SetXY(
-            (GRoot.inst.width - panel.width * uiScale) * 0.5f,
-            (GRoot.inst.height - panel.height * uiScale) * 0.5f);
+        panel.pivotAsAnchor = true;
+        panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.SetXY(GRoot.inst.width * 0.5f, GRoot.inst.height * 0.5f);
     }
     #endregion
 }
