@@ -327,6 +327,8 @@ public partial class BattleManager : EnsBehaviour
         PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
         SendLobbyPlayerNames(clientId); // 名字单独下发，先把映射铺好再播房间成员列表
         BroadcastLobbyInfo();
+        // 对局（含加载期）已开始才进房：本局没有参赛名额，按观战方补发一次完整会话
+        if (LoadingStarted || BattleStarted) ResyncBattle(clientId);
         Debug.Log($"玩家 {clientId} 进入组队大厅");
     }
 

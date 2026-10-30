@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-// 断线重连：战斗期的会话一直保留到本局结束，其余阶段掉线直接移除玩家（见 NotifyPlayerOffline）
+// 会话补发：断线重连（战斗期会话保留到本局结束，其余阶段掉线直接移除玩家，见 NotifyPlayerOffline）
+// 与「对局已开始时中途进房」共用同一套从零重建流程
 public partial class BattleManager
 {
     private readonly HashSet<int> offlineClients = new(); // 掉线中的令牌（仅战斗期登记）
@@ -38,7 +39,7 @@ public partial class BattleManager
         foreach (var token in tokens) RemovePlayer(token);
     }
 
-    // 战斗内重连补发：客户端从零重建（视图、单位表、技能栏都以这里下发的为准）
+    // 从零重建客户端（断线重连 / 对局中途进入共用）：视图、单位表、技能栏都以这里下发的为准
     private void ResyncBattle(int token)
     {
         if (!PlayerInfoList.ContainsKey(token)) return;

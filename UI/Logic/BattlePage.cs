@@ -7,7 +7,6 @@ using UnityEngine;
 public class BattlePage : PageBase
 {
     private readonly UI_BattlePanel panel;
-    private float battleStartTime;
 
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
     private int skillSlotCount;          // 技能栏条目数 = 本地角色技能槽位数（进入战斗时确定）
@@ -60,6 +59,10 @@ public class BattlePage : PageBase
 
     // 客户端技能状态（持有表 / 技能栏 / 冷却库存）全在它身上
     private static ClientSkillManager Skills => Tool.ClientLogicManager != null ? Tool.ClientLogicManager.SkillVfx : null;
+
+    // 剩余时间推演的唯一持有者（起点由服务器快照校准，见 ClientBattleTimeManager）
+    private static ClientBattleTimeManager BattleTime => Tool.ClientLogicManager != null ? Tool.ClientLogicManager.BattleTime : null;
+
     private static ushort OwnEntityId => HasSession ? Session.OwnEntityId : (ushort)0;
     private bool IsOwnEntity(int entityId) => HasSession && OwnEntityId == entityId;
 
@@ -178,7 +181,6 @@ public class BattlePage : PageBase
         EventManager.AddEvent(ClientEvent.OnSkillBarRefresh, OnSkillBarRefresh);
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
-        battleStartTime = Time.time;
         localPlayerCamp = -1;
         spectatorMode = Session != null && Session.IsSpectator;
         localPlayerAlive = !spectatorMode;
@@ -234,12 +236,9 @@ public class BattlePage : PageBase
     public override void Tick(float deltaTime)
     {
         if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
-        //剩余时间（本地估算，精确值以服务器 SCScoreInfo 为准）
-        if (HasSession && panel.m_batleInfoPanel.m_label_time_left != null)
-        {
-            float remain = ConfigManager.GlobalVariableConfig.battle_duration - (Time.time - battleStartTime);
-            panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, remain));
-        }
+        //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
+        if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
+            panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
         RefreshTimeIcon();
         TickCombatLabels(deltaTime);
         TickMinimapTimeout();

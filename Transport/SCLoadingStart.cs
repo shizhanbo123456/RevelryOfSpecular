@@ -4,7 +4,7 @@ namespace Ros.Transport
     public class SCLoadingStart
     {
         public EntityCamp camp; // Attack / Defense / None（None = 观战方）
-        public bool resync;     // true = 断线重连的补发（客户端需清空视图、技能库存按零起算）
+        public bool resync;     // true = 从零补发（断线重连 / 对局中途进入，客户端需清空视图、技能库存按零起算）
     }
 
     public struct SCLoadingStartSerializer
