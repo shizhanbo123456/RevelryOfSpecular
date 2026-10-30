@@ -134,12 +134,12 @@ namespace Ros.Skill.Utils
         public static Vector3 BodyPos(EntityData entity)
             => EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim, entity.springWeapon).position;
 
-        public static Vector3 AimPos(EntityData entity, float castRange,bool normalizeDistance = true, bool forceHorizontal = true)
+        public static Vector3 AimPos(EntityData entity, float castRange,bool normalizeDistance = true, bool forceHorizontal = true, bool frontSector = true)
         {
             // 索敌与终点距离统一用技能自身 CastRange（真实攻击距离），再不行才用视野
             float view = entity.floatingAttribute.viewDistance;
             float searchRadius = castRange > 0f ? castRange : view;
-            var target = GetNearestEnemy(entity, searchRadius);
+            var target = GetNearestEnemy(entity, searchRadius, frontSector);
             if (target == null)
             {
                 return entity.transform.position + entity.transform.forward * searchRadius;
