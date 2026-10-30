@@ -175,6 +175,7 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.AddEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
+        EventManager.AddEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
         EventManager.AddEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         playerEntities.Clear();
         entityOwners.Clear();
@@ -220,6 +221,7 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCReviveInfo>(ClientEvent.OnReviveProgressUpdate, OnReviveProgressUpdate);
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.RemoveEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
+        EventManager.RemoveEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
         EventManager.RemoveEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         playerEntities.Clear();
         entityOwners.Clear();
@@ -251,22 +253,24 @@ public class BattlePage : PageBase
         TickLocalSkillCd(deltaTime);
     }
 
-    // 本地推演：每帧推进库存恢复，按下技能键即扣一次库存，周期重渲染冷却环与库存数
+    // 本地推演：每帧推进库存恢复，周期重渲染冷却环与库存数；扣减只由服务器回执（OnSkillUsed）驱动
     private void TickLocalSkillCd(float deltaTime)
     {
         if (!skillSlotsBuilt || spectatorMode) return;
         skillRecharge.Tick();
-        for (int i = 0; i < Config.skill_slot_keys.Length; i++)
-        {
-            if (!Input.GetKeyDown(Config.skill_slot_keys[i])) continue;
-            int skillId = i < skillSummary.Count && skillSummary[i] != null ? skillSummary[i].skillId : -1;
-            if (skillId >= 0) skillRecharge.Consume(skillId);
-        }
         skillCdRefreshTimer -= deltaTime;
         if (skillCdRefreshTimer > 0f) return;
         skillCdRefreshTimer = 0.1f;
         var list = panel.m_skillList != null ? panel.m_skillList.m_content : null;
         if (list != null) list.numItems = skillSlotCount; // 触发原地重渲染：冷却环按本地模拟推进
+    }
+
+    // 服务器受理成功才扣一次：被沉默/强控/死亡/连点被抹掉的请求都不会有这条包
+    private void OnSkillUsed(int skillId)
+    {
+        if (!skillSlotsBuilt || skillId < 0) return;
+        skillRecharge.Consume(skillId);
+        skillCdRefreshTimer = 0f; // 下一帧立刻重渲染冷却环与库存数
     }
 
     #region 事件处理

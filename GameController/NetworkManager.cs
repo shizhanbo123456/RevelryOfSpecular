@@ -366,6 +366,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceivePromptLocal, SendTo.To(clientId), Delivery.Reliable, new SCPrompt() { messageId = messageId });
     }
 
+    // 技能受理成功回执：只回施法者，客户端收到才扣一次可用次数
+    public void SendSkillUsed(short clientId, int skillId)
+    {
+        if (!HasClient(clientId)) return;
+        CallFuncRpc(ClientReceiveSkillUsedLocal, SendTo.To(clientId), Delivery.Reliable, new SCSkillUsed() { skillId = skillId });
+    }
+
     public void SendCombatLabel(short clientId, SCCombatLabel label)
     {
         if (!HasClient(clientId)) return;
@@ -656,6 +663,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (p == null) return;
         EventManager.TrigEvent(ClientEvent.OnShowPrompt, p.messageId);
+    }
+
+    [Rpc]
+    private void ClientReceiveSkillUsedLocal(SCSkillUsed info)
+    {
+        if (info == null) return;
+        EventManager.TrigEvent(ClientEvent.OnSkillUsed, info.skillId);
     }
 
     [Rpc]

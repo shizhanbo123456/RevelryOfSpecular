@@ -118,7 +118,7 @@ public class EntitySkillController
         Unregistered,
     }
 
-    // 冷却与库存完全由客户端判定，服务器收到请求只做硬校验（技能存在、沉默/强控）
+    // 冷却与库存由客户端自己推演，服务器只做硬校验：通过即回一条成功回执，客户端收到才扣一次次数
     public UseResult TryUseSkill(int skillId)
     {
         if (skillId < 0) return UseResult.NoSkill;
@@ -136,6 +136,8 @@ public class EntitySkillController
 
         CastingSlotIndex = skillIds.IndexOf(skillId);
         skill.BeginCast(owner, skillId);
+        // 只有技能槽内的技能才有库存可扣；通用技能（空手三连）不在槽内，不回执
+        if (CastingSlotIndex >= 0 && Tool.BattleManager != null) Tool.BattleManager.NotifySkillUsed(owner, skillId);
         return UseResult.Success;
     }
 

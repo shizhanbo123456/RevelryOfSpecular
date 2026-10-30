@@ -16,6 +16,7 @@ public static class ClientEvent
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;
     public const int OnDefensePointProgress = 10217; // param=SCDefensePointProgress 四个守护点的开采进度（0~100）
+    public const int OnSkillUsed = 10220; // param=int 技能 id（SCSkillUsed，只发给施法者本人，收到才扣一次可用次数）
     public const int OnLobbyInfoUpdate = 10222; // param=SCLobbyInfo 组队期房间成员/阵营/准备/AI 数量
     #endregion
 

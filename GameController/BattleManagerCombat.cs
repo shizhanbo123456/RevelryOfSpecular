@@ -443,7 +443,7 @@ public partial class BattleManager
     }
     #endregion
 
-    #region 技能释放失败提示
+    #region 技能释放回执
     private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏
     private readonly Dictionary<short, float> skillFailPromptTime = new();
 
@@ -460,6 +460,14 @@ public partial class BattleManager
         if (skillFailPromptTime.TryGetValue(clientId, out var last) && Time.time - last < SkillFailPromptInterval) return;
         skillFailPromptTime[clientId] = Time.time;
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendPrompt(clientId, messageId);
+    }
+
+    // 技能受理成功回执：客户端只凭这条包扣可用次数（AI / 无主实体没有客户端，直接跳过）
+    public void NotifySkillUsed(EntityData entity, int skillId)
+    {
+        if (entity == null || skillId < 0) return;
+        if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillUsed(clientId, skillId);
     }
     #endregion
 
