@@ -77,8 +77,10 @@ public partial class BattleManager
         // 昼夜快照（心跳 10s 也会补，但重连应当立即正确）
         if (Tool.EnvironmentManager != null) Tool.NetworkManager.SendDayNightInfo(token, Tool.EnvironmentManager.BuildSnapshot());
 
-        // 死亡等待复活中：补一条复活进度
-        if (reviveStates.TryGetValue(token, out var revive)) SendReviveProgress(token, revive, 0, false);
+        // 仅在「已死、等复活」时补复活进度：活着时 reviveStates 里仍有残留记录（进度已归零），
+        // 照发会让客户端把复活条显示成停在 0%
+        if (!PlayerEntityId.ContainsKey(token) && reviveStates.TryGetValue(token, out var revive))
+            SendReviveProgress(token, revive, 0, false);
 
         // 阵营存活 / 守护点：作废「已发送快照」，下一帧的变更检测会自然重播一次
         InvalidateBroadcastSnapshots();
