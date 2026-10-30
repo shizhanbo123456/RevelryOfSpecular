@@ -2,14 +2,13 @@ using System.Collections.Generic;
 using Ros.Transport;
 using UnityEngine;
 
-// 断线重连：只保留「战斗期」的会话，其余阶段掉线直接移除玩家（见 NotifyPlayerOffline）
+// 断线重连：战斗期的会话一直保留到本局结束，其余阶段掉线直接移除玩家（见 NotifyPlayerOffline）
 public partial class BattleManager
 {
-    public const float ReconnectGraceSeconds = 120f;
+    private readonly HashSet<int> offlineClients = new(); // 掉线中的令牌（仅战斗期登记）
 
-    private readonly Dictionary<int, float> offlineSince = new(); // 令牌 → 断线时刻（仅战斗期保留）
-
-    // 连接层断开：战斗期保留会话等重连，大厅/加载期直接移除（否则全员准备/加载回执会永久卡住）
+    // 连接层断开：战斗期保留会话（本局内随时可以回来），大厅/加载期直接移除
+    // —— 后者必须移除，否则「全员准备」与「全员加载回执」会被永久卡住
     public void NotifyPlayerOffline(int clientId)
     {
         if (!PlayerInfoList.ContainsKey(clientId)) return; // 主动退出：调用方已 RemovePlayer
@@ -18,42 +17,24 @@ public partial class BattleManager
             RemovePlayer(clientId);
             return;
         }
-        offlineSince[clientId] = Time.time;
-        Debug.Log($"[重连] 令牌 {clientId} 断线，会话保留 {ReconnectGraceSeconds} 秒");
+        offlineClients.Add(clientId);
+        Debug.Log($"[重连] 令牌 {clientId} 断线，会话保留至本局结束");
     }
 
     // 同一令牌再次进房：数据都还在，补发一次全量让客户端重建表现
     public void NotifyPlayerOnline(int clientId)
     {
-        if (offlineSince.Remove(clientId)) Debug.Log($"[重连] 令牌 {clientId} 已重连");
+        if (offlineClients.Remove(clientId)) Debug.Log($"[重连] 令牌 {clientId} 已重连");
         BroadcastLobbyInfo(); // 该客户端靠它取得 hasLobbyInfo（否则世界指令发不出去）
         if (BattleStarted) ResyncBattle(clientId);
     }
 
-    private void CheckOfflineTimeout()
-    {
-        if (offlineSince.Count == 0) return;
-        List<int> expired = null;
-        foreach (var pair in offlineSince)
-        {
-            if (Time.time - pair.Value < ReconnectGraceSeconds) continue;
-            (expired ??= new List<int>()).Add(pair.Key);
-        }
-        if (expired == null) return;
-        foreach (var token in expired)
-        {
-            offlineSince.Remove(token);
-            Debug.Log($"[重连] 令牌 {token} 超时未重连，移除");
-            RemovePlayer(token);
-        }
-    }
-
-    // 一局结束：掉线者不再有重连意义，清出成员表
+    // 一局结束：掉线者不再有重连意义，清出成员表（这是掉线会话唯一的清理时机）
     private void RemoveOfflineSessions()
     {
-        if (offlineSince.Count == 0) return;
-        var tokens = new List<int>(offlineSince.Keys);
-        offlineSince.Clear();
+        if (offlineClients.Count == 0) return;
+        var tokens = new List<int>(offlineClients);
+        offlineClients.Clear();
         foreach (var token in tokens) RemovePlayer(token);
     }
 

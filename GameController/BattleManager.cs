@@ -941,8 +941,6 @@ public partial class BattleManager : EnsBehaviour
         Profiler.BeginSample(kManagedUpdateProfilerTag);
         if (!AtServer || !BattleStarted) { Profiler.EndSample(); return; }
 
-        CheckOfflineTimeout();
-
         // 计时
         Profiler.BeginSample(kTimerTag);
         if (BattleRemainTime > 0f)
