@@ -122,12 +122,20 @@ public partial class BattleManager
             // 采样：所选玩家的环带内 + MapSpace 合法区
             if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, Config.coral_spawn_max_dist, out Vector3 pos)) continue;
             if (IsAnyPlayerWithin(pos, minDist)) continue;              // 该点近处还有别的玩家
-            if (IsAnyCoralWithin(pos, Config.coral_min_separation)) continue; // 与已有珊瑚过近
+            if (IsAnyCoralWithin(pos, Config.coral_min_separation)) continue; // 与已有珊瑚距离必须 > 1m
+            if (CoralDensityAt(pos) >= Config.coral_chunk_max_density) continue; // 所在区块珊瑚密度已达上限
 
             EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
             SpawnEntity(type, 1, pos, EntityCamp.Prop);
             return;
         }
+    }
+
+    // 候选点所在区块的珊瑚平均密度（个/㎡）：区块面积按整格 chunkSize² 算，不剔除区块内的非法区
+    private static float CoralDensityAt(Vector3 pos)
+    {
+        int count = EntityContainer.Corals.GetChunkCount(ChunkSearcher<EntityData>.GetChunkIndex(pos));
+        return count / (Landscape.chunkSize * Landscape.chunkSize);
     }
 
     private static bool IsAnyPlayerWithin(Vector3 pos, float radius)

@@ -70,6 +70,12 @@ public class ChunkSearcher<T> : IEnumerable<T>
     #endregion
 
     #region 区块查询（含特殊区块支持）
+    // 区块内物体数量：O(1)，不构造任何集合；未建立或被清空的区块返回 0
+    public int GetChunkCount(Vector2Int chunkIndex)
+    {
+        return _chunkObjects.TryGetValue(chunkIndex, out HashSet<int> objectIds) ? objectIds.Count : 0;
+    }
+
     public void GetObjectsInChunk(Vector2Int chunkIndex, HashSet<T> outList, bool append = false)
     {
         ValidateChunkIndex(chunkIndex);
