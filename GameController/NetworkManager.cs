@@ -423,8 +423,9 @@ public partial class NetworkManager : EnsBehaviour
     [Rpc]
     private void ClientReceivePlayerEntityLocal(SCPlayerEntity info)
     {
-        if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnPlayerEntityUpdate, info);
+        if (info == null || Tool.ClientLogicManager == null) return;
+        // 直连常驻的加载会话：开战关系包早于战斗界面创建到达，走事件会整批丢失
+        Tool.ClientLogicManager.Loading.OnPlayerEntity(info);
     }
 
     public void SendSpectate(CSSpectate request)

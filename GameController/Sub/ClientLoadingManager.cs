@@ -16,6 +16,7 @@ public class ClientLoadingManager : ClientSubManager
     private readonly List<LoadingUnitEntry> units = new(); // 三步汇总：真人玩家 + AI 单位
     private readonly Dictionary<short, string> names = new(); // clientId → 名字
     private readonly Dictionary<ushort, short> entityOwners = new(); // 实体 id → clientId（名牌反查）
+    private readonly Dictionary<short, int> playerEntities = new(); // clientId → 实体 id（-1 = 无实体）
 
     private Step step = Step.Idle;
 
@@ -30,14 +31,12 @@ public class ClientLoadingManager : ClientSubManager
 
     protected override void BindEvents()
     {
-        EventManager.AddEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         EventManager.AddEvent(ClientEvent.OnExitWorld, Clear);
         EventManager.AddEvent(ClientEvent.OnRestartGame, Clear);
     }
 
     protected override void UnbindEvents()
     {
-        EventManager.RemoveEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, Clear);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, Clear);
     }
@@ -113,22 +112,14 @@ public class ClientLoadingManager : ClientSubManager
         return entityOwners.TryGetValue(entityId, out var clientId) ? GetName(clientId) : "玩家?";
     }
 
+    // clientId → 当前实体 id；-1 = 无实体（死亡 / 观战 / 离场）
+    public int GetEntityId(int clientId)
+    {
+        return playerEntities.TryGetValue((short)clientId, out var entityId) ? entityId : -1;
+    }
+
     // 所有参战单位（真人 + AI），供死亡观战/纯观战的目标列表使用
     public List<LoadingUnitEntry> GetCombatants() => units;
-
-    public bool TryGetEntityId(int clientId, out ushort entityId)
-    {
-        for (int i = 0; i < units.Count; i++)
-        {
-            if (units[i] != null && units[i].clientId == clientId)
-            {
-                entityId = units[i].entityId;
-                return true;
-            }
-        }
-        entityId = 0;
-        return false;
-    }
     #endregion
 
     #region//Local
@@ -141,14 +132,25 @@ public class ClientLoadingManager : ClientSubManager
             units.Add(entry);
             names[entry.clientId] = entry.name;
             entityOwners[entry.entityId] = entry.clientId;
+            playerEntities[entry.clientId] = entry.entityId;
         }
     }
 
-    // 复活会换新实体 id：本地玩家自己的实体 id 以 SCPlayerEntity 为准
-    private void OnPlayerEntityUpdate(SCPlayerEntity info)
+    // 玩家 → 实体关系由网络层直连转入：开战前的批量下发与界面创建存在时差，走事件会整批丢包
+    public void OnPlayerEntity(SCPlayerEntity info)
     {
-        if (!HasSession || info == null || info.clientId != EnsInstance.LocalClientId) return;
-        OwnEntityId = info.entityId > 0 ? (ushort)info.entityId : (ushort)0;
+        if (!HasSession || info == null) return;
+
+        // 复活换新实体 id：清掉该玩家的旧关系，避免旧 id 仍能反查到人
+        if (playerEntities.TryGetValue(info.clientId, out var old) && old > 0
+            && entityOwners.TryGetValue((ushort)old, out var oldOwner) && oldOwner == info.clientId)
+            entityOwners.Remove((ushort)old);
+
+        playerEntities[info.clientId] = info.entityId;
+        if (info.entityId > 0) entityOwners[(ushort)info.entityId] = info.clientId;
+
+        if (info.clientId == EnsInstance.LocalClientId)
+            OwnEntityId = info.entityId > 0 ? (ushort)info.entityId : (ushort)0;
     }
 
     private void Clear()
@@ -165,6 +167,7 @@ public class ClientLoadingManager : ClientSubManager
         units.Clear();
         names.Clear();
         entityOwners.Clear();
+        playerEntities.Clear();
         step = Step.Idle;
     }
     #endregion

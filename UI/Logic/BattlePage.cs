@@ -18,7 +18,6 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
-    private readonly Dictionary<ushort, int> barOwners = new();
     private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
     private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
     private readonly Dictionary<ushort, float> minimapLastReceived = new();
@@ -43,8 +42,6 @@ public class BattlePage : PageBase
     private float spectatePendingSince;   // 发起观战的时刻（目标数据迟迟不到 = 目标已死，超时重选）
     private float onlookRefreshTimer;     // 观战下拉选项刷新节流
     private bool syncingOnlookCombo;      // 程序刷新下拉选项期间屏蔽 onChanged 回调
-    private readonly Dictionary<int, int> playerEntities = new(); // 玩家 id → 实体 id（-1 = 无实体），来自 SCPlayerEntity
-    private readonly Dictionary<int, int> entityOwners = new();   // 实体 id → 玩家 id（名牌反查用）
 
     private const float CombatLabelLife = 0.8f;
     private const int CombatLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
@@ -63,9 +60,6 @@ public class BattlePage : PageBase
     private static bool HasSession => Session != null && Session.HasSession;
     private static ushort OwnEntityId => HasSession ? Session.OwnEntityId : (ushort)0;
     private bool IsOwnEntity(int entityId) => HasSession && OwnEntityId == entityId;
-
-    // 战斗期名字一律取加载期下发的表（不再读组队期缓存）
-    private static string GetUnitName(int clientId) => HasSession ? Session.GetName(clientId) : $"玩家{clientId}";
 
     private struct CombatLabelItem
     {
@@ -176,9 +170,6 @@ public class BattlePage : PageBase
         EventManager.AddEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.AddEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
         EventManager.AddEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
-        EventManager.AddEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
-        playerEntities.Clear();
-        entityOwners.Clear();
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated += OnCameraUpdated;
 
         battleStartTime = Time.time;
@@ -222,9 +213,6 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<SCCampAliveCount>(ClientEvent.OnCampAliveCount, OnCampAliveCount);
         EventManager.RemoveEvent<SCDefensePointProgress>(ClientEvent.OnDefensePointProgress, OnDefensePointProgress);
         EventManager.RemoveEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
-        EventManager.RemoveEvent<SCPlayerEntity>(ClientEvent.OnPlayerEntityUpdate, OnPlayerEntityUpdate);
-        playerEntities.Clear();
-        entityOwners.Clear();
         if (Tool.CameraController != null) Tool.CameraController.OnCameraUpdated -= OnCameraUpdated;
         spectatorMode = false;
         localPlayerAlive = true;
@@ -310,26 +298,6 @@ public class BattlePage : PageBase
             localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
     }
 
-    private void OnPlayerEntityUpdate(SCPlayerEntity info)
-    {
-        if (info == null) return;
-        // 旧实体关系清理（复活的玩家会拿到新实体 id）
-        if (playerEntities.TryGetValue(info.clientId, out var old) && old != -1
-            && entityOwners.TryGetValue(old, out var oc) && oc == info.clientId)
-            entityOwners.Remove(old);
-        playerEntities[info.clientId] = info.entityId;
-        if (info.entityId != -1) entityOwners[info.entityId] = info.clientId;
-
-        // 正在观战的目标关系变化：-1 = 目标死亡（纯观战自动重选 / 死亡观战冻结原地），新 id = 重绑相机
-        if (spectateTargetClientId == info.clientId)
-        {
-            spectateTargetEntityId = info.entityId;
-            if (info.entityId == -1) spectateTargetClientId = -1;
-        }
-    }
-
-    private int EntityOwnerOf(ushort entityId) => entityOwners.TryGetValue(entityId, out var c) ? c : -1;
-
     #region 观战
     private void TickSpectator(float deltaTime)
     {
@@ -342,13 +310,29 @@ public class BattlePage : PageBase
         if (spectatorMode && spectateTargetClientId == -1) SpectateTo(PickRandomCombatMember());
         if (spectateTargetClientId != -1)
         {
-            if (spectateTargetEntityId == -1) spectateTargetEntityId = ResolveSpectateEntityId(spectateTargetClientId);
-            // 目标实体视图未建（目标已死亡 / 表现数据没到）：3 秒后重选
-            if (HasSpectateView(spectateTargetEntityId)) spectatePendingSince = 0f;
-            else if (spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
+            // 观战目标的当前实体每帧对齐一次（关系在加载会话里维护）：复活换实体自动重绑，无实体则重选
+            int currentEntity = ResolveSpectateEntityId(spectateTargetClientId);
+            if (currentEntity <= 0)
             {
                 spectateTargetClientId = -1;
+                spectateTargetEntityId = -1;
                 spectatePendingSince = 0f;
+            }
+            else
+            {
+                if (currentEntity != spectateTargetEntityId)
+                {
+                    spectateTargetEntityId = currentEntity;
+                    spectatePendingSince = HasSpectateView(currentEntity) ? 0f : Time.time;
+                }
+                // 目标实体视图未建（目标已死亡 / 表现数据没到）：3 秒后重选
+                if (HasSpectateView(spectateTargetEntityId)) spectatePendingSince = 0f;
+                else if (spectatePendingSince > 0f && Time.time - spectatePendingSince > 3f)
+                {
+                    spectateTargetClientId = -1;
+                    spectateTargetEntityId = -1;
+                    spectatePendingSince = 0f;
+                }
             }
         }
         // 目标表现数据已到达：绑定相机到其视图锚点（锚点由视图逐帧刷新）
@@ -380,12 +364,7 @@ public class BattlePage : PageBase
         NetworkManager.RequestSpectate(targetClientId);
     }
 
-    // 关系包可能在本页 Enter 之前就广播完（观战方加载完成较晚）：回落加载期下发的预分配实体 id
-    private int ResolveSpectateEntityId(int clientId)
-    {
-        if (playerEntities.TryGetValue(clientId, out var entityId)) return entityId;
-        return HasSession && Session.TryGetEntityId(clientId, out var unitEntityId) ? unitEntityId : -1;
-    }
+    private int ResolveSpectateEntityId(int clientId) => HasSession ? Session.GetEntityId(clientId) : -1;
 
     private static bool HasSpectateView(int entityId)
     {
@@ -940,7 +919,8 @@ public class BattlePage : PageBase
         // 阵营：进攻/防守/观战/中立（中立含中立雕像与场景物件），档位即 PlayerCampIcon.m_player_camp 的页序
         bar.m_campIcon.m_player_camp.selectedIndex = (int)ToPlayerCamp(info.camp);
         bar.m_is_enemy.selectedIndex = IsEnemyCamp(info.camp) ? 1 : 0;
-        if (bar.m_entity_name != null) bar.m_entity_name.text = withName ? GetUnitName(EntityOwnerOf(info.entityId)) : "";
+        if (bar.m_entity_name != null)
+            bar.m_entity_name.text = withName && HasSession ? Session.GetNameByEntity(info.entityId) : "";
 
         // 友/敌两条血条由 m_is_enemy 互斥显示，两条都写同一个比例
         float ratio = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
@@ -949,7 +929,6 @@ public class BattlePage : PageBase
         if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
 
         if (info.hasBuffs) RefreshBuffList(bar.m_buff_list.m_list, entityBuffs[info.entityId], info.buffs);
-        barOwners[info.entityId] = EntityOwnerOf(info.entityId);
     }
 
     // 场景 UI（血条 / 伤害飘字）挂在世界层容器上，坐标从面板空间换到容器局部空间
@@ -1053,7 +1032,6 @@ public class BattlePage : PageBase
             entityBars.Remove(entityId);
         }
         entityBuffs.Remove(entityId);
-        barOwners.Remove(entityId);
     }
 
     private void ClearEntityBars()
@@ -1064,7 +1042,6 @@ public class BattlePage : PageBase
         }
         entityBars.Clear();
         entityBuffs.Clear();
-        barOwners.Clear();
     }
 
     private void ShowCombatLabel(int value, CombatLabelType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
