@@ -1,5 +1,3 @@
-using System;
-
 namespace Ros.Transport
 {
     public class SCBattleEvent
@@ -32,64 +30,22 @@ namespace Ros.Transport
     {
         public static bool Serialize(SCBattleEvent value, byte[] result, ref int indexStart)
         {
-            if (!EnsInstance.enableBitTransform)
-            {
-                if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
-                if (value == null) return true;
-                if (!ByteSerializer.Serialize(value.type, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.textId, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.textId2, result, ref indexStart)) return false;
-                return true;
-            }
-            else
-            {
-                if (result.Length - indexStart < (value == null ? 1 : 5)) return false;
-
-                // 位级：1+4+16+16=37 位
-                BitField.SetBuffer(result, indexStart);
-                BitField.WriteBool(value != null);
-                if (value != null)
-                {
-                    BitField.WriteInt(value.type, 0, 9);
-                    BitField.WriteInt(value.textId, 0, 65535);
-                    BitField.WriteInt(value.textId2, 0, 65535);
-                }
-                indexStart += BitField.Flush();
-                return true;
-            }
+            if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
+            if (value == null) return true;
+            if (!ByteSerializer.Serialize(value.type, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.textId, result, ref indexStart)) return false;
+            return IntSerializer.Serialize(value.textId2, result, ref indexStart);
         }
 
         public static SCBattleEvent Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
-            if (!EnsInstance.enableBitTransform)
+            if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
+            return new SCBattleEvent()
             {
-                if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-                return new SCBattleEvent()
-                {
-                    type = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    textId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    textId2 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                };
-            }
-            else
-            {
-                if (invalidIndex - indexStart < 1) throw new Exception("反序列化 SCBattleEvent 失败：剩余数据不足");
-
-                BitField.SetBuffer(data, indexStart);
-                if (!BitField.ReadBool())
-                {
-                    indexStart += 1;
-                    return null;
-                }
-                if (invalidIndex - indexStart < 5) throw new Exception("反序列化 SCBattleEvent 失败：剩余数据不足");
-
-                var r = new SCBattleEvent();
-                r.type = (byte)BitField.ReadInt(0, 9);
-                r.textId = BitField.ReadInt(0, 65535);
-                r.textId2 = BitField.ReadInt(0, 65535);
-                indexStart += 5;
-                return r;
-            }
+                type = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                textId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                textId2 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+            };
         }
     }
 }

@@ -1,5 +1,3 @@
-using System;
-
 using Ros.Gm;
 
 namespace Ros.Transport
@@ -19,75 +17,28 @@ namespace Ros.Transport
     {
         public static bool Serialize(CSGm value, byte[] result, ref int indexStart)
         {
-            if (!EnsInstance.enableBitTransform)
-            {
-                if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
-                if (value == null) return true;
-                if (!IntSerializer.Serialize((int)value.type, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.int1, result, ref indexStart)) return false;
-                if (!IntSerializer.Serialize(value.int2, result, ref indexStart)) return false;
-                if (!FloatSerializer.Serialize(value.float1, result, ref indexStart)) return false;
-                if (!FloatSerializer.Serialize(value.float2, result, ref indexStart)) return false;
-                return FloatSerializer.Serialize(value.float3, result, ref indexStart);
-            }
-            else
-            {
-                if (result.Length - indexStart < (value == null ? 1 : 21)) return false;
-
-                // 位级：1+6+4*32=135 位
-                BitField.SetBuffer(result, indexStart);
-                BitField.WriteBool(value != null);
-                if (value != null)
-                {
-                    BitField.WriteInt((int)value.type, 0, 63);
-                    BitField.WriteInt(value.int1, int.MinValue, int.MaxValue);
-                    BitField.WriteInt(value.int2, int.MinValue, int.MaxValue);
-                    BitField.WriteInt(BitConverter.SingleToInt32Bits(value.float1), int.MinValue, int.MaxValue);
-                    BitField.WriteInt(BitConverter.SingleToInt32Bits(value.float2), int.MinValue, int.MaxValue);
-                    BitField.WriteInt(BitConverter.SingleToInt32Bits(value.float3), int.MinValue, int.MaxValue);
-                }
-                indexStart += BitField.Flush();
-                return true;
-            }
+            if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
+            if (value == null) return true;
+            if (!IntSerializer.Serialize((int)value.type, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.int1, result, ref indexStart)) return false;
+            if (!IntSerializer.Serialize(value.int2, result, ref indexStart)) return false;
+            if (!FloatSerializer.Serialize(value.float1, result, ref indexStart)) return false;
+            if (!FloatSerializer.Serialize(value.float2, result, ref indexStart)) return false;
+            return FloatSerializer.Serialize(value.float3, result, ref indexStart);
         }
 
         public static CSGm Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
-            if (!EnsInstance.enableBitTransform)
+            if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
+            return new CSGm()
             {
-                if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-                return new CSGm()
-                {
-                    type = (GmEnum)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    int1 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    int2 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    float1 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    float2 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    float3 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                };
-            }
-            else
-            {
-                if (invalidIndex - indexStart < 1) throw new Exception("反序列化 CSGm 失败：剩余数据不足");
-
-                BitField.SetBuffer(data, indexStart);
-                if (!BitField.ReadBool())
-                {
-                    indexStart += 1;
-                    return null;
-                }
-                if (invalidIndex - indexStart < 21) throw new Exception("反序列化 CSGm 失败：剩余数据不足");
-
-                var r = new CSGm();
-                r.type = (GmEnum)BitField.ReadInt(0, 63);
-                r.int1 = BitField.ReadInt(int.MinValue, int.MaxValue);
-                r.int2 = BitField.ReadInt(int.MinValue, int.MaxValue);
-                r.float1 = BitConverter.Int32BitsToSingle(BitField.ReadInt(int.MinValue, int.MaxValue));
-                r.float2 = BitConverter.Int32BitsToSingle(BitField.ReadInt(int.MinValue, int.MaxValue));
-                r.float3 = BitConverter.Int32BitsToSingle(BitField.ReadInt(int.MinValue, int.MaxValue));
-                indexStart += 21;
-                return r;
-            }
+                type = (GmEnum)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                int1 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                int2 = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                float1 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                float2 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                float3 = FloatSerializer.Deserialize(data, ref indexStart, invalidIndex),
+            };
         }
     }
 }
