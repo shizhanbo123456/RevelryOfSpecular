@@ -32,9 +32,7 @@ public partial class NetworkManager : EnsBehaviour
     private static bool tryingEnterWorld;
     private static bool hasLobbyInfo;
     private static bool intentionalExitWorld;
-    private static bool kicked;      // 被同令牌的新连接顶掉：断开后不再自动重连
-    private static bool reconnecting;
-    private static string lastIpAddress = IPAddress.Loopback.ToString();
+    private static bool kicked;      // 被同令牌的新连接顶掉：提示语与普通断线区分
 
     public static bool CanSendWorldCommand => connected && hasLobbyInfo;
 
@@ -110,7 +108,9 @@ public partial class NetworkManager : EnsBehaviour
                 EventManager.TrigEvent(ClientEvent.OnRestartGame);
                 return;
             }
-            BeginReconnect();
+            // 任何断开都直接回初始界面：会话在服务器端按令牌保留，由玩家自己重新连接
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("与服务器断开连接");
+            EventManager.TrigEvent(ClientEvent.OnRestartGame);
         };
     }
 
@@ -138,7 +138,6 @@ public partial class NetworkManager : EnsBehaviour
                 return ConnectResult.Failed;
             }
             EnsInstance.Corr.IP = ipAddress;
-            lastIpAddress = ipAddress;
             // ShutDown 会拿上次连接残留的未握手标记补发一次 OnConnectionRejected，先关再挂监听，避免被假拒绝打断
             EnsInstance.Corr.ShutDown();
             bool rejected = false;
@@ -181,52 +180,6 @@ public partial class NetworkManager : EnsBehaviour
             connecting = false;
         }
     }
-
-    #region 断线重连
-    private const int ReconnectMaxAttempts = 5;
-    private const int ReconnectIntervalMs = 2000;
-
-    // 断线后自动重连：连上即重新进房，服务器按令牌认回会话（战斗期会补发全量）
-    private async void BeginReconnect()
-    {
-        if (reconnecting) return;
-        reconnecting = true;
-        try
-        {
-            if (Tool.UIManager != null)
-            {
-                Tool.UIManager.ShowLoading();
-                Tool.UIManager.SetLoadingProgress(0f, "网络中断，正在重连…");
-            }
-            for (int attempt = 1; attempt <= ReconnectMaxAttempts; attempt++)
-            {
-                if (Tool.UIManager != null)
-                    Tool.UIManager.SetLoadingProgress(
-                        (attempt - 1) / (float)ReconnectMaxAttempts,
-                        $"网络中断，正在重连…（{attempt}/{ReconnectMaxAttempts}）");
-
-                ConnectResult result = await TryConnect(lastIpAddress);
-                if (result == ConnectResult.Success)
-                {
-                    reconnecting = false;
-                    EnterWorld();
-                    return;
-                }
-                await Task.Delay(ReconnectIntervalMs);
-            }
-            if (Tool.UIManager != null)
-            {
-                Tool.UIManager.HideLoading();
-                Tool.UIManager.ShowFlyText("重连失败，已返回主界面");
-            }
-            EventManager.TrigEvent(ClientEvent.OnRestartGame);
-        }
-        finally
-        {
-            reconnecting = false;
-        }
-    }
-    #endregion
 
     public void EnterWorld()
     {
