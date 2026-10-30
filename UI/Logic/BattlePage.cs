@@ -272,15 +272,12 @@ public class BattlePage : PageBase
     private void OnEntityDisplayUpdate(SCEntityDisplayInfo info)
     {
         if (info == null) return;
-        if (info.type.category == EntityCategory.Character_Attack ||
-            info.type.category == EntityCategory.Character_Defense)
+        // 血条是否创建由 entity.csv 的「显示血条」列决定；名牌只给双方角色
+        if (ConfigManager.EntityConfig.GetByCategory(info.type).showHealthBar)
         {
-            UpdateEntityBar(info, withName: true);
-        }
-        else if (info.type.category == EntityCategory.CrystalStatue ||
-                 info.type.category == EntityCategory.Coral)
-        {
-            UpdateEntityBar(info, withName: false); // 场景物件常显血条，不占名牌
+            bool withName = info.type.category == EntityCategory.Character_Attack ||
+                            info.type.category == EntityCategory.Character_Defense;
+            UpdateEntityBar(info, withName);
         }
 
         if (IsOwnEntity(info.entityId))

@@ -151,6 +151,17 @@ public class ConfigManager : MonoBehaviour
         return value;
     }
 
+    // 显示血条：留空 / 0 = 不显示，1 = 显示，其它值属配表错配直接抛
+    public static bool ParseShowHealthBar(string[] rowData, int col)
+    {
+        string raw = Cell(rowData, col);
+        if (raw.Length == 0) return false;
+        int value = ParseInt(rowData, col);
+        if (value == 0) return false;
+        if (value == 1) return true;
+        throw new FormatException($"第 {col} 列的显示血条 {value} 只允许 空 / 0 / 1");
+    }
+
     // 技能攻击动画：空/0 = 无动画，其余必须是 EntityAnim.AttackType 里定义的值
     public static int ParseAttackAnim(string[] rowData, int col)
     {
@@ -330,11 +341,11 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表 / 15 品质
+    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表 / 15 品质 / 16 显示血条
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private const int ColumnCount = 16;
+        private const int ColumnCount = 17;
         public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
         public EntityCategory category;
@@ -353,6 +364,7 @@ public class ConfigManager : MonoBehaviour
         public int unlockLevel;
         public List<int> initialSkills;
         public int quality;           // 0:B / 1:A / 2:S，直接对应 RoleHead 的 m_quality 页序
+        public bool showHealthBar;    // 客户端是否为该实体创建头顶血条
 
         public EntityConfig(string[] rowData)
         {
@@ -372,6 +384,7 @@ public class ConfigManager : MonoBehaviour
             unlockLevel = ParseInt(rowData, 13);
             initialSkills = ParseIntList(rowData, 14);
             quality = ParseQuality(rowData, 15);
+            showHealthBar = ParseShowHealthBar(rowData, 16);
         }
 
         public static int Load(ConfigTable table)
