@@ -100,8 +100,6 @@ public static class Config
     #endregion
 
     #region 武器与技能
-    public const float skill_exp_damage_bonus = 0.1f;
-
     #region 武器技能 id 区间（珊瑚掉武器全段随机；段长 = 武器数量，段长与顺序不可随意调整）
     public const int weapon_id_melee_min = (int)SkillType.SkillFanIceCone;         // 近战刀 11 把
     public const int weapon_id_melee_max = (int)SkillType.SkillSkyfallWeapon;

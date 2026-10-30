@@ -13,11 +13,10 @@ public class AttackData
     public Action<EntityData> onHit;
     public EntityAttribute attribute;
     public float outDamageMultiplier = 1f;
-    public int weaponExp;
 
     public static AttackData Create(EntityData shooter, float rate, bool breakEndure,
         bool useMagic = false, Damageable.IDamageable damageable = null,
-        Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null, int weaponExp = 0,
+        Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null,
         float knockbackPower = 0f)
     {
         return new AttackData()
@@ -35,7 +34,6 @@ public class AttackData
             outDamageMultiplier = shooter != null && shooter.effectController != null
                 ? shooter.effectController.GetOutDamageMultiplier()
                 : 1f,
-            weaponExp = weaponExp,
             knockbackPower = knockbackPower,
         };
     }
@@ -45,7 +43,6 @@ public class AttackData
         type = CombatLabelType.Normal;
         if (attribute == null) return 0;
         float final = rate * (useMagic ? attribute.magic : attribute.strength);
-        final *= 1f + Config.skill_exp_damage_bonus * weaponExp; // 武器经验加伤
         final *= outDamageMultiplier;                            // 出伤乘区
         final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第17列）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)

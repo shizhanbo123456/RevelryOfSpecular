@@ -11,13 +11,10 @@ public class EntitySkillController
 
     public int CastingSlotIndex { get; private set; } = -1;
 
-    private readonly Dictionary<int, int> weaponExp = new();
-
     public void Init(EntityData data)
     {
         owner = data;
         skillIds.Clear();
-        weaponExp.Clear();
         CastingSlotIndex = -1;
     }
 
@@ -66,7 +63,6 @@ public class EntitySkillController
     public struct Loadout
     {
         public List<int> skillIds;
-        public Dictionary<int, int> weaponExps;
     }
 
     public Loadout CaptureLoadout()
@@ -74,37 +70,13 @@ public class EntitySkillController
         return new Loadout
         {
             skillIds = new List<int>(skillIds),
-            weaponExps = new Dictionary<int, int>(weaponExp),
         };
     }
 
-    // 复活重建实体后归还技能与经验；库存不继承，按上限回满（策划口径）
+    // 复活重建实体后归还技能；库存不继承，按上限回满（策划口径）
     public void ApplyLoadout(Loadout loadout)
     {
         SetSkillList(loadout.skillIds);
-        weaponExp.Clear();
-        if (loadout.weaponExps == null) return;
-        foreach (var pair in loadout.weaponExps) weaponExp[pair.Key] = pair.Value;
-    }
-    #endregion
-
-    #region 武器经验
-    public int GetWeaponExp(int skillId)
-    {
-        return weaponExp.TryGetValue(skillId, out var exp) ? exp : 0;
-    }
-
-    public void AddWeaponExp(int skillId, int amount = 1)
-    {
-        if (skillId < 0) return;
-        weaponExp[skillId] = GetWeaponExp(skillId) + amount;
-    }
-
-    public void AddWeaponExpToRandom(int amount = 1)
-    {
-        if (skillIds.Count == 0) return;
-        int index = UnityEngine.Random.Range(0, skillIds.Count);
-        AddWeaponExp(skillIds[index], amount);
     }
     #endregion
 

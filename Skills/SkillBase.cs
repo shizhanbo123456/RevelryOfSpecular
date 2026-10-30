@@ -97,9 +97,8 @@ namespace Ros.Skill
             Action<EntityData> onHit = null, float? knockback = null)
         {
             var config = ConfigManager.SkillConfig.Get(Id);
-            int exp = entity != null && entity.skillController != null ? entity.skillController.GetWeaponExp(Id) : 0;
             return AttackData.Create(entity, rate, breakEndure, useMagic ?? (config.valueSource == 1),
-                addEffectEvent: addEffect, onHit: onHit, weaponExp: exp, knockbackPower: knockback ?? config.knockback ?? 0f);
+                addEffectEvent: addEffect, onHit: onHit, knockbackPower: knockback ?? config.knockback ?? 0f);
         }
 
         // 技能附带的 Buff 全部读 skill.csv，按 index 取用；越界属配表错配，直接抛

@@ -23,6 +23,6 @@ public static class SyncRanges
     public static int MaxBuffCount => ConfigManager.GlobalVariableConfig.sync_max_buff_count;
     public static int EntityIdMax => Config.entity_id_max;
 
-    // 单次飘字数值上限：武器经验加伤不设上限，配表无对应项，留足余量
+    // 单次飘字数值上限：出伤乘区可叠多层，配表无对应项，留足余量
     public const int CombatLabelAmountMax = 1000000;
 }

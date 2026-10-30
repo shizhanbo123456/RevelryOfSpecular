@@ -127,7 +127,7 @@ public partial class BattleManager
         public int deathCount;
         public float progress;
         public float lastSentProgress = -1f;
-        public EntitySkillController.Loadout? loadout; // 死亡瞬间的技能与经验快照，复活重建实体后归还
+        public EntitySkillController.Loadout? loadout; // 死亡瞬间的技能快照，复活重建实体后归还
     }
     private readonly Dictionary<short, ReviveState> reviveStates = new();
 
@@ -230,13 +230,42 @@ public partial class BattleManager
         EndBattle(AttackScore >= DefenseScore() ? 1 : 2);
     }
 
+    // 珊瑚被摧毁：先按尺寸给击杀者回血（与是否掉落、掉落结果无关），再走掉落
+    public void OnCoralDestroyed(EntityData coral)
+    {
+        HealCoralKiller(coral);
+        TryDropCoralWeapon(coral);
+    }
+
+    // 击败珊瑚的玩家角色实体（含 AI 代打）；击杀者未归属任何客户端时返回 null
+    private EntityData GetCoralKillerPlayer(EntityData coral, out short clientId)
+    {
+        clientId = -1;
+        var killer = coral.lastAttacker;
+        if (killer == null) return null;
+        if (!EntityOwnerClient.TryGetValue(killer.id, out clientId)) return null;
+        if (!PlayerEntityId.TryGetValue(clientId, out var playerId)) return null;
+        return EntityContainer.Entities.TryGetObject(playerId, out var player) ? player : null;
+    }
+
+    // 小/大珊瑚各配一个固定恢复量（global_variables），夹到生命上限
+    private void HealCoralKiller(EntityData coral)
+    {
+        var player = GetCoralKillerPlayer(coral, out _);
+        if (player == null || !player.Alive) return;
+        float heal = coral.type.value <= 0
+            ? ConfigManager.GlobalVariableConfig.coral_small_regeneration
+            : ConfigManager.GlobalVariableConfig.coral_large_regeneration;
+        if (heal <= 0f) return;
+        player.floatingAttribute.health = Mathf.Min(player.baseAttribute.health, player.floatingAttribute.health + heal);
+        player.healthDirty = true;
+    }
+
+    // 掉武器：只有「未持有且槽未满」才入槽；已持有 / 槽满都不产生任何变化
     public void TryDropCoralWeapon(EntityData coral)
     {
-        var killer = coral.lastAttacker;
-        if (killer == null) return;
-        if (!EntityOwnerClient.TryGetValue(killer.id, out var clientId)) return;
-        if (!PlayerEntityId.TryGetValue(clientId, out var playerId)) return;
-        if (!EntityContainer.Entities.TryGetObject(playerId, out var player) || player.skillController == null) return;
+        var player = GetCoralKillerPlayer(coral, out short clientId);
+        if (player == null || player.skillController == null) return;
 
         float chance = coral.type.value <= 0
             ? ConfigManager.GlobalVariableConfig.coral_small_drop_chance
@@ -244,23 +273,10 @@ public partial class BattleManager
         if (UnityEngine.Random.value > chance) return;
 
         int weaponId = Config.GetRandomWeaponId(); // 全部武器均匀随机
-        int slotMax = player.floatingAttribute.weaponSlotCount;
-        var sc = player.skillController;
-        if (sc.GetSkillIds().Contains(weaponId))
-        {
-            sc.AddWeaponExp(weaponId);
-            NotifyPlayer(clientId, 15); // 武器升级
-        }
-        else if (sc.GetSkillIds().Count < slotMax)
-        {
-            sc.AddSkill(weaponId);
-            NotifyPlayer(clientId, 14); // 获得新武器
-        }
-        else
-        {
-            sc.AddWeaponExpToRandom();
-            NotifyPlayer(clientId, 13); // 槽满转经验
-        }
+        var ids = player.skillController.GetSkillIds();
+        if (ids.Contains(weaponId) || ids.Count >= player.floatingAttribute.weaponSlotCount) return;
+        player.skillController.AddSkill(weaponId);
+        NotifyPlayer(clientId, 14); // 获得新武器
     }
 
     // 战斗事件列表的纯文字提示（文本走 notice.csv）
@@ -335,7 +351,7 @@ public partial class BattleManager
         var data = GetEntity(entityId);
         if (data != null && data.skillController != null && rs.loadout.HasValue)
         {
-            data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能与经验带走，库存按上限回满
+            data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能带走，库存按上限回满
         }
         if (data != null) data.aiControlled = AIClients.Contains(clientId);
 

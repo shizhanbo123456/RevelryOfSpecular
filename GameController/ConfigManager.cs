@@ -692,6 +692,8 @@ public class ConfigManager : MonoBehaviour
         public static float coral_spawn_as_large_chance; // 刷新珊瑚时出大型的概率
         public static float coral_small_drop_chance;    // 小珊瑚被摧毁时的掉武器概率
         public static float coral_large_drop_chance;    // 大珊瑚被摧毁时的掉武器概率
+        public static float coral_small_regeneration;   // 摧毁小珊瑚时击杀者的生命恢复量
+        public static float coral_large_regeneration;   // 摧毁大珊瑚时击杀者的生命恢复量
         public static int zombie_max;                   // 场上僵尸数量上限
         public static float zombie_refresh_rate_fast;   // 僵尸刷新速度上限（场上剩余越少越快，单位：只/秒）
         public static float zombie_refresh_rate_slow;   // 僵尸刷新速度下限
@@ -817,6 +819,12 @@ public class ConfigManager : MonoBehaviour
                     break;
                 case "coral_large_drop_chance":
                     coral_large_drop_chance = Ratio(Float(row), row.key);
+                    break;
+                case "coral_small_regeneration":
+                    coral_small_regeneration = NonNegative(Float(row), row.key);
+                    break;
+                case "coral_large_regeneration":
+                    coral_large_regeneration = NonNegative(Float(row), row.key);
                     break;
                 case "zombie_max":
                     zombie_max = Positive(Int(row), row.key);

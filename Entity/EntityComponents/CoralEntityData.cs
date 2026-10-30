@@ -11,7 +11,7 @@ public class CoralEntityData : EntityData
         var battle = Tool.BattleManager;
         if (battle == null) return;
 
-        battle.TryDropCoralWeapon(this);
+        battle.OnCoralDestroyed(this); // 回血 + 掉武器
         battle.NotifyCoralDestroyed(this); // 释放刷新点占用，可被邻近机制再次生成
     }
 
