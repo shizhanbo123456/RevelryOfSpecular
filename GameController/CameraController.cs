@@ -1,3 +1,4 @@
+using Ros.Transport;
 using UnityEngine;
 
 public enum CameraViewMode
@@ -48,6 +49,9 @@ public class CameraController : MonoBehaviour
     public float freeTurnSpeed = 90f;
     public float freePitchSpeed = 60f;
     public Vector2 freePitchClamp = new Vector2(-89f, 89f);
+    // 自由视角位置上报：每 freeReportInterval 秒检查一次，与上次上报位置水平距离小于 freeReportDistance 则不发
+    public float freeReportInterval = 1f;
+    public float freeReportDistance = 1f;
 
     public CameraViewMode Mode { get; private set; } = CameraViewMode.ThirdPerson;
 
@@ -62,6 +66,11 @@ public class CameraController : MonoBehaviour
     // 自由视角位姿
     private float freeYaw;
     private float freePitch;
+
+    // 自由视角位置上报状态
+    private float freeReportTimer;
+    private Vector3 freeReportPos;
+    private bool freeReportPending; // 进入自由视角后的首包（不等满一个上报周期）
 
     // 会话跟踪：新一局回第三人称，复活换实体后补发一次模式
     private bool sessionActive;
@@ -113,9 +122,12 @@ public class CameraController : MonoBehaviour
         {
             freeYaw = transform.eulerAngles.y;
             freePitch = NormalizePitch(transform.eulerAngles.x);
+            freeReportPending = true; // 首包立刻发，避免进入后 1s 内服务器仍按原实体下发
+            freeReportTimer = 0f;
             return;
         }
         // 第三人称 ⇄ 俯视交给各自的 Tick 平滑过渡；从自由视角回来必须瞬移，否则会横穿整张地图
+        if (fromFree) SendFreeCameraExit(); // 通知服务器把视野锚点交还跟随实体
         pitchHoldTime = 0f; // 丢弃切换前的取景保持，回第三人称时直接按当前几何重算俯仰
         if (fromFree && mode == CameraViewMode.ThirdPerson && lookTarget != null)
         {
@@ -213,6 +225,7 @@ public class CameraController : MonoBehaviour
         if (Mode == CameraViewMode.Free)
         {
             TickFreeMove(Time.deltaTime);
+            TickFreeReport(Time.deltaTime);
             NotifyCameraUpdated();
             return;
         }
@@ -309,6 +322,32 @@ public class CameraController : MonoBehaviour
 
         transform.position += (flat + Vector3.up * (vertical * freeVerticalSpeed)) * deltaTime;
         transform.rotation = Quaternion.Euler(freePitch, freeYaw, 0f);
+    }
+
+    // 服务器按上报位置下发该玩家周围的实体：位移不足阈值时省掉这一包，客户端继续沿用上一次的锚点
+    private void TickFreeReport(float deltaTime)
+    {
+        freeReportTimer -= deltaTime;
+        if (freeReportTimer > 0f) return;
+        freeReportTimer = freeReportInterval;
+
+        Vector3 pos = transform.position;
+        if (!freeReportPending)
+        {
+            float dx = pos.x - freeReportPos.x, dz = pos.z - freeReportPos.z;
+            if (dx * dx + dz * dz < freeReportDistance * freeReportDistance) return;
+        }
+        freeReportPending = false;
+        freeReportPos = pos;
+        if (Tool.NetworkManager == null) return;
+        Tool.NetworkManager.SendFreeCamera(new CSFreeCamera() { free = true, posX = pos.x, posZ = pos.z });
+    }
+
+    private void SendFreeCameraExit()
+    {
+        freeReportPending = false;
+        if (Tool.NetworkManager == null) return;
+        Tool.NetworkManager.SendFreeCamera(new CSFreeCamera() { free = false });
     }
     #endregion
 

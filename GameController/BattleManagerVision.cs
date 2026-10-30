@@ -25,7 +25,7 @@ public partial class BattleManager
 
     #region 视野锚点与观战
     // 每个玩家的视野锚点：位置/半径随操控实体逐帧刷新；实体销毁（死亡）后冻结在死亡位置；
-    // 观战时跟随目标实体（相机跟随者），目标死亡清空其观战列表后自然冻结
+    // 观战时跟随目标实体，目标死亡清空其观战列表后自然冻结；纯观战自由视角下改由客户端上报的相机位置锚定
     public class VisionState
     {
         public ushort entityId;                           // 当前操控实体 id（死亡后保留最后值）
@@ -34,11 +34,15 @@ public partial class BattleManager
         public bool spectating;                           // 是否正在观战
         public short spectateTarget = -1;                 // 观战目标 id（-1 = 无；AI 为虚拟负数 id）
         public readonly List<short> spectators = new();   // 观战我的玩家列表
+        public bool freeLook;                             // 纯观战自由视角：锚点改用客户端上报的相机位置
+        public float freeX;                               // 自由相机世界坐标 X
+        public float freeZ;                               // 自由相机世界坐标 Z
     }
 
     private readonly Dictionary<short, VisionState> visionStates = new();
 
-    // 每帧刷新：存活且未观战 = 自己实体；观战中 = 目标实体；无实体可跟随（死亡/目标死亡）时保持冻结
+    // 每帧刷新：自由视角 = 客户端上报的相机位置；存活且未观战 = 自己实体；观战中 = 目标实体；
+    // 无实体可跟随（死亡/目标死亡）时保持冻结
     private void TickVisionStates()
     {
         foreach (var pair in PlayerInfoList)
@@ -50,6 +54,13 @@ public partial class BattleManager
             }
             // 目标实体已销毁：立即清空其观战列表，观战者回到各自的冻结视野
             if (state.spectators.Count > 0 && GetEntityOfClient(pair.Key) == null) ClearSpectators(pair.Key);
+
+            // 自由视角（纯观战）：锚点取客户端上报的相机 XZ，半径沿用最后跟随实体的 viewRadius
+            if (state.freeLook)
+            {
+                state.position = new Vector3(state.freeX, 0f, state.freeZ);
+                continue;
+            }
 
             var follow = state.spectating && visionStates.TryGetValue(state.spectateTarget, out _)
                 ? GetEntityOfClient(state.spectateTarget)
@@ -67,6 +78,7 @@ public partial class BattleManager
         if (!AtServer || !BattleStarted) return;
         ExitSpectate(clientId);
         if (!visionStates.TryGetValue(clientId, out var state)) return;
+        state.freeLook = false; // 请求观战 = 回到跟随实体锚点
         if (targetClientId == -1 || targetClientId == clientId) return; // -1 = 无目标
         if (targetClientId < short.MinValue || targetClientId > short.MaxValue) return; // 超出 clientId 值域
         short target = (short)targetClientId;
@@ -89,6 +101,19 @@ public partial class BattleManager
         if (state.spectateTarget != -1 && visionStates.TryGetValue(state.spectateTarget, out var target))
             target.spectators.Remove(clientId);
         state.spectateTarget = -1;
+    }
+
+    // 观战自由视角位置：仅纯观战方生效；free=false 表示已切回跟随实体，锚点交还 TickVisionStates
+    public void ReceiveFreeCamera(short clientId, CSFreeCamera request)
+    {
+        if (!AtServer || !BattleStarted) return;
+        if (request == null) return;
+        if (!PlayerCamps.TryGetValue(clientId, out var camp) || camp != PlayerCampType.Spectator) return;
+        if (!visionStates.TryGetValue(clientId, out var state)) return;
+        state.freeLook = request.free;
+        if (!request.free) return;
+        state.freeX = request.posX;
+        state.freeZ = request.posZ;
     }
 
     // 清空某玩家的观战列表（其操控实体死亡时）

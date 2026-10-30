@@ -256,6 +256,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveCameraModeLocal, SendTo.RoomOwner, Delivery.Reliable, new CSCameraMode() { topDown = topDown }, EnsInstance.LocalClientId);
     }
 
+    // 观战自由视角：位置上报（仅纯观战方），由 CameraController 按 1s / 1m 阈值节流
+    public void SendFreeCamera(CSFreeCamera info)
+    {
+        if (!CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveFreeCameraLocal, SendTo.RoomOwner, Delivery.Reliable, info, EnsInstance.LocalClientId);
+    }
+
     public void SendChat(CSChat chat)
     {
         if (!CanSendWorldCommand) return;
@@ -532,6 +539,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveCameraModeLocal(CSCameraMode request, short clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.SetCameraMode(clientId, request != null && request.topDown);
+    }
+
+    [Rpc]
+    private void ServerReceiveFreeCameraLocal(CSFreeCamera request, short clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveFreeCamera(clientId, request);
     }
 
     [Rpc]
