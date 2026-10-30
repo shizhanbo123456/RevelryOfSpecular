@@ -698,8 +698,22 @@ public class ConfigManager : MonoBehaviour
         public static int zombie_spawn_level;           // 初始僵尸刷新等级
         public static float zombie_level_step_ratio;    // 刷新等级每 +1 所需的战斗进程比例
         public static float terrain_size;               // 地形边长（米），必须为 chunkSize 的整数倍
+        public static float terrain_height;             // 地形最大高度（米）
         public static float ground_probe_up;            // 地面检测探针起点抬高（米）
         public static float ground_probe_length;        // 地面检测探针向下长度（米）
+        public static int max_ai_player_count;          // 单个阵营的 AI 玩家数量上限
+
+        // 实体同步量化参数（服务器 → 客户端）：范围按正负对称理解，精度为量化步长
+        public static float sync_precision_entity_xz;            // 位姿：水平位置精度（米）
+        public static float sync_precision_entity_y;             // 位姿：垂直位置精度（米）
+        public static float sync_precision_entity_yaw;           // 位姿：朝向精度（度）
+        public static float sync_entity_velocity_xz;             // 位姿：水平速度范围（±米/秒）
+        public static float sync_precision_entity_velocity_xz;   // 位姿：水平速度精度
+        public static float sync_entity_velocity_y;              // 位姿：垂直速度范围（±米/秒）
+        public static float sync_precision_entity_velocity_y;    // 位姿：垂直速度精度
+        public static float sync_precision_minimap_xz;           // 小地图：位置精度（米）
+        public static int sync_max_buff_count;                   // 单实体最多下发的 buff 条数
+        public static int max_entity_health;                     // 实体生命值上限
 
         public string key;
         public string description;
@@ -717,6 +731,7 @@ public class ConfigManager : MonoBehaviour
             table.RequireColumnCount(ColumnCount);
             int count = Fill(table, content, row => new GlobalVariableConfig(row), row => row.key);
             foreach (GlobalVariableConfig row in content.Values) Apply(row);
+            Validate();
             return count;
         }
 
@@ -822,15 +837,71 @@ public class ConfigManager : MonoBehaviour
                         throw new FormatException(
                             $"[配表] {FileName} 的 terrain_size 必须是区块边长 {Landscape.chunkSize} 的整数倍：{terrain_size}");
                     break;
+                case "terrain_height":
+                    terrain_height = Positive(Float(row), row.key);
+                    break;
                 case "ground_probe_up":
                     ground_probe_up = NonNegative(Float(row), row.key);
                     break;
                 case "ground_probe_length":
                     ground_probe_length = Positive(Float(row), row.key);
                     break;
+                case "max_ai_player_count":
+                    max_ai_player_count = Positive(Int(row), row.key);
+                    break;
+                case "sync_precision_entity_xz":
+                    sync_precision_entity_xz = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_entity_y":
+                    sync_precision_entity_y = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_entity_yaw":
+                    sync_precision_entity_yaw = Positive(Float(row), row.key);
+                    break;
+                case "sync_entity_velocity_xz":
+                    sync_entity_velocity_xz = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_entity_velocity_xz":
+                    sync_precision_entity_velocity_xz = Positive(Float(row), row.key);
+                    break;
+                case "sync_entity_velocity_y":
+                    sync_entity_velocity_y = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_entity_velocity_y":
+                    sync_precision_entity_velocity_y = Positive(Float(row), row.key);
+                    break;
+                case "sync_precision_minimap_xz":
+                    sync_precision_minimap_xz = Positive(Float(row), row.key);
+                    break;
+                case "sync_max_buff_count":
+                    sync_max_buff_count = Positive(Int(row), row.key);
+                    break;
+                case "max_entity_health":
+                    max_entity_health = Positive(Int(row), row.key);
+                    break;
                 default:
                     throw new FormatException($"[配表] {FileName} 的行「{row.key}」没有对应的静态字段");
             }
+        }
+
+        // 精度必须小于量程，否则量化后位宽为 0、数据被静默丢弃（跨行校验，须在全部行 Apply 之后执行）
+        private static void Validate()
+        {
+            // 量程行缺失会退化成 0，让下面的比较报出误导性信息，先显式拦下
+            if (terrain_size <= 0f || terrain_height <= 0f || sync_entity_velocity_xz <= 0f || sync_entity_velocity_y <= 0f)
+                throw new FormatException($"[配表] {FileName} 缺少 terrain_size / terrain_height / sync_entity_velocity_xz / sync_entity_velocity_y，无法校验同步精度");
+            if (sync_precision_entity_xz >= terrain_size)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_xz 必须小于 terrain_size：{sync_precision_entity_xz} vs {terrain_size}");
+            if (sync_precision_entity_y >= terrain_height)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_y 必须小于 terrain_height：{sync_precision_entity_y} vs {terrain_height}");
+            if (sync_precision_entity_yaw >= 360f)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_yaw 必须小于 360：{sync_precision_entity_yaw}");
+            if (sync_precision_minimap_xz >= terrain_size)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_minimap_xz 必须小于 terrain_size：{sync_precision_minimap_xz} vs {terrain_size}");
+            if (sync_precision_entity_velocity_xz >= 2f * sync_entity_velocity_xz)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_velocity_xz 必须小于速度量程 2×{sync_entity_velocity_xz}：{sync_precision_entity_velocity_xz}");
+            if (sync_precision_entity_velocity_y >= 2f * sync_entity_velocity_y)
+                throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_velocity_y 必须小于速度量程 2×{sync_entity_velocity_y}：{sync_precision_entity_velocity_y}");
         }
 
         private static float NonNegative(float value, string key)
