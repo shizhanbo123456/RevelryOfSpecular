@@ -254,7 +254,7 @@ public partial class BattleManager
             case GmEntityType.CrystalStatue:
                 for (int i = 0; i < count; i++)
                     SpawnEntity(EntityType.CrystalStatue(Random.Range(0, Config.crystal_statue_count)), 1,
-                        LandscapeSpawns.RandomOf(spawns.crystalStatueSpawnPositions), EntityCamp.Defense);
+                        LandscapeSpawns.RandomOf(spawns.crystalStatueSpawnPositions), EntityCamp.DefenseTower);
                 break;
         }
     }

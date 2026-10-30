@@ -36,7 +36,7 @@ public partial class BattleManager
         {
             var crystalStatueAnchor = spawns.crystalStatueSpawnPositions[i];
             if (crystalStatueAnchor == null) continue;
-            SpawnEntity(EntityType.CrystalStatue(i), 1, crystalStatueAnchor.position, EntityCamp.Defense);
+            SpawnEntity(EntityType.CrystalStatue(i), 1, crystalStatueAnchor.position, EntityCamp.DefenseTower);
         }
 
         // 中立雕像（中立争抢单位）：开局不刷，开战后按延迟计时刷新；之后由被打死的时机重排

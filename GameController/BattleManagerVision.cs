@@ -140,7 +140,7 @@ public partial class BattleManager
         {
             // 同阵营恒可见（观战方玩家无实体阵营，不走此捷径）
             if (camp == PlayerCampType.Attack && target.camp == EntityCamp.Attack) return true;
-            if (camp == PlayerCampType.Defense && target.camp == EntityCamp.Defense) return true;
+            if (camp == PlayerCampType.Defense && IsInDefenseSide(target.camp)) return true;
         }
         return IsInRadius(state.position, target.transform.position, state.viewRadius);
     }
@@ -312,7 +312,7 @@ public partial class BattleManager
         foreach (var entity in EntityContainer.Entities)
         {
             if (entity == null) continue;
-            if (entity.camp == camp)
+            if (entity.camp == camp || camp == EntityCamp.Defense && IsInDefenseSide(entity.camp))
             {
                 AppendMinimapEntry(entity);
                 continue;
@@ -474,6 +474,10 @@ public partial class BattleManager
         return campType == PlayerCampType.Attack && entityCamp == EntityCamp.Attack
             || campType == PlayerCampType.Defense && entityCamp == EntityCamp.Defense;
     }
+
+    // 防守方一侧 = 防守角色/守护点 + 防御塔（塔在防守方视角里恒为己方）
+    private static bool IsInDefenseSide(EntityCamp camp)
+        => camp == EntityCamp.Defense || camp == EntityCamp.DefenseTower;
 
     private static bool IsInRadius(Vector3 from, Vector3 to, float radius)
     {

@@ -970,7 +970,7 @@ public class BattlePage : PageBase
     private static PlayerCampType ToPlayerCamp(EntityCamp camp)
     {
         if (camp == EntityCamp.Attack) return PlayerCampType.Attack;
-        if (camp == EntityCamp.Defense) return PlayerCampType.Defense;
+        if (camp == EntityCamp.Defense || camp == EntityCamp.DefenseTower) return PlayerCampType.Defense;
         return PlayerCampType.Neutral; // 中立雕像、珊瑚与其它场景物件
     }
 
@@ -978,6 +978,8 @@ public class BattlePage : PageBase
     private bool IsEnemyCamp(EntityCamp camp)
     {
         if (localPlayerCamp != (int)EntityCamp.Attack && localPlayerCamp != (int)EntityCamp.Defense) return false;
+        // 防御塔算防守方：进攻方看到是敌方，防守方看到是友方
+        if (camp == EntityCamp.DefenseTower) return localPlayerCamp == (int)EntityCamp.Attack;
         if (camp != EntityCamp.Attack && camp != EntityCamp.Defense) return false;
         return camp != (EntityCamp)localPlayerCamp;
     }
