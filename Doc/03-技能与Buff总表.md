@@ -195,7 +195,7 @@ Skills文件夹：
 - 不索敌：`origin + forward × ForwardAimDistance`，**高度 = 起点高度**（水平射出）；
 - 索敌：水平方向朝目标体中心（`TargetSelect.BodyPos`，即 `UpCenter`），**落点高度 = 目标体中心**（不锁 `transform.position` / 脚部），距离取技能 `CastRange`；
 - 专门做上下变化的技能自己覆盖 `AimPoint`（「天罗」「兵雨」→ 自身脚下）或整段覆写 `TrajectoryFor`。
-`TargetSelect.AimPos` 保留给非射击类索敌（防守方 / 塔 / 树），内部同样按体中心取点。
+`TargetSelect.AimPos` 保留给非射击类索敌（防守方 / 塔 / 树），内部同样按体中心取点；雕像孢子技能传 `frontSector:false`，是**全向索敌**（不受前向扇区限制）。
 **轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `TrialConstructor.Line(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；也可直接 new 对应 `BulletTrajectory` 子类。
 **多目标**：需要锁多个目标时由技能自己在 `SkillLogic` 里写（`ints[2..]` = 目标 id、`vectors[2..]` = 位置兜底，上限与排序规则写进技能常量）；纯范围效果优先只传「中心 + 半径 + 阵营」，由服务器自己取，不逐个下发。
 **命中附加效果**：`AttackData.addEffectEvent`（命中挂 Buff）与 `AttackData.onHit`（命中额外逻辑）；子弹路径由 `BattleManagerCombat.TryHitBullet` 消费、近战球判定由 `SkillBase.StrikeSphere` 消费。`SkillBase` 提供 `ApplyEffect`（命中挂 Buff 回调）、`GiveEffect`（直接挂 Buff）、`PullTo`（命中拉拽）。**击退/击飞不是回调**：力度写在 `AttackData.knockbackPower` 上，由命中管线统一处理（见速度节⑥）。
