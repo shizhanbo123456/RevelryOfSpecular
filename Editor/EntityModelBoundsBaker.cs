@@ -11,10 +11,12 @@ public static class EntityModelBoundsBaker
     private const string PrefabFolder = "Assets/Files/Prefabs/Entity";
     private const string MenuPathBake = "Tools/实体/预处理模型Bounds";
     private const string MenuPathPreview = "Tools/实体/预览模型 Bounds（不写入）";
+    private const float RangeEpsilon = 0.001f;
 
     private enum BakeResult
     {
         Baked,
+        AlreadyBaked,
         MissingInfo,
         NoMesh,
     }
@@ -48,7 +50,7 @@ public static class EntityModelBoundsBaker
 
         var report = new StringBuilder();
         var inactiveList = new List<string>();
-        int baked = 0, missing = 0, noMesh = 0;
+        int baked = 0, alreadyBaked = 0, missing = 0, noMesh = 0;
 
         for (int i = 0; i < paths.Length; i++)
         {
@@ -62,6 +64,10 @@ public static class EntityModelBoundsBaker
                     baked++;
                     report.AppendLine(line);
                     if (hasInactiveRenderer) inactiveList.Add(line);
+                    break;
+                case BakeResult.AlreadyBaked:
+                    alreadyBaked++;
+                    report.AppendLine($"[跳过·已录入] {path}");
                     break;
                 case BakeResult.MissingInfo:
                     missing++;
@@ -78,7 +84,7 @@ public static class EntityModelBoundsBaker
         if (write) AssetDatabase.SaveAssets();
 
         Debug.Log($"[EntityModelBoundsBaker] {(write ? "录入" : "预览（未写入）")} {baked}，" +
-                  $"缺少组件 {missing}，无网格 {noMesh}\n{report}");
+                  $"已录入跳过 {alreadyBaked}，缺少组件 {missing}，无网格 {noMesh}\n{report}");
 
         if (inactiveList.Count > 0)
         {
@@ -88,6 +94,7 @@ public static class EntityModelBoundsBaker
 
         EditorUtility.DisplayDialog("模型 Bounds",
             $"{(write ? "已录入" : "预览")} {baked} 个预制体。\n" +
+            $"已录入跳过：{alreadyBaked}\n" +
             $"缺少 EntityModelInfo：{missing}\n没有网格：{noMesh}\n" +
             (inactiveList.Count > 0 ? $"含未激活 Renderer：{inactiveList.Count}（见 Console 警告）\n" : "") +
             "\n逐个数值见 Console。" +
@@ -102,7 +109,9 @@ public static class EntityModelBoundsBaker
 
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (prefab == null) return BakeResult.NoMesh;
-        if (prefab.GetComponent<EntityModelInfo>() == null) return BakeResult.MissingInfo;
+        var prefabInfo = prefab.GetComponent<EntityModelInfo>();
+        if (prefabInfo == null) return BakeResult.MissingInfo;
+        if (HasBaked(prefabInfo)) return BakeResult.AlreadyBaked;
 
         // 必须实例化才能安全写回 Variant：改资产本体经 ApplyPrefabInstance 落成变体覆写
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
@@ -141,6 +150,13 @@ public static class EntityModelBoundsBaker
         for (int i = 0; i < guids.Length; i++) paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
         Array.Sort(paths); // 顺序稳定，便于两次结果比对
         return paths;
+    }
+
+    private static bool HasBaked(EntityModelInfo info)
+    {
+        return Mathf.Abs(info.xRange.x) > RangeEpsilon || Mathf.Abs(info.xRange.y) > RangeEpsilon ||
+               Mathf.Abs(info.yRange.x) > RangeEpsilon || Mathf.Abs(info.yRange.y) > RangeEpsilon ||
+               Mathf.Abs(info.zRange.x) > RangeEpsilon || Mathf.Abs(info.zRange.y) > RangeEpsilon;
     }
 
     private static bool TryGetLocalBounds(GameObject root, out Bounds bounds, out bool hasInactiveRenderer)
