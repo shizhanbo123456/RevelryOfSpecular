@@ -1,11 +1,11 @@
 ﻿namespace Ros.Skill
 {
-    // 技能 id 唯一来源：值由枚举顺序自动分配（禁止手写数字），全工程引用技能 id 一律读这里
-    // 段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3
-    // 前四段与武器栏位一一对应（Config.GetRandomWeaponId、WeaponRef 依赖段连续），调整顺序会打乱武器与技能的对应
+    // 技能 id 唯一来源：段首显式锚定，段内按枚举顺序自动递增，全工程引用技能 id 一律读这里
+    // 段区间：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132
+    // 段间留空供插入，段内必须连续：WeaponRef 用「段起点 + index」换算，Config.GetRandomWeaponId 依赖 0~49 整段随机
     public enum SkillType
     {
-        // ===== 刀 11 =====
+        // ===== 刀 0~10 =====
         SkillFanIceCone,
         SkillTripleThunderCone,
         SkillFreezeShot,
@@ -18,7 +18,7 @@
         SkillFanWeaponThrow,
         SkillSkyfallWeapon,
 
-        // ===== 长枪 8 =====
+        // ===== 长枪 11~18 =====
         SkillBoomerangWeapon,
         SkillBackstabWeapon,
         SkillSwiftAura,
@@ -28,7 +28,7 @@
         SkillFlyingKick,
         SkillIceFanTiny,
 
-        // ===== 枪械 15 =====
+        // ===== 枪械 19~33 =====
         SkillBackVolley,
         SkillIceSweep,
         SkillRootShot,
@@ -45,7 +45,7 @@
         SkillAllyShieldEight,
         SkillShieldFour,
 
-        // ===== 魔法球 16 =====
+        // ===== 魔法球 34~49 =====
         SkillSplitShot,
         SkillPullBolt,
         SkillStaticBarrage,
@@ -63,8 +63,8 @@
         SkillAllyCritBoost,
         SkillAllyShieldTwentyFive,
 
-        // ===== 防守方 18（6 角色 × 主动1 / 主动2 / 大招，被动不占 id）=====
-        SkillRockShield,
+        // ===== 防守方 60~77（6 角色 × 主动1 / 主动2 / 大招，被动不占 id）=====
+        SkillRockShield = 60,
         SkillPowerSuppress,
         SkillCrystalStatueBlazeCast,
         SkillEyeMark,
@@ -83,19 +83,23 @@
         SkillPaleDarkCast,
         SkillFogCast,
 
-        // ===== 非玩家单位 9 =====
-        SkillZombieClawR,
+        // ===== 僵尸 90~94 =====
+        SkillZombieClawR = 90,
         SkillZombieClawL,
         SkillEliteZombieClawR,
         SkillEliteZombieClawL,
         SkillEliteZombieScream,
-        SkillCrystalStatueSporeA,
+
+        // ===== 防御塔 110~112 =====
+        SkillCrystalStatueSporeA = 110,
         SkillCrystalStatueSporeB,
         SkillCrystalStatueSporeC,
+
+        // ===== 中立雕像 113 =====
         SkillNeutralStatueSpore,
 
-        // ===== 空手攻击 3 =====
-        SkillPunchLeft,
+        // ===== 空手攻击 130~132 =====
+        SkillPunchLeft = 130,
         SkillPunchRight,
         SkillPunchSmash,
     }

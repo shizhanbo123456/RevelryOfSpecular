@@ -7,7 +7,7 @@
 
 ### 1.1 武器技能总览（0~49）
 
-> 技能与 id 的对应由 `SkillTypes` 枚举顺序决定（段长：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16），措辞取《特效清单分别表1019》的定稿描述。
+> 技能与 id 的对应由 `SkillTypes` 枚举决定：段首显式锚定、段内连续、段间留空供插入。区间：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。措辞取《特效清单分别表1019》的定稿描述。
 > **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 朝自身面向、水平距离 = 技能射程（未配射程取 8 米）、高度与起点同高；夹角 > 0 的 12 个（8 个武器技能 + 4 个雕像孢子）= 朝范围内最近敌人的体中心，水平距离仍取技能射程、高度取体中心。
 
 #### 近战刀（0~10）
@@ -80,49 +80,49 @@
 | 48 | 锐意共鸣 | SkillAllyCritBoost | 无 | 5 级暴击率 + 5 级暴伤 20s（自身+附近友方） |
 | 49 | 圣域壁垒 | SkillAllyShieldTwentyFive | 无（护盾 buff 自带） | 25 级护盾 30s（全体友方） |
 
-### 1.2 防守方 6 角色（50~67）
+### 1.2 防守方 6 角色（60~77）
 
-> 这 18 个技能**除山崩连踏（51，播 RangeMagic[5]）外都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
+> 这 18 个技能**除山崩连踏（61，播 RangeMagic[5]）外都不播技能本体特效**：状态表现由对应的 Buff 承担，客户端按 `Config.buff_vfx` 统一播（技能里禁止播 buff 特效）。
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
-| 50 | 磐石壁垒 | SkillRockShield | 无（护盾 buff 自带） | 附近水晶雕像挂 StatueShield；附近无水晶雕像则给自己 |
-| 51 | 山崩连踏 | SkillPowerSuppress | RangeMagic[5]（自身位置 ×3） | 命中挂 2 级 AnimSlowDown 10s |
-| 52 | 焚塔灵焰 | SkillCrystalStatueBlazeCast | 无 | 全场水晶雕像挂 StatueBlaze |
-| 53 | 白瞳凝视 | SkillEyeMark | 无 | EyeMark（小地图常显） |
-| 54 | 夜隐 | SkillNightMark | 无 | 自身挂 NightMark（不出现在敌方小地图） |
-| 55 | 长夜降临 | SkillForceNight | 无 | 无 |
-| 56 | 唤尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
-| 57 | 死境漫游 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
-| 58 | 菁英尸潮 | SkillSummonElites | 无 | 无（3 只精英僵尸，等级跟随自然刷新等级） |
-| 59 | 缄默之咒 | SkillSilenceCast | 无 | 自身 8m 内敌人挂 Silence |
-| 60 | 沉沼缚 | SkillMireCast | 无 | 全场敌人挂 Mire |
-| 61 | 荆棘回响 | SkillReflectCast | 无 | 守护雕像挂 Reflect |
-| 62 | 疫印 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
-| 63 | 疫染 | SkillPlaguePollute | 无 | 场上现有珊瑚挂 PlaguePollute；珊瑚被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
-| 64 | 疫爆 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
-| 65 | 苍白耀光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
-| 66 | 苍白蚀影 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
-| 67 | 蔽目之雾 | SkillFogCast | 无 | 敌人挂 Fog |
+| 60 | 磐石壁垒 | SkillRockShield | 无（护盾 buff 自带） | 附近水晶雕像挂 StatueShield；附近无水晶雕像则给自己 |
+| 61 | 山崩连踏 | SkillPowerSuppress | RangeMagic[5]（自身位置 ×3） | 命中挂 2 级 AnimSlowDown 10s |
+| 62 | 焚塔灵焰 | SkillCrystalStatueBlazeCast | 无 | 全场水晶雕像挂 StatueBlaze |
+| 63 | 白瞳凝视 | SkillEyeMark | 无 | EyeMark（小地图常显） |
+| 64 | 夜隐 | SkillNightMark | 无 | 自身挂 NightMark（不出现在敌方小地图） |
+| 65 | 长夜降临 | SkillForceNight | 无 | 无 |
+| 66 | 唤尸 | SkillSummonZombies | 无 | 无（5 只普通僵尸，等级跟随自然刷新等级） |
+| 67 | 死境漫游 | SkillDeathStrollCast | 无 | DeathStroll（霸体 + 光环 DoT） |
+| 68 | 菁英尸潮 | SkillSummonElites | 无 | 无（3 只精英僵尸，等级跟随自然刷新等级） |
+| 69 | 缄默之咒 | SkillSilenceCast | 无 | 自身 8m 内敌人挂 Silence |
+| 70 | 沉沼缚 | SkillMireCast | 无 | 全场敌人挂 Mire |
+| 71 | 荆棘回响 | SkillReflectCast | 无 | 守护雕像挂 Reflect |
+| 72 | 疫印 | SkillPlagueMarkCast | 无 | 自身 8m 内敌人挂 PlagueMark |
+| 73 | 疫染 | SkillPlaguePollute | 无 | 场上现有珊瑚挂 PlaguePollute；珊瑚被摧毁时给 8m 内进攻方挂 1 层 PlagueMark |
+| 74 | 疫爆 | SkillDetonatePlague | 无 | 移除 PlagueMark 并结算伤害 |
+| 75 | 苍白耀光 | SkillPaleLightCast | Bullet[2] ×5 | 命中挂 PaleLight |
+| 76 | 苍白蚀影 | SkillPaleDarkCast | Bullet[1] ×5 | 命中挂 PaleDark |
+| 77 | 蔽目之雾 | SkillFogCast | 无 | 敌人挂 Fog |
 
 **被动（不是技能、不占 id）**：暴击麻痹（`BattleManagerPassive.OnHitPassive`）、单次受伤不超过生命上限 5%（`AdjustIncomingDamage`）、命中类伤害结算后生命低于上限 10% 即挂 20s 10 级护盾并恢复 1000 生命值（`CheckLowHealthShield`，每角色 60s 一次）、光暗转化（`CheckPaleConversion`）、教皇守护 / 僵尸刷新等级提升等全局被动见策划案第二十章。
 
-### 1.3 非玩家单位与空手（68~79）
+### 1.3 非玩家单位与空手（90~132）
 
 | id | 名称 | 技能类 | 本体特效 | 状态表现 |
 | --- | --- | --- | --- | --- |
-| 68 | 腐爪·右 | SkillZombieClawR | 无（手部骨骼判定球） | 无 |
-| 69 | 腐爪·左 | SkillZombieClawL | 无（手部骨骼判定球） | 无 |
-| 70 | 裂骨爪·右 | SkillEliteZombieClawR | 无（手部骨骼判定球） | 无 |
-| 71 | 裂骨爪·左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
-| 72 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
-| 73 | 孢毒喷吐·甲 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
-| 74 | 孢毒喷吐·乙 | SkillCrystalStatueSporeB | Bullet[24] | 无 |
-| 75 | 孢毒喷吐·丙 | SkillCrystalStatueSporeC | Bullet[26] | 无 |
-| 76 | 疫孢吐息 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
-| 77 | 直拳·左 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
-| 78 | 直拳·右 | SkillPunchRight | 无（手部骨骼判定球） | 无 |
-| 79 | 崩拳 | SkillPunchSmash | RangeMagic[6] | 无 |
+| 90 | 腐爪·右 | SkillZombieClawR | 无（手部骨骼判定球） | 无 |
+| 91 | 腐爪·左 | SkillZombieClawL | 无（手部骨骼判定球） | 无 |
+| 92 | 裂骨爪·右 | SkillEliteZombieClawR | 无（手部骨骼判定球） | 无 |
+| 93 | 裂骨爪·左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
+| 94 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
+| 110 | 孢毒喷吐·甲 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
+| 111 | 孢毒喷吐·乙 | SkillCrystalStatueSporeB | Bullet[24] | 无 |
+| 112 | 孢毒喷吐·丙 | SkillCrystalStatueSporeC | Bullet[26] | 无 |
+| 113 | 疫孢吐息 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
+| 130 | 直拳·左 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
+| 131 | 直拳·右 | SkillPunchRight | 无（手部骨骼判定球） | 无 |
+| 132 | 崩拳 | SkillPunchSmash | RangeMagic[6] | 无 |
 
 > 水晶雕像 / 中立雕像的孢子同样从**体中心 `UpCenter`** 发出（不走雕像顶部），落点取目标体中心。
 
@@ -178,7 +178,7 @@
 ## 三、实现口径
 
 Skills文件夹：
-**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 水晶雕像孢子 3 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的值由枚举顺序自动分配（**禁止手写数字**），段长固定：刀 11 / 长枪 8 / 枪械 15 / 魔法球 16 / 防守方 18 / 非玩家 9 / 空手 3，**段长与顺序不可调整**（`Config.weapon_id_*` 与 `WeaponRef` 依赖段连续）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
+**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 水晶雕像孢子 3 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的段首项显式锚定 id、段内按枚举顺序递增，段间留空供插入：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。**段内不可断号**（`WeaponRef` 用「段起点 + index」换算）、**0~49 必须整段连续**（`Config.GetRandomWeaponId` 按整段随机）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
 [E]外部调用只向SkillManager传入技能id即可。
 技能双端执行模型：EntitySkillController.TryUseSkill 是全部释放路径（技能栏按键/J 键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 17 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 
