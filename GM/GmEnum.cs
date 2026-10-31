@@ -133,5 +133,10 @@ namespace Ros.Gm
         [GmLabel("其它-本地延迟")]
         [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]
         Other_LocalDelay,
+
+        // 追加在末尾：GmEnum 的整型值会随 GM 指令发到服务器，插在中间会平移后续命令的 id
+        [GmLabel("画面-地形-物体显示半径")]
+        [GmStatus(GmStatusType.Offline | GmStatusType.Lobby | GmStatusType.Battle)]
+        Screen_Terrain_ObjectRadius,
     }
 }

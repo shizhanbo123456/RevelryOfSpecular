@@ -460,6 +460,7 @@ public class GmPanel
     private static bool IsLocalExecutable(GmEnum cmd) => cmd switch
     {
         GmEnum.Screen_Terrain_ShowRadius or
+        GmEnum.Screen_Terrain_ObjectRadius or
         GmEnum.Screen_Terrain_ToggleTerrain or
         GmEnum.Screen_Fog or
         GmEnum.Save_PlayerLevel_AddExp or
@@ -480,6 +481,9 @@ public class GmPanel
         {
             case GmEnum.Screen_Terrain_ShowRadius:
                 SetTerrainRadius(ReadFloat(start));
+                break;
+            case GmEnum.Screen_Terrain_ObjectRadius:
+                SetObjectRadius(ReadFloat(start));
                 break;
             case GmEnum.Screen_Terrain_ToggleTerrain:
                 ToggleTerrain();
@@ -693,6 +697,13 @@ public class GmPanel
         var culler = UnityEngine.Object.FindObjectOfType<TerrainChunkCuller>();
         if (culler == null) { Debug.LogWarning("[GM] 场景内没有 TerrainChunkCuller，显示半径不生效"); return; }
         culler.visibleDistance = Mathf.Max(0f, radius);
+    }
+
+    private static void SetObjectRadius(float radius)
+    {
+        var culler = UnityEngine.Object.FindObjectOfType<TerrainChunkCuller>();
+        if (culler == null) { Debug.LogWarning("[GM] 场景内没有 TerrainChunkCuller，物体显示半径不生效"); return; }
+        culler.objectVisibleDistance = Mathf.Max(0f, radius);
     }
 
     // 显隐地形：全部可见↔全部隐藏；隐藏时先停掉分块剔除，否则它本帧的 LateUpdate 会把块又打开

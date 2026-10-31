@@ -255,6 +255,11 @@ namespace Ros.Gm
             {
                 new Button(string.Empty, "显隐地形")
             });
+            layoutStyle.Add(GmEnum.Screen_Terrain_ObjectRadius, new()
+            {
+                new FloatInput("半径"),
+                new Button(string.Empty, "应用")
+            });
             layoutStyle.Add(GmEnum.Screen_Fog, new()
             {
                 new Button(string.Empty, "显隐雾气")

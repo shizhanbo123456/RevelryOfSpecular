@@ -11,6 +11,10 @@ public class LandscapeSpawns : MonoBehaviour
     [Tooltip("拆分后的 64 个子地形物体；供 TerrainChunkCuller 按相机方形可见距离显隐")]
     public List<GameObject> terrainChunks = new();
 
+    [Header("场景物体")]
+    [Tooltip("按相机方形可见距离显隐的场景摆件；运行时由 TerrainChunkCuller 建区块索引")]
+    public List<GameObject> sceneObjects = new();
+
     private void Awake()
     {
         Tool.LandscapeSpawns = this;
