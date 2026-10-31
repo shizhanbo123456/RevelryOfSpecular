@@ -46,6 +46,8 @@ public static class Config
     public const float neutral_statue_first_spawn_delay = 30f;
     public const float neutral_statue_attack_range = 8f;
     public const float neutral_statue_respawn_delay = 60f;
+    public const float neutral_statue_angry_health_ratio = 0.5f;    // 生命值低于该比例进入愤怒态
+    public const float neutral_statue_angry_interval_ratio = 0.5f;  // 愤怒态施法间隔 = 普通间隔 × 该系数
     public const float plague_bless_duration = 30f;
     public const float plague_bless_damage_up = 0.75f;
     public const float plague_bless_damage_reduce = 0.25f;

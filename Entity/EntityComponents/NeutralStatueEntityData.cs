@@ -1,12 +1,21 @@
 using UnityEngine;
 
-public class NeutralStatueEntityData : AutoCastEntityData
+public class NeutralStatueEntityData : EntityData
 {
-    public override float AutoCastInterval => ConfigManager.GlobalVariableConfig.status_auto_cast_interval_neutral;
-
-    protected override float CastSearchRange => Config.neutral_statue_attack_range;
+    private NeutralStatueAi ai;
 
     private EntityData captor;
+
+    public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
+    {
+        base.OnCreate(id, type, level, camp);
+        ai = new NeutralStatueAi(this);
+    }
+
+    public override void TickAI()
+    {
+        ai.Tick();
+    }
 
     public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, CombatLabelType damageType = CombatLabelType.Normal, Vector3? hitPos = null)
     {
