@@ -323,6 +323,7 @@ public partial class BattleManager : EnsBehaviour
             NotifyPlayerOnline(clientId); // 同一令牌再次进房 = 断线重连，数据都还在，只需补发
             return;
         }
+        NormalizeName(info, clientId);
         PlayerInfoList[clientId] = info;
         PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
         SendLobbyPlayerNames(clientId); // 名字单独下发，先把映射铺好再播房间成员列表
@@ -330,6 +331,16 @@ public partial class BattleManager : EnsBehaviour
         // 对局（含加载期）已开始才进房：本局没有参赛名额，按观战方补发一次完整会话
         if (LoadingStarted || BattleStarted) ResyncBattle(clientId);
         Debug.Log($"玩家 {clientId} 进入组队大厅");
+    }
+
+    // 名字按字符数裁剪：超上限截断，不足下限用默认名兜底（客户端已有同样限制，这里防绕过）
+    private static void NormalizeName(CSLobbyPlayerInfo info, int clientId)
+    {
+        int max = ConfigManager.GlobalVariableConfig.name_length_max;
+        int min = ConfigManager.GlobalVariableConfig.name_length_min;
+        string name = (info.name ?? "").Trim();
+        if (name.Length > max) name = name.Substring(0, max);
+        info.name = name.Length < min ? $"玩家{clientId}" : name;
     }
 
     // 新玩家进房：新玩家名字广播给所有人，再把房间里已有玩家的名字逐条发给新玩家（AI 不下发名字）
@@ -413,17 +424,17 @@ public partial class BattleManager : EnsBehaviour
         // 加载阶段与对局中都不再接受组队大厅的改动
         if (update == null || BattleStarted || LoadingStarted || !PlayerInfoList.ContainsKey(clientId)) return;
 
-        // 选队（0 进攻 / 1 防守 / 2 观战；进入大厅默认观战，不存在无阵营状态）
-        if (update.camp == (int)PlayerCampType.Attack) PlayerCamps[clientId] = PlayerCampType.Attack;
-        else if (update.camp == (int)PlayerCampType.Defense) PlayerCamps[clientId] = PlayerCampType.Defense;
+        // 选队（0 进攻 / 1 防守 / 2 观战；进入大厅默认观战，不存在无阵营状态），真人名额满则保持原阵营
+        if (update.camp == (int)PlayerCampType.Attack && CanJoinCamp(clientId, PlayerCampType.Attack)) PlayerCamps[clientId] = PlayerCampType.Attack;
+        else if (update.camp == (int)PlayerCampType.Defense && CanJoinCamp(clientId, PlayerCampType.Defense)) PlayerCamps[clientId] = PlayerCampType.Defense;
         else if (update.camp == (int)PlayerCampType.Spectator) PlayerCamps[clientId] = PlayerCampType.Spectator;
 
         // 准备状态（任意玩家可随时切换，全员准备后进入开战倒计时）
         SetReady(clientId, update.ready);
 
-        // AI 数量：房间共享，任意玩家可编辑，数量不限制。数量变化时重建 AI 玩家（= AI 进场随机选角）
-        int attackAI = Mathf.Max(0, update.attackAICount);
-        int defenseAI = Mathf.Max(0, update.defenseAICount);
+        // AI 数量：房间共享，任意玩家可编辑，上限按配表钳制。数量变化时重建 AI 玩家（= AI 进场随机选角）
+        int attackAI = Mathf.Clamp(update.attackAICount, 0, ConfigManager.GlobalVariableConfig.player_limit_attacker_AI);
+        int defenseAI = Mathf.Clamp(update.defenseAICount, 0, ConfigManager.GlobalVariableConfig.player_limit_defenser_AI);
         if (attackAI != AttackAICount || defenseAI != DefenseAICount)
         {
             AttackAICount = attackAI;
@@ -432,6 +443,21 @@ public partial class BattleManager : EnsBehaviour
         }
 
         BroadcastLobbyInfo();
+    }
+
+    // 真人名额（不含 AI）：已在该阵营直接放行，避免重复上报/重连被挡
+    private bool CanJoinCamp(int clientId, PlayerCampType camp)
+    {
+        if (PlayerCamps.TryGetValue(clientId, out var current) && current == camp) return true;
+        int limit = camp == PlayerCampType.Attack
+            ? ConfigManager.GlobalVariableConfig.player_limit_attacker
+            : ConfigManager.GlobalVariableConfig.player_limit_defenser;
+        int count = 0;
+        foreach (var pair in PlayerCamps)
+        {
+            if (pair.Value == camp && !AIClients.Contains(pair.Key)) count++;
+        }
+        return count < limit;
     }
 
     #region 准备与开局倒计时

@@ -68,16 +68,49 @@ public class LobbyPage : PageBase
     {
         if (syncingFromServer) return;
         if (BlockedByReady()) return;
+        if (camp != myCamp && !HasHumanSeat(camp))
+        {
+            if (Tool.UIManager != null)
+                Tool.UIManager.ShowFlyText(camp == (int)PlayerCampType.Defense ? "防守方人数已满" : "进攻方人数已满");
+            return;
+        }
         myCamp = camp;
         SendRoomState();
+    }
+
+    // 真人名额（不含 AI）：观战不限；按服务器上次广播的成员列表预判，最终以服务器为准
+    private static bool HasHumanSeat(int camp)
+    {
+        if (camp == (int)PlayerCampType.Spectator) return true;
+        var info = NetworkManager.LatestLobbyInfo;
+        if (info == null || info.members == null) return true;
+        int limit = camp == (int)PlayerCampType.Attack
+            ? ConfigManager.GlobalVariableConfig.player_limit_attacker
+            : ConfigManager.GlobalVariableConfig.player_limit_defenser;
+        int count = 0;
+        foreach (var member in info.members)
+        {
+            if (member != null && member.clientId >= 0 && member.camp == camp) count++;
+        }
+        return count < limit;
     }
 
     private void ChangeAICount(bool defense, int delta)
     {
         if (syncingFromServer) return;
         if (BlockedByReady()) return;
-        if (defense) defenseAICount = Mathf.Max(0, defenseAICount + delta);
-        else attackAICount = Mathf.Max(0, attackAICount + delta);
+        int limit = defense
+            ? ConfigManager.GlobalVariableConfig.player_limit_defenser_AI
+            : ConfigManager.GlobalVariableConfig.player_limit_attacker_AI;
+        int current = defense ? defenseAICount : attackAICount;
+        if (delta > 0 && current >= limit)
+        {
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText(defense ? "防守方 AI 已达上限" : "进攻方 AI 已达上限");
+            return;
+        }
+        int next = Mathf.Clamp(current + delta, 0, limit);
+        if (defense) defenseAICount = next;
+        else attackAICount = next;
         RefreshAICountLabels();
         SendRoomState();
     }

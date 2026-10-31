@@ -724,7 +724,6 @@ public class ConfigManager : MonoBehaviour
         public static float terrain_height;             // 地形最大高度（米）
         public static float ground_probe_up;            // 地面检测探针起点抬高（米）
         public static float ground_probe_length;        // 地面检测探针向下长度（米）
-        public static int max_ai_player_count;          // 单个阵营的 AI 玩家数量上限
         public static int name_length_max;              // 名字最大长度
         public static int name_length_min;              // 名字最小长度
         public static int player_limit_attacker;        // 进攻方人数上限（不含 AI）
@@ -882,9 +881,6 @@ public class ConfigManager : MonoBehaviour
                     break;
                 case "ground_probe_length":
                     ground_probe_length = Positive(Float(row), row.key);
-                    break;
-                case "max_ai_player_count":
-                    max_ai_player_count = Positive(Int(row), row.key);
                     break;
                 case "name_length_max":
                     name_length_max = Positive(Int(row), row.key);

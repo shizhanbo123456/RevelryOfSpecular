@@ -32,6 +32,7 @@ public class HomePage : PageBase
             SwitchTab(defenseTab); // 同步页签选中态：默认进攻页签，避免进入后无任何页签选中
         });
         var nameInput = panel.m_playerInfo.m_input_playerName;
+        nameInput.maxLength = ConfigManager.GlobalVariableConfig.name_length_max;
         nameInput.text = ClientSelection.playerName;
         nameInput.onChanged.Add(() =>
         {
@@ -199,9 +200,11 @@ public class HomePage : PageBase
     {
         // 连接前校验玩家名字长度，不合法则飘字提示并拦截连接
         var name = ClientSelection.playerName;
-        if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 8)
+        int nameMin = ConfigManager.GlobalVariableConfig.name_length_min;
+        int nameMax = ConfigManager.GlobalVariableConfig.name_length_max;
+        if (string.IsNullOrEmpty(name) || name.Length < nameMin || name.Length > nameMax)
         {
-            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText("玩家名字必须为2-8个字符");
+            if (Tool.UIManager != null) Tool.UIManager.ShowFlyText($"玩家名字必须为{nameMin}-{nameMax}个字符");
             return;
         }
         if (Tool.NetworkManager == null) return;
