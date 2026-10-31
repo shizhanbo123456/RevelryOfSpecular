@@ -934,71 +934,32 @@ public class BattlePage : PageBase
     }
 
     #region 悬浮提示
-    private static readonly string[] SkillScoreNames = { "输出", "冷却恢复", "控制", "支援", "攻击范围", "攻击速度" };
-
     private void ShowSkillTip(int skillId, GObject anchor)
     {
         HideBuffTip();
-        var cfg = ConfigManager.SkillConfig.Get(skillId);
         if (skillTip == null) skillTip = UI_SkillTip.CreateInstance();
         if (skillTip.parent == null) Root.AddChild(skillTip);
-
-        skillTip.m_SkillName.text = cfg.name;
-        skillTip.m_skillDes.text = cfg.description;
-        skillTip.m_label_cd.text = $"{cfg.cd:0.#}s";
-        skillTip.m_label_store.text = cfg.storeLimit < 0 ? "∞" : cfg.storeLimit.ToString();
-
-        var scores = cfg.scores;
-        var list = skillTip.m_score_list;
-        list.itemRenderer = (i, obj) =>
-        {
-            if (obj is not UI_TipLevel row) return;
-            row.m_title.text = i < SkillScoreNames.Length ? SkillScoreNames[i] : "";
-            row.m_level.selectedIndex = Mathf.Clamp(scores[i], 0, 4); // 0~4 = D/C/B/A/S
-        };
-        list.numItems = scores.Count;
-
-        skillTip.visible = true;
-        PlaceTip(skillTip, anchor);
+        skillTip.Fill(skillId);
+        skillTip.ShowAt(anchor);
     }
 
     private void ShowBuffTip(int buffType, GObject anchor)
     {
         HideSkillTip();
-        var cfg = ConfigManager.EffectConfig.Get(buffType);
         if (buffTip == null) buffTip = UI_BuffTip.CreateInstance();
         if (buffTip.parent == null) Root.AddChild(buffTip);
-
-        buffTip.m_buff_name.text = cfg.name;
-        buffTip.m_buff_des.text = cfg.description;
-        buffTip.visible = true;
-        PlaceTip(buffTip, anchor);
+        buffTip.Fill(buffType);
+        buffTip.ShowAt(anchor);
     }
 
-    private void HideSkillTip()
-    {
-        if (skillTip != null) skillTip.visible = false;
-    }
+    private void HideSkillTip() => skillTip?.Hide();
 
-    private void HideBuffTip()
-    {
-        if (buffTip != null) buffTip.visible = false;
-    }
+    private void HideBuffTip() => buffTip?.Hide();
 
     private void HideAllTips()
     {
         HideSkillTip();
         HideBuffTip();
-    }
-
-    // 提示摆在锚点正上方居中；顶部放不下就改到锚点下方，左右夹在页面内
-    private void PlaceTip(GComponent tip, GObject anchor)
-    {
-        Vector2 local = Root.GlobalToLocal(anchor.LocalToGlobal(Vector2.zero));
-        float x = Mathf.Clamp(local.x + anchor.width * 0.5f - tip.width * 0.5f, 0f, Mathf.Max(0f, Root.width - tip.width));
-        float y = local.y - tip.height - 8f;
-        if (y < 0f) y = local.y + anchor.height + 8f;
-        tip.SetXY(x, y);
     }
     #endregion
 
