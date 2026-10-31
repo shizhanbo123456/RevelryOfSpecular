@@ -20,7 +20,7 @@ public class LandscapeSpawns : MonoBehaviour
         Tool.LandscapeSpawns = this;
     }
 
-    #region 运行时点位贴合（吸附到 Terrain 表面上方 0.1m）
+    #region 运行时点位贴合（吸附到 Terrain 表面上方 SurfaceOffset）
 
     private void Start()
     {
@@ -112,7 +112,7 @@ public class LandscapeSpawns : MonoBehaviour
 
     private const int MaxSampleAttempts = 32;
 
-    private const float SurfaceOffset = 0.1f;
+    private const float SurfaceOffset = 0.5f;
 
     private const float GizmoPinFactor = 2f;
 
