@@ -9,15 +9,12 @@ public partial class BattleManager
 {
     // 无敌实体（EntityData.OnDamaged 命中即按 0 伤害）
     private static readonly HashSet<ushort> gmInvincible = new();
-    // 组队期 GM 启用的防守方被动（下标 = Config.defense_index_*）
-    private static readonly HashSet<int> gmPassives = new();
 
     public static bool IsGmInvincible(ushort entityId) => gmInvincible.Contains(entityId);
 
-    // 开战钩子（由 ApplyGlobalPassives 调用）：注入 GM 被动；清掉上一局的无敌记录（实体 id 会被复用）
+    // 开战钩子（由 ApplyGlobalPassives 调用）：清掉上一局的无敌记录（实体 id 会被复用）
     private void GmOnBattleStart()
     {
-        foreach (var index in gmPassives) defenseCharacters.Add(index);
         gmInvincible.Clear();
     }
 
@@ -65,9 +62,6 @@ public partial class BattleManager
             case GmEnum.Player_Skill_GetSkill: GmAddSkill(clientId, gm.int1); break;
             case GmEnum.Player_Skill_DirectUseSkill: GmForceUseSkill(clientId, gm.int1); break;
             case GmEnum.Player_Skill_ClearSkill: GmClearSkill(clientId); break;
-            case GmEnum.Player_Skill_PassiveEnable:
-                if (gm.int2 != 0) gmPassives.Add(gm.int1); else gmPassives.Remove(gm.int1);
-                break;
             case GmEnum.Player_Buff_AddBuff: GmAddBuff(clientId, (EffectType)gm.int1); break;
             case GmEnum.Player_Buff_RemoveBuff: GmRemoveBuff(clientId, (EffectType)gm.int1); break;
             case GmEnum.Player_Buff_RemoveAllBuff: GmRemoveAllBuff(clientId); break;

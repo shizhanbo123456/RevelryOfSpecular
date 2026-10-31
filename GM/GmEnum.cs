@@ -52,9 +52,6 @@ namespace Ros.Gm
         [GmLabel("玩家-技能-清空技能")]
         [GmStatus(GmStatusType.Battle)]
         Player_Skill_ClearSkill,
-        [GmLabel("玩家-技能-被动技能启用")]
-        [GmStatus(GmStatusType.Lobby)]
-        Player_Skill_PassiveEnable,
         [GmLabel("玩家-buff-添加")]
         [GmStatus(GmStatusType.Battle)]
         Player_Buff_AddBuff,

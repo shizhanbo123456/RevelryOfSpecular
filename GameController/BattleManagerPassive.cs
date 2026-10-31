@@ -18,7 +18,7 @@ public partial class BattleManager
         {
             if (e != null && e.Alive && e.type.category == EntityCategory.Character_Defense) defenseCharacters.Add(e.type.value);
         }
-        GmOnBattleStart(); // GM：把组队期启用的被动并进本次结算，并清掉上一局的无敌记录
+        GmOnBattleStart(); // GM：清掉上一局的无敌记录
 
         zombieSpawnLevelBoosted = DefenseHas(Config.defense_index_death_stroller);
 

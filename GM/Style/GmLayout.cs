@@ -211,13 +211,6 @@ namespace Ros.Gm
             {
                 new Button(string.Empty, "清空技能")
             });
-            layoutStyle.Add(GmEnum.Player_Skill_PassiveEnable, new()
-            {
-                // 顺序与 GmPanel.PassiveDefenseIndexes 对应；白眼伯爵 / 瘟疫使者的被动绑定自身受击，不在此列
-                new Button(string.Empty, "鹿铠怪人"),
-                new Button(string.Empty, "死灵漫步者"),
-                new Button(string.Empty, "蒙面教皇")
-            });
             layoutStyle.Add(GmEnum.Player_Buff_AddBuff, new()
             {
                 new Dropdown("buff", typeof(EffectType)),

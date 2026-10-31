@@ -36,15 +36,6 @@ public class GmPanel
 
     // 开关类指令的本地状态（服务端按目标状态设置；本地只用于按钮标题与切换）
     private readonly HashSet<GmEnum> toggleOn = new();
-    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标（只含走开战扫阵营的：鹿铠 / 死灵 / 教皇）
-
-    // 被动按钮序号 → Config.defense_index_*（顺序同 GmLayout 里的按钮：鹿铠 / 死灵 / 教皇）
-    private static readonly int[] PassiveDefenseIndexes =
-    {
-        Config.defense_index_deer_knight,
-        Config.defense_index_death_stroller,
-        Config.defense_index_masked_pope,
-    };
 
     public GmPanel(UI_GmPanel panel)
     {
@@ -288,7 +279,7 @@ public class GmPanel
             case LayoutType.Button:
                 item.m_content.selectedPage = "按钮";
                 item.m_content_btn.title = range != null
-                    ? ButtonTitle(range.Value.cmd, index - range.Value.start, ((Button)row).buttonTitle)
+                    ? ButtonTitle(range.Value.cmd, ((Button)row).buttonTitle)
                     : ((Button)row).buttonTitle;
                 // GList 复用 item，回调需先清空再挂，避免重复
                 item.m_content_btn.onClick.Clear();
@@ -362,11 +353,10 @@ public class GmPanel
         _ => string.Empty,
     };
 
-    // 按钮标题：开关型按钮带当前状态（敌方对话 / 四个外挂 / 被动启用），其余用布局里的静态标题
-    private string ButtonTitle(GmEnum cmd, int relativeIndex, string staticTitle)
+    // 按钮标题：开关型按钮带当前状态（敌方对话 / 四个外挂），其余用布局里的静态标题
+    private string ButtonTitle(GmEnum cmd, string staticTitle)
     {
         if (cmd == GmEnum.Other_EnemyDialog) return $"敌方对话：{(ChatPlugin.ShowEnemyDialog ? "开" : "关")}";
-        if (cmd == GmEnum.Player_Skill_PassiveEnable) return $"{staticTitle}：{(passiveOn.Contains(relativeIndex) ? "开" : "关")}";
         if (cmd is GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible or GmEnum.Player_Cheat_Speed)
             return $"{staticTitle}：{(toggleOn.Contains(cmd) ? "开" : "关")}";
         return staticTitle;
@@ -383,7 +373,7 @@ public class GmPanel
         // 开关类：本地记状态 + 按钮标题随状态更新（敌方对话纯本地，其余把目标状态发服务器）
         if (IsToggle(cmd))
         {
-            HandleToggle(cmd, rowIndex, start);
+            HandleToggle(cmd, rowIndex);
             return;
         }
 
@@ -527,28 +517,17 @@ public class GmPanel
         }
     }
 
-    // 开关类：客户端记本地状态（按钮标题随状态更新）；四个外挂与被动启用把目标状态发服务器，敌方对话纯本地
+    // 开关类：客户端记本地状态（按钮标题随状态更新）；四个外挂把目标状态发服务器，敌方对话纯本地
     private static bool IsToggle(GmEnum cmd) =>
-        cmd is GmEnum.Other_EnemyDialog or GmEnum.Player_Skill_PassiveEnable
+        cmd is GmEnum.Other_EnemyDialog
             or GmEnum.Player_Cheat_Flight or GmEnum.Player_Cheat_Invincible
             or GmEnum.Player_Cheat_Speed;
 
-    private void HandleToggle(GmEnum cmd, int rowIndex, int start)
+    private void HandleToggle(GmEnum cmd, int rowIndex)
     {
         if (cmd == GmEnum.Other_EnemyDialog)
         {
             ChatPlugin.ShowEnemyDialog = !ChatPlugin.ShowEnemyDialog;
-            RefreshButtonTitle(rowIndex);
-            return;
-        }
-
-        if (cmd == GmEnum.Player_Skill_PassiveEnable)
-        {
-            int index = PassiveDefenseIndexes[rowIndex - start]; // 按钮序号 ≠ 防守方下标，按映射表取
-            bool on = !passiveOn.Contains(index);
-            if (on) passiveOn.Add(index); else passiveOn.Remove(index);
-            if (Tool.NetworkManager != null)
-                Tool.NetworkManager.SendGm(new CSGm { type = cmd, int1 = index, int2 = on ? 1 : 0 });
             RefreshButtonTitle(rowIndex);
             return;
         }
