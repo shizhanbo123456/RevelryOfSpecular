@@ -8,7 +8,7 @@
 ### 1.1 武器技能总览（0~49）
 
 > 技能与 id 的对应由 `SkillTypes` 枚举决定：段首显式锚定、段内连续、段间留空供插入。区间：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。措辞取《特效清单分别表1019》的定稿描述。
-> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 朝自身面向、水平距离 = 技能射程（未配射程取 8 米）、高度与起点同高；夹角 > 0 的 12 个（8 个武器技能 + 4 个雕像孢子）= 朝范围内最近敌人的体中心，水平距离仍取技能射程、高度取体中心。
+> **发射点**：全部走实体骨骼锚点（`UpCenter` / `UpFront`；抛出武器、回旋武器用 `RightHand`）。**落点**：不索敌 = 朝自身面向、水平距离 = 技能射程（未配射程取 8 米）、高度与起点同高；夹角 > 0 的（含 2 个雕像孢子）= 朝范围内最近敌人的体中心，水平距离仍取技能射程、高度取体中心。
 
 #### 近战刀（0~10）
 
@@ -117,8 +117,6 @@
 | 93 | 裂骨爪·左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
 | 94 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
 | 110 | 孢毒喷吐·甲 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
-| 111 | 孢毒喷吐·乙 | SkillCrystalStatueSporeB | Bullet[24] | 无 |
-| 112 | 孢毒喷吐·丙 | SkillCrystalStatueSporeC | Bullet[26] | 无 |
 | 113 | 疫孢吐息 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
 | 130 | 直拳·左 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
 | 131 | 直拳·右 | SkillPunchRight | 无（手部骨骼判定球） | 无 |
@@ -178,7 +176,7 @@
 ## 三、实现口径
 
 Skills文件夹：
-**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 水晶雕像孢子 3 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的段首项显式锚定 id、段内按枚举顺序递增，段间留空供插入：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。**段内不可断号**（`WeaponRef` 用「段起点 + index」换算）、**0~49 必须整段连续**（`Config.GetRandomWeaponId` 按整段随机）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
+**代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 防御塔孢子 1 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的段首项显式锚定 id、段内按枚举顺序递增，段间留空供插入：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。**段内不可断号**（`WeaponRef` 用「段起点 + index」换算）、**0~49 必须整段连续**（`Config.GetRandomWeaponId` 按整段随机）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
 [E]外部调用只向SkillManager传入技能id即可。
 技能双端执行模型：EntitySkillController.TryUseSkill 是全部释放路径（技能栏按键/J 键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 14 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 

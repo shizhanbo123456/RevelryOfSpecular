@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 水晶雕像孢子喷射×3 / 中立雕像孢子喷发
+    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 防御塔孢子喷射×1 / 中立雕像孢子喷发
     public static class SkillPoolNpc
     {
         public static void RegisterAll()
@@ -15,8 +15,6 @@ namespace Ros.Skill
             SkillManager.Register(new SkillEliteZombieClawL());
             SkillManager.Register(new SkillEliteZombieScream());
             SkillManager.Register(new SkillCrystalStatueSporeA());
-            SkillManager.Register(new SkillCrystalStatueSporeB());
-            SkillManager.Register(new SkillCrystalStatueSporeC());
             SkillManager.Register(new SkillNeutralStatueSpore());
         }
     }
@@ -128,7 +126,7 @@ namespace Ros.Skill
     #endregion
 
     #region 水晶雕像 / 中立雕像
-    // 三发孢子喷射共用实现，只有弹体特效不同
+    // 孢子喷射：从体中心射出弹体特效
     public abstract class CrystalStatueSporeShot : SkillBase
     {
         public override float CastRange => Config.crystal_statue_attack_range;
@@ -168,17 +166,6 @@ namespace Ros.Skill
         protected override int BulletVfx => 25;
     }
 
-    public class SkillCrystalStatueSporeB : CrystalStatueSporeShot
-    {
-        public override int Id => (int)SkillType.SkillCrystalStatueSporeB;
-        protected override int BulletVfx => 24;
-    }
-
-    public class SkillCrystalStatueSporeC : CrystalStatueSporeShot
-    {
-        public override int Id => (int)SkillType.SkillCrystalStatueSporeC;
-        protected override int BulletVfx => 26;
-    }
 
     public class SkillNeutralStatueSpore : SkillBase
     {
