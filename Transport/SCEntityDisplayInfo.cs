@@ -53,17 +53,17 @@ namespace Ros.Transport
 
                 if (value.hasBuffs)
                 {
+                    // 与位级一致：按配表上限截断，写出的条数必须与计数一致，否则读端错位
                     int buffCount = value.buffs != null ? value.buffs.Count : 0;
+                    if (buffCount > SyncRanges.MaxBuffCount) buffCount = SyncRanges.MaxBuffCount;
                     if (!IntSerializer.Serialize(buffCount, result, ref indexStart)) return false;
-                    if (value.buffs != null)
+                    for (int i = 0; i < buffCount; i++)
                     {
-                        foreach (var buff in value.buffs)
-                        {
-                            if (!BoolSerializer.Serialize(buff != null, result, ref indexStart)) return false;
-                            if (buff == null) continue;
-                            if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
-                            if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
-                        }
+                        var buff = value.buffs[i];
+                        if (!BoolSerializer.Serialize(buff != null, result, ref indexStart)) return false;
+                        if (buff == null) continue;
+                        if (!IntSerializer.Serialize(buff.type, result, ref indexStart)) return false;
+                        if (!IntSerializer.Serialize(buff.level, result, ref indexStart)) return false;
                     }
                 }
 
