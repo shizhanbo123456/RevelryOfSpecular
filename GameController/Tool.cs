@@ -136,6 +136,8 @@ public class Tool : MonoBehaviour
 
         errors += CheckInfoManager();
         errors += CheckEntityGraphics();          // 实体图形两端都用：BattleManager 生成实体依赖它
+        errors += CheckCharacterRows(EntityCategory.Character_Attack, Config.attack_character_count, "进攻方");
+        errors += CheckCharacterRows(EntityCategory.Character_Defense, Config.defense_character_count, "防守方");
         errors += CheckGuardStatueSpawns();
         if (!isServer) errors += CheckClientAssets();
 
@@ -186,6 +188,24 @@ public class Tool : MonoBehaviour
             Debug.LogError("[启动自检] LandscapeSpawns.mainGuardStatueSpawnPosition 未赋值：开局不会生成国王雕像");
             e++;
         }
+        return e;
+    }
+
+    // entity.csv 必须与 Config 的角色数量对齐：缺行运行时 Get 直接抛，多余行不参与但会残留
+    private static int CheckCharacterRows(EntityCategory category, int count, string label)
+    {
+        int e = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (ConfigManager.EntityConfig.content.ContainsKey(new EntityType(category, i))) continue;
+            Debug.LogError($"[启动自检] entity.csv 缺少{label}角色行 (value={i})：选到该角色会直接抛异常");
+            e++;
+        }
+
+        int rows = 0;
+        foreach (var key in ConfigManager.EntityConfig.content.Keys)
+            if (key.category == category) rows++;
+        if (rows > count) Debug.LogWarning($"[启动自检] entity.csv 的{label}角色有 {rows} 行，多于角色数量 {count}：多出的行不会被选中，建议删除");
         return e;
     }
 
@@ -312,16 +332,8 @@ public class Tool : MonoBehaviour
         e += CheckList("AssetsManager.GunWeaponPrefabs", m.GunWeaponPrefabs, Config.weapon_id_gun_max - Config.weapon_id_gun_min + 1);
         e += CheckList("AssetsManager.MagicOrbPrefabs", m.MagicOrbPrefabs, Config.weapon_id_magic_max - Config.weapon_id_magic_min + 1);
 
-        e += CheckList("AssetsManager.AttackCharacterIcons", m.AttackCharacterIcons, 0); // 数量未定稿，只查空项
-        e += CheckList("AssetsManager.DefenseCharacterIcons", m.DefenseCharacterIcons, 0);
-        if (m.AttackCharacterIcons == null || m.AttackCharacterIcons.Count == 0)
-        {
-            Debug.LogWarning("[启动自检] AssetsManager.AttackCharacterIcons 为空：进攻方角色图标未导入");
-        }
-        if (m.DefenseCharacterIcons == null || m.DefenseCharacterIcons.Count == 0)
-        {
-            Debug.LogWarning("[启动自检] AssetsManager.DefenseCharacterIcons 为空：防守方角色图标未导入");
-        }
+        e += CheckList("AssetsManager.AttackCharacterIcons", m.AttackCharacterIcons, Config.attack_character_count);
+        e += CheckList("AssetsManager.DefenseCharacterIcons", m.DefenseCharacterIcons, Config.defense_character_count);
 
         // Buff 特效按 hits[0] 贴合实体高度，缺命中球就没法定位/缩放（映射见 effect.csv 第 11、12 列）
         foreach (var row in ConfigManager.EffectConfig.content.Values)

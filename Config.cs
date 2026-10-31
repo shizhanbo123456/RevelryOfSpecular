@@ -5,7 +5,7 @@ using UnityEngine;
 public static class Config
 {
     #region 角色
-    public const int attack_character_count = 17;
+    public const int attack_character_count = 9;
     public const int defense_character_count = 6;
 
     // 角色等级上限 = exp_character.csv 覆盖到的最高等级、战斗期等级上限 = global_variables，配表加行即生效

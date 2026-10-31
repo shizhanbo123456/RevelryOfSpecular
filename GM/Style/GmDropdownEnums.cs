@@ -52,7 +52,7 @@ namespace Ros.Gm
         Core,
     }
 
-    // 角色（17 攻击 + 6 防守）
+    // 角色（9 攻击 + 6 防守）
     public enum GmCharacter
     {
         [GmLabel("攻击角色0")]
@@ -73,22 +73,6 @@ namespace Ros.Gm
         Attack7,
         [GmLabel("攻击角色8")]
         Attack8,
-        [GmLabel("攻击角色9")]
-        Attack9,
-        [GmLabel("攻击角色10")]
-        Attack10,
-        [GmLabel("攻击角色11")]
-        Attack11,
-        [GmLabel("攻击角色12")]
-        Attack12,
-        [GmLabel("攻击角色13")]
-        Attack13,
-        [GmLabel("攻击角色14")]
-        Attack14,
-        [GmLabel("攻击角色15")]
-        Attack15,
-        [GmLabel("攻击角色16")]
-        Attack16,
         [GmLabel("鹿铠怪人")]
         Defense0,
         [GmLabel("白眼伯爵")]
