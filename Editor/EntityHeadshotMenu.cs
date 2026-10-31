@@ -9,7 +9,7 @@ public static class EntityHeadshotMenu
 {
     private const string MenuPath = "Tools/实体/生成角色头像（头部照）";
     private const int Size = 256;
-    private const float FrameRatio = 0.25f;   // 取景边长 = 包围盒高 × 此值，中心取 yRange.y
+    private const float FrameRatio = 0.35f;   // 取景边长 = 包围盒高 × 此值，中心取 yRange.y
     private const float CameraGap = 6f;       // 相机距离 = 取景边长 × 此值
 
     // 临时实例挪到远处，避免场景物件入镜
