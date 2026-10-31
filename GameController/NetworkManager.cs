@@ -417,6 +417,12 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveSkillUsedLocal, to, Delivery.Reliable, new SCSkillUsed() { skillId = skillId });
     }
 
+    public void SendSkillSync(int clientId, SCSkillSync info)
+    {
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveSkillSyncLocal, to, Delivery.Reliable, info);
+    }
+
     public void SendCombatLabel(int clientId, SCCombatLabel label)
     {
         if (!TryGetSendTo(clientId, out var to)) return;
@@ -721,6 +727,20 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (info == null) return;
         EventManager.TrigEvent(ClientEvent.OnSkillUsed, info.skillId);
+    }
+
+    [Rpc]
+    private void ClientReceiveSkillSyncLocal(SCSkillSync info)
+    {
+        if (info == null) return;
+        if (Tool.ClientLogicManager == null) return;
+        var skills = Tool.ClientLogicManager.SkillVfx;
+        if (skills == null) return;
+        if (info.full) skills.SetHeldSkills(info.skills);
+        else
+        {
+            foreach (var skillId in info.skills) skills.AddHeldSkill(skillId);
+        }
     }
 
     [Rpc]

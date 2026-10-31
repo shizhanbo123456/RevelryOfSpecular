@@ -127,6 +127,21 @@ public class ClientSkillManager : ClientSubManager
         EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
     }
 
+    // 增量新增（掉落 / GM 下发）：已持有则忽略，技能栏有空位就自动选中
+    public void AddHeldSkill(int skillId)
+    {
+        if (skillId < 0 || heldSkills.Contains(skillId)) return;
+        heldSkills.Add(skillId);
+        if (activeSkills.Count < slotCapacity && !activeSkills.Contains(skillId))
+        {
+            activeSkills.Add(skillId);
+            activeSkills.Sort();
+        }
+        if (!recharge.HasSkill(skillId)) recharge.AddSkill(skillId);
+        RebuildAdvancing();
+        EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
+    }
+
     // 技能选择面板关闭时应用：必须都持有且不超过栏位数
     public bool TrySetActiveSkills(List<int> ids)
     {

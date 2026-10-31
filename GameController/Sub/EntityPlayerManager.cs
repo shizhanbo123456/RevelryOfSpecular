@@ -231,14 +231,6 @@ public class EntityPlayerManager : ClientSubManager
         // UI/逻辑层事件：完整同步（0.2s / 首见）或本包携带了 health/buff 变化时触发
         if (info.includeRuntime || info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
-        // 持有技能只发给本人：直接交给客户端技能状态（不走上面的 UI 事件，纯技能包不带 health，会把血条刷成 0）
-        if (info.hasSkills && Tool.ClientLogicManager != null)
-        {
-            var self = ClientLoadingManager.Current;
-            if (self != null && self.HasSession && info.entityId == self.OwnEntityId)
-                Tool.ClientLogicManager.SkillVfx.SetHeldSkills(info.skills);
-        }
-
         // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
         var loading = ClientLoadingManager.Current;
         if (loading != null && loading.HasSession && info.entityId == loading.OwnEntityId)

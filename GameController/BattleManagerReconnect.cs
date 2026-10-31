@@ -86,4 +86,17 @@ public partial class BattleManager
         // 阵营存活 / 守护点：作废「已发送快照」，下一帧的变更检测会自然重播一次
         InvalidateBroadcastSnapshots();
     }
+
+    // 持有技能全量下发：无实体（观战 / 已死）发空表，客户端据此清空重登技能
+    private void SendSkillSyncFull(int clientId)
+    {
+        var info = new SCSkillSync { full = true };
+        if (PlayerEntityId.TryGetValue(clientId, out var entityId))
+        {
+            var entity = GetEntity(entityId);
+            if (entity != null && entity.skillController != null)
+                info.skills = entity.skillController.GetSkillIds();
+        }
+        Tool.NetworkManager.SendSkillSync(clientId, info);
+    }
 }

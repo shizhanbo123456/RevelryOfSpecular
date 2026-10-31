@@ -553,14 +553,13 @@ public abstract class EntityData : MonoBehaviour
         return v.x * v.x + v.z * v.z;
     }
 
-    // withSkills：持有技能列表只发给该实体所属客户端（技能栏在客户端，别人不消费）
-    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime, bool withSkills)
+    // 持有技能不在这里：改走 SCSkillSync 独立下发（见 EntitySkillController）
+    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
     {
         // 各段按脏标记选择性携带（完整同步 / 首见必带全量）
         bool withTransform = includeRuntime || transformDirty < 2;
         bool withHealth = includeRuntime || healthDirty;
         bool withBuffs = includeRuntime || buffDirty;
-        bool withSkillsNow = withSkills && (includeRuntime || skillDirty);
         var info = new SCEntityDisplayInfo()
         {
             entityId = id,
@@ -570,7 +569,6 @@ public abstract class EntityData : MonoBehaviour
             hasTransform = withTransform,
             hasHealth = withHealth,
             hasBuffs = withBuffs,
-            hasSkills = withSkillsNow,
         };
         if (withTransform)
         {
@@ -583,7 +581,6 @@ public abstract class EntityData : MonoBehaviour
             info.maxHealth = (int)baseAttribute.health;    // 生命值上限（全程不变，随 health 包顺带携带）
         }
         if (withBuffs && effectController != null) effectController.FillDisplayInfo(info);
-        if (withSkillsNow && skillController != null) skillController.FillDisplayInfo(info);
         return info;
     }
 

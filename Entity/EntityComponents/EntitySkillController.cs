@@ -41,12 +41,6 @@ public class EntitySkillController
 
     public int GetSkillIdAt(int index) => index >= 0 && index < skillIds.Count ? skillIds[index] : -1;
 
-    public void FillDisplayInfo(SCEntityDisplayInfo info)
-    {
-        if (info == null) return;
-        foreach (var skillId in skillIds) info.skills.Add(skillId);
-    }
-
     #endregion
 
     #region 复活继承

@@ -145,7 +145,11 @@ public partial class BattleManager
     private void GmAddSkill(int clientId, int skillId)
     {
         var skills = GetGmSkillController(clientId);
-        if (skills != null) skills.AddSkill(skillId);
+        if (skills == null) return;
+        skills.AddSkill(skillId);
+        var sync = new SCSkillSync { full = false };
+        sync.skills.Add(skillId);
+        Tool.NetworkManager.SendSkillSync(clientId, sync);
     }
 
     private void GmForceUseSkill(int clientId, int skillId)
@@ -157,7 +161,9 @@ public partial class BattleManager
     private void GmClearSkill(int clientId)
     {
         var skills = GetGmSkillController(clientId);
-        if (skills != null) skills.SetSkillList(null);
+        if (skills == null) return;
+        skills.SetSkillList(null);
+        Tool.NetworkManager.SendSkillSync(clientId, new SCSkillSync { full = true });
     }
 
     private void GmAddBuff(int clientId, EffectType type)

@@ -650,6 +650,7 @@ public partial class BattleManager : EnsBehaviour
         {
             // 开战后才完成的观战方：补发开始战斗，表现数据由首见全量补上
             Tool.NetworkManager.SendBattleStart(clientId);
+            SendSkillSyncFull(clientId); // 重连：技能表在进战斗页时清空，须在其后补全量
             return;
         }
         if (AllCombatClientsLoaded()) StartBattle();
@@ -901,7 +902,11 @@ public partial class BattleManager : EnsBehaviour
         // 只告知已加载完成的客户端开战；未完成的观战方等它回执完成时补发
         LoadingStarted = false;
         reservedEntityIds.Clear();
-        foreach (var clientId in loadedClients) Tool.NetworkManager.SendBattleStart(clientId);
+        foreach (var clientId in loadedClients)
+        {
+            Tool.NetworkManager.SendBattleStart(clientId);
+            SendSkillSyncFull(clientId); // 必须在 BattleStart 之后：客户端进战斗页会先清空技能表
+        }
         Debug.Log($"战斗开始：人类 {PlayerInfoList.Count - AIClients.Count}，AI {AIClients.Count}");
     }
 
@@ -1142,12 +1147,10 @@ public partial class BattleManager : EnsBehaviour
                 MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
                 bool full = includeRuntime || firstSeen;
-                // 持有技能列表只发给该实体所属客户端（技能栏只在客户端，别人不消费）
-                bool ownEntity = EntityOwnerClient.TryGetValue(entity.id, out var ownerClient) && ownerClient == clientId;
-                var info = entity.GetDisplayInfo(full, ownEntity);
+                var info = entity.GetDisplayInfo(full);
                 info.includeRuntime = full;
-                // 位姿/血量/buff/技能全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
-                if (info.hasTransform || info.hasHealth || info.hasBuffs || info.hasSkills)
+                // 位姿/血量/buff 全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
+                if (info.hasTransform || info.hasHealth || info.hasBuffs)
                 {
                     FillDisplayVelocity(entity, info);
                     Tool.NetworkManager.SendEntityDisplay(clientId, info);

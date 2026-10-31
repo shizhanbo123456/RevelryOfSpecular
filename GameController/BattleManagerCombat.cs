@@ -276,6 +276,9 @@ public partial class BattleManager
         var ids = player.skillController.GetSkillIds();
         if (ids.Contains(weaponId)) return;
         player.skillController.AddSkill(weaponId);
+        var sync = new SCSkillSync { full = false };
+        sync.skills.Add(weaponId);
+        Tool.NetworkManager.SendSkillSync(clientId, sync); // 增量下发：技能不再跟随实体表现包
         NotifyPlayer(clientId, 14); // 获得新武器
     }
 

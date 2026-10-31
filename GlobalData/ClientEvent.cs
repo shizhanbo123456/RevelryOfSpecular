@@ -12,7 +12,7 @@ public static class ClientEvent
     public const int OnDayNightChange = 10212;
     public const int OnScoreUpdate = 10213;
     public const int OnSettlementResult = 10214;
-    // 10218~10219 未占用：技能列表只下发给该实体所属客户端（见 SCEntityDisplayInfo.hasSkills）
+    // 10218~10219 未占用
     public const int OnReviveProgressUpdate = 10215;
     public const int OnBattleEvent = 10216;
     public const int OnDefensePointProgress = 10217; // param=SCDefensePointProgress 四个守护点的开采进度（0~100）

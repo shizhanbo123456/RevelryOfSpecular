@@ -18,11 +18,9 @@ namespace Ros.Transport
         public bool hasTransform; // 本包含有效位姿（position/yaw/velocity/yawSpeed）；无变化时整包可能不下发
         public bool hasHealth;   // 本包含有效 health/maxHealth（实体 health 脏标记置位 / 完整同步 / 首见）
         public bool hasBuffs;    // 本包含有效 buffs（实体 buff 脏标记置位 / 完整同步 / 首见）
-        public bool hasSkills;   // 本包含有效 skills（实体 skill 脏标记置位 / 完整同步 / 首见）；只发持有 id，无冷却/库存
         public int health;
         public int maxHealth;
         public List<BuffRuntime> buffs = new();
-        public List<int> skills = new();
 
         public class BuffRuntime
         {
@@ -46,7 +44,6 @@ namespace Ros.Transport
                 if (!BoolSerializer.Serialize(value.hasTransform, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasHealth, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasBuffs, result, ref indexStart)) return false;
-                if (!BoolSerializer.Serialize(value.hasSkills, result, ref indexStart)) return false;
 
                 if (value.hasHealth)
                 {
@@ -70,18 +67,6 @@ namespace Ros.Transport
                     }
                 }
 
-                if (value.hasSkills)
-                {
-                    int skillCount = value.skills != null ? value.skills.Count : 0;
-                    if (!IntSerializer.Serialize(skillCount, result, ref indexStart)) return false;
-                    if (value.skills != null)
-                    {
-                        foreach (var skillId in value.skills)
-                        {
-                            if (!IntSerializer.Serialize(skillId, result, ref indexStart)) return false;
-                        }
-                    }
-                }
                 if (!value.hasTransform) return true;
                 if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
                 if (!FloatSerializer.Serialize(value.yaw, result, ref indexStart)) return false;
@@ -90,7 +75,7 @@ namespace Ros.Transport
             }
             else
             {
-                // 位级：1+15+3+5+5+5flag + [health16*2] + [buffCount4+11/buff] + [skillCount7+8/技能] + [位姿81]
+                // 位级：1+15+3+5+5+4flag + [health16*2] + [buffCount4+11/buff] + [位姿81]
                 BitField.SetBuffer(result, indexStart);
                 BitField.WriteBool(value != null);
                 if (value != null)
@@ -103,7 +88,6 @@ namespace Ros.Transport
                     BitField.WriteBool(value.hasTransform);
                     BitField.WriteBool(value.hasHealth);
                     BitField.WriteBool(value.hasBuffs);
-                    BitField.WriteBool(value.hasSkills);
 
                     if (value.hasHealth)
                     {
@@ -124,16 +108,6 @@ namespace Ros.Transport
                             if (buff == null) continue;
                             BitField.WriteInt(buff.type, 0, 63);
                             BitField.WriteInt(buff.level, 0, 15);
-                        }
-                    }
-
-                    if (value.hasSkills)
-                    {
-                        int skillCount = value.skills != null ? Mathf.Min(value.skills.Count, SyncRanges.MaxSkillCount) : 0;
-                        BitField.WriteInt(skillCount, 0, SyncRanges.MaxSkillCount);
-                        for (int i = 0; i < skillCount; i++)
-                        {
-                            BitField.WriteInt(value.skills[i], -1, SyncRanges.MaxSkillId);
                         }
                     }
 
@@ -168,7 +142,6 @@ namespace Ros.Transport
                     hasTransform = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasHealth = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasBuffs = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    hasSkills = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 };
                 if (info.hasHealth)
                 {
@@ -187,14 +160,6 @@ namespace Ros.Transport
                             type = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                             level = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                         });
-                    }
-                }
-                if (info.hasSkills)
-                {
-                    int skillCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
-                    for (int i = 0; i < skillCount; i++)
-                    {
-                        info.skills.Add(IntSerializer.Deserialize(data, ref indexStart, invalidIndex));
                     }
                 }
                 if (!info.hasTransform) return info;
@@ -223,7 +188,6 @@ namespace Ros.Transport
                 r.hasTransform = BitField.ReadBool();
                 r.hasHealth = BitField.ReadBool();
                 r.hasBuffs = BitField.ReadBool();
-                r.hasSkills = BitField.ReadBool();
 
                 if (r.hasHealth)
                 {
@@ -242,15 +206,6 @@ namespace Ros.Transport
                             type = BitField.ReadInt(0, 63),
                             level = BitField.ReadInt(0, 15),
                         });
-                    }
-                }
-
-                if (r.hasSkills)
-                {
-                    int skillCount = BitField.ReadInt(0, SyncRanges.MaxSkillCount);
-                    for (int i = 0; i < skillCount; i++)
-                    {
-                        r.skills.Add(BitField.ReadInt(-1, SyncRanges.MaxSkillId));
                     }
                 }
 
