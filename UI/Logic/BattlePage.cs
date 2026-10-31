@@ -11,13 +11,12 @@ public class BattlePage : PageBase
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
     private readonly List<UI_SkillList.Slot> skillSlots = new(); // 技能栏快照缓冲（每 0.1s 重填一次，避免分配）
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
-    private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
+    private readonly List<UI_EntityBar.Buff> barBuffs = new(); // 血条 buff 快照缓冲（每个摘要包重填）
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
     private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
 
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
-    private readonly List<CombatLabelItem> combatLabels = new();
     private UI_SkillTip skillTip;     // 技能悬浮提示（技能栏条目）
     private UI_BuffTip buffTip;       // buff 悬浮提示（任意 buff 图标）
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
@@ -29,8 +28,6 @@ public class BattlePage : PageBase
     private float onlookRefreshTimer;     // 观战下拉选项刷新节流
     private bool syncingOnlookCombo;      // 程序刷新下拉选项期间屏蔽 onChanged 回调
 
-    private const float CombatLabelLife = 0.8f;
-    private const int CombatLabelPageCount = 12; // 与 FGUI UI_DamageLabel 控制器页数一致，枚举加值须同步加页
     private const int HitVfxIndexBuff = 0;   // 命中特效列表下标：buff/DoT 类（贴实体中心）
     private const int HitVfxIndexDirect = 1; // 命中特效列表下标：直接伤害（普通/暴击/护盾）
     private const float HitVfxLife = 2f;
@@ -54,15 +51,6 @@ public class BattlePage : PageBase
     private static ushort OwnEntityId => HasSession ? Session.OwnEntityId : (ushort)0;
     private bool IsOwnEntity(int entityId) => HasSession && OwnEntityId == entityId;
 
-    private struct CombatLabelItem
-    {
-        public UI_DamageLabel label;
-        public float time;
-        public Vector3 anchor;  // 世界锚点（不含散布），每帧据此重投影
-        public Vector2 scatterPx; // 屏幕空间随机散布（创建时定死，避免每帧重掷抖动）
-        public float risePx;    // 屏幕上升累计像素
-    }
-
     public BattlePage(UI_BattlePanel panel) : base(panel)
     {
         this.panel = panel;
@@ -75,7 +63,8 @@ public class BattlePage : PageBase
         panel.m_settings_panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
         BuildSettingTips();
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
-        panel.m_PlayerBar.m_buffList.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, localBuffs[i]);
+        panel.m_PlayerBar.m_buffList.m_list.itemRenderer =
+            (i, obj) => ((UI_buffItem)obj).Fill(localBuffs[i].type, localBuffs[i].level, ShowBuffTip, HideBuffTip);
         panel.m_skillSelectPanel.Build(OnSkillSelectCommitted);
         panel.m_skillSelectPanel.Close();
     }
@@ -212,7 +201,6 @@ public class BattlePage : PageBase
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
         RefreshTimeIcon();
-        TickCombatLabels(deltaTime);
         TickMinimap();
         TickSpectator(deltaTime);
         TickLocalSkillCd(deltaTime);
@@ -673,116 +661,38 @@ public class BattlePage : PageBase
     {
         if (!entityBars.TryGetValue(info.entityId, out var bar))
         {
-            bar = CreateEntityBar(info.entityId);
+            bar = UI_EntityBar.CreateInstance();
+            panel.m_world_element_container.AddChild(bar); // 挂在世界层：压在战斗界面各元素之下
             entityBars[info.entityId] = bar;
         }
-        bar.visible = true;
-
-        // 阵营：进攻/防守/观战/中立（中立含中立雕像与场景物件），档位即 PlayerCampIcon.m_player_camp 的页序
-        bar.m_campIcon.m_player_camp.selectedIndex = (int)ToPlayerCamp(info.camp);
-        bar.m_is_enemy.selectedIndex = IsEnemyCamp(info.camp) ? 1 : 0;
-        if (bar.m_entity_name != null)
-            bar.m_entity_name.text = withName && HasSession ? Session.GetNameByEntity(info.entityId) : "";
-
-        // 友/敌两条血条由 m_is_enemy 互斥显示，两条都写同一个比例
-        float ratio = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
-        bar.m_bar_fill_health_partner.fillAmount = ratio;
-        bar.m_bar_fill_health_enemy.fillAmount = ratio;
-        if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
-
-        if (info.hasBuffs) RefreshBuffList(bar.m_buff_list.m_list, entityBuffs[info.entityId], info.buffs);
+        string name = withName && HasSession ? Session.GetNameByEntity(info.entityId) : "";
+        bar.Bind(info.health, info.maxHealth, info.camp, (EntityCamp)localPlayerCamp, name,
+            info.hasBuffs ? ToBarBuffs(info.buffs) : null, ShowBuffTip, HideBuffTip);
     }
 
-    // 场景 UI（血条 / 伤害飘字）挂在世界层容器上，坐标从面板空间换到容器局部空间
-    private Vector2 ToWorldLayer(Vector2 panelPoint)
-        => panel.m_world_element_container.GlobalToLocal(Root.LocalToGlobal(panelPoint));
-
-    private UI_EntityBar CreateEntityBar(ushort entityId)
+    // 协议 buff 列表 → 血条条目数据（复用缓冲，避免每个摘要包都分配）
+    private IReadOnlyList<UI_EntityBar.Buff> ToBarBuffs(List<SCEntityDisplayInfo.BuffRuntime> source)
     {
-        var bar = UI_EntityBar.CreateInstance();
-        panel.m_world_element_container.AddChild(bar); // 挂在世界层：压在战斗界面各元素之下
-        var buffs = new List<SCEntityDisplayInfo.BuffRuntime>();
-        entityBuffs[entityId] = buffs;
-        bar.m_buff_list.m_list.itemRenderer = (i, obj) => RenderBuffItem((UI_buffItem)obj, buffs[i]); // 必须先设渲染器再设 numItems
-        return bar;
+        barBuffs.Clear();
+        if (source != null)
+            for (int i = 0; i < source.Count; i++)
+                if (source[i] != null) barBuffs.Add(new UI_EntityBar.Buff(source[i].type, source[i].level));
+        return barBuffs;
     }
 
-    // 实体阵营 → 玩家阵营档位（PlayerCampIcon.m_player_camp 页序：0 进攻 / 1 防守 / 2 观战 / 3 中立）
-    private static PlayerCampType ToPlayerCamp(EntityCamp camp)
-    {
-        if (camp == EntityCamp.Attack) return PlayerCampType.Attack;
-        if (camp == EntityCamp.Defense || camp == EntityCamp.DefenseTower) return PlayerCampType.Defense;
-        return PlayerCampType.Neutral; // 中立雕像、珊瑚与其它场景物件
-    }
-
-    // 敌对：只有攻/守两方算阵营；自己阵营未知或对方是中立/场景物件时都不算敌对
-    private bool IsEnemyCamp(EntityCamp camp)
-    {
-        if (localPlayerCamp != (int)EntityCamp.Attack && localPlayerCamp != (int)EntityCamp.Defense) return false;
-        // 防御塔算防守方：进攻方看到是敌方，防守方看到是友方
-        if (camp == EntityCamp.DefenseTower) return localPlayerCamp == (int)EntityCamp.Attack;
-        if (camp != EntityCamp.Attack && camp != EntityCamp.Defense) return false;
-        return camp != (EntityCamp)localPlayerCamp;
-    }
-
-    private static void RefreshBuffList(GList list, List<SCEntityDisplayInfo.BuffRuntime> target, List<SCEntityDisplayInfo.BuffRuntime> source)
-    {
-        target.Clear();
-        if (source != null) target.AddRange(source);
-        list.numItems = target.Count;
-    }
-
-    private void RenderBuffItem(UI_buffItem item, SCEntityDisplayInfo.BuffRuntime buff)
-    {
-        if (buff == null) return;
-        var cfg = ConfigManager.EffectConfig.Get(buff.type);
-        item.m_negative.selectedIndex = cfg.positive == true ? 0 : 1; // 0 正面 / 1 负面
-        Texture icon = null;
-        var map = Tool.AssetsManager != null ? Tool.AssetsManager.BuffIconMap : null;
-        if (map != null && map.TryGetValue(buff.type, out var tex)) icon = tex;
-        item.m_mask.m_loader.texture = icon != null ? new NTexture(icon) : null; // 没配图标 → 不显示
-        // level 即显示层数：逐层计时类 = 各层等级之和，单层类 = 该条等级（服务端已聚合）
-        item.m_layer_count.text = buff.level.ToString();
-        int buffType = buff.type;
-        item.onRollOver.Set(() => ShowBuffTip(buffType, item));
-        item.onRollOut.Set(HideBuffTip);
-    }
-
-    private Camera GetProjectionCamera()
-    {
-        return (Tool.CameraController != null && Tool.CameraController.WorldCamera != null)
-            ? Tool.CameraController.WorldCamera : Camera.main;
-    }
-
+    // 头顶锚点由实体表现提供，投影与缩放归血条自身
     private void UpdateEntityBarPositions()
     {
-        var cam = GetProjectionCamera();
-        if (cam == null) return;
+        if (entityBars.Count == 0) return;
         foreach (var pair in entityBars)
         {
             var bar = pair.Value;
             if (bar == null) continue;
+            bool hasAnchor = false;
             var headPos = Vector3.zero;
-            bool visible = false;
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
-                visible = Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(pair.Key, EntityAnchor.Bar, out headPos);
-            Vector2 local = Vector2.zero;
-            if (visible)
-            {
-                var screen = cam.WorldToScreenPoint(headPos);
-                visible = screen.z > 0f;
-                // Unity 屏幕 y 轴向上、FGUI 局部 y 轴向下，需翻转；UiScale 把屏幕像素换算成本页面板设计像素
-                if (visible) local = new Vector2(screen.x / UiScale, (Screen.height - screen.y) / UiScale);
-            }
-            bar.visible = visible;
-            if (visible)
-            {
-                // 血条画在屏幕面板上，不随距离自然缩小：按相机到头顶锚点的距离倒比缩放，默认距离处为 (1,1)
-                float distance = Vector3.Distance(cam.transform.position, headPos);
-                float scale = barDefaultSizeDistance / Mathf.Max(distance, 0.01f); // 相机贴到锚点时按 1 厘米算，避免除零
-                bar.SetScale(scale, scale);
-                bar.xy = ToWorldLayer(local) - new Vector2(bar.width * 0.5f * scale, 0f); // 缩放后正中仍落在头顶正上方
-            }
+                hasAnchor = Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(pair.Key, EntityAnchor.Bar, out headPos);
+            bar.Place(hasAnchor, headPos, barDefaultSizeDistance);
         }
     }
 
@@ -793,7 +703,6 @@ public class BattlePage : PageBase
             if (bar != null) bar.Dispose();
             entityBars.Remove(entityId);
         }
-        entityBuffs.Remove(entityId);
     }
 
     private void ClearEntityBars()
@@ -803,45 +712,19 @@ public class BattlePage : PageBase
             if (bar != null) bar.Dispose();
         }
         entityBars.Clear();
-        entityBuffs.Clear();
     }
 
     private void ShowCombatLabel(int value, CombatLabelType type, ushort targetId, bool hasHitPos, Vector3 hitPos)
     {
-        Vector3 anchor;
-        if (hasHitPos)
-        {
-            anchor = hitPos;
-        }
-        else
+        // 锚点：有命中点用命中点，否则退到实体头顶（飘字与命中特效共用这套兜底）
+        Vector3 anchor = hitPos;
+        if (!hasHitPos)
         {
             anchor = Vector3.zero;
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
                 Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(targetId, EntityAnchor.LabelFallBack, out anchor);
         }
-
-        // 相机背后的点投影后 x/y 会镜像翻转，显示出来就是屏幕上"莫名其妙的位置"——直接不显示
-        var cam = GetProjectionCamera();
-        if (cam != null && cam.WorldToScreenPoint(anchor).z <= 0f) return;
-
-        // 散布走屏幕空间（水平±50/垂直±10px）：世界空间散布随距离表现异常（远则仍叠、近则偏移过大）
-        var scatterPx = new Vector2(Random.Range(-50f, 50f), Random.Range(-10f, 10f));
-
-        var label = UI_DamageLabel.CreateInstance();
-        int page = (int)type;
-        if (page < 0 || page >= CombatLabelPageCount)
-        {
-            label.Dispose();
-            Debug.LogError($"[战斗飘字] 未处理的飘字类型：{page}");
-            return;
-        }
-        label.m_type.selectedIndex = page; // 枚举值即 FGUI 页号
-        // 闪避 / 失效页不写数字，其余页统一写下发数值
-        if (type != CombatLabelType.Evade && type != CombatLabelType.Invalid) label.m_num_common.text = value.ToString();
-        panel.m_world_element_container.AddChild(label); // 挂在世界层：压在战斗界面各元素之下
-        //组件轴心是左上角（FGUI 里 xy 即左上角），减去半个宽度让飘字正中在锚点位置
-        label.xy = ToWorldLayer(WorldToPanel(anchor, cam) + scatterPx) - new Vector2(label.width * 0.5f, 0f);
-        combatLabels.Add(new CombatLabelItem { label = label, time = Time.time, anchor = anchor, scatterPx = scatterPx, risePx = 0f });
+        UI_DamageLabel.Spawn(panel.m_world_element_container, value, type, anchor);
     }
 
     // 命中特效：直接伤害取命中点高度 + 实体所在列，buff/DoT 类贴实体中心；闪避与失效没有命中不播
@@ -875,51 +758,7 @@ public class BattlePage : PageBase
     }
 
     // 相机插值收尾回调：用最终相机变换重投影血条/名字/飘字，消除与渲染差一帧的震颤
-    private void OnCameraUpdated()
-    {
-        UpdateEntityBarPositions();
-        ReprojectCombatLabels();
-    }
-
-    // 飘字按世界锚点重投影（上升量仍走屏幕像素），使出生点与相机同步、不再滞后一帧
-    private void ReprojectCombatLabels()
-    {
-        var cam = GetProjectionCamera();
-        if (cam == null) return;
-        for (int i = 0; i < combatLabels.Count; i++)
-        {
-            var item = combatLabels[i];
-            if (item.label == null) continue;
-            // 锚点转到相机背后时投影会镜像错位，直接隐藏（与 ShowCombatLabel 的剔除一致）
-            if (cam.WorldToScreenPoint(item.anchor).z <= 0f) { item.label.visible = false; continue; }
-            item.label.visible = true;
-            item.label.xy = ToWorldLayer(WorldToPanel(item.anchor) + item.scatterPx) - new Vector2(item.label.width * 0.5f, 0f) + new Vector2(0f, -item.risePx);
-        }
-    }
-
-    private void TickCombatLabels(float deltaTime)
-    {
-        for (int i = combatLabels.Count - 1; i >= 0; i--)
-        {
-            var item = combatLabels[i];
-            float age = Time.time - item.time;
-            if (age > CombatLabelLife)
-            {
-                if (item.label != null) item.label.Dispose();
-                combatLabels.RemoveAt(i);
-                continue;
-            }
-            if (item.label == null)
-            {
-                combatLabels.RemoveAt(i);
-                continue;
-            }
-            item.risePx += 60f * deltaTime;
-            combatLabels[i] = item;
-            if (age > CombatLabelLife * 0.5f)
-                item.label.alpha = Mathf.Clamp01(1f - (age - CombatLabelLife * 0.5f) / (CombatLabelLife * 0.5f));
-        }
-    }
+    private void OnCameraUpdated() => UpdateEntityBarPositions();
 
     private void RefreshTimeIcon()
     {
