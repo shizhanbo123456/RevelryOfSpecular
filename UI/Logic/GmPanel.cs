@@ -544,7 +544,7 @@ public class GmPanel
     {
         var range = FindRange(rowIndex);
         if (range == null || rows[rowIndex] is not Button row || ItemAt(rowIndex) is not UI_GmItem item) return;
-        item.m_content_btn.title = ButtonTitle(range.Value.cmd, rowIndex - range.Value.start, row.buttonTitle);
+        item.m_content_btn.title = ButtonTitle(range.Value.cmd, row.buttonTitle);
     }
 
     // 服务器回包（性能 / 战斗数据）：填缓存并重画该指令的数据行
