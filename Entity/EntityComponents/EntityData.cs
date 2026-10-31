@@ -319,13 +319,14 @@ public abstract class EntityData : MonoBehaviour
             else if (Time.time >= motion.endTime)
             {
                 final = motion.Exit(this, rb.velocity);
+                motion = null; // 到期即移除：惯性随 Exit 返回值保留，下一帧交回声明/摩擦
             }
             else
             {
                 final = motion.Update(this, rb.velocity);
             }
 
-            if (motion.canMove) final += DeclaredVelocity();
+            if (motion != null && motion.canMove) final += DeclaredVelocity();
             rb.velocity = final;
         }
         else if (declaredForward || declaredHorizontal || declaredVertical)
