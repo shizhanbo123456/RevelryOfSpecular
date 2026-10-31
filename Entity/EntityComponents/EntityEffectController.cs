@@ -43,10 +43,9 @@ public enum EffectType
     Reflect = 30,                   // 反伤
 
     //通用（纯属性改变类）
-    AttrStrengthBoost = 31,         // 力量提升
-    AttrStrengthDecrease = 32,      // 力量降低
-    AttrMagicBoost = 33,            // 魔法提升
-    AttrMagicDecrease = 34,         // 魔法降低
+    AttrAttackBoost = 31,           // 攻击提升
+    AttrAttackDecrease = 32,        // 攻击降低
+    // 33 / 34 空缺：原「魔法提升 / 魔法降低」，已并入 31 / 32（攻击是唯一伤害属性）
     AttrCritRateBoost = 35,         // 暴击率提升
     AttrCritRateDecrease = 36,      // 暴击率降低
     AttrCritDamageBoost = 37,       // 暴击伤害提升
@@ -61,10 +60,10 @@ public static class EffectTypeExt
 {
     public static bool IsAttribute(this EffectType type) => type switch
     {
-        EffectType.AttrStrengthBoost or EffectType.AttrMagicBoost or
+        EffectType.AttrAttackBoost or
         EffectType.AttrCritRateBoost or EffectType.AttrCritDamageBoost or
         EffectType.AttrViewDistanceBoost or
-        EffectType.AttrStrengthDecrease or EffectType.AttrMagicDecrease or
+        EffectType.AttrAttackDecrease or
         EffectType.AttrCritRateDecrease or EffectType.AttrCritDamageDecrease or
         EffectType.AttrViewDistanceDecrease => true,
         _ => false,
@@ -354,10 +353,10 @@ public class EntityEffectController
         }
     }
 
-    // 施加者快照里的 max(力量, 魔力)；无施加者时为 0
+    // 施加者快照里的攻击；无施加者时为 0
     private static float SourcePower(EffectLayer layer)
     {
-        return layer.sourceAttribute != null ? Mathf.Max(layer.sourceAttribute.strength, layer.sourceAttribute.magic) : 0f;
+        return layer.sourceAttribute != null ? layer.sourceAttribute.attack : 0f;
     }
 
     private static EntityData FindEntity(ushort entityId)
@@ -583,7 +582,7 @@ public class EntityEffectController
         owner.floatingAttribute = attr;
     }
 
-    // 属性增减幅度内部定死：暴击率 / 暴伤按固定点数逐级线性叠加，力量 / 魔法 / 视野按初始值比例
+    // 属性增减幅度内部定死：暴击率 / 暴伤按固定点数逐级线性叠加，攻击 / 视野按初始值比例
     private float AttributeDeltaOf(EffectType type, int level)
     {
         var field = FieldFromType(type);
@@ -591,8 +590,7 @@ public class EntityEffectController
         {
             EntityAttributeDelta.Field.CritRate => Config.buff_crit_rate_points * level,
             EntityAttributeDelta.Field.CritDamage => Config.buff_crit_damage_points * level,
-            EntityAttributeDelta.Field.Strength => owner.baseAttribute.strength * Config.buff_attr_ratio * level,
-            EntityAttributeDelta.Field.Magic => owner.baseAttribute.magic * Config.buff_attr_ratio * level,
+            EntityAttributeDelta.Field.Attack => owner.baseAttribute.attack * Config.buff_attr_ratio * level,
             EntityAttributeDelta.Field.ViewDistance => owner.baseAttribute.viewDistance * Config.buff_attr_ratio * level,
             _ => UnsupportedAttrField(field),
         };
@@ -609,10 +607,8 @@ public class EntityEffectController
     {
         switch (type)
         {
-            case EffectType.AttrStrengthBoost:
-            case EffectType.AttrStrengthDecrease: return EntityAttributeDelta.Field.Strength;
-            case EffectType.AttrMagicBoost:
-            case EffectType.AttrMagicDecrease: return EntityAttributeDelta.Field.Magic;
+            case EffectType.AttrAttackBoost:
+            case EffectType.AttrAttackDecrease: return EntityAttributeDelta.Field.Attack;
             case EffectType.AttrCritRateBoost:
             case EffectType.AttrCritRateDecrease: return EntityAttributeDelta.Field.CritRate;
             case EffectType.AttrCritDamageBoost:
@@ -620,8 +616,8 @@ public class EntityEffectController
             case EffectType.AttrViewDistanceBoost:
             case EffectType.AttrViewDistanceDecrease: return EntityAttributeDelta.Field.ViewDistance;
             default:
-                Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按力量兜底");
-                return EntityAttributeDelta.Field.Strength; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
+                Debug.LogError($"[Buff] 未处理的属性 Buff 类型：{type}，已按攻击兜底");
+                return EntityAttributeDelta.Field.Attack; // 兜底不可达；新增 Attr* 时必须同时加进 IsAttribute 与本映射，否则会静默加错属性
         }
     }
 

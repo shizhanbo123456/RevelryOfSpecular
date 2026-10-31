@@ -1,9 +1,8 @@
-[System.Serializable]
+﻿[System.Serializable]
 public class EntityAttribute
 {
     public float health = 1000f;
-    public int strength = 100;
-    public int magic = 100;
+    public int attack = 100;
     public int critRate = 5;
     public int critDamage = 100; // 整数百分比：100 = 与不暴击相同，200 = 翻倍
     public float viewDistance = 80f;
@@ -14,8 +13,7 @@ public class EntityAttribute
         return new EntityAttribute()
         {
             health = health,
-            strength = strength,
-            magic = magic,
+            attack = attack,
             critRate = critRate,
             critDamage = critDamage,
             viewDistance = viewDistance,
@@ -28,8 +26,7 @@ public class EntityAttribute
         switch (delta.field)
         {
             case EntityAttributeDelta.Field.Health: health += delta.value; break; // 此刻 health 还是"上限"语义
-            case EntityAttributeDelta.Field.Strength: strength += (int)delta.value; break;
-            case EntityAttributeDelta.Field.Magic: magic += (int)delta.value; break;
+            case EntityAttributeDelta.Field.Attack: attack += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritRate: critRate += (int)delta.value; break;
             case EntityAttributeDelta.Field.CritDamage: critDamage += (int)delta.value; break;
             case EntityAttributeDelta.Field.ViewDistance: viewDistance += delta.value; break;
@@ -44,7 +41,7 @@ public class EntityAttributeDelta
     public enum Field
     {
         Health,
-        Strength, Magic, CritRate, CritDamage,
+        Attack, CritRate, CritDamage,
         ViewDistance, WeaponSlotCount,
     }
 

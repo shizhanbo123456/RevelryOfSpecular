@@ -133,12 +133,12 @@ public class ConfigManager : MonoBehaviour
         return (EntityCategory)raw;
     }
 
-    // 升级路线只允许 LevelUpType 的 0~4（生命/力量/魔法/暴击率/暴击伤害）
+    // 升级路线只允许 LevelUpType 的 0~3（生命/攻击/暴击率/暴击伤害）
     public static int ParseUpgrade(string[] rowData, int col)
     {
         int value = ParseInt(rowData, col);
-        if (value < 0 || value > 4)
-            throw new FormatException($"第 {col} 列的升级类型 {value} 超出 0~4");
+        if (value < 0 || value > 3)
+            throw new FormatException($"第 {col} 列的升级类型 {value} 超出 0~3");
         return value;
     }
 
@@ -341,19 +341,18 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 …… 14 初始技能列表 / 15 品质 / 16 显示血条
+    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 / 4 攻击 …… 13 初始技能列表 / 14 品质 / 15 显示血条
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private const int ColumnCount = 17;
+        private const int ColumnCount = 16;
         public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
         public EntityCategory category;
         public int value;
         public string name;
         public float health;
-        public int strength;
-        public int magic;
+        public int attack;
         public int critRate;
         public int critDamage;
         public float viewDistance;
@@ -372,19 +371,18 @@ public class ConfigManager : MonoBehaviour
             value = ParseInt(rowData, 1);
             name = ParseString(rowData, 2);
             health = ParseFloat(rowData, 3);
-            strength = ParseInt(rowData, 4);
-            magic = ParseInt(rowData, 5);
-            critRate = ParseInt(rowData, 6);
-            critDamage = ParseInt(rowData, 7);
-            viewDistance = ParseFloat(rowData, 8);
-            weaponSlotCount = ParseInt(rowData, 9);
-            upgradeA = ParseUpgrade(rowData, 10);
-            upgradeB = ParseUpgrade(rowData, 11);
-            upgradeC = ParseUpgrade(rowData, 12);
-            unlockLevel = ParseInt(rowData, 13);
-            initialSkills = ParseIntList(rowData, 14);
-            quality = ParseQuality(rowData, 15);
-            showHealthBar = ParseShowHealthBar(rowData, 16);
+            attack = ParseInt(rowData, 4);
+            critRate = ParseInt(rowData, 5);
+            critDamage = ParseInt(rowData, 6);
+            viewDistance = ParseFloat(rowData, 7);
+            weaponSlotCount = ParseInt(rowData, 8);
+            upgradeA = ParseUpgrade(rowData, 9);
+            upgradeB = ParseUpgrade(rowData, 10);
+            upgradeC = ParseUpgrade(rowData, 11);
+            unlockLevel = ParseInt(rowData, 12);
+            initialSkills = ParseIntList(rowData, 13);
+            quality = ParseQuality(rowData, 14);
+            showHealthBar = ParseShowHealthBar(rowData, 15);
         }
 
         public static int Load(ConfigTable table)
@@ -424,8 +422,7 @@ public class ConfigManager : MonoBehaviour
             var attr = new EntityAttribute
             {
                 health = health,
-                strength = strength,
-                magic = magic,
+                attack = attack,
                 critRate = critRate,
                 critDamage = critDamage,
                 viewDistance = viewDistance,
@@ -440,10 +437,9 @@ public class ConfigManager : MonoBehaviour
                 switch (upgrade)
                 {
                     case 0: attr.health += attr.health * GlobalVariableConfig.attr_growth_health; break;
-                    case 1: attr.strength += (int)(attr.strength * GlobalVariableConfig.attr_growth_strength); break;
-                    case 2: attr.magic += (int)(attr.magic * GlobalVariableConfig.attr_growth_magic); break;
-                    case 3: attr.critRate += GlobalVariableConfig.attr_growth_critRate; break;
-                    case 4: attr.critDamage += GlobalVariableConfig.attr_growth_critDamage; break;
+                    case 1: attr.attack += (int)(attr.attack * GlobalVariableConfig.attr_growth_attack); break;
+                    case 2: attr.critRate += GlobalVariableConfig.attr_growth_critRate; break;
+                    case 3: attr.critDamage += GlobalVariableConfig.attr_growth_critDamage; break;
                 }
             }
             return attr;
@@ -455,7 +451,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 27;
+        private const int ColumnCount = 26;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -469,17 +465,16 @@ public class ConfigManager : MonoBehaviour
         public int storeLimit;
         public int? weaponCategory;
         public int? weaponSubId;
-        public int? valueSource;
         public float? knockback;
         public List<BuffEntry> buffs;
-        public List<float> bulletSizes; // 第15列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
-        public float damageInterval;     // 第16列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
-        public List<float> damageRates;  // 第17列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
-        public int attackAnim;           // 第18列：EntityAnim.AttackType 数值，空 = 0 = 无动画
-        public float targetSector;       // 第19列：索敌扇形半角（度，实际扇区 = 该值×2）；<=0.1 = 不索敌；>179.9 = 不限方向
-        public float targetRadius;       // 第20列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
-        public List<int> scores;         // 第21~26列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
-        public bool broadcast;           // 第27列：使用时是否全场播报，1 = 播报，空 = 不播报
+        public List<float> bulletSizes; // 第14列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
+        public float damageInterval;     // 第15列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
+        public List<float> damageRates;  // 第16列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
+        public int attackAnim;           // 第17列：EntityAnim.AttackType 数值，空 = 0 = 无动画
+        public float targetSector;       // 第18列：索敌扇形半角（度，实际扇区 = 该值×2）；<=0.1 = 不索敌；>179.9 = 不限方向
+        public float targetRadius;       // 第19列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
+        public List<int> scores;         // 第20~25列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
+        public bool broadcast;           // 第26列：使用时是否全场播报，1 = 播报，空 = 不播报
 
         public SkillConfig(string[] rowData)
         {
@@ -494,29 +489,28 @@ public class ConfigManager : MonoBehaviour
             storeLimit = ParseInt(rowData, 8);
             weaponCategory = ParseIntOrNull(rowData, 9);
             weaponSubId = ParseIntOrNull(rowData, 10);
-            valueSource = ParseIntOrNull(rowData, 11);
-            knockback = ParseFloatOrNull(rowData, 12);
-            buffs = ParseBuffList(rowData, 13);
-            bulletSizes = ParseFloatList(rowData, 14);
-            damageInterval = ParseFloatOrNull(rowData, 15) ?? 100f;
-            damageRates = ParseFloatList(rowData, 16);
-            attackAnim = ParseAttackAnim(rowData, 17);
-            targetSector = ParseFloat(rowData, 18);
-            targetRadius = ParseFloatOrNull(rowData, 19) ?? 0f;
+            knockback = ParseFloatOrNull(rowData, 11);
+            buffs = ParseBuffList(rowData, 12);
+            bulletSizes = ParseFloatList(rowData, 13);
+            damageInterval = ParseFloatOrNull(rowData, 14) ?? 100f;
+            damageRates = ParseFloatList(rowData, 15);
+            attackAnim = ParseAttackAnim(rowData, 16);
+            targetSector = ParseFloat(rowData, 17);
+            targetRadius = ParseFloatOrNull(rowData, 18) ?? 0f;
             if (targetSector < 0f || targetSector > 180f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 的索敌范围夹角 {targetSector} 超出 [0,180]");
             if (targetSector > Config.skill_target_no_sector && targetRadius <= 0f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 配了索敌夹角 {targetSector} 但索敌半径为空或非正数");
             scores = new List<int>
             {
+                ParseIntOrNull(rowData, 19) ?? 0,
                 ParseIntOrNull(rowData, 20) ?? 0,
                 ParseIntOrNull(rowData, 21) ?? 0,
                 ParseIntOrNull(rowData, 22) ?? 0,
                 ParseIntOrNull(rowData, 23) ?? 0,
                 ParseIntOrNull(rowData, 24) ?? 0,
-                ParseIntOrNull(rowData, 25) ?? 0,
             };
-            broadcast = ParseBoolOrNull(rowData, 26) ?? false;
+            broadcast = ParseBoolOrNull(rowData, 25) ?? false;
         }
 
         public static int Load(ConfigTable table)
@@ -694,8 +688,7 @@ public class ConfigManager : MonoBehaviour
         public static int night_duration;               // 默认晚上时长
         public static int distance_of_bar_default_size; // 实体血条为设计大小时的距离
         public static float attr_growth_health;         // 升级增益系数：生命
-        public static float attr_growth_strength;       // 升级增益系数：力量
-        public static float attr_growth_magic;          // 升级增益系数：魔法
+        public static float attr_growth_attack;         // 升级增益系数：攻击
         public static int attr_growth_critRate;         // 升级增益：暴击率，每级加点（百分点）
         public static int attr_growth_critDamage;       // 升级增益：暴击伤害，每级加点（百分点）
         public static int battle_max_level;             // 战斗期等级上限（生成实体时钳制）
@@ -787,11 +780,8 @@ public class ConfigManager : MonoBehaviour
                 case "attr_growth_health":
                     attr_growth_health = NonNegative(Float(row), row.key);
                     break;
-                case "attr_growth_strength":
-                    attr_growth_strength = NonNegative(Float(row), row.key);
-                    break;
-                case "attr_growth_magic":
-                    attr_growth_magic = NonNegative(Float(row), row.key);
+                case "attr_growth_attack":
+                    attr_growth_attack = NonNegative(Float(row), row.key);
                     break;
                 case "attr_growth_critRate":
                     attr_growth_critRate = NonNegative(Int(row), row.key);

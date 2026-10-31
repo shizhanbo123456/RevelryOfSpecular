@@ -5,7 +5,6 @@ public class AttackData
     public ushort shooter;
     public EntityCamp shooterCamp;
     public float rate;
-    public bool useMagic;
     public bool breakEndure;
     public float knockbackPower;
     public Damageable.IDamageable damageable;
@@ -15,7 +14,7 @@ public class AttackData
     public float outDamageMultiplier = 1f;
 
     public static AttackData Create(EntityData shooter, float rate, bool breakEndure,
-        bool useMagic = false, Damageable.IDamageable damageable = null,
+        Damageable.IDamageable damageable = null,
         Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null,
         float knockbackPower = 0f)
     {
@@ -24,7 +23,6 @@ public class AttackData
             shooter = shooter != null ? shooter.id : (ushort)0,
             shooterCamp = shooter != null ? shooter.camp : EntityCamp.None,
             rate = rate,
-            useMagic = useMagic,
             breakEndure = breakEndure,
             damageable = damageable,
             addEffectEvent = addEffectEvent,
@@ -42,7 +40,7 @@ public class AttackData
     {
         type = CombatLabelType.Normal;
         if (attribute == null) return 0;
-        float final = rate * (useMagic ? attribute.magic : attribute.strength);
+        float final = rate * attribute.attack;
         final *= outDamageMultiplier;                            // 出伤乘区
         final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第17列）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)

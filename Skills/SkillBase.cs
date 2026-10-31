@@ -106,13 +106,13 @@ namespace Ros.Skill
             });
         }
 
-        // 数值来源（力量/魔法）与击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
+        // 击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
         protected AttackData BuildAttack(EntityData entity, float rate,
-            bool breakEndure = false, bool? useMagic = null, Action<EntityEffectController> addEffect = null,
+            bool breakEndure = false, Action<EntityEffectController> addEffect = null,
             Action<EntityData> onHit = null, float? knockback = null)
         {
             var config = ConfigManager.SkillConfig.Get(Id);
-            return AttackData.Create(entity, rate, breakEndure, useMagic ?? (config.valueSource == 1),
+            return AttackData.Create(entity, rate, breakEndure,
                 addEffectEvent: addEffect, onHit: onHit, knockbackPower: knockback ?? config.knockback ?? 0f);
         }
 
