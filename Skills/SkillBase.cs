@@ -15,7 +15,7 @@ namespace Ros.Skill
         // 索敌口径读 skill.csv 第 19/20 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
         protected float TargetSector => ConfigManager.SkillConfig.Get(Id).targetSector;
         protected float TargetRadius => ConfigManager.SkillConfig.Get(Id).targetRadius;
-        // 攻击动画读 skill.csv 第 18 列，空/0 = 无动画（按下立刻施放）
+        // 攻击动画读 skill.csv 第 14 列，空/0 = 无动画（按下立刻施放）
         protected bool HasCastAnim => (int)CastAnim != 0;
         protected EntityAnim.AttackType CastAnim => (EntityAnim.AttackType)ConfigManager.SkillConfig.Get(Id).attackAnim;
 
@@ -94,7 +94,7 @@ namespace Ros.Skill
             if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         }
 
-        // 配表第25列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
+        // 配表第 17 列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
         private static void BroadcastSpecial(int skillId)
         {
             if (!BattleManager.AtServer || Tool.NetworkManager == null) return;
@@ -138,7 +138,7 @@ namespace Ros.Skill
             target.effectController.AddEffect((EffectType)buff.type, buff.level, buff.duration, caster);
         }
 
-        // 第15列：有特效的技能 = 各特效的缩放倍率（空 = 原大小），无特效近战 = 判定半径
+        // 第 11 列：有特效的技能 = 各特效的缩放倍率（空 = 原大小），无特效近战 = 判定半径
         private List<float> SizedConfig => ConfigManager.SkillConfig.Get(Id).bulletSizes;
 
         // 取第 index 个特效的缩放倍率；没配 = 原大小，配了但越界属错配，直接抛
@@ -158,15 +158,15 @@ namespace Ros.Skill
             {
                 var sizes = SizedConfig;
                 if (sizes.Count == 0)
-                    throw new FormatException($"[配表] skill.csv 技能 {Id} 是无特效近战，第 15 列必须配判定半径");
+                    throw new FormatException($"[配表] skill.csv 技能 {Id} 是无特效近战，第 11 列必须配判定半径");
                 return sizes[0];
             }
         }
 
-        // 第16列：同一目标最短再伤害间隔（秒）；留空在解析阶段已填 100 = 只结算一次
+        // 第 12 列：同一目标最短再伤害间隔（秒）；留空在解析阶段已填 100 = 只结算一次
         protected float DamageInterval => ConfigManager.SkillConfig.Get(Id).damageInterval;
 
-        // 第17列：伤害倍率。空 = 全 1；只有 1 项 = 所有段共用；多项 = 按段序取
+        // 第 13 列：伤害倍率。空 = 全 1；只有 1 项 = 所有段共用；多项 = 按段序取
         private float[] SegmentRates(int segments)
         {
             var rates = ConfigManager.SkillConfig.Get(Id).damageRates;

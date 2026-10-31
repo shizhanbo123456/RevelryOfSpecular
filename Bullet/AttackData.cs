@@ -42,7 +42,7 @@ public class AttackData
         if (attribute == null) return 0;
         float final = rate * attribute.attack;
         final *= outDamageMultiplier;                            // 出伤乘区
-        final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第17列）
+        final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第 13 列）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)
         {
             type = CombatLabelType.Crit;

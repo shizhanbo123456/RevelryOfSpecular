@@ -226,6 +226,36 @@ public class ConfigManager : MonoBehaviour
         return result;
     }
 
+    // 评分是定长结构体：6 项分号分隔，整格留空 = 不评；项数或取值不符直接抛
+    public static SkillScore ParseSkillScore(string[] rowData, int col)
+    {
+        string raw = Cell(rowData, col);
+        if (raw.Length == 0) return new SkillScore { isEmpty = true };
+
+        string[] parts = raw.Split(';');
+        if (parts.Length != SkillScore.FieldCount)
+            throw new FormatException($"第 {col} 列的评分必须是 {SkillScore.FieldCount} 项（输出;冷却恢复;控制;支援;攻击范围;攻击速度），实为 {parts.Length} 项：「{raw}」");
+
+        var values = new int[SkillScore.FieldCount];
+        for (int i = 0; i < values.Length; i++)
+        {
+            if (!int.TryParse(parts[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
+                throw new FormatException($"第 {col} 列的评分第 {i + 1} 项不是整数：「{parts[i]}」");
+            if (values[i] < 0 || values[i] > 4)
+                throw new FormatException($"第 {col} 列的评分第 {i + 1} 项 {values[i]} 超出 0~4（D/C/B/A/S）");
+        }
+
+        return new SkillScore
+        {
+            output = values[0],
+            cooldown = values[1],
+            control = values[2],
+            support = values[3],
+            attackRange = values[4],
+            speed = values[5],
+        };
+    }
+
     // 多个 Buff 用 | 分隔，单个 Buff 为 类型;等级;持续时间
     public static List<BuffEntry> ParseBuffList(string[] rowData, int col)
     {
@@ -441,69 +471,88 @@ public class ConfigManager : MonoBehaviour
     #endregion
 
     #region 技能表
+    // 评分：固定 6 项（输出/冷却恢复/控制/支援/攻击范围/攻击速度），0~4 = D/C/B/A/S，整格留空 = 不评
+    public struct SkillScore
+    {
+        public const int FieldCount = 6;
+
+        public bool isEmpty;
+        public int output;
+        public int cooldown;
+        public int control;
+        public int support;
+        public int attackRange;
+        public int speed;
+
+        public int Count => isEmpty ? 0 : FieldCount;
+
+        public int this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0: return output;
+                    case 1: return cooldown;
+                    case 2: return control;
+                    case 3: return support;
+                    case 4: return attackRange;
+                    case 5: return speed;
+                    default: throw new ArgumentOutOfRangeException(nameof(index), index, "评分只有 6 项（0~5）");
+                }
+            }
+        }
+    }
+
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 26;
+        private const int ColumnCount = 18;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
         public string name;
         public string description;
-        public int? iconIndex;
-        public string quality;
-        public string skillType;
-        public string skillTag;
-        public float cd;
-        public int storeLimit;
-        public int? weaponCategory;
-        public int? weaponSubId;
-        public float? knockback;
-        public List<BuffEntry> buffs;
-        public List<float> bulletSizes; // 第14列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
-        public float damageInterval;     // 第15列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
-        public List<float> damageRates;  // 第16列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
-        public int attackAnim;           // 第17列：EntityAnim.AttackType 数值，空 = 0 = 无动画
-        public float targetSector;       // 第18列：索敌扇形半角（度，实际扇区 = 该值×2）；<=0.1 = 不索敌；>179.9 = 不限方向
-        public float targetRadius;       // 第19列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
-        public List<int> scores;         // 第20~25列：输出/冷却恢复/控制/支援/攻击范围/攻击速度，0~4 = D/C/B/A/S
-        public bool broadcast;           // 第26列：使用时是否全场播报，1 = 播报，空 = 不播报
+        public string quality;           // 第4列：B / A / S
+        public float cd;                 // 第5列
+        public int storeLimit;           // 第6列：-1 = 无限库存
+        public int? weaponCategory;      // 第7列：0 无 / 1 刀 / 2 长枪 / 3 枪械 / 4 魔法球
+        public int? weaponSubId;         // 第8列
+        public float? knockback;         // 第9列
+        public List<BuffEntry> buffs;    // 第10列：类型;等级;持续时间，多个用 | 分隔
+        public List<float> bulletSizes;  // 第11列：有特效=缩放倍率（1=原大小），无特效近战=判定半径
+        public float damageInterval;     // 第12列：同一目标最短再伤害间隔（秒）；留空 = 100（只结算一次）
+        public List<float> damageRates;  // 第13列：伤害倍率，空 = 全 1；1 项 = 所有段共用；多项 = 按段序
+        public int attackAnim;           // 第14列：EntityAnim.AttackType 数值，空 = 0 = 无动画
+        public float targetSector;       // 第15列：索敌扇形半角（度，实际扇区 = 该值×2）；<=0.1 = 不索敌；>179.9 = 不限方向
+        public float targetRadius;       // 第16列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
+        public bool broadcast;           // 第17列：使用时是否全场播报，1 = 播报，空 = 不播报
+        public SkillScore scores;        // 第18列：定长 6 项，分号分隔
 
         public SkillConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
             name = ParseString(rowData, 1);
             description = ParseString(rowData, 2);
-            iconIndex = ParseIntOrNull(rowData, 3);
-            quality = ParseString(rowData, 4);
-            skillType = ParseString(rowData, 5);
-            skillTag = ParseString(rowData, 6);
-            cd = ParseFloat(rowData, 7);
-            storeLimit = ParseInt(rowData, 8);
-            weaponCategory = ParseIntOrNull(rowData, 9);
-            weaponSubId = ParseIntOrNull(rowData, 10);
-            knockback = ParseFloatOrNull(rowData, 11);
-            buffs = ParseBuffList(rowData, 12);
-            bulletSizes = ParseFloatList(rowData, 13);
-            damageInterval = ParseFloatOrNull(rowData, 14) ?? 100f;
-            damageRates = ParseFloatList(rowData, 15);
-            attackAnim = ParseAttackAnim(rowData, 16);
-            targetSector = ParseFloat(rowData, 17);
-            targetRadius = ParseFloatOrNull(rowData, 18) ?? 0f;
+            quality = ParseString(rowData, 3);
+            cd = ParseFloat(rowData, 4);
+            storeLimit = ParseInt(rowData, 5);
+            weaponCategory = ParseIntOrNull(rowData, 6);
+            weaponSubId = ParseIntOrNull(rowData, 7);
+            knockback = ParseFloatOrNull(rowData, 8);
+            buffs = ParseBuffList(rowData, 9);
+            bulletSizes = ParseFloatList(rowData, 10);
+            damageInterval = ParseFloatOrNull(rowData, 11) ?? 100f;
+            damageRates = ParseFloatList(rowData, 12);
+            attackAnim = ParseAttackAnim(rowData, 13);
+            targetSector = ParseFloat(rowData, 14);
+            targetRadius = ParseFloatOrNull(rowData, 15) ?? 0f;
+            broadcast = ParseBoolOrNull(rowData, 16) ?? false;
+            scores = ParseSkillScore(rowData, 17);
             if (targetSector < 0f || targetSector > 180f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 的索敌范围夹角 {targetSector} 超出 [0,180]");
             if (targetSector > Config.skill_target_no_sector && targetRadius <= 0f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 配了索敌夹角 {targetSector} 但索敌半径为空或非正数");
-            scores = new List<int>
-            {
-                ParseIntOrNull(rowData, 19) ?? 0,
-                ParseIntOrNull(rowData, 20) ?? 0,
-                ParseIntOrNull(rowData, 21) ?? 0,
-                ParseIntOrNull(rowData, 22) ?? 0,
-                ParseIntOrNull(rowData, 23) ?? 0,
-                ParseIntOrNull(rowData, 24) ?? 0,
-            };
-            broadcast = ParseBoolOrNull(rowData, 25) ?? false;
         }
 
         public static int Load(ConfigTable table)
