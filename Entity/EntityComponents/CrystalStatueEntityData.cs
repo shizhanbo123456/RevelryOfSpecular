@@ -1,6 +1,15 @@
-public class CrystalStatueEntityData : AutoCastEntityData
+public class CrystalStatueEntityData : EntityData
 {
-    public override float AutoCastInterval => ConfigManager.GlobalVariableConfig.status_auto_cast_interval_crystal;
+    private CrystalStatueAi ai;
 
-    protected override float CastSearchRange => Config.crystal_statue_attack_range;
+    public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
+    {
+        base.OnCreate(id, type, level, camp);
+        ai = new CrystalStatueAi(this);
+    }
+
+    public override void TickAI()
+    {
+        ai.Tick();
+    }
 }
