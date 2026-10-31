@@ -82,6 +82,25 @@ public class BattlePage : PageBase
         panel.m_settings_panel.touchable = false;
     }
 
+    // 快捷消息面板：暂时只做显隐开关，1~8 任键切换（具体逻辑后续实现）
+    private void ToggleQuickMessage() => SetQuickMessageVisible(!panel.m_quickMessagePanel.visible);
+
+    private void HideQuickMessage() => SetQuickMessageVisible(false);
+
+    private void SetQuickMessageVisible(bool visible)
+    {
+        panel.m_quickMessagePanel.visible = visible;
+        panel.m_quickMessagePanel.touchable = visible; // 收起时不吃点击
+    }
+
+    private static bool AnyQuickMessageKeyDown()
+    {
+        var keys = Config.quick_message_keys;
+        for (int i = 0; i < keys.Length; i++)
+            if (Input.GetKeyDown(keys[i])) return true;
+        return false;
+    }
+
     // 说明来自 setting_tips：页签列表按配表行生成，点页签把该行内容填进说明列表的唯一条目
     private void BuildSettingTips()
     {
@@ -156,6 +175,7 @@ public class BattlePage : PageBase
             Tool.ClientLogicManager.HomePreview.Hide();
         ResetGuardStatues();
         HideSettings(); // 设置面板每局从收起状态开始
+        HideQuickMessage(); // 快捷消息面板每局从收起状态开始
         HideImportantBanner(); // 重要事件 banner 每局从隐藏状态开始
         OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
         ClearEntityBars();
@@ -197,6 +217,7 @@ public class BattlePage : PageBase
     public override void Tick(float deltaTime)
     {
         if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
+        if (AnyQuickMessageKeyDown()) ToggleQuickMessage();
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
