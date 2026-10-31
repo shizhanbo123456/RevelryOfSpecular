@@ -123,12 +123,10 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             Vector3 center = context.vectors[0];
-            // 半径优先读 skill.csv 第16列，未配退回僵尸嘶吼距离
-            float radius = TargetRadius > 0f ? TargetRadius : Config.zombie_roar_range;
             for (int i = 1; i < context.ints.Count; i++)
             {
                 var ally = BattleManager.GetEntity((ushort)context.ints[i]);
-                if (ally == null || (ally.transform.position - center).sqrMagnitude > radius * radius) continue;
+                if (ally == null || (ally.transform.position - center).sqrMagnitude > TargetRadius * TargetRadius) continue;
                 ApplyConfigBuff(caster, ally, 0);
             }
         }

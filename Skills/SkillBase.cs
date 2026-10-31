@@ -12,7 +12,7 @@ namespace Ros.Skill
     {
         public abstract int Id { get; }
         public virtual float CastRange => 0f;
-        // 索敌口径读 skill.csv 第 19/20 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
+        // 索敌口径读 skill.csv 第 15/16 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
         protected float TargetSector => ConfigManager.SkillConfig.Get(Id).targetSector;
         protected float TargetRadius => ConfigManager.SkillConfig.Get(Id).targetRadius;
         // 攻击动画读 skill.csv 第 14 列，空/0 = 无动画（按下立刻施放）
