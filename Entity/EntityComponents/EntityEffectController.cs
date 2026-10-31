@@ -149,7 +149,7 @@ public class EntityEffectController
             return;
         }
 
-        if (type.IsAttribute()) RecomputeAttributes();
+        if (NeedsAttrRecompute(type)) RecomputeAttributes();
         RefreshState();
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
 
@@ -164,7 +164,7 @@ public class EntityEffectController
     {
         if (!effects.Remove(type)) return;
         if (owner != null) owner.buffDirty = true;
-        if (type.IsAttribute()) RecomputeAttributes();
+        if (NeedsAttrRecompute(type)) RecomputeAttributes();
         RefreshState();
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
     }
@@ -288,7 +288,22 @@ public class EntityEffectController
         if (HasEffect(EffectType.Mire)) m *= Config.anim_move_speed_mire;
         if (HasEffect(EffectType.DeathStroll)) m *= Config.death_stroll_speed_up;
         if (HasEffect(EffectType.GmSpeedUp)) m *= Config.gm_speed_multiplier;
+        int screamLevel = TotalLevel(EffectType.ZombieScreamBoost);
+        if (screamLevel > 0) m *= 1f + Config.buff_scream_speed_ratio * screamLevel;
         return m;
+    }
+
+    // 同类型各层等级之和（叠加模式 1 下每层独立计等级）
+    private static int SumLevel(List<EffectLayer> layers)
+    {
+        int level = 0;
+        for (int i = 0; i < layers.Count; i++) level += layers[i].level;
+        return level;
+    }
+
+    private int TotalLevel(EffectType type)
+    {
+        return effects.TryGetValue(type, out var layers) ? SumLevel(layers) : 0;
     }
     #endregion
 
@@ -484,7 +499,7 @@ public class EntityEffectController
         }
         if (layers.Count == 0) effects.Remove(type);
         if (owner != null) owner.buffDirty = true;
-        if (type.IsAttribute()) RecomputeAttributes();
+        if (NeedsAttrRecompute(type)) RecomputeAttributes();
         RefreshState();
         if (IsMoveSpeedEffect(type)) ApplyAnimSpeedScale();
     }
@@ -530,7 +545,12 @@ public class EntityEffectController
     }
 
     private static bool IsMoveSpeedEffect(EffectType type) =>
-        type is EffectType.SpeedUp or EffectType.SlowDown or EffectType.Mire or EffectType.DeathStroll or EffectType.GmSpeedUp;
+        type is EffectType.SpeedUp or EffectType.SlowDown or EffectType.Mire or EffectType.DeathStroll
+            or EffectType.GmSpeedUp or EffectType.ZombieScreamBoost;
+
+    // 嘶吼增益同时改攻击与暴击率，走独立通道，不进 IsAttribute 的单属性映射
+    private static bool NeedsAttrRecompute(EffectType type) =>
+        type.IsAttribute() || type == EffectType.ZombieScreamBoost;
 
     private void ApplyAnimSpeedScale()
     {
@@ -571,6 +591,17 @@ public class EntityEffectController
         var attr = owner.baseAttribute.Clone(); // 此刻 attr.health 是"生命值上限"
         foreach (var pair in effects)
         {
+            if (pair.Value.Count == 0) continue;
+            // 嘶吼增益同时改攻击与暴击率，套不进「一类型一属性」的映射
+            if (pair.Key == EffectType.ZombieScreamBoost)
+            {
+                int screamLevel = SumLevel(pair.Value);
+                attr.ApplyDelta(new EntityAttributeDelta(EntityAttributeDelta.Field.Attack,
+                    owner.baseAttribute.attack * Config.buff_scream_attack_ratio * screamLevel));
+                attr.ApplyDelta(new EntityAttributeDelta(EntityAttributeDelta.Field.CritRate,
+                    Config.buff_scream_crit_rate_points * screamLevel));
+                continue;
+            }
             if (!pair.Key.IsAttribute()) continue;
             for (int i = 0; i < pair.Value.Count; i++)
             {
@@ -628,8 +659,7 @@ public class EntityEffectController
         foreach (var pair in effects)
         {
             if (pair.Value.Count == 0) continue;
-            int level = 0;
-            for (int i = 0; i < pair.Value.Count; i++) level += pair.Value[i].level;
+            int level = SumLevel(pair.Value);
             info.buffs.Add(new SCEntityDisplayInfo.BuffRuntime()
             {
                 type = (int)pair.Key,

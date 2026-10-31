@@ -159,6 +159,9 @@ public static class Config
     public const float burning_damage_per_tick = 30f; // 燃烧每跳 = 此值 × 等级
     public const float poison_damage_ratio = 0.5f;  // 中毒每跳 = 施加者攻击 × 此系数 × 等级
     public const float reflect_rate = 0.1f;         // 反伤 = 实际受伤 × 此系数 × 等级（向下取整，min=1）
+    public const float buff_scream_attack_ratio = 0.2f;  // 嘶吼增益：攻击 = 初始攻击 × 此系数 × 等级
+    public const int buff_scream_crit_rate_points = 100; // 嘶吼增益：每级暴击率加点（百分点）
+    public const float buff_scream_speed_ratio = 0.2f;   // 嘶吼增益：每级移速增幅
     #endregion
 
     #region 防守方技能参数（占位初值，待策划定稿）

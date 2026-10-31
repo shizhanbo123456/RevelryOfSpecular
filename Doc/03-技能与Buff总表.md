@@ -115,7 +115,7 @@
 | 91 | 腐爪·左 | SkillZombieClawL | 无（手部骨骼判定球） | 无 |
 | 92 | 裂骨爪·右 | SkillEliteZombieClawR | 无（手部骨骼判定球） | 无 |
 | 93 | 裂骨爪·左 | SkillEliteZombieClawL | 无（手部骨骼判定球） | 无 |
-| 94 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（增益 buff 自带特效） |
+| 94 | 血嚎 | SkillEliteZombieScream | 无 | ZombieScreamBoost（自身 + 同阵营，半径读第16列） |
 | 110 | 孢毒喷吐·甲 | SkillCrystalStatueSporeA | Bullet[25] | 无 |
 | 113 | 疫孢吐息 | SkillNeutralStatueSpore | RangeMagic[9] | 命中挂 Poison |
 | 130 | 直拳·左 | SkillPunchLeft | 无（手部骨骼判定球） | 无 |
@@ -155,7 +155,7 @@
 | AnimSlowDown 减速 | Buff[17] 黑绿喷发 | 破甲重弹 |
 | AnimSpeedUp 加速 | Buff[27] 环绕风 | 激励弹 |
 | PlagueBless 瘟疫祝福 | MC[9] 蓝色攻击增益 | 攻占中立雕像 |
-| ZombieScreamBoost 僵尸嘶吼增益 | MC[9] 蓝色攻击增益 | 僵尸·嘶吼（尚未施加） |
+| ZombieScreamBoost 僵尸嘶吼增益（攻击 +20%/级、暴击率 +100 点/级、移速 +20%/级） | MC[9] 蓝色攻击增益 | 精英僵尸·血嚎（自身 + 半径内同阵营） |
 | AttrAttackBoost | MC[0] 黄色力场 | 激励法阵等属性增益 |
 | AttrCritRateBoost / AttrCritDamageBoost | MC[1] 治愈绿 | 暴击 / 暴伤增益 |
 | AttrAttackDecrease / AttrCritRateDecrease / AttrCritDamageDecrease | MC[5] 深绿护盾 | 属性削弱类 |

@@ -112,13 +112,25 @@ namespace Ros.Skill
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
+            context.AddVectors(entity.transform.position);
+            Utils.TargetSelect.SetEntitiesInCampToBuffer(entity.camp);
+            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
+                context.AddInts(Utils.TargetSelect.TargetBuffer[i].id);
             return context;
         }
 
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            ApplyConfigBuff(caster, caster, 0);
+            Vector3 center = context.vectors[0];
+            // 半径优先读 skill.csv 第16列，未配退回僵尸嘶吼距离
+            float radius = TargetRadius > 0f ? TargetRadius : Config.zombie_roar_range;
+            for (int i = 1; i < context.ints.Count; i++)
+            {
+                var ally = BattleManager.GetEntity((ushort)context.ints[i]);
+                if (ally == null || (ally.transform.position - center).sqrMagnitude > radius * radius) continue;
+                ApplyConfigBuff(caster, ally, 0);
+            }
         }
 
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
