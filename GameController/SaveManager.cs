@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const string SaveKey = "GameSaveDataV3";
+    public const string SaveKey = "GameSaveDataV3";
 
     private void Awake()
     {
