@@ -24,6 +24,21 @@ public class EntityModelInfo:MonoBehaviour
         return col;
     }
 
+    // 绕根原点 Y +90°：x←旧z，z←-旧x（z+取旧x-，z-取旧x+）
+    [ContextMenu("绕Y轴旋转90°")]
+    private void RotateRanges90()
+    {
+#if UNITY_EDITOR
+        UnityEditor.Undo.RecordObject(this, "EntityModelInfo 旋转 90°");
+#endif
+        Vector2 oldX = xRange;
+        xRange = zRange;
+        zRange = new Vector2(-oldX.y, -oldX.x);
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+#endif
+    }
+
     public void SetCapsuleVerticalBounds(float localBottom, float localTop)
     {
         var col = GetComponent<CapsuleCollider>();
