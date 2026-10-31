@@ -17,17 +17,8 @@ public class BattlePage : PageBase
     private readonly Dictionary<ushort, List<SCEntityDisplayInfo.BuffRuntime>> entityBuffs = new(); // 各实体血条上的 buff 图标数据源
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
-    private readonly Dictionary<ushort, UI_MinimapItem> minimapItems = new();
-    private readonly Dictionary<ushort, float> minimapLastReceived = new();
-    private readonly Dictionary<ushort, Vector2> minimapWorldPos = new(); // 各点位最后一次已知世界坐标（x/z），包到达时写入
-    private readonly List<ushort> s_culledMinimapIds = new();             // 逐帧裁剪的临时列表（遍历中不能改字典）
-    private readonly List<ushort> s_expiredMinimapIds = new();
-    private UI_MinimapItem selfMinimapItem; //自身点位：固定在雷达中心且永远置顶
-    private float minimapViewRadius = ConfigManager.GlobalVariableConfig.minimap_view_radius[0]; //当前雷达显示半径（服务器权威，F 键切换；首档即默认档）
-    private float minimapItemScale = 1f; // 抵消 Minimap 等上层元素缩放（不含页面根 UiScale 适配），使图标按 FGUI 设计尺寸显示；界面初始化时算
-    private GLoader minimapMapLoader;    // 遮罩内的地形底图：xy/尺寸每帧随玩家位置与雷达半径换算
-    private NTexture minimapMapTexture;  // 缓存 NTexture：包一层 AssetsManager.MapTexture，重复 Enter 不重建
     private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
+
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
     private readonly List<CombatLabelItem> combatLabels = new();
     private UI_SkillTip skillTip;     // 技能悬浮提示（技能栏条目）
@@ -92,7 +83,6 @@ public class BattlePage : PageBase
         panel.m_skillSelectPanel.m_panel.m_close.onClick.Add(CloseSkillSelect);
         panel.m_skillSelectPanel.m_list.itemRenderer = RenderSkillSelectItem;
         HideSkillSelect();
-        ComputeMinimapItemScale();
     }
 
     // 设置面板常驻战斗界面，开关只改显隐与点击拦截
@@ -154,17 +144,6 @@ public class BattlePage : PageBase
         if (list.scrollPane != null) list.scrollPane.posY = 0f; // 换栏回到顶部
     }
 
-    //界面初始化时算：抵消 Minimap 等上层元素（不含页面根 UiScale 适配）的缩放，使图标最终按 FGUI 设计尺寸显示
-    private void ComputeMinimapItemScale()
-    {
-        float upper = 1f;
-        for (GObject o = panel.m_Minimap; o != null && o != Root; o = o.parent)
-        {
-            if (o.scale.x > 0.0001f) upper *= o.scale.x;
-        }
-        minimapItemScale = upper > 0.0001f ? 1f / upper : 1f;
-    }
-
     public override void Enter(ShowParam param)
     {
         base.Enter(param);
@@ -188,7 +167,6 @@ public class BattlePage : PageBase
         panel.m_onlook.selectedIndex = spectatorMode ? 1 : 0; // onlook=1：FGUI 自动隐藏血条/技能等非观战元素
         if (panel.m_onlookComboBox != null) panel.m_onlookComboBox.onChanged.Set(OnOnlookComboBoxChanged);
         RefreshCampAliveCount(NetworkManager.LatestCampAliveCount); // 进入战斗先填一次缓存值，随后由变更包刷新
-        minimapViewRadius = ConfigManager.GlobalVariableConfig.minimap_view_radius[0]; //每局回到默认档（首档），与服务器 ClearBattleState 对齐
         // 首页/大厅展示的选角预览模型只属于那两个界面，进战斗前清掉（否则会残留在地图的预览锚点上）
         if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.HomePreview != null)
             Tool.ClientLogicManager.HomePreview.Hide();
@@ -200,8 +178,7 @@ public class BattlePage : PageBase
         HideAllTips();
         localBuffs.Clear();
         panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
-        ClearMinimap();
-        EnsureMinimapMapLoader();
+        panel.m_Minimap?.Reset(ConfigManager.GlobalVariableConfig.minimap_view_radius[0]); //每局回到默认档（首档），与服务器 ClearBattleState 对齐
         HideSkillSelect();
         Skills?.ResetBattle();
         BuildSkillSlots();
@@ -241,10 +218,7 @@ public class BattlePage : PageBase
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
         RefreshTimeIcon();
         TickCombatLabels(deltaTime);
-        TickMinimapTimeout();
-        TickSelfMinimapRotation();
-        TickMinimapMapImage();
-        TickMinimapItems();
+        TickMinimap();
         TickSpectator(deltaTime);
         TickLocalSkillCd(deltaTime);
     }
@@ -294,7 +268,7 @@ public class BattlePage : PageBase
     private void OnEntityDisplayRemove(int entityId)
     {
         RemoveEntityBar((ushort)entityId);
-        CullMinimapItem((ushort)entityId);
+        panel.m_Minimap?.Remove((ushort)entityId);
 
         if (IsOwnEntity(entityId))
             localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
@@ -637,78 +611,34 @@ public class BattlePage : PageBase
     private void OnMinimapUpdate(SCMinimapEntity e)
     {
         if (e == null) return;
-        // 分帧累积：仅记录收到时间与最近世界坐标并按需显示，不再每帧清空（离屏/夜间停传由超时剔除处理）
-        minimapLastReceived[e.entityId] = Time.time;
-        minimapWorldPos[e.entityId] = new Vector2(e.posX, e.posZ);
-        UpsertMinimapEntity(e);
+        // 每个实体一个独立包：只登记坐标与类别，换算和显隐交给小地图自身
+        panel.m_Minimap?.Push(new UI_Minimap.Point(e.entityId, e.type.category, e.type, e.camp,
+            e.marked, IsOwnEntity(e.entityId), new Vector2(e.posX, e.posZ)), (EntityCamp)localPlayerCamp);
     }
 
     //F 键切换雷达显示半径：服务器权威回应，客户端换用新半径做裁剪与缩放（点位下一帧即按新半径重排）
     private void OnMinimapRadiusUpdate(float radius)
     {
-        if (radius <= 0f) return;
-        minimapViewRadius = radius;
+        panel.m_Minimap?.SetRadius(radius);
     }
 
-    private void UpsertMinimapEntity(SCMinimapEntity entity)
+    // 圆心与自身朝向的取数在这边（相机/会话/实体表现都在战斗页的依赖里），换算与绘制全在小地图自身
+    private void TickMinimap()
     {
-        if (panel.m_Minimap == null) return;
-        if (!TryGetMinimapCenter(out var myPos)) return; // 拿不到自身位置就无法换算，等下一帧
-
-        if (!minimapItems.TryGetValue(entity.entityId, out var item))
-        {
-            item = UI_MinimapItem.CreateInstance();
-            item.scale = new Vector2(minimapItemScale, minimapItemScale); // 抵消上层缩放，恢复 FGUI 设计尺寸
-            panel.m_Minimap.AddChild(item); //GGraph 不是容器，点位挂在 Minimap 面板上
-            minimapItems[entity.entityId] = item;
-            if (IsOwnEntity(entity.entityId)) selfMinimapItem = item;
-        }
-        item.m_type.selectedIndex = GetMinimapType(entity);
-        item.m_highlight.selectedIndex = entity.marked ? 1 : 0; //白眼标记高亮（服务器随包下发，出现/消失都靠每包同步）
-        if (!UpdateMinimapItemPosition(entity.entityId, myPos)) CullMinimapItem(entity.entityId);
-        RaiseSelfItemToTop(); //新点加入可能盖住自身图标，每次校一次层级
+        bool hasCenter = TryGetMinimapCenter(out var center);
+        bool hasYaw = TryGetSelfYaw(out float yaw);
+        panel.m_Minimap?.Tick(center, hasCenter, yaw, hasYaw);
+        if (hasCenter) TickLocalPlayerArea(center);
     }
 
-    // 点位位置每帧按当前玩家位置重算：玩家移动时点位立即反向平移，不必等服务器包
-    private void TickMinimapItems()
+    // 自身图标随朝向旋转：地图不转，图标转（每帧读本地玩家推演朝向）
+    private bool TryGetSelfYaw(out float yaw)
     {
-        if (minimapItems.Count == 0) return;
-        if (!TryGetMinimapCenter(out var myPos)) return;
-
-        s_culledMinimapIds.Clear();
-        foreach (var pair in minimapItems)
-            if (!UpdateMinimapItemPosition(pair.Key, myPos)) s_culledMinimapIds.Add(pair.Key);
-
-        foreach (ushort id in s_culledMinimapIds) CullMinimapItem(id);
-    }
-
-    // 返回 false = 超出雷达显示半径（由调用方剔除）
-    private bool UpdateMinimapItemPosition(ushort entityId, Vector3 myPos)
-    {
-        if (!minimapItems.TryGetValue(entityId, out var item) || item == null) return true;
-        var mapBase = panel.m_Minimap != null ? panel.m_Minimap.m_mapBase : null;
-        if (mapBase == null) return true;
-
-        // 位置一律用服务器下发的小地图包坐标；自身固定在雷达中心，不参与换算
-        float dx, dz;
-        if (IsOwnEntity(entityId))
-        {
-            dx = 0f;
-            dz = 0f;
-        }
-        else
-        {
-            Vector2 world = minimapWorldPos[entityId];
-            dx = world.x - myPos.x;
-            dz = world.y - myPos.z;
-            // 只画雷达半径内：超出显示半径的点位剔除（服务器圈外本就过滤，回到圈内会重建）
-            if (dx * dx + dz * dz > minimapViewRadius * minimapViewRadius) return false;
-        }
-
-        //雷达坐标：上方=世界Z+、右侧=世界X+，当前雷达显示半径铺满 mapBase；减半宽高让图标几何居中
-        float scale = mapBase.width * 0.5f / minimapViewRadius;
-        item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
-            mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
+        yaw = 0f;
+        if (!HasSession || Tool.ClientLogicManager == null
+            || Tool.ClientLogicManager.EntityPlayers == null) return false;
+        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(OwnEntityId, out _, out var rot)) return false;
+        yaw = rot.eulerAngles.y; //FGUI 顺时针角度与 Unity yaw 同向（图标默认朝上时）
         return true;
     }
 
@@ -730,107 +660,7 @@ public class BattlePage : PageBase
         return centerId != 0 && Tool.ClientLogicManager.EntityPlayers.TryGetEntityPosition(centerId, out pos);
     }
 
-    // 点位剔除：显示、收包时间与最后世界坐标一起清，回到雷达内等下一个包重建
-    private void CullMinimapItem(ushort entityId)
-    {
-        RemoveMinimapItem(entityId);
-        minimapLastReceived.Remove(entityId);
-        minimapWorldPos.Remove(entityId);
-    }
-
-    //自身图标永远置顶，不被其它点位遮挡
-    private void RaiseSelfItemToTop()
-    {
-        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
-        panel.m_Minimap.SetChildIndex(selfMinimapItem, panel.m_Minimap.numChildren - 1);
-    }
-
-    //自身图标随朝向旋转：地图不转，图标转（每帧读本地玩家推演朝向）
-    private void TickSelfMinimapRotation()
-    {
-        if (selfMinimapItem == null || selfMinimapItem.isDisposed) return;
-        if (!HasSession || Tool.ClientLogicManager == null
-            || Tool.ClientLogicManager.EntityPlayers == null) return;
-        if (!Tool.ClientLogicManager.EntityPlayers.TryGetEntityTransform(OwnEntityId, out _, out var rot)) return;
-        selfMinimapItem.rotation = rot.eulerAngles.y; //FGUI 顺时针角度与 Unity yaw 同向（图标默认朝上时）
-    }
-
-    private int GetMinimapType(SCMinimapEntity entity)
-    {
-        switch (entity.type.category)
-        {
-            case EntityCategory.Character_Attack:
-            case EntityCategory.Character_Defense:
-                if (IsOwnEntity(entity.entityId)) return 0;
-                return entity.camp == (EntityCamp)localPlayerCamp ? 1 : 2;
-            case EntityCategory.NeutralStatue: return 3;
-            case EntityCategory.Coral: return 4;
-            case EntityCategory.CrystalStatue: return 5;
-            case EntityCategory.Zombie: return 6;
-            case EntityCategory.EliteZombie: return 7;
-            case EntityCategory.GuardStatue: return entity.type == EntityType.KingStatue ? 8 : 9;
-            default:
-                Debug.LogError($"[Minimap] 未处理的实体类别：{entity.type.category}");
-                return 7;
-        }
-    }
-
-    private void RemoveMinimapItem(ushort entityId)
-    {
-        if (minimapItems.TryGetValue(entityId, out var item))
-        {
-            if (item != null) item.Dispose();
-            minimapItems.Remove(entityId);
-            if (item == selfMinimapItem) selfMinimapItem = null;
-        }
-    }
-
-    private void ClearMinimap()
-    {
-        foreach (var item in minimapItems.Values)
-        {
-            if (item != null) item.Dispose();
-        }
-        minimapItems.Clear();
-        minimapLastReceived.Clear();
-        minimapWorldPos.Clear();
-        selfMinimapItem = null;
-    }
-
-    // 遮罩内创建地形底图 Loader：只建一次，包被重建时自动补建；图片显示由 TickMinimapMapImage 每帧驱动
-    private void EnsureMinimapMapLoader()
-    {
-        var minimap = panel.m_Minimap;
-        if (minimap == null || minimap.m_mask == null) return;
-        if (minimapMapLoader != null && !minimapMapLoader.isDisposed && minimapMapLoader.parent == minimap.m_mask) return;
-        minimapMapLoader = new GLoader();
-        minimapMapLoader.fill = FillType.Scale; // 地形图与目标区域同为正方形，直接拉伸铺满
-        minimap.m_mask.AddChild(minimapMapLoader);
-        if (minimapMapTexture == null && Tool.AssetsManager != null && Tool.AssetsManager.MapTexture != null)
-            minimapMapTexture = new NTexture(Tool.AssetsManager.MapTexture);
-        minimapMapLoader.texture = minimapMapTexture;
-    }
-
-    // 地形底图对位：与点位同一套雷达换算（mapBase 半宽 = 显示半径米数），图左下=世界(0,0)、上=+Z
-    private void TickMinimapMapImage()
-    {
-        var minimap = panel.m_Minimap;
-        var mapBase = minimap != null ? minimap.m_mapBase : null;
-        if (minimapMapLoader == null || minimapMapLoader.isDisposed || mapBase == null) return;
-        if (!TryGetMinimapCenter(out var myPos)) return; // 纯观战用观战目标位置作雷达中心
-        TickLocalPlayerArea(myPos);
-
-        float ppm = mapBase.width * 0.5f / minimapViewRadius; // 像素/米
-        float size = Landscape.MapSize * ppm;
-        float maskX = minimap.m_mask != null ? minimap.m_mask.x : 0f; // Loader 挂在遮罩里，坐标需换算成遮罩局部
-        float maskY = minimap.m_mask != null ? minimap.m_mask.y : 0f;
-        // 图左上角对应世界 (0, 地图边长)：先按雷达坐标算它在 Minimap 坐标系的位置，再减遮罩偏移
-        minimapMapLoader.SetXY(
-            mapBase.x + mapBase.width * 0.5f - myPos.x * ppm - maskX,
-            mapBase.y + mapBase.height * 0.5f - (Landscape.MapSize - myPos.z) * ppm - maskY);
-        minimapMapLoader.SetSize(size, size);
-    }
-
+    // 区域横幅的数据源：圆心由小地图那边算出后传进来，EventBanner 本身属于 BattlePanel（日出/日落也走它）
     // EventBanner.m_type 控制器页序：0 城市 / 1 工厂区 / 2 野外 / 3 郊区 / 4 日出 / 5 日落
     private const int BannerCity = 0, BannerFactory = 1, BannerWild = 2, BannerSuburb = 3, BannerSunrise = 4, BannerSunset = 5;
 
@@ -902,19 +732,6 @@ public class BattlePage : PageBase
         if (banner == null) return;
         if (banner.m_t0 != null) banner.m_t0.Stop();
         banner.visible = false;
-    }
-
-    // 超时剔除：长时间未收到某实体点位包（离屏不再发送 / 夜间·致盲停传）则隐藏其小地图点
-    private void TickMinimapTimeout()
-    {
-        if (minimapLastReceived.Count == 0) return;
-        float now = Time.time;
-        s_expiredMinimapIds.Clear();
-        foreach (var kv in minimapLastReceived)
-        {
-            if (now - kv.Value > Config.minimap_entity_timeout) s_expiredMinimapIds.Add(kv.Key);
-        }
-        foreach (var id in s_expiredMinimapIds) CullMinimapItem(id);
     }
 
     // 事件条目播报在聊天面板（ChatPlugin 系统消息页签），这里只负责日夜大横幅与技能播报 banner
