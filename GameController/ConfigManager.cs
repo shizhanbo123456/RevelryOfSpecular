@@ -725,6 +725,12 @@ public class ConfigManager : MonoBehaviour
         public static float ground_probe_up;            // 地面检测探针起点抬高（米）
         public static float ground_probe_length;        // 地面检测探针向下长度（米）
         public static int max_ai_player_count;          // 单个阵营的 AI 玩家数量上限
+        public static int name_length_max;              // 名字最大长度
+        public static int name_length_min;              // 名字最小长度
+        public static int player_limit_attacker;        // 进攻方人数上限（不含 AI）
+        public static int player_limit_defenser;        // 防守方人数上限（不含 AI）
+        public static int player_limit_attacker_AI;     // 进攻方 AI 人数上限
+        public static int player_limit_defenser_AI;     // 防守方 AI 人数上限
 
         // 实体同步量化参数（服务器 → 客户端）：范围按正负对称理解，精度为量化步长
         public static float sync_precision_entity_xz;            // 位姿：水平位置精度（米）
@@ -880,6 +886,24 @@ public class ConfigManager : MonoBehaviour
                 case "max_ai_player_count":
                     max_ai_player_count = Positive(Int(row), row.key);
                     break;
+                case "name_length_max":
+                    name_length_max = Positive(Int(row), row.key);
+                    break;
+                case "name_length_min":
+                    name_length_min = Positive(Int(row), row.key);
+                    break;
+                case "player_limit_attacker":
+                    player_limit_attacker = Positive(Int(row), row.key);
+                    break;
+                case "player_limit_defenser":
+                    player_limit_defenser = Positive(Int(row), row.key);
+                    break;
+                case "player_limit_attacker_AI":
+                    player_limit_attacker_AI = NonNegative(Int(row), row.key);
+                    break;
+                case "player_limit_defenser_AI":
+                    player_limit_defenser_AI = NonNegative(Int(row), row.key);
+                    break;
                 case "sync_precision_entity_xz":
                     sync_precision_entity_xz = Positive(Float(row), row.key);
                     break;
@@ -932,6 +956,13 @@ public class ConfigManager : MonoBehaviour
                 || sync_precision_minimap_xz <= 0f || sync_max_buff_count <= 0 || max_entity_health <= 0
                 || sync_entity_turn_rate <= 0f || sync_precision_entity_turn_rate <= 0f)
                 throw new FormatException($"[配表] {FileName} 缺少位级同步所需参数行（terrain_size/terrain_height/sync_*/max_entity_health）");
+
+            // 名字长度与真人人数上限必须给值；AI 上限允许 0（不允许 AI），缺行按 0 处理
+            if (name_length_max <= 0 || name_length_min <= 0
+                || player_limit_attacker <= 0 || player_limit_defenser <= 0)
+                throw new FormatException($"[配表] {FileName} 缺少名字长度/人数上限参数行（name_length_*/player_limit_*）");
+            if (name_length_min > name_length_max)
+                throw new FormatException($"[配表] {FileName} 的 name_length_min 不能大于 name_length_max：{name_length_min} vs {name_length_max}");
             if (sync_precision_entity_xz >= terrain_size)
                 throw new FormatException($"[配表] {FileName} 的 sync_precision_entity_xz 必须小于 terrain_size：{sync_precision_entity_xz} vs {terrain_size}");
             if (sync_precision_entity_y >= terrain_height)
