@@ -29,10 +29,6 @@ public class LobbyPage : PageBase
         view.m_camp_attack.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Attack;
         view.m_camp_defense.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Defense;
         view.m_camp_spectate.m_player_camp.m_player_camp.selectedIndex = (int)PlayerCampType.Spectator;
-        // AI 操作区：观战方没有 AI 可调，隐藏整块操作
-        view.m_camp_attack.m_hide_ai_member_operation.selectedIndex = 0;
-        view.m_camp_defense.m_hide_ai_member_operation.selectedIndex = 0;
-        view.m_camp_spectate.m_hide_ai_member_operation.selectedIndex = 1;
         view.m_camp_attack.m_btn_join.onClick.Add(() => JoinCamp(0));
         view.m_camp_defense.m_btn_join.onClick.Add(() => JoinCamp(1));
         view.m_camp_spectate.m_btn_join.onClick.Add(() => JoinCamp(2));
