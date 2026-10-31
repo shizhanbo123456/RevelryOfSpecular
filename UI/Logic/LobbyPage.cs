@@ -38,6 +38,8 @@ public class LobbyPage : PageBase
         view.m_camp_defense.m_remove_ai.onClick.Add(() => ChangeAICount(true, -1));
         view.m_btn_prepare.onClick.Add(ToggleReady);
         view.m_btn_exit.onClick.Add(OnExitClicked);
+        SetCampNames();
+        RefreshCampMark();
     }
 
     public override void Enter(ShowParam param)
@@ -126,6 +128,23 @@ public class LobbyPage : PageBase
         if (view.m_camp_defense.m_label_AI_count != null) view.m_camp_defense.m_label_AI_count.text = $"x{defenseAICount}";
     }
 
+    private void SetCampNames()
+    {
+        var view = panel.m_mainView;
+        view.m_camp_attack.m_camp_name.text = "进攻方";
+        view.m_camp_defense.m_camp_name.text = "防守方";
+        view.m_camp_spectate.m_camp_name.text = "观战";
+    }
+
+    // 当前所在阵营标记：0 = 不在 / 1 = 在（myCamp 以服务器回显为准）
+    private void RefreshCampMark()
+    {
+        var view = panel.m_mainView;
+        view.m_camp_attack.m_is_in_this_camp.selectedIndex = myCamp == (int)PlayerCampType.Attack ? 1 : 0;
+        view.m_camp_defense.m_is_in_this_camp.selectedIndex = myCamp == (int)PlayerCampType.Defense ? 1 : 0;
+        view.m_camp_spectate.m_is_in_this_camp.selectedIndex = myCamp == (int)PlayerCampType.Spectator ? 1 : 0;
+    }
+
     private void SendRoomState()
     {
         if (Tool.NetworkManager == null) return;
@@ -153,6 +172,7 @@ public class LobbyPage : PageBase
         myCamp = myServerCamp;
         myReady = me != null && me.ready;
         RefreshPrepareButton();
+        RefreshCampMark();
 
         RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, info.members, 0);
         RenderMemberList(panel.m_mainView.m_camp_defense.m_attackerPlayers, info.members, 1);
@@ -168,6 +188,7 @@ public class LobbyPage : PageBase
         myCamp = -1;
         myReady = false;
         RefreshPrepareButton();
+        RefreshCampMark();
         RefreshAICountLabels();
         var empty = new List<SCLobbyInfo.LobbyMemberInfo>();
         RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, empty, 0);
