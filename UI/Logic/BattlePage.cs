@@ -680,6 +680,14 @@ public class BattlePage : PageBase
         return barBuffs;
     }
 
+    // 本地玩家血条的 buff 列表：协议数据拷进缓冲后按条数重建
+    private static void RefreshBuffList(GList list, List<SCEntityDisplayInfo.BuffRuntime> target, List<SCEntityDisplayInfo.BuffRuntime> source)
+    {
+        target.Clear();
+        if (source != null) target.AddRange(source);
+        list.numItems = target.Count;
+    }
+
     // 头顶锚点由实体表现提供，投影与缩放归血条自身
     private void UpdateEntityBarPositions()
     {
