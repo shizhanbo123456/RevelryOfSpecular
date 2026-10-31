@@ -36,10 +36,15 @@ public class GmPanel
 
     // 开关类指令的本地状态（服务端按目标状态设置；本地只用于按钮标题与切换）
     private readonly HashSet<GmEnum> toggleOn = new();
-    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标（只含走开战扫阵营的：0 鹿铠 / 2 死灵 / 3 教皇）
+    private readonly HashSet<int> passiveOn = new(); // 防守方被动下标（只含走开战扫阵营的：鹿铠 / 死灵 / 教皇）
 
-    // 被动按钮序号 → Config.defense_index_*（顺序同 GmLayout 里的按钮）
-    private static readonly int[] PassiveDefenseIndexes = { 0, 2, 3 };
+    // 被动按钮序号 → Config.defense_index_*（顺序同 GmLayout 里的按钮：鹿铠 / 死灵 / 教皇）
+    private static readonly int[] PassiveDefenseIndexes =
+    {
+        Config.defense_index_deer_knight,
+        Config.defense_index_death_stroller,
+        Config.defense_index_masked_pope,
+    };
 
     public GmPanel(UI_GmPanel panel)
     {

@@ -192,11 +192,11 @@ public static class Config
     #endregion
 
     #region 防守方角色下标（type.value，顺序同策划案第五章与 entity.csv）
-    public const int defense_index_deer_knight = 0;    // 鹿铠怪人
-    public const int defense_index_count_eye = 1;      // 白眼伯爵
-    public const int defense_index_death_stroller = 2; // 死灵漫步者
-    public const int defense_index_masked_pope = 3;    // 蒙面教皇
-    public const int defense_index_plague_bringer = 4; // 瘟疫使者
+    public const int defense_index_count_eye = 0;      // 白眼伯爵
+    public const int defense_index_plague_bringer = 1; // 瘟疫使者
+    public const int defense_index_masked_pope = 2;    // 蒙面教皇
+    public const int defense_index_deer_knight = 3;    // 鹿铠怪人
+    public const int defense_index_death_stroller = 5; // 死灵漫步者（4 = 苍白舞者，被动按标记判定，不引用下标）
     #endregion
 
     #region 防守方被动数值（占位初值，待策划定稿；被动不占技能 id，见策划案 21.5）

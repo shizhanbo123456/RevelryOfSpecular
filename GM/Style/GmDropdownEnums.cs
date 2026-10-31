@@ -73,17 +73,17 @@ namespace Ros.Gm
         Attack7,
         [GmLabel("攻击角色8")]
         Attack8,
-        [GmLabel("鹿铠怪人")]
-        Defense0,
         [GmLabel("白眼伯爵")]
-        Defense1,
-        [GmLabel("死灵漫步者")]
-        Defense2,
-        [GmLabel("蒙面教皇")]
-        Defense3,
+        Defense0,
         [GmLabel("瘟疫使者")]
-        Defense4,
+        Defense1,
+        [GmLabel("蒙面教皇")]
+        Defense2,
+        [GmLabel("鹿铠怪人")]
+        Defense3,
         [GmLabel("苍白舞者")]
+        Defense4,
+        [GmLabel("死灵漫步者")]
         Defense5,
     }
 }
