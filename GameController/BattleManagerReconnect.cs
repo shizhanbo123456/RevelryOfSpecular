@@ -26,7 +26,7 @@ public partial class BattleManager
     public void NotifyPlayerOnline(int clientId)
     {
         if (offlineClients.Remove(clientId)) Debug.Log($"[重连] 令牌 {clientId} 已重连");
-        BroadcastLobbyInfo(); // 该客户端靠它取得 hasLobbyInfo（否则世界指令发不出去）
+        SendLobbyInfoFull(clientId); // 该客户端靠它重建成员表并取得 hasLobbyInfo（否则世界指令发不出去）
         if (BattleStarted) ResyncBattle(clientId);
     }
 

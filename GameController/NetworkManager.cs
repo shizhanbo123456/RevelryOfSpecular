@@ -49,6 +49,7 @@ public partial class NetworkManager : EnsBehaviour
         tryingEnterWorld = false;
         intentionalExitWorld = false;
         LatestLobbyInfo = null; // 跨连接清空，防止重连后大厅显示上一局成员
+        lobbyMembers.Clear();
         lobbyPlayerNames.Clear();
         serverTimeOffset = 0f;
     }
@@ -451,6 +452,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveLobbyInfoLocal, SendTo.ExcludeSender, Delivery.Reliable, info);
     }
 
+    // 定向全量：新玩家进房 / 重连时建立自己的成员表
+    public void SendLobbyInfo(int clientId, SCLobbyInfo info)
+    {
+        if (!TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveLobbyInfoLocal, to, Delivery.Reliable, info);
+    }
+
     // 名字广播（新玩家进房时发给所有人；组队期专用）
     public void SendLobbyPlayerName(SCLobbyPlayerName info)
     {
@@ -772,11 +780,32 @@ public partial class NetworkManager : EnsBehaviour
         if (info == null) return;
         hasLobbyInfo = true; // 已收到服务器房间状态，允许发送大厅命令（选队/开始/输入）
         BattleRunning = info.battleStarted;
+        MergeLobbyMembers(info); // 增量合并成完整成员表，UI 与聊天仍按全量快照消费
         LatestLobbyInfo = info; // 缓存最新组队状态（成员/阵营/AI 数量；组队期专用，战斗期不读）
         EventManager.TrigEvent(ClientEvent.OnLobbyInfoUpdate, info);
     }
 
     public static SCLobbyInfo LatestLobbyInfo { get; private set; }
+
+    // 组队期成员表：服务器只发增量，这里合并成完整快照
+    private static readonly Dictionary<int, SCLobbyInfo.LobbyMemberInfo> lobbyMembers = new();
+
+    private static void MergeLobbyMembers(SCLobbyInfo info)
+    {
+        if (info.full) lobbyMembers.Clear();
+        if (info.members != null)
+        {
+            foreach (var member in info.members)
+            {
+                if (member == null) continue;
+                if (member.removed) lobbyMembers.Remove(member.clientId);
+                else lobbyMembers[member.clientId] = member;
+            }
+        }
+        info.members.Clear();
+        foreach (var member in lobbyMembers.Values) info.members.Add(member);
+        info.members.Sort((a, b) => a.clientId.CompareTo(b.clientId));
+    }
 
     // clientId → 名字：组队期专用（战斗期名字来自加载期请求的数据）
     private static readonly Dictionary<int, string> lobbyPlayerNames = new();

@@ -327,7 +327,8 @@ public partial class BattleManager : EnsBehaviour
         PlayerInfoList[clientId] = info;
         PlayerCamps[clientId] = PlayerCampType.Spectator; // 进入大厅默认观战方
         SendLobbyPlayerNames(clientId); // 名字单独下发，先把映射铺好再播房间成员列表
-        BroadcastLobbyInfo();
+        SendLobbyInfoFull(clientId);    // 新玩家先拿全量快照，才能建立成员表
+        BroadcastLobbyInfo();           // 其他人收增量（内容 = 新增此人）
         // 对局（含加载期）已开始才进房：本局没有参赛名额，按观战方补发一次完整会话
         if (LoadingStarted || BattleStarted) ResyncBattle(clientId);
         Debug.Log($"玩家 {clientId} 进入组队大厅");
@@ -663,14 +664,30 @@ public partial class BattleManager : EnsBehaviour
     }
     #endregion
 
-    private void BroadcastLobbyInfo()
+    // 组队期成员快照：clientId → 上次广播的席位信息，用于算增量（首次广播前为空 = 全量自然下发）
+    private readonly Dictionary<int, SCLobbyInfo.LobbyMemberInfo> lobbyMemberSnapshot = new();
+    private int lobbySnapshotAttackAI = -1;
+    private int lobbySnapshotDefenseAI = -1;
+    private bool lobbySnapshotBattleStarted;
+    private static readonly List<SCLobbyInfo.LobbyMemberInfo> s_lobbyMembers = new();
+
+    // 全量快照：只发给指定客户端（进房 / 重连），供其建立成员表
+    private void SendLobbyInfoFull(int clientId)
     {
-        var info = new SCLobbyInfo()
+        var info = new SCLobbyInfo
         {
+            full = true,
             attackAICount = AttackAICount,
             defenseAICount = DefenseAICount,
             battleStarted = BattleStarted,
         };
+        CollectLobbyMembers(info.members);
+        Tool.NetworkManager.SendLobbyInfo(clientId, info);
+    }
+
+    private void CollectLobbyMembers(List<SCLobbyInfo.LobbyMemberInfo> into)
+    {
+        into.Clear();
         foreach (var pair in PlayerInfoList)
         {
             if (IsAIToken(pair.Key)) continue; // AI 不进成员列表，只通过两个数量表达
@@ -682,7 +699,7 @@ public partial class BattleManager : EnsBehaviour
             else if (campValue == (int)PlayerCampType.Defense && pair.Value.defenseCharacter.category == EntityCategory.Character_Defense)
                 characterIndex = pair.Value.defenseCharacter.value;
             readyByClient.TryGetValue(pair.Key, out var ready);
-            info.members.Add(new SCLobbyInfo.LobbyMemberInfo()
+            into.Add(new SCLobbyInfo.LobbyMemberInfo()
             {
                 clientId = pair.Key,
                 camp = campValue,
@@ -690,7 +707,46 @@ public partial class BattleManager : EnsBehaviour
                 ready = ready,
             });
         }
-        Tool.NetworkManager.SendLobbyInfo(info);
+    }
+
+    // 增量：members 只带本次变化的成员（离开 = removed 条目），没有任何变化就不发
+    private void BroadcastLobbyInfo()
+    {
+        CollectLobbyMembers(s_lobbyMembers);
+        var info = new SCLobbyInfo
+        {
+            full = false,
+            attackAICount = AttackAICount,
+            defenseAICount = DefenseAICount,
+            battleStarted = BattleStarted,
+        };
+        bool changed = AttackAICount != lobbySnapshotAttackAI
+            || DefenseAICount != lobbySnapshotDefenseAI
+            || BattleStarted != lobbySnapshotBattleStarted;
+
+        foreach (var member in s_lobbyMembers)
+        {
+            if (!lobbyMemberSnapshot.TryGetValue(member.clientId, out var old)
+                || old.camp != member.camp || old.characterIndex != member.characterIndex || old.ready != member.ready)
+            {
+                info.members.Add(member);
+                changed = true;
+            }
+        }
+        foreach (var pair in lobbyMemberSnapshot)
+        {
+            if (s_lobbyMembers.Exists(m => m.clientId == pair.Key)) continue;
+            info.members.Add(new SCLobbyInfo.LobbyMemberInfo() { clientId = pair.Key, removed = true });
+            changed = true;
+        }
+
+        lobbyMemberSnapshot.Clear();
+        foreach (var member in s_lobbyMembers) lobbyMemberSnapshot[member.clientId] = member;
+        lobbySnapshotAttackAI = AttackAICount;
+        lobbySnapshotDefenseAI = DefenseAICount;
+        lobbySnapshotBattleStarted = BattleStarted;
+
+        if (changed) Tool.NetworkManager.SendLobbyInfo(info);
     }
 
     //聊天只转发不存历史；发送方名字/阵营/角色由服务器补齐（客户端不知道别人的）

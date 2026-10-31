@@ -4,6 +4,8 @@ namespace Ros.Transport
 {
     public class SCLobbyInfo
     {
+        // full = true：全量快照（进房 / 重连建立成员表）；false：增量，members 只含本次变化的成员
+        public bool full;
         public List<LobbyMemberInfo> members = new();
         public int attackAICount;
         public int defenseAICount;
@@ -15,6 +17,7 @@ namespace Ros.Transport
             public int camp = -1;      // 0 进攻 / 1 防守 / 2 观战（-1 仅协议兼容，进大厅即默认观战）
             public int characterIndex = -1;
             public bool ready;         // 组队界面准备状态（全员准备后服务器倒计时开战）
+            public bool removed;       // 增量包专用：该成员已离开房间
         }
     }
 
@@ -24,6 +27,7 @@ namespace Ros.Transport
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
+            if (!BoolSerializer.Serialize(value.full, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.attackAICount, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.defenseAICount, result, ref indexStart)) return false;
             if (!BoolSerializer.Serialize(value.battleStarted, result, ref indexStart)) return false;
@@ -40,6 +44,7 @@ namespace Ros.Transport
                     if (!IntSerializer.Serialize(member.camp, result, ref indexStart)) return false;
                     if (!IntSerializer.Serialize(member.characterIndex, result, ref indexStart)) return false;
                     if (!BoolSerializer.Serialize(member.ready, result, ref indexStart)) return false;
+                    if (!BoolSerializer.Serialize(member.removed, result, ref indexStart)) return false;
                 }
             }
             return true;
@@ -50,6 +55,7 @@ namespace Ros.Transport
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
             var info = new SCLobbyInfo()
             {
+                full = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 attackAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 defenseAICount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 battleStarted = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -65,6 +71,7 @@ namespace Ros.Transport
                     camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     ready = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
+                    removed = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                 });
             }
             return info;
