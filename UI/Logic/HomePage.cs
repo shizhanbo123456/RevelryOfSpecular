@@ -37,11 +37,13 @@ public class HomePage : PageBase
         nameInput.onChanged.Add(() =>
         {
             ClientSelection.playerName = nameInput.text;
-            if (Tool.SaveManager != null)
-            {
-                Tool.SaveManager.playerName = nameInput.text;
-                Tool.SaveManager.Save();
-            }
+            if (Tool.SaveManager == null) return;
+            // 只有长度合法才落盘：空/超长名字写进存档会让下次启动判为无效存档并重建（等级经验一起丢）
+            string trimmed = nameInput.text != null ? nameInput.text.Trim() : "";
+            if (trimmed.Length < ConfigManager.GlobalVariableConfig.name_length_min
+                || trimmed.Length > ConfigManager.GlobalVariableConfig.name_length_max) return;
+            Tool.SaveManager.playerName = trimmed;
+            Tool.SaveManager.Save();
         });
 
         panel.m_connectPanel.m_btn_connect.onClick.Add(OnConnectClicked);
@@ -199,13 +201,24 @@ public class HomePage : PageBase
     private async void OnConnectClicked()
     {
         // 连接前校验玩家名字长度，不合法则飘字提示并拦截连接
-        var name = ClientSelection.playerName;
         int nameMin = ConfigManager.GlobalVariableConfig.name_length_min;
         int nameMax = ConfigManager.GlobalVariableConfig.name_length_max;
-        if (string.IsNullOrEmpty(name) || name.Length < nameMin || name.Length > nameMax)
+        string name = (ClientSelection.playerName ?? "").Trim();
+        if (name.Length < nameMin || name.Length > nameMax)
         {
             if (Tool.UIManager != null) Tool.UIManager.ShowFlyText($"玩家名字必须为{nameMin}-{nameMax}个字符");
             return;
+        }
+        if (name != ClientSelection.playerName)
+        {
+            // 首尾空白去掉后回写：上报、显示与存档保持同一口径
+            ClientSelection.playerName = name;
+            panel.m_playerInfo.m_input_playerName.text = name;
+            if (Tool.SaveManager != null)
+            {
+                Tool.SaveManager.playerName = name;
+                Tool.SaveManager.Save();
+            }
         }
         if (Tool.NetworkManager == null) return;
         var result = await Tool.NetworkManager.TryConnect(panel.m_connectPanel.m_input_ipaddress.m_content.text);
