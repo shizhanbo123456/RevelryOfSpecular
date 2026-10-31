@@ -133,10 +133,8 @@ public static class EntityHeadshotMenu
             }
 
             float side = height * FrameRatio;
-            Vector3 center = info.transform.TransformPoint(new Vector3(
-                (info.xRange.x + info.xRange.y) * 0.5f,
-                info.yRange.y,
-                (info.zRange.x + info.zRange.y) * 0.5f));
+            // 水平方向取实体根位置（本地 x/z = 0），包围盒偏心会让角色偏出画面中心
+            Vector3 center = info.transform.TransformPoint(new Vector3(0f, info.yRange.y, 0f));
 
             // 角色面朝 -X：相机从 -X 侧平视取景中心
             cam.transform.SetPositionAndRotation(center - Vector3.right * (side * CameraGap),
