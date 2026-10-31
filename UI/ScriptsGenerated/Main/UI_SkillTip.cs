@@ -11,6 +11,7 @@ namespace Ros.UI.Main
         public GTextField m_label_cd;
         public GTextField m_label_store;
         public GList m_score_list;
+        public GTextField m_skillDes;
         public const string URL = "ui://q68vr2bfgmlkm0";
 
         public static UI_SkillTip CreateInstance()
@@ -26,6 +27,7 @@ namespace Ros.UI.Main
             m_label_cd = (GTextField)GetChildAt(3);
             m_label_store = (GTextField)GetChildAt(5);
             m_score_list = (GList)GetChildAt(6);
+            m_skillDes = (GTextField)GetChildAt(7);
         }
     }
 }
