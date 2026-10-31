@@ -82,14 +82,7 @@ public class ConfigManager : MonoBehaviour
             if (line.Length == 0) continue;
 
             string[] cells = line.Split(',');
-            bool allEmpty = true;
-            foreach (string cell in cells)
-            {
-                if (cell.Trim().Length == 0) continue;
-                allEmpty = false;
-                break;
-            }
-            if (allEmpty) continue; // 配表用全空行做分组，跳过
+            if (cells[0].Trim().Length == 0) continue; // 键列为空 = 注释/分组行，整行忽略
             rows.Add(cells);
         }
 
