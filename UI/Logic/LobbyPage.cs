@@ -160,7 +160,7 @@ public class LobbyPage : PageBase
 
         RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, info.members, 0);
         RenderMemberList(panel.m_mainView.m_camp_defense.m_attackerPlayers, info.members, 1);
-        RenderMemberList(panel.m_mainView.m_camp_spectate.m_attackerPlayers, info.members, 2);
+        RenderSpectateCount(info.members);
         syncingFromServer = false;
     }
 
@@ -176,24 +176,23 @@ public class LobbyPage : PageBase
         var empty = new List<SCLobbyInfo.LobbyMemberInfo>();
         RenderMemberList(panel.m_mainView.m_camp_attack.m_attackerPlayers, empty, 0);
         RenderMemberList(panel.m_mainView.m_camp_defense.m_attackerPlayers, empty, 1);
-        RenderMemberList(panel.m_mainView.m_camp_spectate.m_attackerPlayers, empty, 2);
+        RenderSpectateCount(empty);
         syncingFromServer = false;
+    }
+
+    // 观战方只显示人数，不列具体人员
+    private void RenderSpectateCount(List<SCLobbyInfo.LobbyMemberInfo> members)
+    {
+        var view = panel.m_mainView.m_camp_spectate;
+        int count = members.Count(m => m != null && m.camp == (int)PlayerCampType.Spectator);
+        if (view.m_spectate_current_member_count != null) view.m_spectate_current_member_count.text = count.ToString();
+        view.m_attackerPlayers.numItems = 0;
+        view.m_attackerPlayers.visible = false;
     }
 
     private void RenderMemberList(GList list, List<SCLobbyInfo.LobbyMemberInfo> members, int camp)
     {
         var memberList = members.Where(m => m != null && m.camp == camp && m.clientId >= 0).ToList(); // 负数 = AI，不进真人列表
-        if (camp == 2) // 观战条目同为 RoleHead：只写玩家名 + 默认头像（观战无角色）
-        {
-            list.itemRenderer = (i, obj) =>
-            {
-                var head = (UI_RoleHead)obj;
-                head.m_roleName.text = NetworkManager.GetLobbyMemberName(memberList[i].clientId);
-                head.m_show_default_icon.selectedIndex = 1;
-            };
-            list.numItems = memberList.Count;
-            return;
-        }
         var icons = Tool.AssetsManager == null ? null
             : camp == 0 ? Tool.AssetsManager.AttackCharacterIcons : Tool.AssetsManager.DefenseCharacterIcons;
         list.itemRenderer = (i, obj) =>
