@@ -1164,7 +1164,7 @@ public partial class BattleManager : EnsBehaviour
         Profiler.EndSample(); // kManagedUpdateProfilerTag
     }
 
-    private void SyncEntitiesToClients(bool includeRuntime)
+    private void SyncEntitiesToClients(bool fullRound)
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
@@ -1181,14 +1181,13 @@ public partial class BattleManager : EnsBehaviour
                 if (!CanSeeFromState(clientId, entity)) continue;
                 MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
-                bool full = includeRuntime || firstSeen;
+                bool full = fullRound || firstSeen;
                 var info = entity.GetDisplayInfo(full);
-                info.includeRuntime = full;
                 // 位姿/血量/buff 全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
                 if (info.hasTransform || info.hasHealth || info.hasBuffs)
                 {
                     FillDisplayVelocity(entity, info);
-                    Tool.NetworkManager.SendEntityDisplay(clientId, info);
+                    Tool.NetworkManager.SendEntityDisplay(clientId, info, full);
                 }
                 // 动画包独立于表现包：表现包被跳过时仍要发，否则本轮末尾清掉 AnimSyncDirty 后这次状态变化就永久丢了
                 if (entity.anim != null && (entity.anim.AnimSyncDirty || firstSeen)) SendEntityAnim(clientId, entity);
@@ -1205,7 +1204,7 @@ public partial class BattleManager : EnsBehaviour
             e.buffDirty = false;
             e.skillDirty = false;
             // 位姿待发次数每轮只 +1（与客户端数量无关）；基准只在真的发出去后推进，否则慢速移动永远攒不满阈值
-            if (includeRuntime || e.transformDirty < 2) e.OnTransformSent();
+            if (fullRound || e.transformDirty < 2) e.OnTransformSent();
         }
         s_dirtySweep.Clear();
 

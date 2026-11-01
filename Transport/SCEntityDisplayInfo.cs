@@ -14,7 +14,6 @@ namespace Ros.Transport
         public float yaw;
         public Vector3 velocity;
         public float yawSpeed;
-        public bool includeRuntime;
         public bool hasTransform; // 本包含有效位姿（position/yaw/velocity/yawSpeed）；无变化时整包可能不下发
         public bool hasHealth;   // 本包含有效 health/maxHealth（实体 health 脏标记置位 / 完整同步 / 首见）
         public bool hasBuffs;    // 本包含有效 buffs（实体 buff 脏标记置位 / 完整同步 / 首见）
@@ -40,7 +39,6 @@ namespace Ros.Transport
                 if (!UshortSerializer.Serialize(value.entityId, result, ref indexStart)) return false;
                 if (!EntityTypeSerializer.Serialize(value.type, result, ref indexStart)) return false;
                 if (!IntSerializer.Serialize((int)value.camp, result, ref indexStart)) return false;
-                if (!BoolSerializer.Serialize(value.includeRuntime, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasTransform, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasHealth, result, ref indexStart)) return false;
                 if (!BoolSerializer.Serialize(value.hasBuffs, result, ref indexStart)) return false;
@@ -84,7 +82,6 @@ namespace Ros.Transport
                     BitField.WriteInt((int)value.type.category, 0, 7);
                     BitField.WriteInt(value.type.value, 0, 31);
                     BitField.WriteInt((int)value.camp, 0, 31);
-                    BitField.WriteBool(value.includeRuntime);
                     BitField.WriteBool(value.hasTransform);
                     BitField.WriteBool(value.hasHealth);
                     BitField.WriteBool(value.hasBuffs);
@@ -138,7 +135,6 @@ namespace Ros.Transport
                     entityId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     type = EntityTypeSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     camp = (EntityCamp)IntSerializer.Deserialize(data, ref indexStart, invalidIndex),
-                    includeRuntime = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasTransform = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasHealth = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
                     hasBuffs = BoolSerializer.Deserialize(data, ref indexStart, invalidIndex),
@@ -184,7 +180,6 @@ namespace Ros.Transport
                 r.entityId = (ushort)BitField.ReadInt(0, SyncRanges.EntityIdMax);
                 r.type = new EntityType((EntityCategory)BitField.ReadInt(0, 7), BitField.ReadInt(0, 31));
                 r.camp = (EntityCamp)BitField.ReadInt(0, 31);
-                r.includeRuntime = BitField.ReadBool();
                 r.hasTransform = BitField.ReadBool();
                 r.hasHealth = BitField.ReadBool();
                 r.hasBuffs = BitField.ReadBool();

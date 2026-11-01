@@ -228,8 +228,8 @@ public class EntityPlayerManager : ClientSubManager
             ApplyAnim(view, pending);
         }
 
-        // UI/逻辑层事件：完整同步（0.2s / 首见）或本包携带了 health/buff 变化时触发
-        if (info.includeRuntime || info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
+        // UI/逻辑层事件：本包携带了 health/buff 变化时触发（完整快照必带 health 段）
+        if (info.hasHealth || info.hasBuffs) EventManager.TrigEvent(ClientEvent.OnEntityDisplayUpdate, info);
 
         // 本地玩家：绑定相机跟随（注视点 = EntityAnchor.Camera，每帧由视图刷新）
         var loading = ClientLoadingManager.Current;
@@ -518,11 +518,11 @@ public class EntityPlayerManager : ClientSubManager
 
         // 动画不在本高频包：状态/参数/速度全由动画事件驱动；客户端一旦偏离服务器状态，只能等下次状态变化才被纠正
         // 持续型 Buff 特效（护盾/麻痹/燃烧/各类标记）：按同步 Buff 列表增删（分配表见 effect.csv 第 11、12 列）
-        if (info.includeRuntime || info.hasBuffs) ApplyBuffVfx(view, info.buffs);
+        if (info.hasBuffs) ApplyBuffVfx(view, info.buffs);
 
         // 迷雾表现：本地玩家带「迷雾」Buff 时开体积雾，Buff 消失由 EnvironmentManager 按 fogTransitionDuration 平滑关闭（缩视野由可见距离负责）
         var selfLoading = ClientLoadingManager.Current;
-        if ((info.includeRuntime || info.hasBuffs) && selfLoading != null && selfLoading.HasSession
+        if (info.hasBuffs && selfLoading != null && selfLoading.HasSession
             && info.entityId == selfLoading.OwnEntityId)
         {
             bool fogged = false;

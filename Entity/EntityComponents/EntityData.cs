@@ -548,18 +548,17 @@ public abstract class EntityData : MonoBehaviour
     }
 
     // 持有技能不在这里：改走 SCSkillSync 独立下发（见 EntitySkillController）
-    public SCEntityDisplayInfo GetDisplayInfo(bool includeRuntime)
+    public SCEntityDisplayInfo GetDisplayInfo(bool full)
     {
-        // 各段按脏标记选择性携带（完整同步 / 首见必带全量）
-        bool withTransform = includeRuntime || transformDirty < 2;
-        bool withHealth = includeRuntime || healthDirty;
-        bool withBuffs = includeRuntime || buffDirty;
+        // 各段按脏标记选择性携带（full = 完整同步 / 首见，必带全量）
+        bool withTransform = full || transformDirty < 2;
+        bool withHealth = full || healthDirty;
+        bool withBuffs = full || buffDirty;
         var info = new SCEntityDisplayInfo()
         {
             entityId = id,
             type = type,
             camp = camp,
-            includeRuntime = includeRuntime,
             hasTransform = withTransform,
             hasHealth = withHealth,
             hasBuffs = withBuffs,
