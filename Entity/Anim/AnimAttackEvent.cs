@@ -29,8 +29,8 @@ public class AnimAttackEvent : AnimEvent
         if (!main) return;
 
         float nt=stateInfo.normalizedTime;
-        float forward = (speedForward.Evaluate(nt+0.01f)- speedForward.Evaluate(nt - 0.01f))*50;
-        float upward = (speedUpward.Evaluate(nt+0.01f)- speedUpward.Evaluate(nt - 0.01f))*50;
+        float forward = (speedForward.Evaluate(nt+0.01f)- speedForward.Evaluate(nt - 0.01f))*50/stateInfo.length;
+        float upward = (speedUpward.Evaluate(nt+0.01f)- speedUpward.Evaluate(nt - 0.01f))*50 / stateInfo.length;
         anim.SetVelocityForward(forward*anim.animData.legHeight);
         anim.SetVelocityVertical(upward);
 
