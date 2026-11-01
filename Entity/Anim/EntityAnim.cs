@@ -14,7 +14,6 @@ public class EntityAnim : MonoBehaviour
     private const string key_doAttack = "Attack";
     private const string key_attackId = "AttackId";
     private const string key_hit = "Hit";
-    private const string key_die = "Died";
     public enum CharcterAnimType
     {
         Female=0,
@@ -73,7 +72,6 @@ public class EntityAnim : MonoBehaviour
     #region//事件
     public Action<AttackType> onAttack;//动画中的攻击事件回调
     public Action<AnimState, AnimState> OnStateChange;
-    public Action OnDeathEventEnd;
     #endregion
 
     private List<Animator> animators;
@@ -337,10 +335,6 @@ public class EntityAnim : MonoBehaviour
     public void DoHit()
     {
         SetTriggerAll(key_hit);
-    }
-    public void DoDie()
-    {
-        SetTriggerAll(key_die);
     }
     #endregion
 }

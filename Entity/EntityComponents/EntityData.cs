@@ -57,8 +57,6 @@ public abstract class EntityData : MonoBehaviour
 
     [HideInInspector] public EntityData lastAttacker;
 
-    [HideInInspector] public bool deathAnimDone;
-
     [HideInInspector] public bool grounded = true;
 
     public EntityModelInfo ModelInfo { get; private set; }
@@ -128,7 +126,6 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null)
         {
             if (animData != null) anim.SetType(animData.type);
-            anim.OnDeathEventEnd += OnDeathAnimEnd;
             anim.DoSpawn();
         }
 
@@ -496,10 +493,6 @@ public abstract class EntityData : MonoBehaviour
 
     public virtual void OnDestroyed()
     {
-        if (anim != null)
-        {
-            anim.OnDeathEventEnd -= OnDeathAnimEnd;
-        }
         if (effectController != null) effectController.Clear();
     }
 
@@ -597,11 +590,6 @@ public abstract class EntityData : MonoBehaviour
     {
         if (KilledEntities.Contains(this)) return;
         KilledEntities.Add(this); // 不播死亡动画：本帧末由 BattleManager 直接销毁
-    }
-
-    private void OnDeathAnimEnd()
-    {
-        deathAnimDone = true;
     }
 
     #region 动态受击体积（人形实体：胶囊上下边界跟随脚/头骨骼的动画姿态）
