@@ -356,7 +356,7 @@ public class EntityEffectController
             {
                 if (owner == null) break;
                 float stat = SourcePower(layer);
-                EntityCamp enemyCamp = EntityCampUtil.HostileOf(owner.camp);
+                EntityCamp enemyCamp = EntityCampUtil.HostileOf(owner.type.category);
                 s_tickTargets.Clear();
                 BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_stroll_radius, enemyCamp, s_tickTargets);
                 for (int i = 0; i < s_tickTargets.Count; i++)

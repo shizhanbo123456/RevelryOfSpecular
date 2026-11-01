@@ -3,7 +3,7 @@ using System;
 public class AttackData
 {
     public ushort shooter;
-    public EntityCamp shooterCamp;
+    public EntityCategory? shooterCategory; // 敌对判定依据；无施法者（场景伤害）为 null
     public float rate;
     public bool breakEndure;
     public float knockbackPower;
@@ -21,7 +21,7 @@ public class AttackData
         return new AttackData()
         {
             shooter = shooter != null ? shooter.id : (ushort)0,
-            shooterCamp = shooter != null ? shooter.camp : EntityCamp.None,
+            shooterCategory = shooter != null ? shooter.type.category : null,
             rate = rate,
             breakEndure = breakEndure,
             damageable = damageable,

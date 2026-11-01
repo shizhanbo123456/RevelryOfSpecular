@@ -70,8 +70,6 @@ namespace Ros.Skill.Utils
             }
         }
 
-        public static EntityCamp HostileOf(EntityCamp camp) => EntityCampUtil.HostileOf(camp);
-
         public static void SetEntitiesToBuffer(IEnumerable<EntityData> bucket)
         {
             TargetBuffer.Clear();
@@ -112,10 +110,10 @@ namespace Ros.Skill.Utils
             return best;
         }
 
-        public static void SetEnemiesInRangeToBuffer(Vector3 center, float radius, EntityCamp ownCamp)
+        public static void SetEnemiesInRangeToBuffer(Vector3 center, float radius, EntityCategory ownCategory)
         {
             TargetBuffer.Clear();
-            EntityCamp hostile = EntityCampUtil.HostileOf(ownCamp);
+            EntityCamp hostile = EntityCampUtil.HostileOf(ownCategory);
             bool unlimited = radius > Config.skill_target_unlimited_radius;
             float sqr = radius * radius;
             foreach (var e in BattleManager.EntityContainer.Entities)

@@ -101,7 +101,8 @@ public partial class BattleManager
             {
                 var e = s_bulletBuffer[i];
                 if (e == null || !e.Alive) continue;
-                if (e.id == attack.shooter || !EntityCampUtil.IsHostile(attack.shooterCamp, e.camp)) continue;
+                if (attack.shooterCategory is not { } shooterCategory) continue; // 无施法者：不结算敌对判定
+                if (e.id == attack.shooter || !EntityCampUtil.IsHostile(shooterCategory, e.camp)) continue;
                 // 同一目标按伤害间隔冷却重复结算；间隔 <=0 时一目标只结算一次
                 if (b.lastHitTime.TryGetValue(e.id, out float lastHit) &&
                     (spec.interval <= 0f || now - lastHit < spec.interval)) continue;
@@ -139,7 +140,7 @@ public partial class BattleManager
         var killer = entity.lastAttacker;
         bool victimIsPlayer = entity.type.category == EntityCategory.Character_Attack ||
                               entity.type.category == EntityCategory.Character_Defense;
-        if (victimIsPlayer && killer != null && EntityCampUtil.IsHostile(killer.camp, entity.camp) &&
+        if (victimIsPlayer && killer != null && EntityCampUtil.IsHostile(killer.type.category, entity.camp) &&
             EntityOwnerClient.TryGetValue(killer.id, out var killerClient))
         {
             KillCountByClient.TryGetValue(killerClient, out int killCount);

@@ -17,23 +17,19 @@ public static class EntityCampUtil
     public const EntityCamp All =
         EntityCamp.Attack | EntityCamp.Defense | EntityCamp.Neutral | EntityCamp.Prop | EntityCamp.Zombie | EntityCamp.DefenseTower;
 
-    public const EntityCamp NonCombat = EntityCamp.Neutral | EntityCamp.Prop;
-
-    public static EntityCamp HostileOf(EntityCamp camp)
+    // 敌对集合由实体类别决定：camp 只表达阵营归属，行为差异（僵尸/水晶雕像只打进攻方、珊瑚不主动索敌）走类别
+    public static EntityCamp HostileOf(EntityCategory category) => category switch
     {
-        if (camp == EntityCamp.None) return EntityCamp.None;
-        if ((camp & EntityCamp.Zombie) != 0) return EntityCamp.Attack; // 僵尸：只敌视进攻方
-        if ((camp & EntityCamp.DefenseTower) != 0) return EntityCamp.Attack; // 防御塔：只敌视进攻方
-        EntityCamp hostile = All & ~camp;
-        // 僵尸只与进攻方互为敌对，其余阵营一律不视僵尸为敌（否则防守方会开始打自家僵尸）
-        if ((camp & EntityCamp.Attack) == 0) hostile &= ~EntityCamp.Zombie;
-        if ((camp & NonCombat) != 0) hostile &= ~NonCombat;
-        // 防御塔是防守方设施：防守方与中立/场景物件都不视它为敌，只有进攻方会打它
-        if ((camp & (EntityCamp.Defense | NonCombat)) != 0) hostile &= ~EntityCamp.DefenseTower;
-        return hostile;
-    }
+        EntityCategory.Character_Attack => All & ~EntityCamp.Attack,
+        EntityCategory.Character_Defense => EntityCamp.Attack | EntityCamp.Neutral | EntityCamp.Prop,
+        EntityCategory.GuardStatue => EntityCamp.Attack | EntityCamp.Neutral | EntityCamp.Prop, // 防守方设施：自身没有索敌 AI
+        EntityCategory.NeutralStatue => EntityCamp.Attack | EntityCamp.Defense,                 // 中立争抢单位：谁靠近打谁
+        EntityCategory.Coral => EntityCamp.Attack | EntityCamp.Defense,                         // 纯物件，本身不索敌
+        EntityCategory.Zombie or EntityCategory.EliteZombie or EntityCategory.CrystalStatue => EntityCamp.Attack,
+        _ => throw new System.ArgumentException($"未定义敌对关系的实体类别：{category}", nameof(category)),
+    };
 
-    public static bool IsHostile(EntityCamp camp, EntityCamp target) => (HostileOf(camp) & target) != 0;
+    public static bool IsHostile(EntityCategory category, EntityCamp target) => (HostileOf(category) & target) != 0;
 
     // 显示归属：僵尸与防御塔同属防守方阵营，头顶血条的阵营图标与敌我判定都按防守方处理
     public static EntityCamp DisplayCamp(EntityCamp camp) =>

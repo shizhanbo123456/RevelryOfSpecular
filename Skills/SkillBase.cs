@@ -59,7 +59,7 @@ namespace Ros.Skill
 
         // 按配表半径收集场内敌对目标（半径 >9999 = 不限距离）；center 由技能决定
         protected void CollectEnemies(EntityData caster, Vector3 center)
-            => TargetSelect.SetEnemiesInRangeToBuffer(center, TargetRadius, caster.camp);
+            => TargetSelect.SetEnemiesInRangeToBuffer(center, TargetRadius, caster.type.category);
 
         // 按配表半径筛选指定集合（半径 >9999 = 不限距离），如水晶雕像 / 守护雕像 / 珊瑚
         protected void CollectInRange(EntityData caster, IEnumerable<EntityData> bucket)
@@ -201,7 +201,7 @@ namespace Ros.Skill
             {
                 var target = s_hitBuffer[i];
                 if (target == null || !target.Alive) continue;
-                if (target.id == entity.id || !EntityCampUtil.IsHostile(entity.camp, target.camp)) continue;
+                if (target.id == entity.id || !EntityCampUtil.IsHostile(entity.type.category, target.camp)) continue;
                 int damage = attack.GetDamage(out CombatLabelType type);
                 target.ProcessHit(attack, damage, type, center); // 击飞方向取判定球心 → 目标
                 if (attack.addEffectEvent != null && target.effectController != null)

@@ -885,7 +885,7 @@ namespace Ros.Skill
             ushort lastId = entity.id;
             for (int i = 0; i < Jumps; i++)
             {
-                Utils.TargetSelect.SetEnemiesInRangeToBuffer(last, TargetRadius, entity.camp); // 配表半径 = 每跳搜索半径
+                Utils.TargetSelect.SetEnemiesInRangeToBuffer(last, TargetRadius, entity.type.category); // 配表半径 = 每跳搜索半径
                 EntityData next = null;
                 float best = float.MaxValue;
                 for (int j = 0; j < Utils.TargetSelect.TargetBuffer.Count; j++)

@@ -98,7 +98,7 @@ public partial class BattleManager : EnsBehaviour
         public static EntityData GetNearestEnemy(EntityData entity, float radius)
         {
             if (entity == null) return null;
-            return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.camp), entity.id);
+            return GetNearestInCamp(entity.transform.position, radius, EntityCampUtil.HostileOf(entity.type.category), entity.id);
         }
 
         // 索敌：夹角 <= skill_target_no_sector = 不索敌；> skill_target_full_sector = 不限方向；半径 > skill_target_unlimited_radius = 不限距离
@@ -125,7 +125,7 @@ public partial class BattleManager : EnsBehaviour
                 Entities.GetIdsInRange(pos, radius, s_buffer);
             }
 
-            EntityCamp hostile = EntityCampUtil.HostileOf(entity.camp);
+            EntityCamp hostile = EntityCampUtil.HostileOf(entity.type.category);
             EntityData target = null;
             float bestSqr = float.MaxValue;
             foreach (var id in s_buffer)
