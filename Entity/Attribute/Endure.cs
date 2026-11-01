@@ -12,7 +12,6 @@ public static class EndureExt
         EntityAnim.AnimState.Motion => EndureType.None,
         EntityAnim.AnimState.Attack => EndureType.Common,
         EntityAnim.AnimState.Hit => EndureType.None,
-        EntityAnim.AnimState.Die => EndureType.Super,
         _=>EndureType.None,
     };
 }

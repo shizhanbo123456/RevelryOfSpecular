@@ -26,7 +26,6 @@ public class EntityAnim : MonoBehaviour
         Motion,
         Attack,
         Hit,
-        Die,
     }
     public enum MotionType
     {
