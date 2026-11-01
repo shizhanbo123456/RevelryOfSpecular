@@ -155,6 +155,7 @@ public abstract class EntityData : MonoBehaviour
     private const float nav_sample_radius = 1f;
     private const float nav_corner_radius = 0.3f;
     private const float nav_repath_interval = 0.25f;
+    private const float nav_arrive_radius = 0.3f; // 到达死区：执行层每帧判定，越过目标后不再掉头
 
     private NavMeshPath navPath; // 懒创建：珊瑚/雕像等不寻路的实体不必付这份开销
     private Vector3[] navCorners;
@@ -182,6 +183,11 @@ public abstract class EntityData : MonoBehaviour
     public Vector3 ResolveNavDirection()
     {
         if (!HasNavDestination) return Vector3.zero;
+
+        // 进入最终目的地的死区即视为到达：返回零方向让执行层停步，否则会冲过头再掉头，来回抽搐
+        Vector3 toDest = NavDestination - transform.position;
+        toDest.y = 0f;
+        if (toDest.sqrMagnitude <= nav_arrive_radius * nav_arrive_radius) return Vector3.zero;
 
         if (Time.time >= navNextRepathTime)
         {
