@@ -16,6 +16,8 @@ public partial class AiPlayerAi : AiStateMachine
 
     public readonly PlayerEntityData Owner;
 
+    public string CurrentName => Current != null ? Current.Name : "None"; // 临时诊断用
+
     private readonly AiPlayerSkillBar skillBar;
 
     private readonly SearchState searchState;
