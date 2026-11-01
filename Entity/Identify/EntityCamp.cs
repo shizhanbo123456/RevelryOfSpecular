@@ -34,4 +34,8 @@ public static class EntityCampUtil
     }
 
     public static bool IsHostile(EntityCamp camp, EntityCamp target) => (HostileOf(camp) & target) != 0;
+
+    // 显示归属：僵尸与防御塔同属防守方阵营，头顶血条的阵营图标与敌我判定都按防守方处理
+    public static EntityCamp DisplayCamp(EntityCamp camp) =>
+        (camp & (EntityCamp.Zombie | EntityCamp.DefenseTower)) != 0 ? EntityCamp.Defense : camp;
 }
