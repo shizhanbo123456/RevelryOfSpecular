@@ -162,6 +162,7 @@ public abstract class EntityData : MonoBehaviour
     private float navNextRepathTime;
     private Vector3 navLastPos;
     private float navLastStep; // 上一帧实际位移，用于放大到达/拐点半径
+    private float navArriveRadius = nav_arrive_radius; // 当前生效的到达半径（随帧率放大）
     private Vector3 navLastDir;
     private int navReverseFrames;
 
@@ -194,7 +195,8 @@ public abstract class EntityData : MonoBehaviour
         float step = (transform.position - navLastPos).magnitude;
         navLastPos = transform.position;
         if (step > 0.001f && step < 2f) navLastStep = Mathf.Lerp(navLastStep, step, 0.15f); // 平滑：避免到达半径逐帧跳动
-        float arrive = Mathf.Max(nav_arrive_radius, navLastStep * 1.5f);
+        navArriveRadius = Mathf.Max(nav_arrive_radius, navLastStep * 1.5f);
+        float arrive = navArriveRadius;
 
         Vector3 toDest = NavDestination - transform.position;
         toDest.y = 0f;
@@ -248,7 +250,16 @@ public abstract class EntityData : MonoBehaviour
     protected float FlatDistance(Vector3 point) => Mathf.Sqrt(FlatSqrDistance(point));
 
     // 到导航目的地的水平距离（含 NavMesh 吸附后的实际点）：状态机判定到达要跟执行层同一口径
-    public float DistanceToNavDestination => HasNavDestination ? FlatDistance(NavDestination) : float.MaxValue;
+    // 进入到达死区一律返回 0，否则「执行层已停、状态机还在等」会互相卡住
+    public float DistanceToNavDestination
+    {
+        get
+        {
+            if (!HasNavDestination) return float.MaxValue;
+            float d = FlatDistance(NavDestination);
+            return d <= navArriveRadius ? 0f : d;
+        }
+    }
 
     protected float FlatSqrDistance(Vector3 point)
     {

@@ -60,6 +60,9 @@ public static class Config
     public const float zombie_attack_range = 2f;
     public const float zombie_roar_range = 10f;
     public const float zombie_max_chase_distance = 16f;
+    // 同上：索敌要比追击上限小，攻击态退出要比进入距离大，避免在边界反复切状态
+    public const float zombie_acquire_margin = 2f;
+    public const float zombie_attack_exit_scale = 1.3f;
     public const float zombie_wander_radius = 8f;
     public const float zombie_wander_pause = 2f;
     #endregion
@@ -67,9 +70,17 @@ public static class Config
     #region 人机玩家 AI（Doc/08；先写代码，测试后再迁配表）
     public const float ai_think_interval = 0.15f;
     public const float ai_search_radius = 10f;
+    public const float ai_search_arrive = 0.6f;
     public const float ai_search_pause_min = 1f;
     public const float ai_search_pause_max = 3f;
+    // 走/停滞回：靠近用大阈值、停下用小阈值，中间区间保持原状态，避免在边界反复起停
+    public const float ai_hysteresis_ratio = 0.8f;
+    public const float ai_danger_clear_arrive = 2f;
     public const float ai_chase_limit = 40f;
+    // 索敌半径必须比追击上限小一段：两者相等时「刚索到就已超限」会让搜索/追击每拍互踢
+    public const float ai_acquire_margin = 5f;
+    // 战斗态退出距离 = 接敌距离 × 此系数：进出用同一距离会在边界反复切换
+    public const float ai_combat_exit_scale = 1.25f;
     public const float ai_combat_retreat_ratio = 0.3f;
     public const float ai_escort_retreat_ratio = 0.15f;
     public const float ai_rally_retreat_ratio = 0.2f;

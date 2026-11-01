@@ -60,7 +60,7 @@ public class ZombieAi : AiStateMachine
         return nearest;
     }
 
-    // 视野夹到最大追击距离内，避免"刚索敌又要放弃"的空转
+    // 视野夹到「最大追击距离 - 余量」内：等于上限时刚索到就会超限放弃，追击/游荡每拍互踢
     private float AcquireRange
     {
         get
@@ -68,7 +68,7 @@ public class ZombieAi : AiStateMachine
             float view = Owner.floatingAttribute.viewDistance > 0f
                 ? Owner.floatingAttribute.viewDistance
                 : Config.zombie_acquire_range;
-            return Mathf.Min(view, Config.zombie_max_chase_distance);
+            return Mathf.Min(view, Config.zombie_max_chase_distance - Config.zombie_acquire_margin);
         }
     }
 
@@ -181,7 +181,19 @@ public class ZombieAi : AiStateMachine
         {
             var target = ai.currentTarget;
             if (target == null) return ai.wanderState; // 目标丢了：直接回游荡，不必经追击态多等一个 tick
-            if (ai.FlatDistance(target.transform.position) > Config.zombie_attack_range) return ai.chaseState;
+
+            float dist = ai.FlatDistance(target.transform.position);
+
+            // 退出距离大于进入距离：目标在攻击距离边界晃动时不会在追击/攻击之间反复切换
+            if (dist > Config.zombie_attack_range * Config.zombie_attack_exit_scale) return ai.chaseState;
+
+            if (dist > Config.zombie_attack_range)
+            {
+                // 退出缓冲区内继续贴近，保持攻击态，不切状态也不出爪
+                ai.Owner.MoveTo(target.transform.position);
+                ai.Owner.SetFaceTarget(target.id);
+                return null;
+            }
 
             ai.Owner.Stop(); // 停下后仍要能转到目标（朝向由 OnTickMove 的无目的地分支负责）
             ai.Owner.SetFaceTarget(target.id);

@@ -42,7 +42,7 @@ public partial class AiPlayerAi
             if (hasPoint)
             {
                 // 用执行层吸附后的目的地判距，避免「点被 NavMesh 吸附到脚下、状态机仍认为没到」而原地卡死
-                if (ai.Owner.DistanceToNavDestination > 0.6f) { ai.MoveTowards(point); return null; }
+                if (ai.Owner.DistanceToNavDestination > Config.ai_search_arrive) { ai.MoveTowards(point); return null; }
                 hasPoint = false;
                 ai.Owner.StopMoving();
                 resumeTime = Time.time + UnityEngine.Random.Range(Config.ai_search_pause_min, Config.ai_search_pause_max);
@@ -174,7 +174,8 @@ public partial class AiPlayerAi
             if (activityRadius > 0f && dist > activityRadius) return ai.ConsumePendingOr(returnState);
 
             ai.FaceTarget(target);
-            if (dist > ai.AttackRange)
+            // 追与停用不同阈值：接敌距离停下、退出距离才重新前压，避免在边界反复走停
+            if (dist > ai.AttackRange * Config.ai_combat_exit_scale)
             {
                 ai.MoveTowards(target.transform.position);
                 return null;
@@ -240,12 +241,15 @@ public partial class AiPlayerAi
             if (enemy != null) return ai.escortCombatState.Bind(enemy, this);
 
             Vector3 slot = escorted.transform.position + slotOffset;
-            if (ai.FlatDistance(slot) > Config.ai_escort_follow)
+            float dist = ai.FlatDistance(slot);
+            // 追上与停下用不同阈值：锚点随护送对象移动，单阈值会在边界反复走停
+            if (dist > Config.ai_escort_follow)
             {
                 ai.MoveTowards(slot);
                 return null;
             }
-            ai.Owner.StopMoving();
+            if (dist <= Config.ai_escort_follow * Config.ai_hysteresis_ratio) ai.Owner.StopMoving();
+
             ai.FaceTarget(escorted);
             return null;
         }
@@ -306,7 +310,7 @@ public partial class AiPlayerAi
             var enemy = ai.NearestEnemyAround(point, Config.ai_danger_clear_radius, false);
             if (enemy != null) return ai.chaseState.Bind(enemy, this, Config.ai_chase_limit);
 
-            if (ai.FlatDistance(point) > 2f) ai.MoveTowards(point);
+            if (ai.FlatDistance(point) > Config.ai_danger_clear_arrive) ai.MoveTowards(point);
             else ai.Owner.StopMoving();
             return null;
         }
@@ -360,8 +364,10 @@ public partial class AiPlayerAi
                 }
             }
 
-            if (ai.FlatDistance(point) > Config.ai_rally_keep) ai.MoveTowards(point);
-            else ai.Owner.StopMoving();
+            float dist = ai.FlatDistance(point);
+            // 靠近与停下用不同阈值：锚点可能跟着发送者移动，单阈值会在边界反复走停
+            if (dist > Config.ai_rally_keep) ai.MoveTowards(point);
+            else if (dist <= Config.ai_rally_keep * Config.ai_hysteresis_ratio) ai.Owner.StopMoving();
             return null;
         }
     }

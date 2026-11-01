@@ -134,8 +134,8 @@ public partial class AiPlayerAi : AiStateMachine
 
     protected EntityData NearestEnemy(bool includeCoral)
     {
-        // 索敌半径不得超过追击上限：否则「看到→追→太远放弃→再看到」会每拍空转，AI 永远取不到游走点
-        float radius = Mathf.Min(ViewDistance, Config.ai_chase_limit);
+        // 索敌半径取「视野」与「追击上限 - 余量」的较小者：等于上限时刚索到就会超限放弃，搜索/追击每拍互踢
+        float radius = Mathf.Min(ViewDistance, Config.ai_chase_limit - Config.ai_acquire_margin);
         return NearestEnemyAround(Owner.transform.position, radius, includeCoral);
     }
 
