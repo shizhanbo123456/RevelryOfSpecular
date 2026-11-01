@@ -80,11 +80,15 @@ public class AiPlayerSkillBar
     }
 
     // 栏内从高到低 → 空手三连；全不可用返回 false（调用方原地站立）
+    // 空手与真人同规则：移动中出左右拳，静止出崩拳；首选冷却时才退到另一组
     public bool TryCastAny()
     {
         for (int i = 0; i < slots.Count; i++) if (TryCast(slots[i])) return true;
-        for (int i = 0; i < UnarmedSkills.Length; i++) if (TryCast(UnarmedSkills[i])) return true;
-        return false;
+
+        int punch = Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right;
+        return owner.IsMovingForward
+            ? TryCast(punch) || TryCast(Config.unarmed_attack_smash)
+            : TryCast(Config.unarmed_attack_smash) || TryCast(punch);
     }
 
     private bool TryCast(int skillId)
