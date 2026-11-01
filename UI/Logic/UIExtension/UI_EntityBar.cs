@@ -81,12 +81,7 @@ namespace Ros.UI.Main
             return PlayerCampType.Neutral; // 中立雕像、珊瑚与其它场景物件
         }
 
-        // 敌对：只有攻/守两方算阵营；自己阵营未知或对方是中立/场景物件时都不算敌对
-        private static bool IsEnemy(EntityCamp camp, EntityCamp myCamp)
-        {
-            if (myCamp != EntityCamp.Attack && myCamp != EntityCamp.Defense) return false;
-            if (camp != EntityCamp.Attack && camp != EntityCamp.Defense) return false;
-            return camp != myCamp;
-        }
+        // 敌对：阵营不同即敌对，中立单位同样算敌人
+        private static bool IsEnemy(EntityCamp camp, EntityCamp myCamp) => camp != myCamp;
     }
 }
