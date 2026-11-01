@@ -66,6 +66,7 @@ public class BattlePage : PageBase
         panel.m_settings_panel.m_panrl.m_close.onClick.Add(HideSettings);
         panel.m_settings_panel.m_btn_exit.onClick.Add(OnExitClicked); // 退出需二次确认（对局中退出不可逆）
         BuildSettingTips();
+        panel.m_quickMessagePanel.Build();
         panel.m_showRegenerationBar.selectedIndex = 0; // 复活进度默认隐藏
         panel.m_PlayerBar.m_buffList.m_list.itemRenderer =
             (i, obj) => ((UI_buffItem)obj).Fill(localBuffs[i].type, localBuffs[i].level, ShowBuffTip, HideBuffTip);
