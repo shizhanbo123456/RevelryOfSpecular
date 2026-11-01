@@ -16,8 +16,6 @@ public partial class AiPlayerAi : AiStateMachine
 
     public readonly PlayerEntityData Owner;
 
-    public string CurrentName => Current != null ? Current.Name : "None"; // 临时诊断用
-
     private readonly AiPlayerSkillBar skillBar;
 
     private readonly SearchState searchState;
@@ -136,7 +134,9 @@ public partial class AiPlayerAi : AiStateMachine
 
     protected EntityData NearestEnemy(bool includeCoral)
     {
-        return NearestEnemyAround(Owner.transform.position, ViewDistance, includeCoral);
+        // 索敌半径不得超过追击上限：否则「看到→追→太远放弃→再看到」会每拍空转，AI 永远取不到游走点
+        float radius = Mathf.Min(ViewDistance, Config.ai_chase_limit);
+        return NearestEnemyAround(Owner.transform.position, radius, includeCoral);
     }
 
     protected EntityData NearestEnemyAround(Vector3 center, float radius, bool includeCoral)

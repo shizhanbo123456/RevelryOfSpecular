@@ -212,6 +212,9 @@ public abstract class EntityData : MonoBehaviour
 
     protected float FlatDistance(Vector3 point) => Mathf.Sqrt(FlatSqrDistance(point));
 
+    // 到导航目的地的水平距离（含 NavMesh 吸附后的实际点）：状态机判定到达要跟执行层同一口径
+    public float DistanceToNavDestination => HasNavDestination ? FlatDistance(NavDestination) : float.MaxValue;
+
     protected float FlatSqrDistance(Vector3 point)
     {
         Vector3 d = point - transform.position;

@@ -41,7 +41,8 @@ public partial class AiPlayerAi
 
             if (hasPoint)
             {
-                if (ai.FlatDistance(point) > 0.6f) { ai.MoveTowards(point); return null; }
+                // 用执行层吸附后的目的地判距，避免「点被 NavMesh 吸附到脚下、状态机仍认为没到」而原地卡死
+                if (ai.Owner.DistanceToNavDestination > 0.6f) { ai.MoveTowards(point); return null; }
                 hasPoint = false;
                 ai.Owner.StopMoving();
                 resumeTime = Time.time + UnityEngine.Random.Range(Config.ai_search_pause_min, Config.ai_search_pause_max);

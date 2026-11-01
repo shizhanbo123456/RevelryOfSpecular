@@ -237,7 +237,6 @@ public class PlayerEntityData : EntityData
 
     private Vector3 aiFacePoint;
     private bool aiFaceSet;
-    private float aiDebugNextTime; // 临时诊断
 
     public void SetAiFacePoint(Vector3 worldPoint)
     {
@@ -262,14 +261,6 @@ public class PlayerEntityData : EntityData
         bool blockRotation = InputBlocked(InputBlockOp.Rotation);
 
         Vector3 dir = ResolveNavDirection();
-
-        // 临时诊断：定位「人机不走动」问题后删除
-        if (Time.time >= aiDebugNextTime)
-        {
-            aiDebugNextTime = Time.time + 2f;
-            Debug.Log($"[AI移动] id={id} state={ai?.CurrentName} pos={transform.position} nav={HasNavDestination} " +
-                      $"dest={NavDestination} dir={dir} input={moveInput} face={aiFaceSet}");
-        }
         if (dir.sqrMagnitude > 0.0001f)
         {
             if (!blockRotation) FaceDirection(dir); // 转向即时对准行进方向
