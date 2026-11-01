@@ -17,6 +17,7 @@ public class BattlePage : PageBase
     private readonly List<UI_EntityBar.Buff> barBuffs = new(); // 血条 buff 快照缓冲（每个摘要包重填）
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
+    private readonly float labelDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_label_default_size; // 飘字 scale=(1,1) 时的相机距离
     private Texture2D mapAreaTexture;    // AssetsManager.MapArea 的 Texture2D 引用（贴图需开 Read/Write）
 
     private int localPlayerArea = -1;    // 本地玩家当前区域（EventBanner 页 index，-1=未知；死亡观战期间冻结）
@@ -813,7 +814,7 @@ public class BattlePage : PageBase
             if (Tool.ClientLogicManager != null && Tool.ClientLogicManager.EntityPlayers != null)
                 Tool.ClientLogicManager.EntityPlayers.TryGetAnchorPos(targetId, EntityAnchor.LabelFallBack, out anchor);
         }
-        UI_DamageLabel.Spawn(panel.m_world_element_container, value, type, anchor);
+        UI_DamageLabel.Spawn(panel.m_world_element_container, value, type, anchor, labelDefaultSizeDistance);
     }
 
     // 命中特效：直接伤害取命中点高度 + 实体所在列，buff/DoT 类贴实体中心；闪避与失效没有命中不播

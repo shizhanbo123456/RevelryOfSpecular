@@ -15,10 +15,11 @@ namespace Ros.UI.Main
         private Vector3 anchor;
         private Vector2 scatterPx;
         private float risePx;
+        private float defaultSizeDistance; // 飘字 scale=(1,1) 时的相机距离
         private Timer.TransitionHandle transition;
 
         // 生成一个飘字；类型越界属枚举与 FGUI 页数不匹配，直接丢弃并报错
-        public static void Spawn(UI_empty_container layer, int value, CombatLabelType type, Vector3 anchor)
+        public static void Spawn(UI_empty_container layer, int value, CombatLabelType type, Vector3 anchor, float defaultSizeDistance)
         {
             if (layer == null) return;
             int page = (int)type;
@@ -38,6 +39,7 @@ namespace Ros.UI.Main
             layer.AddChild(label); // 挂在世界层：压在战斗界面各元素之下
 
             label.anchor = anchor;
+            label.defaultSizeDistance = defaultSizeDistance;
             label.scatterPx = new Vector2(Random.Range(-ScatterX, ScatterX), Random.Range(-ScatterY, ScatterY));
             label.ApplyPosition();
             label.Play();
@@ -57,9 +59,13 @@ namespace Ros.UI.Main
                 return;
             }
             visible = true;
-            // 组件轴心是左上角，减半个宽度让飘字正中落在锚点上；上升量走屏幕像素
-            xy = WorldLayer.ToLayer(this, WorldLayer.WorldToPanel(anchor, cam, out _) + scatterPx)
-                - new Vector2(width * 0.5f, 0f) + new Vector2(0f, -risePx);
+            // 飘字画在屏幕面板上，不随距离自然缩小：与血条同口径按距离倒比缩放，默认距离处为 (1,1)
+            float distance = Vector3.Distance(cam.transform.position, anchor);
+            float scale = defaultSizeDistance / Mathf.Max(distance, 0.01f);
+            SetScale(scale, scale);
+            // 轴心左上角，减半个缩放后宽度让飘字正中落在锚点上；散布与上升量随缩放同比
+            xy = WorldLayer.ToLayer(this, WorldLayer.WorldToPanel(anchor, cam, out _) + scatterPx * scale)
+                - new Vector2(width * 0.5f * scale, 0f) + new Vector2(0f, -risePx * scale);
         }
 
         private void Play()

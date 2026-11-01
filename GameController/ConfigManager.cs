@@ -745,6 +745,7 @@ public class ConfigManager : MonoBehaviour
         public static int day_duration;                 // 默认白天时长
         public static int night_duration;               // 默认晚上时长
         public static int distance_of_bar_default_size; // 实体血条为设计大小时的距离
+        public static int distance_of_label_default_size; // 飘字为设计大小时的距离
         public static float attr_growth_health;         // 升级增益系数：生命
         public static float attr_growth_attack;         // 升级增益系数：攻击
         public static int attr_growth_critRate;         // 升级增益：暴击率，每级加点（百分点）
@@ -845,6 +846,11 @@ public class ConfigManager : MonoBehaviour
                     distance_of_bar_default_size = Int(row);
                     if (distance_of_bar_default_size <= 0) // 血条 scale 以它为分母
                         throw new FormatException($"[配表] {FileName} 的 distance_of_bar_default_size 必须大于 0");
+                    break;
+                case "distance_of_label_default_size":
+                    distance_of_label_default_size = Int(row);
+                    if (distance_of_label_default_size <= 0) // 飘字 scale 以它为分子
+                        throw new FormatException($"[配表] {FileName} 的 distance_of_label_default_size 必须大于 0");
                     break;
                 case "attr_growth_health":
                     attr_growth_health = NonNegative(Float(row), row.key);
