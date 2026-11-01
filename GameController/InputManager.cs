@@ -19,13 +19,14 @@ public class InputManager : MonoBehaviour
         SendInput();
     }
 
-    private static bool UiBlocksInput => Tool.UIManager != null && Tool.UIManager.GmOpen;
+    // 唯一的键盘占用判定：UI 占用期间（GM 面板 / 文字输入），角色与相机都不再收键
+    public static bool KeysCapturedByUi => Tool.UIManager != null && Tool.UIManager.KeyboardCaptured;
 
     private void SendInput()
     {
         if (Tool.NetworkManager == null) return;
 
-        if (UiBlocksInput)
+        if (KeysCapturedByUi)
         {
             if (!inputBlocked)
             {

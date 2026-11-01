@@ -148,7 +148,7 @@ public class CameraController : MonoBehaviour
         if (!sessionActive) return;
 
         bool spectator = loading.IsSpectator;
-        bool keysBlocked = Tool.UIManager != null && Tool.UIManager.GmOpen; // GM 面板打开时相机键归面板
+        bool keysBlocked = InputManager.KeysCapturedByUi; // 键盘被 UI 占用（GM 面板 / 打字）时相机也不收键
 
         if (!keysBlocked && spectator && Mode != CameraViewMode.Free && Input.GetKeyDown(KeyCode.W))
         {
@@ -296,6 +296,7 @@ public class CameraController : MonoBehaviour
     // 键位固定：WASD 水平平移 / K 升 J 降 / Q 左转 E 右转 / Y 抬头 H 低头
     private void TickFreeKeys()
     {
+        if (InputManager.KeysCapturedByUi) return;
         float deltaTime = Time.deltaTime;
         if (Input.GetKey(KeyCode.Q)) freeYaw -= freeTurnSpeed * deltaTime;
         if (Input.GetKey(KeyCode.E)) freeYaw += freeTurnSpeed * deltaTime;
@@ -306,6 +307,7 @@ public class CameraController : MonoBehaviour
 
     private void TickFreeMove(float deltaTime)
     {
+        if (InputManager.KeysCapturedByUi) return;
         float yawRad = freeYaw * Mathf.Deg2Rad;
         Vector3 fwd = new Vector3(Mathf.Sin(yawRad), 0f, Mathf.Cos(yawRad));
         Vector3 right = new Vector3(Mathf.Cos(yawRad), 0f, -Mathf.Sin(yawRad));

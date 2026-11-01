@@ -262,8 +262,8 @@ public class BattlePage : PageBase
 
     public override void Tick(float deltaTime)
     {
-        // GM 面板打开期间按键归面板，技能选择与快捷消息都不响应
-        if (Tool.UIManager == null || !Tool.UIManager.GmOpen)
+        // 键盘被 UI 占用（GM 面板 / 文字输入）时，技能选择与快捷消息都不响应
+        if (!InputManager.KeysCapturedByUi)
         {
             if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
             if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
