@@ -11,6 +11,8 @@ public class BattlePage : PageBase
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
     private readonly List<UI_SkillList.Slot> skillSlots = new(); // 技能栏快照缓冲（每 0.1s 重填一次，避免分配）
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
+    // 血量缓存：摘要包只在 healthDirty/全量时携带血量段，未携带的包（如仅 buff 变化）不能把血条刷成 0/0
+    private readonly Dictionary<ushort, (int health, int maxHealth)> entityVitals = new();
     private readonly List<UI_EntityBar.Buff> barBuffs = new(); // 血条 buff 快照缓冲（每个摘要包重填）
     private readonly List<SCEntityDisplayInfo.BuffRuntime> localBuffs = new();                      // 本地玩家左上角血条的 buff 数据源
     private readonly float barDefaultSizeDistance = ConfigManager.GlobalVariableConfig.distance_of_bar_default_size; // 血条 scale=(1,1) 时的相机距离
@@ -272,6 +274,7 @@ public class BattlePage : PageBase
     private void OnEntityDisplayRemove(int entityId)
     {
         RemoveEntityBar((ushort)entityId);
+        entityVitals.Remove((ushort)entityId);
         panel.m_Minimap?.Remove((ushort)entityId);
 
         if (IsOwnEntity(entityId))
@@ -483,8 +486,9 @@ public class BattlePage : PageBase
     {
         var bar = panel.m_PlayerBar;
         if (bar == null) return;
-        bar.m_bar_fill_health.fillAmount = info.maxHealth > 0 ? Mathf.Clamp01((float)info.health / info.maxHealth) : 0f;
-        if (bar.m_label_health != null) bar.m_label_health.text = $"{info.health}/{info.maxHealth}";
+        var vitals = ResolveVitals(info);
+        bar.m_bar_fill_health.fillAmount = vitals.maxHealth > 0 ? Mathf.Clamp01((float)vitals.health / vitals.maxHealth) : 0f;
+        if (bar.m_label_health != null) bar.m_label_health.text = $"{vitals.health}/{vitals.maxHealth}";
         RefreshLocalAvatar(info.camp);
         if (info.hasBuffs) RefreshBuffList(bar.m_buffList.m_list, localBuffs, info.buffs);
     }
@@ -687,8 +691,16 @@ public class BattlePage : PageBase
             entityBars[info.entityId] = bar;
         }
         string name = withName && HasSession ? Session.GetNameByEntity(info.entityId) : "";
-        bar.Bind(info.health, info.maxHealth, info.camp, (EntityCamp)localPlayerCamp, name,
+        var vitals = ResolveVitals(info);
+        bar.Bind(vitals.health, vitals.maxHealth, info.camp, (EntityCamp)localPlayerCamp, name,
             info.hasBuffs ? ToBarBuffs(info.buffs) : null, ShowBuffTip, HideBuffTip);
+    }
+
+    // 血量段只在置脏/全量包携带：带则刷新缓存，不带则沿用上次值（首见包必为全量）
+    private (int health, int maxHealth) ResolveVitals(SCEntityDisplayInfo info)
+    {
+        if (info.hasHealth) entityVitals[info.entityId] = (info.health, info.maxHealth);
+        return entityVitals.TryGetValue(info.entityId, out var vitals) ? vitals : default;
     }
 
     // 协议 buff 列表 → 血条条目数据（复用缓冲，避免每个摘要包都分配）
