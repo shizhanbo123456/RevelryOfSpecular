@@ -26,6 +26,9 @@ public class BattlePage : PageBase
     private int localPlayerCamp = -1; // 本地玩家阵营（随本地实体摘要更新；小地图敌我识别用）
     private bool spectatorMode;       // 纯观战方玩家（无战斗实体）
     private bool localPlayerAlive = true; // 本地玩家实体是否在场（死亡观战期间 false，显示观战下拉）
+    private bool reviveActive;        // 本地玩家死亡等待中：复活条由客户端按配表本地推演
+    private float reviveDuration;     // 本段复活总时长（revive_time.csv，按死亡次数与阵营取）
+    private float reviveElapsed;      // 本段已等待时长（起点由服务器包里的 progress 折算）
     private int spectateTargetClientId = -1;  // 当前观战目标玩家 id（-1 = 未观战）
     private int spectateTargetEntityId = -1;  // 观战目标实体 id（-1 = 等待其表现数据到达后绑定相机）
     private float spectatePendingSince;   // 发起观战的时刻（目标数据迟迟不到 = 目标已死，超时重选）
@@ -226,6 +229,7 @@ public class BattlePage : PageBase
         HideQuickMessage(); // 快捷消息面板每局从收起状态开始
         HideImportantBanner(); // 重要事件 banner 每局从隐藏状态开始
         OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
+        reviveActive = false; // 复活条每局从收起状态开始，重新由 SCReviveInfo 驱动
         ClearEntityBars();
         HideAllTips();
         localBuffs.Clear();
@@ -277,6 +281,7 @@ public class BattlePage : PageBase
         TickMinimap();
         TickSpectator(deltaTime);
         TickLocalSkillCd(deltaTime);
+        TickReviveProgress(deltaTime);
     }
 
     // 冷却推演在 ClientSkillManager，这里只按节流重渲染冷却环与库存数
@@ -722,12 +727,36 @@ public class BattlePage : PageBase
     private void OnReviveProgressUpdate(SCReviveInfo info)
     {
         if (info == null) return;
-        bool isLocal = IsOwnEntity(info.entityId);
-        if (!isLocal) return;
-        panel.m_showRegenerationBar.selectedIndex = info.ready ? 0 : 1;
-        if (info.ready) return;
+        if (!HasSession || info.clientId != NetworkManager.LocalToken) return; // 定向包，但仍按归属校验
+
+        if (info.ready)
+        {
+            reviveActive = false;
+            panel.m_showRegenerationBar.selectedIndex = 0;
+            return;
+        }
+
+        // 只拿死亡次数：复活总时长由客户端读配表算，progress 只作为起点（重连补发时非 0）
+        var revive = ConfigManager.ReviveTimeConfig.GetClamped(Mathf.Max(1, info.deathCount));
+        bool isAttack = Session.Camp == EntityCamp.Attack;
+        reviveDuration = isAttack ? revive.attackReviveSeconds : revive.defenseReviveSeconds;
+        reviveElapsed = Mathf.Clamp01(info.progress) * reviveDuration;
+        reviveActive = true;
+        panel.m_showRegenerationBar.selectedIndex = 1;
+        RefreshReviveBar();
+    }
+
+    private void TickReviveProgress(float deltaTime)
+    {
+        if (!reviveActive) return;
+        reviveElapsed += deltaTime;
+        RefreshReviveBar();
+    }
+
+    private void RefreshReviveBar()
+    {
         if (panel.m_regeneration_progressbar != null)
-            panel.m_regeneration_progressbar.fillAmount = Mathf.Clamp01(info.progress);
+            panel.m_regeneration_progressbar.fillAmount = Mathf.Clamp01(reviveElapsed / reviveDuration);
     }
     #endregion
 

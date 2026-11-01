@@ -451,6 +451,7 @@ public partial class NetworkManager : EnsBehaviour
     public void SendReviveInfo(int clientId, SCReviveInfo info)
     {
         if (!TryGetSendTo(clientId, out var to)) return;
+        info.clientId = clientId; // 归属由这里统一填，客户端不必再靠实体 id 反推
         CallFuncRpc(ClientReceiveReviveInfoLocal, to, Delivery.Reliable, info);
     }
 

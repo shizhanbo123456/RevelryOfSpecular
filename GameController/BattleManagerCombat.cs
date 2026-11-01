@@ -127,7 +127,6 @@ public partial class BattleManager
     {
         public int deathCount;
         public float progress;
-        public float lastSentProgress = -1f;
         public EntitySkillController.Loadout? loadout; // 死亡瞬间的技能快照，复活重建实体后归还
     }
     private readonly Dictionary<int, ReviveState> reviveStates = new();
@@ -177,9 +176,8 @@ public partial class BattleManager
             }
             rs.deathCount++;
             rs.progress = 0f;
-            rs.lastSentProgress = -1f;
             if (entity.skillController != null) rs.loadout = entity.skillController.CaptureLoadout();
-            SendReviveProgress(owner, rs, entity.id, ready: false);
+            SendReviveState(owner, rs, 0, ready: false); // 只报死亡次数，进度由客户端按配表本地推演
         }
 
         // 死亡即销毁：不再播死亡动画，也就不存在"等动画事件才销毁"的挂起尸体
@@ -286,14 +284,7 @@ public partial class BattleManager
                 rs.progress += dt / revive.defenseReviveSeconds;
             }
 
-            if (rs.progress >= 1f)
-            {
-                RespawnPlayer(clientId, rs);
-            }
-            else if (rs.progress - rs.lastSentProgress >= 0.05f) // 进度节流下发（5% 一档）
-            {
-                SendReviveProgress(clientId, rs, 0, ready: false);
-            }
+            if (rs.progress >= 1f) RespawnPlayer(clientId, rs);
         }
     }
 
@@ -338,9 +329,8 @@ public partial class BattleManager
         }
 
         rs.progress = 0f; // deathCount 保留，供下次倍率与叠层
-        rs.lastSentProgress = -1f;
         // 复活换了新实体 id：客户端由 SCPlayerEntity 更新自己的实体 id 与名牌归属，不再单独下发会话信息
-        SendReviveProgress(clientId, rs, entityId, ready: true);
+        SendReviveState(clientId, rs, entityId, ready: true);
 
         // 复活播报（事件列表，icon=玩家复活，文本=该玩家名）
         Tool.NetworkManager.SendBattleEvent(new SCBattleEvent()
@@ -350,14 +340,15 @@ public partial class BattleManager
         });
     }
 
-    private void SendReviveProgress(int clientId, ReviveState rs, ushort entityId, bool ready)
+    // 只在死亡、复活、重连补发这三个时机下发；进度本身由客户端读配表本地推演
+    private void SendReviveState(int clientId, ReviveState rs, ushort entityId, bool ready)
     {
-        rs.lastSentProgress = rs.progress;
         Tool.NetworkManager.SendReviveInfo(clientId, new SCReviveInfo()
         {
-            entityId = entityId,
+            deathCount = rs.deathCount,
             progress = Mathf.Clamp01(rs.progress),
             ready = ready,
+            entityId = entityId,
             furyStack = ConfigManager.BattleFuryLayerConfig.GetClamped(rs.deathCount).buffLayerCount,
         });
     }
