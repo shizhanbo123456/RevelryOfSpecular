@@ -8,7 +8,7 @@ public partial class AiPlayerAi
 
     private sealed class SearchState : AiState
     {
-        public override AiReportState ReportState => AiReportState.Search;
+        public override EntityReportState ReportState => EntityReportState.Search;
         private readonly AiPlayerAi ai;
         private bool hasPoint;
         private Vector3 point;
@@ -72,7 +72,7 @@ public partial class AiPlayerAi
 
     private sealed class SearchCombatState : AiState
     {
-        public override AiReportState ReportState => AiReportState.SearchCombat;
+        public override EntityReportState ReportState => EntityReportState.SearchCombat;
         private readonly AiPlayerAi ai;
         private EntityData coral;
 
@@ -106,7 +106,7 @@ public partial class AiPlayerAi
 
     private sealed class ChaseState : AiState
     {
-        public override AiReportState ReportState => AiReportState.Chase;
+        public override EntityReportState ReportState => EntityReportState.Chase;
         private readonly AiPlayerAi ai;
         private EntityData target;
         private AiState returnState;
@@ -155,9 +155,9 @@ public partial class AiPlayerAi
         private float retreatRatio;
         private float activityRadius;
         private AiState retreatState;
-        private AiReportState reportState; // 同一个战斗类被 5 处复用，上报类型只能按实例区分
+        private EntityReportState reportState; // 同一个战斗类被 5 处复用，上报类型只能按实例区分
 
-        public override AiReportState ReportState => reportState;
+        public override EntityReportState ReportState => reportState;
 
         private EntityData target;
         private AiState returnState;
@@ -170,7 +170,7 @@ public partial class AiPlayerAi
             abandoned = true;
         }
 
-        public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState, AiReportState reportState)
+        public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState, EntityReportState reportState)
         {
             this.owner = owner;
             this.ai = ai;
@@ -218,7 +218,7 @@ public partial class AiPlayerAi
 
     private sealed class EscortApproachState : AiState
     {
-        public override AiReportState ReportState => AiReportState.EscortApproach;
+        public override EntityReportState ReportState => EntityReportState.EscortApproach;
         private readonly AiPlayerAi ai;
         private EntityData escorted;
         private float enterTime;
@@ -247,7 +247,7 @@ public partial class AiPlayerAi
 
     private sealed class EscortState : AiState
     {
-        public override AiReportState ReportState => AiReportState.Escort;
+        public override EntityReportState ReportState => EntityReportState.Escort;
         private readonly AiPlayerAi ai;
         private EntityData escorted;
         private Vector3 slotOffset;
@@ -288,7 +288,7 @@ public partial class AiPlayerAi
 
     private sealed class DangerEvadeState : AiState
     {
-        public override AiReportState ReportState => AiReportState.DangerEvade;
+        public override EntityReportState ReportState => EntityReportState.DangerEvade;
         private readonly AiPlayerAi ai;
         private Vector3 threat;
         private float enterTime;
@@ -321,7 +321,7 @@ public partial class AiPlayerAi
 
     private sealed class DangerClearState : AiState
     {
-        public override AiReportState ReportState => AiReportState.DangerClear;
+        public override EntityReportState ReportState => EntityReportState.DangerClear;
         private readonly AiPlayerAi ai;
         private Vector3 point;
         private float enterTime;
@@ -351,7 +351,7 @@ public partial class AiPlayerAi
 
     private sealed class RallyApproachState : AiState
     {
-        public override AiReportState ReportState => AiReportState.RallyApproach;
+        public override EntityReportState ReportState => EntityReportState.RallyApproach;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
 
@@ -373,7 +373,7 @@ public partial class AiPlayerAi
 
     private sealed class RallyWaitState : AiState
     {
-        public override AiReportState ReportState => AiReportState.RallyWait;
+        public override EntityReportState ReportState => EntityReportState.RallyWait;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
         private float nextCheck;
@@ -409,7 +409,7 @@ public partial class AiPlayerAi
 
     private sealed class AssaultState : AiState
     {
-        public override AiReportState ReportState => AiReportState.Assault;
+        public override EntityReportState ReportState => EntityReportState.Assault;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
 

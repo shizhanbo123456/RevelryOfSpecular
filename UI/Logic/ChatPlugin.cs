@@ -73,7 +73,7 @@ public class ChatPlugin
         EventManager.AddEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
-        EventManager.AddEvent<SCAiReport>(ClientEvent.OnAiReport, OnAiReport);
+        EventManager.AddEvent<SCStateReport>(ClientEvent.OnStateReport, OnStateReport);
         EventManager.AddEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -86,7 +86,7 @@ public class ChatPlugin
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
-        EventManager.RemoveEvent<SCAiReport>(ClientEvent.OnAiReport, OnAiReport);
+        EventManager.RemoveEvent<SCStateReport>(ClientEvent.OnStateReport, OnStateReport);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -216,7 +216,7 @@ public class ChatPlugin
     }
 
     // 状态上报：协议只带状态枚举与血量，文本本地拼，统一进阵营频道
-    private void OnAiReport(SCAiReport report)
+    private void OnStateReport(SCStateReport report)
     {
         if (report == null) return;
         if (report.senderClientId == NetworkManager.LocalToken) return;
@@ -237,21 +237,21 @@ public class ChatPlugin
 
     private static string ReportStateText(int state) => state switch
     {
-        (int)AiReportState.Search => "正在搜索",
-        (int)AiReportState.SearchCombat => "正在清理珊瑚",
-        (int)AiReportState.Chase => "正在追击",
-        (int)AiReportState.Combat => "正在战斗",
-        (int)AiReportState.EscortApproach => "正在前往护送",
-        (int)AiReportState.Escort => "正在护送",
-        (int)AiReportState.EscortCombat => "护送中交战",
-        (int)AiReportState.DangerEvade => "正在躲避危险",
-        (int)AiReportState.DangerClear => "正在搜寻威胁",
-        (int)AiReportState.DangerClearCombat => "正在清除威胁",
-        (int)AiReportState.RallyApproach => "正在前往集结",
-        (int)AiReportState.RallyWait => "正在集结待命",
-        (int)AiReportState.RallyGuard => "正在守卫集结点",
-        (int)AiReportState.Assault => "正在协同进攻",
-        (int)AiReportState.AssaultCombat => "协同进攻中交战",
+        (int)EntityReportState.Search => "正在搜索",
+        (int)EntityReportState.SearchCombat => "正在清理珊瑚",
+        (int)EntityReportState.Chase => "正在追击",
+        (int)EntityReportState.Combat => "正在战斗",
+        (int)EntityReportState.EscortApproach => "正在前往护送",
+        (int)EntityReportState.Escort => "正在护送",
+        (int)EntityReportState.EscortCombat => "护送中交战",
+        (int)EntityReportState.DangerEvade => "正在躲避危险",
+        (int)EntityReportState.DangerClear => "正在搜寻威胁",
+        (int)EntityReportState.DangerClearCombat => "正在清除威胁",
+        (int)EntityReportState.RallyApproach => "正在前往集结",
+        (int)EntityReportState.RallyWait => "正在集结待命",
+        (int)EntityReportState.RallyGuard => "正在守卫集结点",
+        (int)EntityReportState.Assault => "正在协同进攻",
+        (int)EntityReportState.AssaultCombat => "协同进攻中交战",
         _ => "状态未知",
     };
 

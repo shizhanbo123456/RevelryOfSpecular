@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Ros.Transport
 {
     // 上报状态：聊天文本由客户端本地拼，协议只传枚举值，不传字符串
-    public enum AiReportState
+    public enum EntityReportState
     {
         None = 0,
         Search,
@@ -23,20 +23,20 @@ namespace Ros.Transport
         AssaultCombat,
     }
 
-    // 服务器 → 客户端：同阵营的状态上报（人机或真人均可发）
-    public class SCAiReport
+    // 服务器 → 客户端：同阵营的状态上报（真人与人机共用）
+    public class SCStateReport
     {
         public int senderClientId;
-        public int state;          // AiReportState
+        public int state;          // EntityReportState
         public int healthPercent;  // 0~100
         public int camp;           // 0 进攻 / 1 防守 / -1 未定
         public int characterIndex; // 头像下标，-1 无
         public Vector3 position;   // 上报时位置
     }
 
-    public struct SCAiReportSerializer
+    public struct SCStateReportSerializer
     {
-        public static bool Serialize(SCAiReport value, byte[] result, ref int indexStart)
+        public static bool Serialize(SCStateReport value, byte[] result, ref int indexStart)
         {
             if (!BoolSerializer.Serialize(value != null, result, ref indexStart)) return false;
             if (value == null) return true;
@@ -48,10 +48,10 @@ namespace Ros.Transport
             return Vector3Serializer.Serialize(value.position, result, ref indexStart);
         }
 
-        public static SCAiReport Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        public static SCStateReport Deserialize(byte[] data, ref int indexStart, int invalidIndex)
         {
             if (!BoolSerializer.Deserialize(data, ref indexStart, invalidIndex)) return null;
-            var value = new SCAiReport();
+            var value = new SCStateReport();
             value.senderClientId = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             value.state = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             value.healthPercent = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);

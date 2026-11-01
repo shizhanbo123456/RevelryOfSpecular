@@ -66,11 +66,11 @@ public partial class AiPlayerAi : AiStateMachine
         assaultCombatState = new CombatState();
 
         // 战斗态：撤离血线 / 活动范围 / 撤离去向 按战斗策略表配；脱战回到由 Bind 时传入
-        combatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, 0f, dangerEvadeState, AiReportState.Combat);
-        escortCombatState.Setup(Owner, this, Config.ai_escort_retreat_ratio, Config.ai_escort_combat_radius * 1.5f, dangerEvadeState, AiReportState.EscortCombat);
-        dangerCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_danger_clear_radius * 1.5f, dangerEvadeState, AiReportState.DangerClearCombat);
-        rallyGuardState.Setup(Owner, this, Config.ai_rally_retreat_ratio, Config.ai_guard_alert_radius, rallyApproachState, AiReportState.RallyGuard);
-        assaultCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_assault_combat_activity, dangerEvadeState, AiReportState.AssaultCombat);
+        combatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, 0f, dangerEvadeState, EntityReportState.Combat);
+        escortCombatState.Setup(Owner, this, Config.ai_escort_retreat_ratio, Config.ai_escort_combat_radius * 1.5f, dangerEvadeState, EntityReportState.EscortCombat);
+        dangerCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_danger_clear_radius * 1.5f, dangerEvadeState, EntityReportState.DangerClearCombat);
+        rallyGuardState.Setup(Owner, this, Config.ai_rally_retreat_ratio, Config.ai_guard_alert_radius, rallyApproachState, EntityReportState.RallyGuard);
+        assaultCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_assault_combat_activity, dangerEvadeState, EntityReportState.AssaultCombat);
 
         stuckSamplePos = owner.transform.position;
         stuckSampleTime = Time.time;
@@ -244,7 +244,7 @@ public partial class AiPlayerAi : AiStateMachine
     protected void ReportStatus()
     {
         if (Tool.BattleManager == null) return;
-        Tool.BattleManager.ReportAiStatus(Owner, (int)Current.ReportState, Mathf.RoundToInt(HealthRatio * 100f));
+        Tool.BattleManager.ReportStatus(Owner, (int)Current.ReportState, Mathf.RoundToInt(HealthRatio * 100f));
     }
 
     // 攻击距离取技能栏第一个有射程的技能（栏内已按品质降序）

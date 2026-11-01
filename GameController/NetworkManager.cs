@@ -547,10 +547,10 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     // 状态上报下发：只发给同阵营的真人
-    public void SendAiReport(int clientId, SCAiReport report)
+    public void SendStateReport(int clientId, SCStateReport report)
     {
         if (report == null || !TryGetSendTo(clientId, out var to)) return;
-        CallFuncRpc(ClientReceiveAiReportLocal, to, Delivery.Reliable, report);
+        CallFuncRpc(ClientReceiveStateReportLocal, to, Delivery.Reliable, report);
     }
 
     //GM 指令回包（服务器帧率 / 服务器时间等）
@@ -909,10 +909,10 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
-    private void ClientReceiveAiReportLocal(SCAiReport report)
+    private void ClientReceiveStateReportLocal(SCStateReport report)
     {
         if (report == null) return;
-        EventManager.TrigEvent(ClientEvent.OnAiReport, report);
+        EventManager.TrigEvent(ClientEvent.OnStateReport, report);
     }
 
     [Rpc]

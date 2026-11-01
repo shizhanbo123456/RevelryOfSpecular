@@ -824,13 +824,13 @@ public partial class BattleManager : EnsBehaviour
     }
 
     // 人机/真人上报自身状况：只发同阵营真人，客户端按 state + healthPercent 本地拼聊天文本
-    public void ReportAiStatus(EntityData entity, int state, int healthPercent)
+    public void ReportStatus(EntityData entity, int state, int healthPercent)
     {
         if (entity == null) return;
         if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
 
         int campValue = CampValueOf(clientId);
-        var report = new SCAiReport()
+        var report = new SCStateReport()
         {
             senderClientId = clientId,
             state = state,
@@ -844,7 +844,7 @@ public partial class BattleManager : EnsBehaviour
         {
             if (AIClients.Contains(pair.Key)) continue;
             if (CampValueOf(pair.Key) != campValue) continue;
-            Tool.NetworkManager.SendAiReport(pair.Key, report);
+            Tool.NetworkManager.SendStateReport(pair.Key, report);
         }
     }
     #endregion
