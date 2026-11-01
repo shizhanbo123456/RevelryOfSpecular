@@ -177,4 +177,35 @@ public partial class BattleManager
             SpawnNeutralStatue();
         }
     }
+
+    #region 掉落回收（y < 0 的实体落回 Terrain 表面上方）
+
+    private float fallCheckTimer;
+
+    private void TickFallRecover(float dt)
+    {
+        fallCheckTimer += dt;
+        if (fallCheckTimer < Config.entity_fall_check_interval) return;
+        fallCheckTimer = 0f;
+
+        var spawns = Tool.LandscapeSpawns;
+        if (spawns == null) return;
+
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity == null || entity.rb == null || !entity.Alive) continue; // 无刚体的雕像/珊瑚不会掉落
+            Vector3 pos = entity.transform.position;
+            if (pos.y >= 0f) continue;
+            if (!spawns.TrySampleTerrainHeight(pos.x, pos.z, out float groundY)) continue;
+
+            pos.y = groundY + Config.entity_fall_recover_height;
+            entity.transform.position = pos;
+            entity.rb.position = pos;
+            Vector3 velocity = entity.rb.velocity;
+            velocity.y = 0f;
+            entity.rb.velocity = velocity;
+        }
+    }
+
+    #endregion
 }

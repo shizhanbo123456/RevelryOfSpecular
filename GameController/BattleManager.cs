@@ -1013,6 +1013,7 @@ public partial class BattleManager : EnsBehaviour
     private const string kTickBulletsTag = "BattleManager.TickBullets";
     private const string kTickReviveTag = "BattleManager.TickRevive";
     private const string kTickWorldRespawnTag = "BattleManager.TickWorldRespawn";
+    private const string kFallRecoverTag = "BattleManager.TickFallRecover";
     private const string kProcessKilledTag = "BattleManager.ProcessKilled";
     private const string kCampAliveCountTag = "BattleManager.CampAliveCount";
     private const string kDefensePointTag = "BattleManager.DefensePointProgress";
@@ -1072,6 +1073,9 @@ public partial class BattleManager : EnsBehaviour
         // 战斗核心推进：权威移动（时间戳外推）/ 子弹容器 / 复活与珊瑚刷新
         Profiler.BeginSample(kTickMovementTag);
         TickMovement();
+        Profiler.EndSample();
+        Profiler.BeginSample(kFallRecoverTag);
+        TickFallRecover(UnityEngine.Time.deltaTime); // 早于 SyncTransforms：传送当帧即同步给物理
         Profiler.EndSample();
         Profiler.BeginSample(kSyncTransformsTag);
         Physics.SyncTransforms(); //位移已由刚体积分，此处兜底按 transform 移动的对象（项目关闭了自动同步）

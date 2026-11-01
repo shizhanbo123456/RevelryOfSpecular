@@ -20,7 +20,7 @@ public class LandscapeSpawns : MonoBehaviour
         Tool.LandscapeSpawns = this;
     }
 
-    #region 运行时点位贴合（吸附到 Terrain 表面上方 SurfaceOffset）
+    #region 运行时点位贴合（人形站立点抬高 HumanoidSurfaceOffset，雕像类贴地）
 
     private void Start()
     {
@@ -35,26 +35,34 @@ public class LandscapeSpawns : MonoBehaviour
     private void SnapCombatPointsToTerrain()
     {
         // 锚点类点位（Transform）：直接平移场景对象的 Y，X/Z 不变
-        SnapTransformsToSurface(subGuardStatueSpawnPositions);
-        SnapTransformToSurface(mainGuardStatueSpawnPosition);
-        SnapTransformsToSurface(crystalStatueSpawnPositions);
-        SnapTransformsToSurface(neutralStatueSpawnPositions);
-        SnapTransformsToSurface(attackPositions);
-        SnapTransformsToSurface(defensePositions);
+        SnapTransformsToSurface(subGuardStatueSpawnPositions, PropSurfaceOffset);
+        SnapTransformToSurface(mainGuardStatueSpawnPosition, PropSurfaceOffset);
+        SnapTransformsToSurface(crystalStatueSpawnPositions, PropSurfaceOffset);
+        SnapTransformsToSurface(neutralStatueSpawnPositions, PropSurfaceOffset);
+        SnapTransformsToSurface(attackPositions, HumanoidSurfaceOffset);
+        SnapTransformsToSurface(defensePositions, HumanoidSurfaceOffset);
     }
 
-    private void SnapTransformsToSurface(List<Transform> list)
+    private void SnapTransformsToSurface(List<Transform> list, float offset)
     {
         if (list == null) return;
-        for (int i = 0; i < list.Count; i++) SnapTransformToSurface(list[i]);
+        for (int i = 0; i < list.Count; i++) SnapTransformToSurface(list[i], offset);
     }
 
-    private void SnapTransformToSurface(Transform t)
+    private void SnapTransformToSurface(Transform t, float offset)
     {
         if (t == null) return;
-        Vector3 origin = terrain.transform.position;
-        float y = origin.y + terrain.SampleHeight(t.position) + SurfaceOffset;
-        t.position = new Vector3(t.position.x, y, t.position.z);
+        if (!TrySampleTerrainHeight(t.position.x, t.position.z, out float groundY)) return;
+        t.position = new Vector3(t.position.x, groundY + offset, t.position.z);
+    }
+
+    // 地形表面世界高度（不含任何偏移）；地形缺失返回 false
+    public bool TrySampleTerrainHeight(float x, float z, out float y)
+    {
+        y = 0f;
+        if (terrain == null) return false;
+        y = terrain.transform.position.y + terrain.SampleHeight(new Vector3(x, 0f, z));
+        return true;
     }
 
     #endregion
@@ -112,7 +120,11 @@ public class LandscapeSpawns : MonoBehaviour
 
     private const int MaxSampleAttempts = 32;
 
-    private const float SurfaceOffset = 0.5f;
+    // 人形（角色/僵尸）落点：站在 Terrain 表面上方 1
+    private const float HumanoidSurfaceOffset = 1f;
+
+    // 非人形（雕像/珊瑚）：直接贴地，不留悬空
+    private const float PropSurfaceOffset = 0f;
 
     private const float GizmoPinFactor = 2f;
 
@@ -127,7 +139,7 @@ public class LandscapeSpawns : MonoBehaviour
             float x = Random.value * Landscape.MapSize;
             float z = Random.value * Landscape.MapSize;
             if (!Tool.AssetsManager.IsLegalSpawnXZ(x, z)) continue;
-            result = SnapToSurface(x, z);
+            result = SnapToSurface(x, z, HumanoidSurfaceOffset);
             return true;
         }
         return false;
@@ -149,7 +161,7 @@ public class LandscapeSpawns : MonoBehaviour
             float x = center.x + Mathf.Cos(angle) * radius;
             float z = center.z + Mathf.Sin(angle) * radius;
             if (!Tool.AssetsManager.IsLegalSpawnXZ(x, z)) continue;
-            result = SnapToSurface(x, z);
+            result = SnapToSurface(x, z, PropSurfaceOffset);
             return true;
         }
         return false;
@@ -158,10 +170,10 @@ public class LandscapeSpawns : MonoBehaviour
     // 缺地形或缺 AssetsManager 时启动自检/Start 已报过错，这里不再逐次刷日志
     private bool CanSample => terrain != null && Tool.AssetsManager != null;
 
-    private Vector3 SnapToSurface(float x, float z)
+    private Vector3 SnapToSurface(float x, float z, float offset)
     {
-        float y = terrain.transform.position.y + terrain.SampleHeight(new Vector3(x, 0f, z)) + SurfaceOffset;
-        return new Vector3(x, y, z);
+        TrySampleTerrainHeight(x, z, out float y); // CanSample 已保证 terrain 非空
+        return new Vector3(x, y + offset, z);
     }
 
     #endregion

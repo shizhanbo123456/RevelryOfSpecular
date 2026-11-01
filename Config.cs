@@ -130,6 +130,11 @@ public static class Config
     public const float entity_sync_yaw_epsilon = 3f;    // 位姿脏判定：与上次下发朝向差超过该值（度）才置脏
     #endregion
 
+    #region 掉落回收
+    public const float entity_fall_check_interval = 5f;   // 每 5 秒检查一次 y<0 的实体
+    public const float entity_fall_recover_height = 1f;   // 落点 = Terrain 高度 + 1
+    #endregion
+
     #region 通用
     public const int entity_id_max = 30000;
     public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
