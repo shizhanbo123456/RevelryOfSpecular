@@ -728,10 +728,10 @@ public class BattlePage : PageBase
         if (IsOwnEntity(targetId)) PlaySelfHitAnim(type);
     }
 
+    // 复活条只服务本地玩家：包按令牌单播，观战目标死亡不驱动本界面
     private void OnReviveProgressUpdate(SCReviveInfo info)
     {
-        if (info == null) return;
-        if (!HasSession || info.clientId != NetworkManager.LocalToken) return; // 定向包，但仍按归属校验
+        if (info == null || !HasSession) return;
 
         if (info.ready)
         {
