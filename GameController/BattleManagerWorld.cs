@@ -115,15 +115,18 @@ public partial class BattleManager
         }
 
         Vector3 center = s_playerPosScratch[Random.Range(0, s_playerPosScratch.Count)];
-        float minDist = Config.coral_spawn_min_dist;
+        float minDist = ConfigManager.GlobalVariableConfig.coral_spawn_range_min;
+        float maxDist = ConfigManager.GlobalVariableConfig.coral_spawn_range_max;
+        float spacing = ConfigManager.GlobalVariableConfig.coral_spawn_spacing;
+        float maxDensity = ConfigManager.GlobalVariableConfig.coral_spawn_max_density;
 
         for (int attempt = 0; attempt < CoralSampleAttempts; attempt++)
         {
             // 采样：所选玩家的环带内 + MapSpace 合法区
-            if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, Config.coral_spawn_max_dist, out Vector3 pos)) continue;
+            if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, maxDist, out Vector3 pos)) continue;
             if (IsAnyPlayerWithin(pos, minDist)) continue;              // 该点近处还有别的玩家
-            if (IsAnyCoralWithin(pos, Config.coral_min_separation)) continue; // 与已有珊瑚距离必须 > 1m
-            if (CoralDensityAt(pos) >= Config.coral_chunk_max_density) continue; // 所在区块珊瑚密度已达上限
+            if (IsAnyCoralWithin(pos, spacing)) continue;               // 与已有珊瑚的最小间距
+            if (CoralDensityAt(pos) >= maxDensity) continue;            // 所在区块珊瑚密度已达上限
 
             EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
             SpawnEntity(type, 1, pos, EntityCamp.Prop);

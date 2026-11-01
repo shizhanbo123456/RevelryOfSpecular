@@ -1142,7 +1142,7 @@ public partial class BattleManager : EnsBehaviour
         }
         Profiler.EndSample(); // kZombieRefreshTag
 
-        // 珊瑚邻近生成：按 Config.coral_spawn_checks_per_second 每秒若干次检测（随机玩家 → 40~80m 环带内刷新点）
+        // 珊瑚邻近生成：按 Config.coral_spawn_checks_per_second 每秒若干次检测（随机玩家 → 配表环带内刷新点）
         Profiler.BeginSample(kCoralSpawnTag);
         TickCoralSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample();

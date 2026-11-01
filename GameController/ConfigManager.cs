@@ -750,6 +750,10 @@ public class ConfigManager : MonoBehaviour
         public static float coral_large_drop_chance;    // 大珊瑚被摧毁时的掉武器概率
         public static float coral_small_regeneration;   // 摧毁小珊瑚时击杀者的生命恢复量
         public static float coral_large_regeneration;   // 摧毁大珊瑚时击杀者的生命恢复量
+        public static float coral_spawn_max_density;    // 候选点所在区块的珊瑚平均密度上限（个/平方米）
+        public static float coral_spawn_spacing;        // 新珊瑚与已有珊瑚的最小间距（米）
+        public static float coral_spawn_range_min;      // 刷新点与所选玩家的最小距离（米）
+        public static float coral_spawn_range_max;      // 刷新点与所选玩家的最大距离（米）
         public static int zombie_max;                   // 场上僵尸数量上限
         public static float zombie_refresh_rate_fast;   // 僵尸刷新速度上限（场上剩余越少越快，单位：只/秒）
         public static float zombie_refresh_rate_slow;   // 僵尸刷新速度下限
@@ -884,6 +888,19 @@ public class ConfigManager : MonoBehaviour
                 case "coral_large_regeneration":
                     coral_large_regeneration = NonNegative(Float(row), row.key);
                     break;
+                // 表内 key 拼写为 desity，按原文读取
+                case "coral_spawn_max_desity":
+                    coral_spawn_max_density = Positive(Float(row), row.key);
+                    break;
+                case "coral_spawn_spacing":
+                    coral_spawn_spacing = Positive(Float(row), row.key);
+                    break;
+                case "coral_spawn_range":
+                    Pair(row, out coral_spawn_range_min, out coral_spawn_range_max);
+                    if (coral_spawn_range_min <= 0f || coral_spawn_range_max <= coral_spawn_range_min)
+                        throw new FormatException(
+                            $"[配表] {FileName} 的 coral_spawn_range 必须是 最小;最大 且最小大于 0、最大大于最小：「{row.value}」");
+                    break;
                 case "zombie_max":
                     zombie_max = Positive(Int(row), row.key);
                     break;
@@ -989,6 +1006,11 @@ public class ConfigManager : MonoBehaviour
             if (name_length_max <= 0 || name_length_min <= 0
                 || player_limit_attacker <= 0 || player_limit_defenser <= 0)
                 throw new FormatException($"[配表] {FileName} 缺少名字长度/人数上限参数行（name_length_*/player_limit_*）");
+
+            // 珊瑚刷新参数必须给值：缺行按 0 处理会让环带采样直接失败、珊瑚永不刷新
+            if (coral_spawn_max_density <= 0f || coral_spawn_spacing <= 0f || coral_spawn_range_max <= coral_spawn_range_min)
+                throw new FormatException(
+                    $"[配表] {FileName} 缺少珊瑚刷新参数行（coral_spawn_max_desity/coral_spawn_spacing/coral_spawn_range）");
             if (name_length_min > name_length_max)
                 throw new FormatException($"[配表] {FileName} 的 name_length_min 不能大于 name_length_max：{name_length_min} vs {name_length_max}");
             if (sync_precision_entity_xz >= terrain_size)
@@ -1064,6 +1086,18 @@ public class ConfigManager : MonoBehaviour
                 !float.TryParse(tokens[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
                 throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 必须是单个数值：「{row.value}」");
             return value;
+        }
+
+        // 单行两分量（分号分隔的区间，如刷新距离 42.5;62.5）
+        private static void Pair(GlobalVariableConfig row, out float first, out float second)
+        {
+            string[] parts = row.value.Split(';');
+            first = 0f;
+            second = 0f;
+            if (parts.Length != 2
+                || !float.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out first)
+                || !float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out second))
+                throw new FormatException($"[配表] {FileName} 的行「{row.key}」value 必须是分号分隔的两个数值：「{row.value}」");
         }
 
         // 多值行（如雷达半径档位）
