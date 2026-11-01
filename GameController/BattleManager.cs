@@ -752,6 +752,12 @@ public partial class BattleManager : EnsBehaviour
     public void ReceiveChat(int clientId, CSChat chat)
     {
         if (chat == null) return;
+        Tool.NetworkManager.SendChat(BuildChat(clientId, chat.channel, chat.content));
+    }
+
+    // 组装一条完整聊天消息：发送方名字、阵营、角色头像都只有服务器知道
+    private SCChat BuildChat(int clientId, int channel, string content)
+    {
         PlayerInfoList.TryGetValue(clientId, out var info);
         int campValue = PlayerCamps.TryGetValue(clientId, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
         int characterIndex = -1;
@@ -762,15 +768,16 @@ public partial class BattleManager : EnsBehaviour
             else if (campValue == 1 && info.defenseCharacter.category == EntityCategory.Character_Defense)
                 characterIndex = info.defenseCharacter.value;
         }
-        Tool.NetworkManager.SendChat(new SCChat()
+
+        return new SCChat()
         {
             senderClientId = clientId,
-            channel = chat.channel,
+            channel = channel,
             camp = campValue,
             characterIndex = characterIndex,
             name = info != null ? info.name : "",
-            content = chat.content,
-        });
+            content = content,
+        };
     }
 
     #region 快捷消息（玩家指令 → 同阵营人机）
@@ -827,7 +834,12 @@ public partial class BattleManager : EnsBehaviour
             targetPosition = entity.transform.position,
             extra = text,
         }, entity.camp);
+
+        // 同一条上报同时进阵营频道聊天：发送者就是这台人机，供队友在聊天里看到
+        Tool.NetworkManager.SendChat(BuildChat(clientId, chat_channel_camp, text));
     }
+
+    private const int chat_channel_camp = 1; // 与 ChatPlugin.ChannelCamp 对应：0 全频道 / 1 阵营频道
     #endregion
 
     private Vector3 GetAttackSpawnPos()
