@@ -162,15 +162,7 @@ namespace Ros.Gm
             layoutStyle.Add(GmEnum.Entity_Spawn, new()
             {
                 new Dropdown("单位类型", typeof(GmEntityType)),
-                new InputInt("数量"),
                 new Button(string.Empty, "刷新")
-            });
-            layoutStyle.Add(GmEnum.Entity_Kill, new()
-            {
-                new Dropdown("目标类型", typeof(GmEntityType)),
-                new Dropdown("筛选方式", typeof(GmFilterType)),
-                new FloatInput("数量/半径"),
-                new Button(string.Empty, "击杀")
             });
             layoutStyle.Add(GmEnum.Entity_Knockback, new()
             {

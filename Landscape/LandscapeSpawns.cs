@@ -65,6 +65,15 @@ public class LandscapeSpawns : MonoBehaviour
         return true;
     }
 
+    // 指定 x/z 的落点高度：人形抬高 HumanoidSurfaceOffset，非人形贴地
+    public bool TryGetGroundPos(float x, float z, bool humanoid, out Vector3 pos)
+    {
+        pos = default;
+        if (!TrySampleTerrainHeight(x, z, out float y)) return false;
+        pos = new Vector3(x, y + (humanoid ? HumanoidSurfaceOffset : PropSurfaceOffset), z);
+        return true;
+    }
+
     #endregion
 
     [Header("副守护点")]

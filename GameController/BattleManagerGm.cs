@@ -49,8 +49,7 @@ public partial class BattleManager
                 break;
 
             // ===== 实体 =====
-            case GmEnum.Entity_Spawn: GmSpawn((GmEntityType)gm.int1, gm.int2); break;
-            case GmEnum.Entity_Kill: GmKill(clientId, (GmEntityType)gm.int1, (GmFilterType)gm.int2, gm.float1); break;
+            case GmEnum.Entity_Spawn: GmSpawn(clientId, (GmEntityType)gm.int1); break;
             case GmEnum.Entity_Knockback: GmKnockback(clientId, gm.float1, gm.float2, (GmFilterType)gm.int1, gm.float3); break;
 
             // ===== 玩家 =====
@@ -228,53 +227,40 @@ public partial class BattleManager
         RespawnPlayer(clientId, rs);
     }
 
-    private void GmSpawn(GmEntityType type, int count)
+    // 刷新固定 1 个：僵尸/精英/珊瑚落在发起 GM 的玩家位置，中立单位落在中立雕像锚点
+    private void GmSpawn(int clientId, GmEntityType type)
     {
-        if (!BattleStarted || count <= 0) return;
-        var spawns = Tool.LandscapeSpawns;
+        if (!BattleStarted) return;
+
         switch (type)
         {
             case GmEntityType.Zombie:
-                for (int i = 0; i < count; i++)
-                    if (Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 zPos))
-                        SpawnEntity(EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(), zPos, EntityCamp.Zombie);
+                GmSpawnAtPlayer(clientId, EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Zombie, humanoid: true);
                 break;
             case GmEntityType.EliteZombie:
-                for (int i = 0; i < count; i++)
-                    if (Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 ePos))
-                        SpawnEntity(EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(), ePos, EntityCamp.Zombie);
+                GmSpawnAtPlayer(clientId, EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Zombie, humanoid: true);
                 break;
-            case GmEntityType.Coral: GmSpawnCorals(count); break;
+            case GmEntityType.Coral:
+                EntityType coral = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
+                GmSpawnAtPlayer(clientId, coral, 1, EntityCamp.Prop, humanoid: false);
+                break;
             case GmEntityType.Neutral:
                 // 中立单位（中立雕像）场上最多 1 个，已有就不再刷
                 foreach (var e in EntityContainer.Entities)
                     if (e != null && e.Alive && e.type.category == EntityCategory.NeutralStatue) return;
-                SpawnEntity(EntityType.AngelStatue, 1, LandscapeSpawns.RandomOf(spawns.neutralStatueSpawnPositions), EntityCamp.Neutral);
-                break;
-            case GmEntityType.CrystalStatue:
-                for (int i = 0; i < count; i++)
-                    SpawnEntity(EntityType.CrystalStatue(Random.Range(0, Config.crystal_statue_count)), 1,
-                        LandscapeSpawns.RandomOf(spawns.crystalStatueSpawnPositions), EntityCamp.DefenseTower);
+                SpawnEntity(EntityType.AngelStatue, 1, LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.neutralStatueSpawnPositions), EntityCamp.Neutral);
                 break;
         }
     }
 
-    // 珊瑚：直接采样 MapSpace 合法位置，与 TickCoralSpawn 同一套采样
-    private void GmSpawnCorals(int count)
+    // 落点 = 令牌对应玩家实体的 x/z（高度按人形/非人形吸附地形）；取不到玩家实体就不刷
+    private void GmSpawnAtPlayer(int clientId, EntityType type, int level, EntityCamp camp, bool humanoid)
     {
-        for (int i = 0; i < count; i++)
-        {
-            if (!Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 pos)) continue;
-            EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
-            SpawnEntity(type, 1, pos, EntityCamp.Prop);
-        }
-    }
-
-    private void GmKill(int clientId, GmEntityType type, GmFilterType filter, float amount)
-    {
-        if (!BattleStarted) return;
-        var targets = CollectGmTargets(clientId, GmCategoryOf(type), filter, amount);
-        foreach (var e in targets) e.Kill();
+        var owner = GetGmPlayerEntity(clientId);
+        if (owner == null) return;
+        Vector3 p = owner.transform.position;
+        if (!Tool.LandscapeSpawns.TryGetGroundPos(p.x, p.z, humanoid, out Vector3 pos)) return;
+        SpawnEntity(type, level, pos, camp);
     }
 
     // 击飞：从 GM 自己实体向外；不判霸体；飞行（FlightMode）与无刚体单位跳过
@@ -295,15 +281,6 @@ public partial class BattleManager
             if (vertical != 0f) e.SetVelocityVertical(vertical, VelocitySource.Knockback);
         }
     }
-
-    private static EntityCategory GmCategoryOf(GmEntityType type) => type switch
-    {
-        GmEntityType.EliteZombie => EntityCategory.EliteZombie,
-        GmEntityType.Coral => EntityCategory.Coral,
-        GmEntityType.Neutral => EntityCategory.NeutralStatue,
-        GmEntityType.CrystalStatue => EntityCategory.CrystalStatue,
-        _ => EntityCategory.Zombie,
-    };
 
     private readonly List<EntityData> gmTargetScratch = new();
 

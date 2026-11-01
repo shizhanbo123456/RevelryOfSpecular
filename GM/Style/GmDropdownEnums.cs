@@ -2,7 +2,7 @@ namespace Ros.Gm
 {
     // GM 下拉框专用枚举：命名一律以 Gm 开头，按类别控粒度（不按实例）
 
-    // 实体类型（刷新 / 击杀）
+    // 实体类型（刷新）
     public enum GmEntityType
     {
         [GmLabel("普通僵尸")]
@@ -13,8 +13,6 @@ namespace Ros.Gm
         Coral,
         [GmLabel("中立单位")]
         Neutral,
-        [GmLabel("水晶雕像")]
-        CrystalStatue,
     }
 
     // 立即结算方式

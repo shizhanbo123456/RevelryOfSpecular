@@ -27,9 +27,6 @@ namespace Ros.Gm
         [GmLabel("实体-刷新")]
         [GmStatus(GmStatusType.Battle)]
         Entity_Spawn,
-        [GmLabel("实体-击杀")]
-        [GmStatus(GmStatusType.Battle)]
-        Entity_Kill,
         [GmLabel("实体-击飞")]
         [GmStatus(GmStatusType.Battle)]
         Entity_Knockback,
