@@ -35,7 +35,7 @@ public partial class BattleManager
         {
             var crystalStatueAnchor = spawns.crystalStatueSpawnPositions[i];
             if (crystalStatueAnchor == null) continue;
-            SpawnEntity(EntityType.CrystalStatue(i), 1, crystalStatueAnchor.position, EntityCamp.DefenseTower);
+            SpawnEntity(EntityType.CrystalStatue(i), 1, crystalStatueAnchor.position, EntityCamp.Defense);
         }
 
         // 中立雕像（中立争抢单位）：开局不刷，开战后按延迟计时刷新；之后由被打死的时机重排
@@ -46,7 +46,7 @@ public partial class BattleManager
     {
         if (!TrySampleZombieSpawnPoint(out Vector3 pos)) return;
         int variant = Random.Range(0, Config.zombie_variant_count);
-        SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), pos, EntityCamp.Zombie);
+        SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), pos, EntityCamp.Defense);
     }
 
     // 每满一个间隔做一批尝试：夜间用快速档次数、白天用慢速档次数；场上达上限整批跳过
@@ -183,7 +183,7 @@ public partial class BattleManager
             if (CoralDensityAt(pos) >= maxDensity) continue;            // 所在区块珊瑚密度已达上限
 
             EntityType type = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
-            SpawnEntity(type, 1, pos, EntityCamp.Prop);
+            SpawnEntity(type, 1, pos, EntityCamp.Neutral);
             return;
         }
     }

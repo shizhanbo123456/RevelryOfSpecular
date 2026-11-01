@@ -76,9 +76,8 @@ namespace Ros.UI.Main
         // 实体阵营 → 玩家阵营档位（PlayerCampIcon.m_player_camp 页序：0 进攻 / 1 防守 / 2 观战 / 3 中立）
         private static PlayerCampType ToPlayerCamp(EntityCamp camp)
         {
-            EntityCamp display = EntityCampUtil.DisplayCamp(camp);
-            if (display == EntityCamp.Attack) return PlayerCampType.Attack;
-            if (display == EntityCamp.Defense) return PlayerCampType.Defense;
+            if (camp == EntityCamp.Attack) return PlayerCampType.Attack;
+            if (camp == EntityCamp.Defense) return PlayerCampType.Defense;
             return PlayerCampType.Neutral; // 中立雕像、珊瑚与其它场景物件
         }
 
@@ -86,9 +85,8 @@ namespace Ros.UI.Main
         private static bool IsEnemy(EntityCamp camp, EntityCamp myCamp)
         {
             if (myCamp != EntityCamp.Attack && myCamp != EntityCamp.Defense) return false;
-            EntityCamp display = EntityCampUtil.DisplayCamp(camp); // 僵尸/防御塔算防守方：进攻方看到是敌方，防守方看到是友方
-            if (display != EntityCamp.Attack && display != EntityCamp.Defense) return false;
-            return display != myCamp;
+            if (camp != EntityCamp.Attack && camp != EntityCamp.Defense) return false;
+            return camp != myCamp;
         }
     }
 }

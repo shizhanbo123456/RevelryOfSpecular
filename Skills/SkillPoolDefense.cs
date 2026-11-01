@@ -225,7 +225,7 @@ namespace Ros.Skill
             {
                 var type = EntityType.Zombie(UnityEngine.Random.Range(0, Config.zombie_variant_count));
                 Tool.BattleManager.SpawnEntity(type, level,
-                    caster.transform.position + TargetSelect.SummonOffset(i), EntityCamp.Zombie);
+                    caster.transform.position + TargetSelect.SummonOffset(i), EntityCamp.Defense);
             }
         }
 
@@ -273,7 +273,7 @@ namespace Ros.Skill
             {
                 var type = EntityType.EliteZombie(UnityEngine.Random.Range(0, Config.elite_zombie_variant_count));
                 Tool.BattleManager.SpawnEntity(type, level,
-                    caster.transform.position + TargetSelect.SummonOffset(i, 3f), EntityCamp.Zombie);
+                    caster.transform.position + TargetSelect.SummonOffset(i, 3f), EntityCamp.Defense);
             }
         }
 

@@ -235,14 +235,14 @@ public partial class BattleManager
         switch (type)
         {
             case GmEntityType.Zombie:
-                GmSpawnAtPlayer(clientId, EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Zombie, humanoid: true);
+                GmSpawnAtPlayer(clientId, EntityType.Zombie(Random.Range(0, Config.zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Defense, humanoid: true);
                 break;
             case GmEntityType.EliteZombie:
-                GmSpawnAtPlayer(clientId, EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Zombie, humanoid: true);
+                GmSpawnAtPlayer(clientId, EntityType.EliteZombie(Random.Range(0, Config.elite_zombie_variant_count)), GetZombieSpawnLevel(), EntityCamp.Defense, humanoid: true);
                 break;
             case GmEntityType.Coral:
                 EntityType coral = Random.value < ConfigManager.GlobalVariableConfig.coral_spawn_as_large_chance ? EntityType.CoralLarge : EntityType.CoralSmall;
-                GmSpawnAtPlayer(clientId, coral, 1, EntityCamp.Prop, humanoid: false);
+                GmSpawnAtPlayer(clientId, coral, 1, EntityCamp.Neutral, humanoid: false);
                 break;
             case GmEntityType.Neutral:
                 // 中立单位（中立雕像）场上最多 1 个，已有就不再刷
