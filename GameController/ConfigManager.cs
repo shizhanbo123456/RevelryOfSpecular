@@ -888,8 +888,7 @@ public class ConfigManager : MonoBehaviour
                 case "coral_large_regeneration":
                     coral_large_regeneration = NonNegative(Float(row), row.key);
                     break;
-                // 表内 key 拼写为 desity，按原文读取
-                case "coral_spawn_max_desity":
+                case "coral_spawn_max_density":
                     coral_spawn_max_density = Positive(Float(row), row.key);
                     break;
                 case "coral_spawn_spacing":
@@ -1010,7 +1009,7 @@ public class ConfigManager : MonoBehaviour
             // 珊瑚刷新参数必须给值：缺行按 0 处理会让环带采样直接失败、珊瑚永不刷新
             if (coral_spawn_max_density <= 0f || coral_spawn_spacing <= 0f || coral_spawn_range_max <= coral_spawn_range_min)
                 throw new FormatException(
-                    $"[配表] {FileName} 缺少珊瑚刷新参数行（coral_spawn_max_desity/coral_spawn_spacing/coral_spawn_range）");
+                    $"[配表] {FileName} 缺少珊瑚刷新参数行（coral_spawn_max_density/coral_spawn_spacing/coral_spawn_range）");
             if (name_length_min > name_length_max)
                 throw new FormatException($"[配表] {FileName} 的 name_length_min 不能大于 name_length_max：{name_length_min} vs {name_length_max}");
             if (sync_precision_entity_xz >= terrain_size)
