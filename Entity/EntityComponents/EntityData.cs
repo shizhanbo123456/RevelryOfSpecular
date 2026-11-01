@@ -189,7 +189,7 @@ public abstract class EntityData : MonoBehaviour
         // 到达/拐点半径随单帧位移放大：低帧率下一帧就能跨过固定半径，导致在目标两侧反复掉头
         float step = (transform.position - navLastPos).magnitude;
         navLastPos = transform.position;
-        if (step > 0.001f && step < 2f) navLastStep = step;
+        if (step > 0.001f && step < 2f) navLastStep = Mathf.Lerp(navLastStep, step, 0.15f); // 平滑：避免到达半径逐帧跳动
         float arrive = Mathf.Max(nav_arrive_radius, navLastStep * 1.5f);
 
         Vector3 toDest = NavDestination - transform.position;

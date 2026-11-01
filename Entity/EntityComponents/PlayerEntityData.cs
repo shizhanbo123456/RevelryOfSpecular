@@ -272,11 +272,20 @@ public class PlayerEntityData : EntityData
         // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
         SetMoveInput(Vector3.zero);
         if (anim != null) anim.Move(false);
-        if (aiFaceSet && !blockRotation) FaceDirection(aiFacePoint - transform.position);
+        if (aiFaceSet && !blockRotation)
+        {
+            // 目标几乎与自己重合时方向向量极短、逐帧乱跳，直接不转，否则会高速来回抽搐
+            Vector3 toFace = aiFacePoint - transform.position;
+            toFace.y = 0f;
+            if (toFace.sqrMagnitude > 0.09f) FaceDirection(toFace);
+            else moveState.yawSpeed = 0f;
+        }
         else moveState.yawSpeed = 0f;
     }
 
     // AI 转向瞬时生效：不做渐转，客户端按同步包里的 yaw 绝对值直接对齐
+    private const float AiFaceDeadzone = 5f; // 方向抖动小于此角度不动朝向，避免逐帧反复翻转
+
     private void FaceDirection(Vector3 direction)
     {
         direction.y = 0f;
@@ -286,7 +295,14 @@ public class PlayerEntityData : EntityData
             return;
         }
 
-        moveState.yaw = Quaternion.LookRotation(direction).eulerAngles.y;
+        float targetYaw = Quaternion.LookRotation(direction).eulerAngles.y;
+        if (Mathf.Abs(Mathf.DeltaAngle(moveState.yaw, targetYaw)) < AiFaceDeadzone)
+        {
+            moveState.yawSpeed = 0f;
+            return;
+        }
+
+        moveState.yaw = targetYaw;
         moveState.yawSpeed = 0f;
     }
     #endregion

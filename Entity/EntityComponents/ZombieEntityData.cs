@@ -102,7 +102,8 @@ public class ZombieEntityData : EntityData
 
         Vector3 to = target.transform.position - transform.position;
         to.y = 0f;
-        if (to.sqrMagnitude < 0.0001f)
+        // 目标几乎与自己重合时方向向量极短、逐帧乱跳，直接不转
+        if (to.sqrMagnitude < 0.09f)
         {
             yawSpeed = 0f;
             return;
