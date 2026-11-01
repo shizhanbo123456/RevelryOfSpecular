@@ -3,7 +3,7 @@ using UnityEngine;
 // 人机玩家的各状态实现（状态图与消息矩阵见 Doc/08-游戏AI逻辑）
 public partial class AiPlayerAi
 {
-    private const float DefaultAttackRange = 12f; // 技能都没配射程时的近战兜底（与旧控制器一致）
+    private const float DefaultAttackRange = 2f; // 栏内没有带射程的技能时按空手射程算，不能用大值否则会停在打不到的距离
 
     private sealed class SearchState : AiState
     {
