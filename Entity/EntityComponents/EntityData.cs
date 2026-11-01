@@ -156,6 +156,9 @@ public abstract class EntityData : MonoBehaviour
     private const float nav_corner_radius = 0.3f;
     private const float nav_repath_interval = 0.25f;
     private const float nav_arrive_radius = 0.3f; // 到达死区：执行层每帧判定，越过目标后不再掉头
+    private const float nav_rescue_tolerance = 1f;      // 与导航面的距离在此以内视为仍在网格上
+    private const float nav_rescue_search_radius = 10f; // 脱网救援点搜索半径
+    private const float nav_rescue_interval = 1f;       // 脱网检查间隔
 
     private NavMeshPath navPath; // 懒创建：珊瑚/雕像等不寻路的实体不必付这份开销
     private Vector3[] navCorners;
@@ -166,6 +169,7 @@ public abstract class EntityData : MonoBehaviour
     private Vector3 navLastDir;
     private int navReverseFrames;
     private int navFailCount; // 连续算路失败次数：达到上限即判定目标不可达
+    private float navNextRescueTime;
 
     public bool NavUnreachable => navFailCount >= Config.nav_path_fail_limit;
 
@@ -281,6 +285,26 @@ public abstract class EntityData : MonoBehaviour
         }
     }
 
+    // 脱网救援：被挤到导航面外（击退/斜坡/异常位移）时吸附回最近可达点，避免永久卡死
+    private void TickNavRescue()
+    {
+        if (rb == null || Time.time < navNextRescueTime) return;
+
+        // 只有正在移动的单位才需要检查，站桩单位（珊瑚/雕像）不必付这份开销
+        if (!HasNavDestination && moveInput.sqrMagnitude <= 0.0001f) return;
+        navNextRescueTime = Time.time + nav_rescue_interval;
+
+        // 站位附近仍有导航面，说明没脱网
+        if (NavMesh.SamplePosition(transform.position, out _, nav_rescue_tolerance, NavMesh.AllAreas)) return;
+        if (!NavMesh.SamplePosition(transform.position, out var rescuePoint, nav_rescue_search_radius, NavMesh.AllAreas)) return;
+
+        rb.velocity = Vector3.zero; // 清掉惯性，避免下一次物理步又把它推回网格外
+        rb.position = rescuePoint.position;
+        transform.position = rescuePoint.position;
+        navLastPos = rescuePoint.position;
+        navNextRepathTime = 0f;
+    }
+
     protected float FlatSqrDistance(Vector3 point)
     {
         Vector3 d = point - transform.position;
@@ -375,6 +399,7 @@ public abstract class EntityData : MonoBehaviour
 
         UpdateGrounded();
         TickDynamicCapsule();
+        TickNavRescue(); // 被挤出导航面时先拉回来，否则后面的移动逻辑会一直失效
 
         //朝向与输入推进（强控/位移锁输入期间输入不生效）
         bool canInput = effectController == null || effectController.CanMove();
