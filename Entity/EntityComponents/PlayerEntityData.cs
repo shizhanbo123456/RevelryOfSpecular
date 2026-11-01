@@ -269,9 +269,18 @@ public class PlayerEntityData : EntityData
             return;
         }
 
-        // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
+        // 无方向：分两种情况处理，不能混用朝向，否则会在「行进方向」与「目标方向」之间来回翻
         SetMoveInput(Vector3.zero);
         if (anim != null) anim.Move(false);
+
+        if (HasNavDestination)
+        {
+            // 还有目的地但已进入到达死区：保持当前朝向停住，不要再切去朝目标
+            moveState.yawSpeed = 0f;
+            return;
+        }
+
+        // 站桩（攻击档已 StopMoving）：朝 AI 指定的目标转
         if (aiFaceSet && !blockRotation)
         {
             // 目标几乎与自己重合时方向向量极短、逐帧乱跳，直接不转，否则会高速来回抽搐

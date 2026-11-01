@@ -162,6 +162,8 @@ public abstract class EntityData : MonoBehaviour
     private float navNextRepathTime;
     private Vector3 navLastPos;
     private float navLastStep; // 上一帧实际位移，用于放大到达/拐点半径
+    private Vector3 navLastDir;
+    private int navReverseFrames;
 
     public void MoveTo(Vector3 dest)
     {
@@ -180,6 +182,8 @@ public abstract class EntityData : MonoBehaviour
         NavDestination = default;
         HasNavDestination = false;
         navCorners = null;
+        navLastDir = Vector3.zero;
+        navReverseFrames = 0;
     }
 
     public Vector3 ResolveNavDirection()
@@ -200,21 +204,45 @@ public abstract class EntityData : MonoBehaviour
         {
             navNextRepathTime = Time.time + nav_repath_interval;
             navPath ??= new NavMeshPath();
-            bool ok = NavMesh.CalculatePath(transform.position, NavDestination, NavMesh.AllAreas, navPath);
+            // 起点先吸附到导航面：角色脚底与 NavMesh 有高度差时直接用 transform.position 会算出异常路径
+            Vector3 start = NavMesh.SamplePosition(transform.position, out var startHit, 2f, NavMesh.AllAreas)
+                ? startHit.position
+                : transform.position;
+            bool ok = NavMesh.CalculatePath(start, NavDestination, NavMesh.AllAreas, navPath);
             navCorners = ok && navPath.corners.Length > 1 ? navPath.corners : null;
         }
 
-        Vector3 target = NavDestination;
+        Vector3 dir = NavDestination - transform.position;
+        dir.y = 0f;
+
         if (navCorners != null)
         {
             int i = 0; // 起点与走过的拐点都靠这个距离跳过
             while (i < navCorners.Length && FlatSqrDistance(navCorners[i]) <= arrive * arrive) i++;
-            if (i < navCorners.Length) target = navCorners[i];
+            if (i < navCorners.Length)
+            {
+                Vector3 toCorner = navCorners[i] - transform.position;
+                toCorner.y = 0f;
+                // 拐点落在身后说明这条路径与前进方向矛盾（起点脱网/贴边），弃用拐点改用直线，避免前后翻转
+                if (toCorner.sqrMagnitude > 0.0001f && Vector3.Dot(toCorner, dir) > 0f) dir = toCorner;
+            }
         }
 
-        Vector3 dir = target - transform.position;
-        dir.y = 0f;
-        return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+        if (dir.sqrMagnitude <= 0.0001f) return Vector3.zero;
+
+        Vector3 final = dir.normalized;
+        // 方向与上一帧相反时先保持原方向，连续两帧才接受：目标在两点间跳变时不至于前后抽搐
+        if (navLastDir.sqrMagnitude > 0.5f && Vector3.Dot(final, navLastDir) < 0f)
+        {
+            if (++navReverseFrames < 2) return navLastDir;
+        }
+        else
+        {
+            navReverseFrames = 0;
+        }
+
+        navLastDir = final;
+        return final;
     }
 
     protected float FlatDistance(Vector3 point) => Mathf.Sqrt(FlatSqrDistance(point));
