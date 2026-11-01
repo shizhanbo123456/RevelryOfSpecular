@@ -148,13 +148,14 @@ public class CameraController : MonoBehaviour
         if (!sessionActive) return;
 
         bool spectator = loading.IsSpectator;
+        bool keysBlocked = Tool.UIManager != null && Tool.UIManager.GmOpen; // GM 面板打开时相机键归面板
 
-        if (spectator && Mode != CameraViewMode.Free && Input.GetKeyDown(KeyCode.W))
+        if (!keysBlocked && spectator && Mode != CameraViewMode.Free && Input.GetKeyDown(KeyCode.W))
         {
             SetMode(CameraViewMode.Free); // 纯观战：按 W 脱离跟随进自由视角
         }
 
-        if (Input.GetKeyDown(Config.camera_mode_key))
+        if (!keysBlocked && Input.GetKeyDown(Config.camera_mode_key))
         {
             switch (Mode)
             {

@@ -262,8 +262,12 @@ public class BattlePage : PageBase
 
     public override void Tick(float deltaTime)
     {
-        if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
-        if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
+        // GM 面板打开期间按键归面板，技能选择与快捷消息都不响应
+        if (Tool.UIManager == null || !Tool.UIManager.GmOpen)
+        {
+            if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
+            if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
+        }
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));

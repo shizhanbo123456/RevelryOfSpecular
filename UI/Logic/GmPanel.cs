@@ -84,6 +84,7 @@ public class GmPanel
     // 每帧由 UIManager 驱动：检测面板打开快捷键
     public void Tick()
     {
+        if (panel.visible) { ResetPress(); return; } // 已打开时不再累计按键，避免重复重建
         if (GRoot.inst.focus is GTextInput) return; // 正在编辑输入框时不响应，避免 V 误开
         if (!Input.GetKeyDown(panelOpenKey)) return;
         if (pressCount == 0 || Time.unscaledTime - firstPressTime > panelOpenPressWindow)

@@ -7,6 +7,7 @@ public class InputManager : MonoBehaviour
     private bool aHeld;
     private bool sHeld;
     private bool dHeld;
+    private bool inputBlocked; // GM 面板打开期间屏蔽上行；进入屏蔽的那一帧先把按键全部抬起
 
     private void Awake()
     {
@@ -18,9 +19,23 @@ public class InputManager : MonoBehaviour
         SendInput();
     }
 
+    private static bool UiBlocksInput => Tool.UIManager != null && Tool.UIManager.GmOpen;
+
     private void SendInput()
     {
         if (Tool.NetworkManager == null) return;
+
+        if (UiBlocksInput)
+        {
+            if (!inputBlocked)
+            {
+                inputBlocked = true;
+                ReleaseHeldKeys(); // 否则服务器仍认为按键按住，角色会一直走
+            }
+            return;
+        }
+        inputBlocked = false;
+
         PlayerKey pressed = PlayerKey.None;
 
         if (Input.GetKeyDown(KeyCode.W)) { pressed |= PlayerKey.WPress; wHeld = true; }
@@ -59,5 +74,18 @@ public class InputManager : MonoBehaviour
         bool topDown = Tool.CameraController != null && Tool.CameraController.Mode == CameraViewMode.TopDown;
         bool moving = topDown ? (wHeld || aHeld || sHeld || dHeld) : wHeld;
         Tool.ClientLogicManager.SkillVfx.CastUnarmed(moving);
+    }
+
+    // 进入屏蔽的那一帧把按住态全部抬起，告诉服务器按键已松开
+    private void ReleaseHeldKeys()
+    {
+        PlayerKey pressed = PlayerKey.None;
+        if (wHeld) { pressed |= PlayerKey.WRelease; wHeld = false; }
+        if (sHeld) { pressed |= PlayerKey.SRelease; sHeld = false; }
+        if (aHeld) { pressed |= PlayerKey.ARelease; aHeld = false; }
+        if (dHeld) { pressed |= PlayerKey.DRelease; dHeld = false; }
+        pressed |= PlayerKey.KRelease;
+        pressed |= PlayerKey.LShiftRelease;
+        Tool.NetworkManager.SendInput(new CSPlayerInput() { pressed = pressed });
     }
 }
