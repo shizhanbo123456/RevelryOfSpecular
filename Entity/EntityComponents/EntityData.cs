@@ -164,6 +164,7 @@ public abstract class EntityData : MonoBehaviour
     private float navLastStep; // 上一帧实际位移，用于放大到达/拐点半径
     private Vector3 navLastDir;
     private int navReverseFrames;
+    private float navReverseLogTime;
 
     public void MoveTo(Vector3 dest)
     {
@@ -234,6 +235,13 @@ public abstract class EntityData : MonoBehaviour
         // 方向与上一帧相反时先保持原方向，连续两帧才接受：目标在两点间跳变时不至于前后抽搐
         if (navLastDir.sqrMagnitude > 0.5f && Vector3.Dot(final, navLastDir) < 0f)
         {
+            if (Time.time >= navReverseLogTime)
+            {
+                navReverseLogTime = Time.time + 0.5f;
+                Debug.LogWarning($"[寻路反向] id={id} pos={transform.position:F2} dest={NavDestination:F2} " +
+                                 $"last={navLastDir:F2} now={final:F2} corner={navCorners != null} destDist={toDest.magnitude:F2}");
+            }
+
             if (++navReverseFrames < 2) return navLastDir;
         }
         else
