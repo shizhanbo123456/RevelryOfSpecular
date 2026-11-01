@@ -45,7 +45,7 @@ public class ZombieEntityData : EntityData
         // 无目的地（攻击档或游荡停顿中）：只转向目标，不移动
         if (!HasNavDestination)
         {
-            if (canInput && !blockRotation) FaceTarget(deltaTime);
+            if (canInput && !blockRotation) FaceTarget();
             else yawSpeed = 0f;
             return;
         }
@@ -74,20 +74,18 @@ public class ZombieEntityData : EntityData
             return;
         }
 
-        // 服务器权威渐转（客户端按 YawSpeed 推演）
-        float prevYaw = yaw;
-        if (!blockRotation)
-            yaw = Mathf.MoveTowardsAngle(yaw, Quaternion.LookRotation(dir).eulerAngles.y, Config.move_turn_rate * deltaTime);
-        yawSpeed = deltaTime > 0f ? Mathf.DeltaAngle(prevYaw, yaw) / deltaTime : 0f;
+        // 转向即时对准行进方向（不再渐转；客户端按同步的 yaw 绝对值对齐）
+        if (!blockRotation) yaw = Quaternion.LookRotation(dir).eulerAngles.y;
+        yawSpeed = 0f;
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
-        // 只喂"前进"：朝向已由上面的渐转负责。喂实际方向会在目标位于背后时触发"后退"语义
+        // 只喂"前进"：朝向已由上面的即时转向负责。喂实际方向会在目标位于背后时触发"后退"语义
         SetMoveInput(blockForward ? Vector3.zero : Vector3.forward);
         if (anim != null) anim.Move(!blockForward);
     }
 
     #region//Local
-    private void FaceTarget(float deltaTime)
+    private void FaceTarget()
     {
         if (faceTargetId == 0)
         {
@@ -111,9 +109,8 @@ public class ZombieEntityData : EntityData
         }
 
         EnsureYaw();
-        float prevYaw = yaw;
-        yaw = Mathf.MoveTowardsAngle(yaw, Quaternion.LookRotation(to).eulerAngles.y, Config.move_turn_rate * deltaTime);
-        yawSpeed = deltaTime > 0f ? Mathf.DeltaAngle(prevYaw, yaw) / deltaTime : 0f;
+        yaw = Quaternion.LookRotation(to).eulerAngles.y; // 即时对准，不渐转
+        yawSpeed = 0f;
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
     }
 

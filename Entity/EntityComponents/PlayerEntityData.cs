@@ -263,7 +263,7 @@ public class PlayerEntityData : EntityData
         Vector3 dir = ResolveNavDirection();
         if (dir.sqrMagnitude > 0.0001f)
         {
-            if (!blockRotation) SteerTo(transform.position + dir, deltaTime); // 朝行进方向渐转
+            if (!blockRotation) FaceDirection(dir); // 转向即时对准行进方向
             SetMoveInput(blockForward ? Vector3.zero : Vector3.forward);
             if (anim != null) anim.Move(!blockForward);
             return;
@@ -272,24 +272,22 @@ public class PlayerEntityData : EntityData
         // 无目的地（已赶到攻击距离内）：站定，只朝 AI 指定的目标转
         SetMoveInput(Vector3.zero);
         if (anim != null) anim.Move(false);
-        if (aiFaceSet && !blockRotation) SteerTo(aiFacePoint, deltaTime);
+        if (aiFaceSet && !blockRotation) FaceDirection(aiFacePoint - transform.position);
         else moveState.yawSpeed = 0f;
     }
 
-    private void SteerTo(Vector3 worldPoint, float deltaTime)
+    // AI 转向瞬时生效：不做渐转，客户端按同步包里的 yaw 绝对值直接对齐
+    private void FaceDirection(Vector3 direction)
     {
-        Vector3 to = worldPoint - transform.position;
-        to.y = 0f;
-        if (to.sqrMagnitude < 0.0001f)
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f)
         {
             moveState.yawSpeed = 0f;
             return;
         }
 
-        float prevYaw = moveState.yaw;
-        moveState.yaw = Mathf.MoveTowardsAngle(moveState.yaw,
-            Quaternion.LookRotation(to).eulerAngles.y, Config.move_turn_rate * deltaTime);
-        moveState.yawSpeed = deltaTime > 0f ? Mathf.DeltaAngle(prevYaw, moveState.yaw) / deltaTime : 0f;
+        moveState.yaw = Quaternion.LookRotation(direction).eulerAngles.y;
+        moveState.yawSpeed = 0f;
     }
     #endregion
 
