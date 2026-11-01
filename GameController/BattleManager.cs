@@ -821,21 +821,11 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    // 人机上报自身状况：与真人共用同一广播通道，附加自身位置与文本
+    // 人机上报自身状况：走阵营频道聊天，发送者就是这台人机
     public void ReportAiStatus(EntityData entity, string text)
     {
         if (entity == null) return;
         if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
-        BroadcastQuickMessage(new SCQuickMessage()
-        {
-            messageId = (int)QuickMessageType.ReportStatus,
-            senderClientId = clientId,
-            hasTargetPosition = true,
-            targetPosition = entity.transform.position,
-            extra = text,
-        }, entity.camp);
-
-        // 同一条上报同时进阵营频道聊天：发送者就是这台人机，供队友在聊天里看到
         Tool.NetworkManager.SendChat(BuildChat(clientId, chat_channel_camp, text));
     }
 
