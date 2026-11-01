@@ -35,5 +35,6 @@ public static class ClientEvent
     public const int OnGmResult = 10311;    // param=SCGm GM 指令回包（服务器帧率/时间）
     public const int OnCampAliveCount = 10312; // param=SCCampAliveCount 双方总人数、存活数与观战人数（值变更时下发）
     public const int OnQuickMessage = 10313;   // param=SCQuickMessage 同阵营快捷消息（含发送者与人机上报状况）
+    public const int OnAiReport = 10314;       // param=SCAiReport 同阵营状态上报（客户端本地拼聊天文本）
     #endregion
 }

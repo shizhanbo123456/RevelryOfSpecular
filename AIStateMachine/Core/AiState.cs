@@ -16,6 +16,9 @@ public abstract class AiState
     // 状态名（上报状况用）
     public virtual string Name => GetType().Name;
 
+    // 上报状态：协议只传枚举值，聊天文本由客户端本地拼
+    public virtual Ros.Transport.AiReportState ReportState => Ros.Transport.AiReportState.None;
+
     // 目的地走不到（一段时间没位移）：状态自行决定放弃当前目标或重选点位
     public virtual void OnStuck() { }
 }

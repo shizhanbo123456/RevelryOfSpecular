@@ -546,6 +546,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveQuickMessageLocal, to, Delivery.Reliable, message);
     }
 
+    // 状态上报下发：只发给同阵营的真人
+    public void SendAiReport(int clientId, SCAiReport report)
+    {
+        if (report == null || !TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveAiReportLocal, to, Delivery.Reliable, report);
+    }
+
     //GM 指令回包（服务器帧率 / 服务器时间等）
     public void SendGm(int clientId, SCGm gm)
     {
@@ -899,6 +906,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (message == null) return;
         EventManager.TrigEvent(ClientEvent.OnQuickMessage, message);
+    }
+
+    [Rpc]
+    private void ClientReceiveAiReportLocal(SCAiReport report)
+    {
+        if (report == null) return;
+        EventManager.TrigEvent(ClientEvent.OnAiReport, report);
     }
 
     [Rpc]

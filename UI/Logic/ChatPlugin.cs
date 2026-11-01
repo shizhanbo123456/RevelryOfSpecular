@@ -73,6 +73,7 @@ public class ChatPlugin
         EventManager.AddEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
+        EventManager.AddEvent<SCAiReport>(ClientEvent.OnAiReport, OnAiReport);
         EventManager.AddEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -85,6 +86,7 @@ public class ChatPlugin
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
+        EventManager.RemoveEvent<SCAiReport>(ClientEvent.OnAiReport, OnAiReport);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -212,6 +214,46 @@ public class ChatPlugin
         });
         RefreshList();
     }
+
+    // 状态上报：协议只带状态枚举与血量，文本本地拼，统一进阵营频道
+    private void OnAiReport(SCAiReport report)
+    {
+        if (report == null) return;
+        if (report.senderClientId == NetworkManager.LocalToken) return;
+        if (report.camp != GetMyCamp() && !ShowEnemyDialog) return; // 与聊天同规则：阵营频道只显示同阵营
+
+        entries.Add(new ChatEntry()
+        {
+            channel = ChannelCamp,
+            isSelf = false,
+            senderClientId = report.senderClientId,
+            camp = report.camp,
+            characterIndex = report.characterIndex,
+            name = GetUnitName(report.senderClientId),
+            content = $"{ReportStateText(report.state)}，血量 {report.healthPercent}%",
+        });
+        RefreshList();
+    }
+
+    private static string ReportStateText(int state) => state switch
+    {
+        (int)AiReportState.Search => "正在搜索",
+        (int)AiReportState.SearchCombat => "正在清理珊瑚",
+        (int)AiReportState.Chase => "正在追击",
+        (int)AiReportState.Combat => "正在战斗",
+        (int)AiReportState.EscortApproach => "正在前往护送",
+        (int)AiReportState.Escort => "正在护送",
+        (int)AiReportState.EscortCombat => "护送中交战",
+        (int)AiReportState.DangerEvade => "正在躲避危险",
+        (int)AiReportState.DangerClear => "正在搜寻威胁",
+        (int)AiReportState.DangerClearCombat => "正在清除威胁",
+        (int)AiReportState.RallyApproach => "正在前往集结",
+        (int)AiReportState.RallyWait => "正在集结待命",
+        (int)AiReportState.RallyGuard => "正在守卫集结点",
+        (int)AiReportState.Assault => "正在协同进攻",
+        (int)AiReportState.AssaultCombat => "协同进攻中交战",
+        _ => "状态未知",
+    };
 
     // 事件类型 → (EventIcon 档位, 条目版式)：FGUI 表现映射，协议里不传表现字段
     private void OnBattleEvent(SCBattleEvent e)

@@ -1,3 +1,4 @@
+using Ros.Transport;
 using UnityEngine;
 
 // 人机玩家的各状态实现（状态图与消息矩阵见 Doc/08-游戏AI逻辑）
@@ -7,6 +8,7 @@ public partial class AiPlayerAi
 
     private sealed class SearchState : AiState
     {
+        public override AiReportState ReportState => AiReportState.Search;
         private readonly AiPlayerAi ai;
         private bool hasPoint;
         private Vector3 point;
@@ -70,6 +72,7 @@ public partial class AiPlayerAi
 
     private sealed class SearchCombatState : AiState
     {
+        public override AiReportState ReportState => AiReportState.SearchCombat;
         private readonly AiPlayerAi ai;
         private EntityData coral;
 
@@ -103,6 +106,7 @@ public partial class AiPlayerAi
 
     private sealed class ChaseState : AiState
     {
+        public override AiReportState ReportState => AiReportState.Chase;
         private readonly AiPlayerAi ai;
         private EntityData target;
         private AiState returnState;
@@ -151,6 +155,9 @@ public partial class AiPlayerAi
         private float retreatRatio;
         private float activityRadius;
         private AiState retreatState;
+        private AiReportState reportState; // 同一个战斗类被 5 处复用，上报类型只能按实例区分
+
+        public override AiReportState ReportState => reportState;
 
         private EntityData target;
         private AiState returnState;
@@ -163,13 +170,14 @@ public partial class AiPlayerAi
             abandoned = true;
         }
 
-        public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState)
+        public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState, AiReportState reportState)
         {
             this.owner = owner;
             this.ai = ai;
             this.retreatRatio = retreatRatio;
             this.activityRadius = activityRadius;
             this.retreatState = retreatState;
+            this.reportState = reportState;
         }
 
         public CombatState Bind(EntityData t, AiState ret)
@@ -210,6 +218,7 @@ public partial class AiPlayerAi
 
     private sealed class EscortApproachState : AiState
     {
+        public override AiReportState ReportState => AiReportState.EscortApproach;
         private readonly AiPlayerAi ai;
         private EntityData escorted;
         private float enterTime;
@@ -238,6 +247,7 @@ public partial class AiPlayerAi
 
     private sealed class EscortState : AiState
     {
+        public override AiReportState ReportState => AiReportState.Escort;
         private readonly AiPlayerAi ai;
         private EntityData escorted;
         private Vector3 slotOffset;
@@ -278,6 +288,7 @@ public partial class AiPlayerAi
 
     private sealed class DangerEvadeState : AiState
     {
+        public override AiReportState ReportState => AiReportState.DangerEvade;
         private readonly AiPlayerAi ai;
         private Vector3 threat;
         private float enterTime;
@@ -310,6 +321,7 @@ public partial class AiPlayerAi
 
     private sealed class DangerClearState : AiState
     {
+        public override AiReportState ReportState => AiReportState.DangerClear;
         private readonly AiPlayerAi ai;
         private Vector3 point;
         private float enterTime;
@@ -339,6 +351,7 @@ public partial class AiPlayerAi
 
     private sealed class RallyApproachState : AiState
     {
+        public override AiReportState ReportState => AiReportState.RallyApproach;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
 
@@ -360,6 +373,7 @@ public partial class AiPlayerAi
 
     private sealed class RallyWaitState : AiState
     {
+        public override AiReportState ReportState => AiReportState.RallyWait;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
         private float nextCheck;
@@ -395,6 +409,7 @@ public partial class AiPlayerAi
 
     private sealed class AssaultState : AiState
     {
+        public override AiReportState ReportState => AiReportState.Assault;
         private readonly AiPlayerAi ai;
         private TaskTarget anchor;
 

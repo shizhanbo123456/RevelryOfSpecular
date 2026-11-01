@@ -759,25 +759,27 @@ public partial class BattleManager : EnsBehaviour
     private SCChat BuildChat(int clientId, int channel, string content)
     {
         PlayerInfoList.TryGetValue(clientId, out var info);
-        int campValue = PlayerCamps.TryGetValue(clientId, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
-        int characterIndex = -1;
-        if (info != null)
-        {
-            if (campValue == 0 && info.attackCharacter.category == EntityCategory.Character_Attack)
-                characterIndex = info.attackCharacter.value;
-            else if (campValue == 1 && info.defenseCharacter.category == EntityCategory.Character_Defense)
-                characterIndex = info.defenseCharacter.value;
-        }
-
+        int campValue = CampValueOf(clientId);
         return new SCChat()
         {
             senderClientId = clientId,
             channel = channel,
             camp = campValue,
-            characterIndex = characterIndex,
+            characterIndex = CharacterIndexOf(clientId, campValue),
             name = info != null ? info.name : "",
             content = content,
         };
+    }
+
+    private int CampValueOf(int clientId)
+        => PlayerCamps.TryGetValue(clientId, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
+
+    private int CharacterIndexOf(int clientId, int campValue)
+    {
+        if (!PlayerInfoList.TryGetValue(clientId, out var info)) return -1;
+        if (campValue == 0 && info.attackCharacter.category == EntityCategory.Character_Attack) return info.attackCharacter.value;
+        if (campValue == 1 && info.defenseCharacter.category == EntityCategory.Character_Defense) return info.defenseCharacter.value;
+        return -1;
     }
 
     #region 快捷消息（玩家指令 → 同阵营人机）
@@ -821,15 +823,30 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    // 人机上报自身状况：走阵营频道聊天，发送者就是这台人机
-    public void ReportAiStatus(EntityData entity, string text)
+    // 人机/真人上报自身状况：只发同阵营真人，客户端按 state + healthPercent 本地拼聊天文本
+    public void ReportAiStatus(EntityData entity, int state, int healthPercent)
     {
         if (entity == null) return;
         if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
-        Tool.NetworkManager.SendChat(BuildChat(clientId, chat_channel_camp, text));
-    }
 
-    private const int chat_channel_camp = 1; // 与 ChatPlugin.ChannelCamp 对应：0 全频道 / 1 阵营频道
+        int campValue = CampValueOf(clientId);
+        var report = new SCAiReport()
+        {
+            senderClientId = clientId,
+            state = state,
+            healthPercent = healthPercent,
+            camp = campValue,
+            characterIndex = CharacterIndexOf(clientId, campValue),
+            position = entity.transform.position,
+        };
+
+        foreach (var pair in PlayerInfoList)
+        {
+            if (AIClients.Contains(pair.Key)) continue;
+            if (CampValueOf(pair.Key) != campValue) continue;
+            Tool.NetworkManager.SendAiReport(pair.Key, report);
+        }
+    }
     #endregion
 
     private Vector3 GetAttackSpawnPos()
