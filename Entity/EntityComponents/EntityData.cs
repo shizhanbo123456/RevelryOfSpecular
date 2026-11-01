@@ -160,6 +160,8 @@ public abstract class EntityData : MonoBehaviour
     private NavMeshPath navPath; // 懒创建：珊瑚/雕像等不寻路的实体不必付这份开销
     private Vector3[] navCorners;
     private float navNextRepathTime;
+    private Vector3 navLastPos;
+    private float navLastStep; // 上一帧实际位移，用于放大到达/拐点半径
 
     public void MoveTo(Vector3 dest)
     {
@@ -184,10 +186,15 @@ public abstract class EntityData : MonoBehaviour
     {
         if (!HasNavDestination) return Vector3.zero;
 
-        // 进入最终目的地的死区即视为到达：返回零方向让执行层停步，否则会冲过头再掉头，来回抽搐
+        // 到达/拐点半径随单帧位移放大：低帧率下一帧就能跨过固定半径，导致在目标两侧反复掉头
+        float step = (transform.position - navLastPos).magnitude;
+        navLastPos = transform.position;
+        if (step > 0.001f && step < 2f) navLastStep = step;
+        float arrive = Mathf.Max(nav_arrive_radius, navLastStep * 1.5f);
+
         Vector3 toDest = NavDestination - transform.position;
         toDest.y = 0f;
-        if (toDest.sqrMagnitude <= nav_arrive_radius * nav_arrive_radius) return Vector3.zero;
+        if (toDest.sqrMagnitude <= arrive * arrive) return Vector3.zero;
 
         if (Time.time >= navNextRepathTime)
         {
@@ -201,7 +208,7 @@ public abstract class EntityData : MonoBehaviour
         if (navCorners != null)
         {
             int i = 0; // 起点与走过的拐点都靠这个距离跳过
-            while (i < navCorners.Length && FlatSqrDistance(navCorners[i]) <= nav_corner_radius * nav_corner_radius) i++;
+            while (i < navCorners.Length && FlatSqrDistance(navCorners[i]) <= arrive * arrive) i++;
             if (i < navCorners.Length) target = navCorners[i];
         }
 
