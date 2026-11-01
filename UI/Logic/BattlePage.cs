@@ -318,6 +318,7 @@ public class BattlePage : PageBase
         {
             localPlayerCamp = (int)info.camp;
             localPlayerAlive = true;
+            panel.m_onlook.selectedIndex = 0; // 复活/正常出战：血条与技能栏回到显示
             spectateTargetClientId = -1; // 本地实体出现（复活/正常出战）：服务器已退出观战，视角回自身
             spectateTargetEntityId = -1;
             UpdateLocalPlayerBar(info);
@@ -333,7 +334,10 @@ public class BattlePage : PageBase
         panel.m_Minimap?.Remove((ushort)entityId);
 
         if (IsOwnEntity(entityId))
+        {
             localPlayerAlive = false; // 本地死亡：显示观战下拉，进入死亡观战
+            panel.m_onlook.selectedIndex = 1; // 死亡等待复活：由 FGUI gear 收起血条与技能栏
+        }
     }
 
     #region 观战
