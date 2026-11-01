@@ -23,7 +23,6 @@ public partial class BattleManager : EnsBehaviour
     private float syncTimer;
     private float detailsTimer;
     private float dayNightSyncTimer;
-    private float zombieRefreshProgress;
     private int zombieCount;
 
     #region 玩家进出与组队大厅
@@ -1117,31 +1116,12 @@ public partial class BattleManager : EnsBehaviour
         UpdateAI();
         Profiler.EndSample();
 
-        // 夜间僵尸刷新（策划案第九章）：cd 进度满 1 → 刷新一只并清零；
-        // 僵尸数量达上限时不刷新且进度清零；白天（t ≥ 0.5）进度不增加
+        // 僵尸刷新（策划案第九章）：每满一个间隔做一批尝试，夜间次数多、白天次数少
         Profiler.BeginSample(kZombieRefreshTag);
-        if (!EnvironmentManager.IsDay) // t < 0.5 = 晚上
-        {
-            if (zombieCount >= ConfigManager.GlobalVariableConfig.zombie_max)
-            {
-                zombieRefreshProgress = 0f;
-            }
-            else
-            {
-                // 越少越快：0 只 → zombie_refresh_rate_fast，接近上限 → zombie_refresh_rate_slow（线性插值）
-                float rate = Mathf.Lerp(ConfigManager.GlobalVariableConfig.zombie_refresh_rate_fast, ConfigManager.GlobalVariableConfig.zombie_refresh_rate_slow,
-                    (float)zombieCount / ConfigManager.GlobalVariableConfig.zombie_max);
-                zombieRefreshProgress += UnityEngine.Time.deltaTime * rate;
-                if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
-                {
-                    zombieRefreshProgress = 0f;
-                    SpawnZombie(); // 出生点落在某个存活玩家的环带内（见 TrySampleZombieSpawnPoint）
-                }
-            }
-        }
+        TickZombieSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample(); // kZombieRefreshTag
 
-        // 珊瑚邻近生成：每秒尝试次数按场上珊瑚数在配表快/慢两档间切换（随机玩家 → 配表环带内刷新点）
+        // 珊瑚邻近生成：每满一个间隔做一批尝试，尝试次数按场上珊瑚数在配表快/慢两档间切换
         Profiler.BeginSample(kCoralSpawnTag);
         TickCoralSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample();

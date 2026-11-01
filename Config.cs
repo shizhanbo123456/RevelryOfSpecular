@@ -50,7 +50,6 @@ public static class Config
     #endregion
 
     #region 僵尸
-    public const float zombie_refresh_progress_max = 1f;
     public const int zombie_variant_count = 21;
     public const int elite_zombie_variant_count = 14;
     public const int zombie_spawn_level_passive_boost = 4;

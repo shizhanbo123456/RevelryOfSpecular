@@ -750,18 +750,20 @@ public class ConfigManager : MonoBehaviour
         public static float coral_large_drop_chance;    // 大珊瑚被摧毁时的掉武器概率
         public static float coral_small_regeneration;   // 摧毁小珊瑚时击杀者的生命恢复量
         public static float coral_large_regeneration;   // 摧毁大珊瑚时击杀者的生命恢复量
+        public static float coral_spawn_attempt_interval; // 珊瑚相邻两批刷新尝试的间隔（秒）
         public static float coral_spawn_max_density;    // 候选点所在区块的珊瑚平均密度上限（个/平方米）
         public static float coral_spawn_spacing;        // 新珊瑚与已有珊瑚的最小间距（米）
         public static float coral_spawn_range_min;      // 刷新点与所选玩家的最小距离（米）
         public static float coral_spawn_range_max;      // 刷新点与所选玩家的最大距离（米）
-        public static float coral_spawn_rate_fast;      // 场上珊瑚数未超阈值时每秒尝试次数
-        public static float coral_spawn_rate_slow;      // 场上珊瑚数超过阈值时每秒尝试次数
-        public static int coral_spawn_rate_rate;        // 珊瑚刷新降速的数量阈值（超过即降到慢速）
+        public static int coral_spawn_rate_fast;        // 每批尝试次数：场上珊瑚数未超阈值时
+        public static int coral_spawn_rate_slow;        // 每批尝试次数：场上珊瑚数超过阈值时
+        public static int coral_spawn_rate_rate;        // 珊瑚切换慢速的数量阈值（超过即用慢速次数）
         public static int zombie_max;                   // 场上僵尸数量上限
+        public static float zombie_spawn_attempt_interval; // 僵尸相邻两批刷新尝试的间隔（秒）
         public static float zombie_spawn_range_min;     // 僵尸刷新环带内径（与所选玩家的最小距离，米）
         public static float zombie_spawn_range_max;     // 僵尸刷新环带外径（与所选玩家的最大距离，米）
-        public static float zombie_refresh_rate_fast;   // 僵尸刷新速度上限（场上剩余越少越快，单位：只/秒）
-        public static float zombie_refresh_rate_slow;   // 僵尸刷新速度下限
+        public static int zombie_refresh_rate_fast;     // 每批尝试次数：夜间
+        public static int zombie_refresh_rate_slow;     // 每批尝试次数：白天
         public static int zombie_spawn_level;           // 初始僵尸刷新等级
         public static float zombie_level_step_ratio;    // 刷新等级每 +1 所需的战斗进程比例
         public static float terrain_size;               // 地形边长（米），必须为 chunkSize 的整数倍
@@ -905,11 +907,14 @@ public class ConfigManager : MonoBehaviour
                         throw new FormatException(
                             $"[配表] {FileName} 的 coral_spawn_range 必须是 最小;最大 且最小大于 0、最大大于最小：「{row.value}」");
                     break;
+                case "coral_spawn_attempt_interval":
+                    coral_spawn_attempt_interval = Positive(Float(row), row.key);
+                    break;
                 case "coral_spawn_rate_fast":
-                    coral_spawn_rate_fast = Positive(Float(row), row.key);
+                    coral_spawn_rate_fast = Positive(Int(row), row.key);
                     break;
                 case "coral_spawn_rate_slow":
-                    coral_spawn_rate_slow = Positive(Float(row), row.key);
+                    coral_spawn_rate_slow = Positive(Int(row), row.key);
                     break;
                 case "coral_spawn_rate_rate":
                     coral_spawn_rate_rate = Positive(Int(row), row.key);
@@ -917,11 +922,14 @@ public class ConfigManager : MonoBehaviour
                 case "zombie_max":
                     zombie_max = Positive(Int(row), row.key);
                     break;
+                case "zombie_spawn_attempt_interval":
+                    zombie_spawn_attempt_interval = Positive(Float(row), row.key);
+                    break;
                 case "zombie_refresh_rate_fast":
-                    zombie_refresh_rate_fast = NonNegative(Float(row), row.key);
+                    zombie_refresh_rate_fast = Positive(Int(row), row.key);
                     break;
                 case "zombie_refresh_rate_slow":
-                    zombie_refresh_rate_slow = NonNegative(Float(row), row.key);
+                    zombie_refresh_rate_slow = Positive(Int(row), row.key);
                     break;
                 case "zombie_spawn_level":
                     zombie_spawn_level = NonNegative(Int(row), row.key);
@@ -1030,9 +1038,12 @@ public class ConfigManager : MonoBehaviour
             if (coral_spawn_max_density <= 0f || coral_spawn_spacing <= 0f || coral_spawn_range_max <= coral_spawn_range_min)
                 throw new FormatException(
                     $"[配表] {FileName} 缺少珊瑚刷新参数行（coral_spawn_max_density/coral_spawn_spacing/coral_spawn_range）");
-            if (coral_spawn_rate_fast <= 0f || coral_spawn_rate_slow <= 0f || coral_spawn_rate_rate <= 0)
+            if (coral_spawn_attempt_interval <= 0f || coral_spawn_rate_fast <= 0 || coral_spawn_rate_slow <= 0 || coral_spawn_rate_rate <= 0)
                 throw new FormatException(
-                    $"[配表] {FileName} 缺少珊瑚刷新速率参数行（coral_spawn_rate_fast/coral_spawn_rate_slow/coral_spawn_rate_rate）");
+                    $"[配表] {FileName} 缺少珊瑚刷新节奏参数行（coral_spawn_attempt_interval/coral_spawn_rate_fast/coral_spawn_rate_slow/coral_spawn_rate_rate）");
+            if (zombie_spawn_attempt_interval <= 0f || zombie_refresh_rate_fast <= 0 || zombie_refresh_rate_slow <= 0)
+                throw new FormatException(
+                    $"[配表] {FileName} 缺少僵尸刷新节奏参数行（zombie_spawn_attempt_interval/zombie_refresh_rate_fast/zombie_refresh_rate_slow）");
             if (zombie_spawn_range_max <= zombie_spawn_range_min)
                 throw new FormatException($"[配表] {FileName} 缺少僵尸刷新距离参数行（zombie_spawn_range）");
             if (name_length_min > name_length_max)

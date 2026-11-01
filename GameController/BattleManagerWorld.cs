@@ -4,7 +4,8 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    private float coralSpawnAccumulator;
+    private float coralSpawnTimer;
+    private float zombieSpawnTimer;
     private static readonly List<Vector3> s_playerPosScratch = new();
     private static readonly List<Vector3> s_coralPosScratch = new();
 
@@ -46,6 +47,23 @@ public partial class BattleManager
         if (!TrySampleZombieSpawnPoint(out Vector3 pos)) return;
         int variant = Random.Range(0, Config.zombie_variant_count);
         SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), pos, EntityCamp.Zombie);
+    }
+
+    // 每满一个间隔做一批尝试：夜间用快速档次数、白天用慢速档次数；场上达上限整批跳过
+    private void TickZombieSpawn(float dt)
+    {
+        float interval = ConfigManager.GlobalVariableConfig.zombie_spawn_attempt_interval;
+        zombieSpawnTimer = Mathf.Min(zombieSpawnTimer + dt, interval);
+        if (zombieSpawnTimer < interval) return;
+        zombieSpawnTimer = 0f;
+
+        int max = ConfigManager.GlobalVariableConfig.zombie_max;
+        if (zombieCount >= max) return;
+
+        int times = EnvironmentManager.IsDay
+            ? ConfigManager.GlobalVariableConfig.zombie_refresh_rate_slow
+            : ConfigManager.GlobalVariableConfig.zombie_refresh_rate_fast;
+        for (int i = 0; i < times && zombieCount < max; i++) SpawnZombie();
     }
 
     #region 环带采样（僵尸与珊瑚共用：以某个存活玩家为圆心，离所有存活玩家不小于内径）
@@ -125,17 +143,17 @@ public partial class BattleManager
 
     private void TickCoralSpawn(float dt)
     {
-        // 场上珊瑚数超过阈值降到慢速档，否则用快速档
-        float rate = EntityContainer.Corals.Count > ConfigManager.GlobalVariableConfig.coral_spawn_rate_rate
+        // 每满一个间隔做一批尝试；计时器封顶一个间隔，掉帧后也不会连续爆发多批
+        float interval = ConfigManager.GlobalVariableConfig.coral_spawn_attempt_interval;
+        coralSpawnTimer = Mathf.Min(coralSpawnTimer + dt, interval);
+        if (coralSpawnTimer < interval) return;
+        coralSpawnTimer = 0f;
+
+        // 场上珊瑚数超过阈值用慢速档的次数，否则用快速档
+        int times = EntityContainer.Corals.Count > ConfigManager.GlobalVariableConfig.coral_spawn_rate_rate
             ? ConfigManager.GlobalVariableConfig.coral_spawn_rate_slow
             : ConfigManager.GlobalVariableConfig.coral_spawn_rate_fast;
-        // 累计检测次数；上限压到"1 秒的量"，避免掉帧后单帧爆发式生成
-        coralSpawnAccumulator = Mathf.Min(coralSpawnAccumulator + dt * rate, rate);
-        while (coralSpawnAccumulator >= 1f)
-        {
-            coralSpawnAccumulator -= 1f;
-            TrySpawnOneCoral();
-        }
+        for (int i = 0; i < times; i++) TrySpawnOneCoral();
     }
 
     private void TrySpawnOneCoral()
