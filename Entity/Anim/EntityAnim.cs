@@ -218,11 +218,16 @@ public class EntityAnim : MonoBehaviour
     private Dictionary<HumanBodyBones, Transform> boneCache = new();
     public Transform GetBoneTransform(HumanBodyBones humanBoneId)
     {
-        if (!boneCache.TryGetValue(humanBoneId, out Transform boneTransform))
-        {
-            boneTransform = mainAnimator.GetBoneTransform(humanBoneId);
-            boneCache[humanBoneId] = boneTransform;
-        }
+        if (boneCache.TryGetValue(humanBoneId, out Transform boneTransform)) return boneTransform;
+
+        boneTransform = mainAnimator != null ? mainAnimator.GetBoneTransform(humanBoneId) : null;
+        // 简化绑定常缺骨骼（如 Chest 未映射）：沿躯干链回退，避免锚点取到空引用
+        if (boneTransform == null && mainAnimator != null)
+            boneTransform = mainAnimator.GetBoneTransform(HumanBodyBones.Spine)
+                ?? mainAnimator.GetBoneTransform(HumanBodyBones.Hips);
+        if (boneTransform == null) boneTransform = mainAnimator != null ? mainAnimator.transform : transform;
+
+        boneCache[humanBoneId] = boneTransform;
         return boneTransform;
     }
     private readonly GameObject[] heldObjects = new GameObject[2];
