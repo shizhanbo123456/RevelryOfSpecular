@@ -51,7 +51,7 @@ public class VfxManager : MonoBehaviour
         if (vfxPrefab == null) return null;
         var obj = Instantiate(vfxPrefab, pos, rot);
         ApplyScale(obj, scale);
-        Destroy(obj, lifeTime > 0f ? lifeTime : 1f);
+        Destroy(obj, ResolveLife(vfxPrefab, lifeTime));
         return obj;
     }
 
@@ -62,8 +62,18 @@ public class VfxManager : MonoBehaviour
         // 必须实例化时就给到起点：世界空间的粒子在 playOnAwake 的瞬间就会按预制体位置喷一帧，之后再摆位置会留下原点残影
         var obj = Instantiate(vfxPrefab, trajectory.Lerp(0f), vfxPrefab.transform.rotation);
         ApplyScale(obj, scale);
-        BulletPlayer.Create(obj, trajectory, lifeTime, rotation);
+        float life = lifeTime > 0f ? lifeTime : trajectory.Duration;
+        // 跟随实体的持续表现（护盾/Buff/光环）由持有者决定何时销毁，不吃资产存活时长
+        BulletPlayer.Create(obj, trajectory, trajectory is FollowTrajectory ? life : ResolveLife(vfxPrefab, life), rotation);
         return obj;
+    }
+
+    // 存活时长：资产填了就用资产的；<=0（-1 = 资产自身不主动清除）用调用方给的时长，再退回 1 秒防泄漏
+    private static float ResolveLife(GameObject vfxPrefab, float lifeTime)
+    {
+        float asset = BulletVfxInfo.LifeOf(vfxPrefab);
+        if (asset > 0f) return asset;
+        return lifeTime > 0f ? lifeTime : 1f;
     }
 
     // 特效资产的位姿与缩放统一是 (0,0,0)/(1,1,1)，倍率直接写成根节点缩放（0 = 不缩放）
@@ -131,7 +141,7 @@ public class VfxManager : MonoBehaviour
         if (prefab == null) return null;
         var obj = Instantiate(prefab, pos, Quaternion.identity);
         ApplyScale(obj, scale);
-        if (duration > 0f) Destroy(obj, duration);
+        Destroy(obj, ResolveLife(prefab, duration));
         return obj;
     }
 

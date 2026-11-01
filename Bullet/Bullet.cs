@@ -1,23 +1,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 子弹命中判定参数：命中球来自特效预制体的 BulletVfxInfo，倍率/间隔来自 skill.csv
+// 子弹命中判定参数：命中球与存活时长来自特效预制体的 BulletVfxInfo，倍率/间隔来自 skill.csv
 public readonly struct BulletHitSpec
 {
     private readonly BulletVfxInfo.HitInfo[] hits;   // 局部空间伤害球（资产位姿归零，center 即特效实际位置）
     public readonly float[] rates;                   // 与 hits 一一对应的伤害倍率，null = 全 1
     public readonly float scale;                     // 特效缩放倍率，命中球同步放大
     public readonly float interval;                  // 同一目标最短再伤害间隔（秒），<=0 = 只结算一次
+    public readonly float lifeTime;                  // 资产存活时长（秒），<=0 = 资产未填（-1 表示自身不销毁），由调用方时长决定
     public readonly string label;                    // 日志用：特效类别[下标]
 
     public BulletVfxInfo.HitInfo[] Hits => hits ?? System.Array.Empty<BulletVfxInfo.HitInfo>();
 
-    public BulletHitSpec(BulletVfxInfo.HitInfo[] hits, float[] rates, float scale, float interval, string label)
+    public BulletHitSpec(BulletVfxInfo.HitInfo[] hits, float[] rates, float scale, float interval, float lifeTime, string label)
     {
         this.hits = hits;
         this.rates = rates;
         this.scale = scale > 0f ? scale : 1f;
         this.interval = interval;
+        this.lifeTime = lifeTime;
         this.label = label;
     }
 }

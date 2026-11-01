@@ -34,12 +34,19 @@ public partial class BattleManager
         {
             attack = attack,
             trajectory = trajectory,
-            lifeTime = lifeTime > 0f ? lifeTime : trajectory.Duration, // 未传时长则用轨迹自带的
+            lifeTime = ResolveBulletLife(spec, lifeTime, trajectory),
             spawnTime = now,
             lastTickTime = now,
             spec = spec,
             lastHitTime = new Dictionary<ushort, float>(),
         });
+    }
+
+    // 寿命口径与客户端一致：资产填了存活时长就用资产的；<=0（-1 = 资产自身不清除）用技能给的，再退回轨迹时长
+    private static float ResolveBulletLife(BulletHitSpec spec, float lifeTime, BulletTrajectory trajectory)
+    {
+        if (spec.lifeTime > 0f) return spec.lifeTime;
+        return lifeTime > 0f ? lifeTime : trajectory.Duration;
     }
 
     private void TickBullets()

@@ -184,11 +184,12 @@ namespace Ros.Skill
             return arr;
         }
 
-        // 组装子弹命中判定参数：命中球取特效预制体，倍率/间隔取配表
+        // 组装子弹命中判定参数：命中球与存活时长取特效预制体，倍率/间隔取配表
         protected BulletHitSpec HitSpec(SkillVfxKind kind, int vfxIndex, float scale)
         {
             var hits = VfxHitSource.GetHits(kind, vfxIndex);
-            return new BulletHitSpec(hits, SegmentRates(hits.Length), scale, DamageInterval, $"{kind}[{vfxIndex}]");
+            return new BulletHitSpec(hits, SegmentRates(hits.Length), scale, DamageInterval,
+                VfxHitSource.GetLifeTime(kind, vfxIndex), $"{kind}[{vfxIndex}]");
         }
 
         protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)

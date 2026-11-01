@@ -17,6 +17,13 @@ public static class VfxHitSource
         return hits;
     }
 
+    // 资产填写的特效存活时长；-1 = 由调用方决定（与 hits 读同一份预制体）
+    public static float GetLifeTime(SkillVfxKind kind, int index)
+    {
+        var info = Resolve(kind, index);
+        return info != null ? info.lifeTime : -1f;
+    }
+
     private static BulletVfxInfo Resolve(SkillVfxKind kind, int index)
     {
         var mgr = Tool.AssetsManager;

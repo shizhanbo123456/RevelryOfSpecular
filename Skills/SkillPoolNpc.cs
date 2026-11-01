@@ -177,10 +177,25 @@ namespace Ros.Skill
     }
 
 
+    // 疫孢吐息：在目标位置落一座疫孢阵法（定点，不飞行），命中挂 Poison
     public class SkillNeutralStatueSpore : SkillBase
     {
         public override int Id => (int)SkillType.SkillNeutralStatueSpore;
         public override float CastRange => Config.neutral_statue_attack_range;
+
+        private const int SporeVfx = 9;
+        private const float FormationSurfaceOffset = 0.2f;  // 阵法贴地：地形表面 + 0.2
+        private const float SporeFallbackLife = 0.6f;       // 资产填 -1（自身不主动清除）时的兜底时长
+
+        // 阵法存活时长优先取资产 BulletVfxInfo.lifeTime
+        private static float SporeLife
+        {
+            get
+            {
+                float life = VfxHitSource.GetLifeTime(SkillVfxKind.RangeMagic, SporeVfx);
+                return life > 0f ? life : SporeFallbackLife;
+            }
+        }
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -188,14 +203,26 @@ namespace Ros.Skill
             // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
             Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
             context.AddInts(entity.id);
-            context.AddVectors(origin, TargetSelect.AimPos(entity, TargetSector, TargetRadius, CastRange));
+            context.AddVectors(origin, FormationPos(entity));
             return context;
+        }
+
+        // 阵法落点：目标所在 x/z，高度 = 地形表面 + 0.2；范围内没有敌人时退到自身面向的射程处
+        private Vector3 FormationPos(EntityData entity)
+        {
+            var target = ResolveTarget(entity);
+            Vector3 at = target != null
+                ? target.transform.position
+                : entity.transform.position + entity.transform.forward * CastRange;
+            float groundY = at.y;
+            var spawns = Tool.LandscapeSpawns; // 未注册时 Tool 已报错
+            if (spawns != null) spawns.TrySampleTerrainHeight(at.x, at.z, out groundY);
+            return new Vector3(at.x, groundY + FormationSurfaceOffset, at.z);
         }
 
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
-            Vector3 origin = context.vectors[0]; // 塔/树是静止单位，直接用包里的施放点
-            return TrialConstructor.Line(origin, context.vectors[1], 0.6f);
+            return TrialConstructor.Point(context.vectors[1], SporeLife); // 点轨迹 = 落点定住不动
         }
 
         protected override void OnCast(SkillContext context)
@@ -204,13 +231,13 @@ namespace Ros.Skill
             if (caster == null || Tool.BattleManager == null) return;
             var attack = BuildAttack(caster, 1f,
                 addEffect: ConfigHitBuff(caster, 0));
-            Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0), 0f,
-                HitSpec(SkillVfxKind.RangeMagic, 9, VfxScale()));
+            Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0), SporeLife,
+                HitSpec(SkillVfxKind.RangeMagic, SporeVfx, VfxScale()));
         }
 
         public override void PlayVFX(SkillContext context)
         {
-            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, 9, CreateTrajectory(context, 0), VfxScale());
+            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, SporeVfx, CreateTrajectory(context, 0), VfxScale());
         }
     }
     #endregion
