@@ -15,4 +15,7 @@ public abstract class AiState
 
     // 状态名（上报状况用）
     public virtual string Name => GetType().Name;
+
+    // 目的地走不到（一段时间没位移）：状态自行决定放弃当前目标或重选点位
+    public virtual void OnStuck() { }
 }

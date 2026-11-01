@@ -92,6 +92,7 @@ public static class Config
     public const float ai_assault_arrive = 5f;
     public const float ai_assault_combat_activity = 25f;
     public const float ai_unreachable_pause = 2f;
+    public const float ai_stuck_min_move = 0.5f; // 采样周期内位移低于此值视为走不到目的地
     public const float ai_message_min_interval = 1f;
     #endregion
 

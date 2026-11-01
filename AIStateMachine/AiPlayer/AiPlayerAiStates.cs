@@ -35,8 +35,6 @@ public partial class AiPlayerAi
                 if (intruder != null) return ai.chaseState.Bind(intruder, this, Config.ai_chase_limit);
             }
 
-            if (ai.HoldMovement) return null;
-
             // 珊瑚不还手，顺手打（打断规则最宽松的就是搜索战斗）
             var coral = ai.NearestEnemy(true);
             if (coral != null) return ai.searchCombatState.Bind(coral);
@@ -60,6 +58,13 @@ public partial class AiPlayerAi
         }
 
         public override AiState OnAllyChaseRequest(EntityData target) => ai.chaseState.Bind(target, this, Config.ai_chase_limit);
+
+        // 走不到就丢掉这个点，下一次决策重选
+        public override void OnStuck()
+        {
+            hasPoint = false;
+            resumeTime = 0f;
+        }
     }
 
     private sealed class SearchCombatState : AiState

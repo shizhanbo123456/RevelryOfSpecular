@@ -39,10 +39,9 @@ public partial class AiPlayerAi : AiStateMachine
     private QuickMessageType pendingType;
     private TaskTarget pendingTarget;
 
-    // 卡住处理：一段时间没有位移就原地停一会再重选
+    // 卡住检测：一段时间没有位移就换目标
     private Vector3 stuckSamplePos;
     private float stuckSampleTime;
-    private float holdMovementUntil;
 
     public AiPlayerAi(PlayerEntityData owner)
     {
@@ -103,24 +102,22 @@ public partial class AiPlayerAi : AiStateMachine
 
     protected float ViewDistance => Owner.floatingAttribute.viewDistance;
 
-    // 静止一段时间说明卡住了：停 hold 秒，让状态重新选点
-    protected bool HoldMovement => Time.time < holdMovementUntil;
-
+    // 静止一段时间说明目的地走不到
     private void UpdateStuckSample()
     {
         if (Time.time - stuckSampleTime < Config.ai_unreachable_pause) return;
-        float moved = (Owner.transform.position - stuckSamplePos).sqrMagnitude;
+        Vector3 delta = Owner.transform.position - stuckSamplePos;
+        delta.y = 0f;
         stuckSampleTime = Time.time;
         stuckSamplePos = Owner.transform.position;
-        if (moved >= 0.25f) return;
-        holdMovementUntil = Time.time + Config.ai_unreachable_pause;
+        if (delta.magnitude >= Config.ai_stuck_min_move) return;
+
+        // 丢掉走不到的目的地，交给状态换目标，避免一直对着同一处撞
+        Owner.StopMoving();
+        Current?.OnStuck();
     }
 
-    protected void MoveTowards(Vector3 point)
-    {
-        if (HoldMovement) return;
-        Owner.MoveTo(point);
-    }
+    protected void MoveTowards(Vector3 point) => Owner.MoveTo(point);
 
     protected void FaceTarget(EntityData target)
     {
