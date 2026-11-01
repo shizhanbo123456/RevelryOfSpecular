@@ -165,6 +165,9 @@ public abstract class EntityData : MonoBehaviour
     private float navArriveRadius = nav_arrive_radius; // 当前生效的到达半径（随帧率放大）
     private Vector3 navLastDir;
     private int navReverseFrames;
+    private int navFailCount; // 连续算路失败次数：达到上限即判定目标不可达
+
+    public bool NavUnreachable => navFailCount >= Config.nav_path_fail_limit;
 
     public void MoveTo(Vector3 dest)
     {
@@ -172,7 +175,11 @@ public abstract class EntityData : MonoBehaviour
 
         Vector3 moved = dest - NavDestination;
         moved.y = 0f;
-        if (!HasNavDestination || moved.sqrMagnitude > nav_corner_radius * nav_corner_radius) navNextRepathTime = 0f;
+        if (!HasNavDestination || moved.sqrMagnitude > nav_corner_radius * nav_corner_radius)
+        {
+            navNextRepathTime = 0f;
+            navFailCount = 0; // 换了目的地才重新计数，否则同一目标永远攒不满
+        }
 
         NavDestination = dest;
         HasNavDestination = true;
@@ -185,6 +192,7 @@ public abstract class EntityData : MonoBehaviour
         navCorners = null;
         navLastDir = Vector3.zero;
         navReverseFrames = 0;
+        navFailCount = 0;
     }
 
     public Vector3 ResolveNavDirection()
@@ -211,8 +219,20 @@ public abstract class EntityData : MonoBehaviour
                 ? startHit.position
                 : transform.position;
             bool ok = NavMesh.CalculatePath(start, NavDestination, NavMesh.AllAreas, navPath);
-            navCorners = ok && navPath.corners.Length > 1 ? navPath.corners : null;
+            if (!ok || navPath.corners.Length <= 1)
+            {
+                // 算不出路（终点不可达/起点脱网）：原地等下一次重算，绝不退化成直线硬走
+                navCorners = null;
+                navFailCount++;
+                return Vector3.zero;
+            }
+
+            navCorners = navPath.corners;
+            navFailCount = 0;
         }
+
+        // 上一轮就失败了：等重算，本帧不动
+        if (navCorners == null) return Vector3.zero;
 
         Vector3 dir = NavDestination - transform.position;
         dir.y = 0f;

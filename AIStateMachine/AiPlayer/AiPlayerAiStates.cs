@@ -110,11 +110,21 @@ public partial class AiPlayerAi
 
         public ChaseState(AiPlayerAi ai) { this.ai = ai; }
 
+        private bool abandoned;
+
+        // 目标走不到：放弃并暂时忽略它，回到来时的状态
+        public override void OnStuck()
+        {
+            ai.IgnoreTarget(target);
+            abandoned = true;
+        }
+
         public ChaseState Bind(EntityData t, AiState ret, float limitRange)
         {
             target = t;
             returnState = ret;
             limit = limitRange;
+            abandoned = false;
             return this;
         }
 
@@ -122,6 +132,7 @@ public partial class AiPlayerAi
 
         public override AiState Tick(float deltaTime)
         {
+            if (abandoned) { abandoned = false; return returnState; }
             if (target == null || !target.Alive) return returnState;
             if (ai.FlatDistanceTo(target) > limit) return returnState;
             if (ai.FlatDistanceTo(target) <= ai.AttackRange) return ai.ResolveCombat(returnState).Bind(target, returnState);
@@ -143,6 +154,14 @@ public partial class AiPlayerAi
 
         private EntityData target;
         private AiState returnState;
+        private bool abandoned;
+
+        // 追不上（目标在走不到的位置）：放弃并暂时忽略
+        public override void OnStuck()
+        {
+            ai.IgnoreTarget(target);
+            abandoned = true;
+        }
 
         public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState)
         {
@@ -157,6 +176,7 @@ public partial class AiPlayerAi
         {
             target = t;
             returnState = ret;
+            abandoned = false;
             return this;
         }
 
@@ -166,6 +186,7 @@ public partial class AiPlayerAi
 
         public override AiState Tick(float deltaTime)
         {
+            if (abandoned) { abandoned = false; return ai.ConsumePendingOr(returnState); }
             if (target == null || !target.Alive) return ai.ConsumePendingOr(returnState);
 
             if (ai.HealthRatio < retreatRatio) return retreatState;

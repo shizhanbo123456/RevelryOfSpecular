@@ -117,7 +117,32 @@ public partial class AiPlayerAi : AiStateMachine
         Current?.OnStuck();
     }
 
-    protected void MoveTowards(Vector3 point) => Owner.MoveTo(point);
+    protected void MoveTowards(Vector3 point)
+    {
+        // 目标连续算不出路：停住并交给状态放弃，绝不朝不可达点直冲
+        if (Owner.NavUnreachable)
+        {
+            Owner.StopMoving();
+            Current?.OnStuck();
+            return;
+        }
+
+        Owner.MoveTo(point);
+    }
+
+    // 不可达的目标忽略一段时间，避免放弃后下一拍又锁回同一个
+    private EntityData ignoredTarget;
+    private float ignoreTargetUntil;
+
+    protected void IgnoreTarget(EntityData target)
+    {
+        if (target == null) return;
+        ignoredTarget = target;
+        ignoreTargetUntil = Time.time + Config.ai_ignore_unreachable_time;
+    }
+
+    private bool IsIgnored(EntityData entity)
+        => entity != null && entity == ignoredTarget && Time.time < ignoreTargetUntil;
 
     protected void FaceTarget(EntityData target)
     {
@@ -151,6 +176,7 @@ public partial class AiPlayerAi : AiStateMachine
         {
             if (!BattleManager.EntityContainer.Entities.TryGetObject(id, out var e)) continue;
             if (e == null || !e.Alive || e.id == Owner.id) continue;
+            if (IsIgnored(e)) continue;
             if ((hostile & e.camp) == 0) continue;
             bool isCoral = e.type.category == EntityCategory.Coral;
             if (isCoral != includeCoral) continue;

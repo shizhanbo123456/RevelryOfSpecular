@@ -41,21 +41,36 @@ public class ZombieAi : AiStateMachine
     }
 
     #region//Local
+    private ushort ignoredTargetId;
+    private float ignoreTargetUntil;
+
     // 每 tick 先刷新目标，三个状态共用同一份结论
     protected override void OnThink()
     {
+        // 目标连续算不出路：忽略一段时间，避免放弃后下一拍又锁回同一个走不到的目标
+        if (Owner.NavUnreachable && currentTarget != null)
+        {
+            ignoredTargetId = currentTarget.id;
+            ignoreTargetUntil = Time.time + Config.ai_ignore_unreachable_time;
+            ClearTarget();
+        }
+
         currentTarget = AcquireTarget();
     }
+
+    private bool IsIgnored(EntityData entity)
+        => entity != null && entity.id == ignoredTargetId && Time.time < ignoreTargetUntil;
 
     private EntityData AcquireTarget()
     {
         float range = AcquireRange;
         if (targetId != 0 && BattleManager.EntityContainer.Entities.TryGetObject(targetId, out var locked))
         {
-            if (locked != null && locked.Alive && FlatDistance(locked.transform.position) <= range) return locked;
+            if (locked != null && locked.Alive && !IsIgnored(locked) && FlatDistance(locked.transform.position) <= range) return locked;
         }
 
         var nearest = BattleManager.EntityContainer.GetNearestEnemy(Owner, range);
+        if (IsIgnored(nearest)) nearest = null;
         targetId = nearest != null ? nearest.id : (ushort)0;
         return nearest;
     }

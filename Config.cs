@@ -171,6 +171,11 @@ public static class Config
     public const float entity_sync_yaw_epsilon = 3f;    // 位姿脏判定：与上次下发朝向差超过该值（度）才置脏
     #endregion
 
+    #region 寻路
+    public const int nav_path_fail_limit = 3;        // 连续算路失败次数上限，达到即视为目标不可达
+    public const float ai_ignore_unreachable_time = 3f; // 目标不可达后忽略多久，避免放弃后立刻又锁回同一个
+    #endregion
+
     #region 掉落回收
     public const float entity_fall_check_interval = 5f;   // 每 5 秒检查一次 y<0 的实体
     public const float entity_fall_recover_height = 1f;   // 落点 = Terrain 高度 + 1
