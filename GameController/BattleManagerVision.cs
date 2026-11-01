@@ -260,7 +260,7 @@ public partial class BattleManager
             Profiler.EndSample();
 
             Profiler.BeginSample(kMinimapBuildCampTag);
-            if (!lost) BuildCampMinimapEntries(camp);
+            BuildCampMinimapEntries(camp, !lost); // 夜间失联：只留本阵营点位，敌方一律不构建
             Profiler.EndSample();
 
             Profiler.BeginSample(kMinimapSendTag);
@@ -275,8 +275,6 @@ public partial class BattleManager
                         || !IsMemberOfCamp(targetCamp, camp)) continue;
                 }
                 else if (!IsMemberOfCamp(memberCamp, camp)) continue;
-                // 阵营小地图失效（夜间/致盲）：本 tick 不传输任何点位包，客户端超时后自动隐藏
-                if (lost) continue;
                 if (!loadedClients.Contains(pair.Key)) continue; // 未完成加载的客户端先不给小地图数据
                 float radiusSq = GetMinimapRadius(pair.Key);
                 radiusSq *= radiusSq;
@@ -300,14 +298,16 @@ public partial class BattleManager
         Profiler.EndSample();
     }
 
-    private void BuildCampMinimapEntries(EntityCamp camp)
+    // includeEnemies=false（阵营失联）：敌方单位一个都不进列表，本地阵营成员照常全量
+    private void BuildCampMinimapEntries(EntityCamp camp, bool includeEnemies)
     {
         s_minimapEntries.Clear();
 
         // 先收集本阵营成员的视野源（只扫一遍，O(n)）；之后每个实体只需与"成员数 k"比较，
         // 而不是与"实体总数 n"比较 —— 消除原本 IsInCampVision 对每个敌方实体再全量扫 n 的 O(n²)。
         Profiler.BeginSample(kMinimapCollectTag);
-        CollectCampVisionSources(camp);
+        if (includeEnemies) CollectCampVisionSources(camp);
+        else s_campVisionSources.Clear();
         Profiler.EndSample();
 
         Profiler.BeginSample(kMinimapCampScanTag);
@@ -319,6 +319,7 @@ public partial class BattleManager
                 AppendMinimapEntry(entity);
                 continue;
             }
+            if (!includeEnemies) continue;
             if (IsHiddenFromEnemyMinimap(entity)) continue; // 黑夜标记：敌方小地图不显示
             if (IsMarkedOnMinimap(entity) || IsInCachedCampVision(entity.transform.position)) AppendMinimapEntry(entity);
         }

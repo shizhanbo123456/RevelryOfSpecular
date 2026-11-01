@@ -174,7 +174,7 @@ namespace Ros.UI.Main
             SetChildIndex(self, numChildren - 1); // 新点加入可能盖住自身图标，每次校一次层级
         }
 
-        // 超时剔除：长时间未收到点位包（离屏停传 / 夜间致盲）即移除
+        // 超时剔除：长时间未收到点位包（离屏停传 / 夜间敌方停传）即移除
         private void TickTimeout()
         {
             if (lastReceived.Count == 0) return;
