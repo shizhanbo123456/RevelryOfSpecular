@@ -1017,7 +1017,6 @@ public partial class BattleManager : EnsBehaviour
     private const string kProcessKilledTag = "BattleManager.ProcessKilled";
     private const string kCampAliveCountTag = "BattleManager.CampAliveCount";
     private const string kDefensePointTag = "BattleManager.DefensePointProgress";
-    private const string kTickDyingTag = "BattleManager.TickDying";
     private const string kUpdateAITag = "BattleManager.UpdateAI";
     private const string kZombieRefreshTag = "BattleManager.ZombieRefresh";
     private const string kCoralSpawnTag = "BattleManager.CoralSpawn";
@@ -1090,7 +1089,7 @@ public partial class BattleManager : EnsBehaviour
         TickWorldRespawn();
         Profiler.EndSample();
 
-        // 处理本帧死亡实体：入队等死亡动画播完再销毁（死亡动画由 EntityData.MarkAsKilled 立刻播放）
+        // 处理本帧死亡实体：回调 OnKilled 后立即销毁（不再播死亡动画）
         Profiler.BeginSample(kProcessKilledTag);
         if (EntityData.KilledList.Count > 0)
         {
@@ -1110,11 +1109,7 @@ public partial class BattleManager : EnsBehaviour
         Profiler.EndSample();
 
         Profiler.BeginSample(kDefensePointTag);
-        TickDefensePointProgress(); // 必须早于 TickDying：血量归零当帧还能读到雕像
-        Profiler.EndSample();
-
-        Profiler.BeginSample(kTickDyingTag);
-        TickDying(); // 死亡动画播完后物理销毁（BeginDying 入队）
+        TickDefensePointProgress(); // 被毁雕像的进度已在 DestroyEntity 里定死 100，这里只推进存活雕像
         Profiler.EndSample();
 
         // AI 行为（各实体在内部按 id 错峰，见 UpdateAI）

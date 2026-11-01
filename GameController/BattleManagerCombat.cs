@@ -181,43 +181,14 @@ public partial class BattleManager
             SendReviveProgress(owner, rs, entity.id, ready: false);
         }
 
-        // 先播死亡动画、再物理销毁：有动画的实体（角色/僵尸）延后到 AnimDieEvent；
-        // 无动画实体（珊瑚/雕像/水晶雕像等）立即销毁。见 TickDying
-        BeginDying(entity);
+        // 死亡即销毁：不再播死亡动画，也就不存在"等动画事件才销毁"的挂起尸体
+        bool wasAttack = entity.type.category == EntityCategory.Character_Attack;
+        DestroyEntity(entity.id);
 
         // 雕像的分层减伤重算在其子类 OnKilled 里处理（该方法先于本方法调用）
-        if (entity.type.category == EntityCategory.Character_Attack)
+        if (wasAttack)
         {
             CheckAttackWiped(); // 进攻方全灭 → 立即按分数结算（策划案 17.2，不直接判负）
-        }
-    }
-
-    private readonly List<EntityData> dyingEntities = new();
-
-    private void BeginDying(EntityData entity)
-    {
-        if (entity == null) return;
-        if (entity.anim == null)
-        {
-            DestroyEntity(entity.id);
-            return;
-        }
-        if (!dyingEntities.Contains(entity)) dyingEntities.Add(entity);
-    }
-
-    private void TickDying()
-    {
-        for (int i = dyingEntities.Count - 1; i >= 0; i--)
-        {
-            var entity = dyingEntities[i];
-            if (entity == null) // 已被其它路径销毁（对局结束清理等）
-            {
-                dyingEntities.RemoveAt(i);
-                continue;
-            }
-            if (!entity.deathAnimDone) continue;
-            dyingEntities.RemoveAt(i);
-            DestroyEntity(entity.id);
         }
     }
 

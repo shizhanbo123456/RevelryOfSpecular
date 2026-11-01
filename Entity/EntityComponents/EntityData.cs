@@ -596,8 +596,7 @@ public abstract class EntityData : MonoBehaviour
     private void MarkAsKilled()
     {
         if (KilledEntities.Contains(this)) return;
-        KilledEntities.Add(this);
-        if (anim != null) anim.DoDie();
+        KilledEntities.Add(this); // 不播死亡动画：本帧末由 BattleManager 直接销毁
     }
 
     private void OnDeathAnimEnd()
