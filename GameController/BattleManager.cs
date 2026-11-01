@@ -1135,13 +1135,13 @@ public partial class BattleManager : EnsBehaviour
                 if (zombieRefreshProgress >= Config.zombie_refresh_progress_max)
                 {
                     zombieRefreshProgress = 0f;
-                    SpawnZombie(); // 出生点分散在道路/墓地/雕像外围（LandscapeSpawns）
+                    SpawnZombie(); // 出生点落在某个存活玩家的环带内（见 TrySampleZombieSpawnPoint）
                 }
             }
         }
         Profiler.EndSample(); // kZombieRefreshTag
 
-        // 珊瑚邻近生成：按 Config.coral_spawn_checks_per_second 每秒若干次检测（随机玩家 → 配表环带内刷新点）
+        // 珊瑚邻近生成：每秒尝试次数按场上珊瑚数在配表快/慢两档间切换（随机玩家 → 配表环带内刷新点）
         Profiler.BeginSample(kCoralSpawnTag);
         TickCoralSpawn(UnityEngine.Time.deltaTime);
         Profiler.EndSample();

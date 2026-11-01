@@ -43,11 +43,53 @@ public partial class BattleManager
 
     private void SpawnZombie()
     {
-        // 出生点在 MapSpace 合法区均匀采样；采样失败（合法区太小/地形缺失）本次就不刷
-        if (!Tool.LandscapeSpawns.TrySampleSpawnPoint(out Vector3 pos)) return;
+        if (!TrySampleZombieSpawnPoint(out Vector3 pos)) return;
         int variant = Random.Range(0, Config.zombie_variant_count);
         SpawnEntity(EntityType.Zombie(variant), GetZombieSpawnLevel(), pos, EntityCamp.Zombie);
     }
+
+    #region 环带采样（僵尸与珊瑚共用：以某个存活玩家为圆心，离所有存活玩家不小于内径）
+
+    private const int RingSampleAttempts = 8;
+
+    // 收集全部存活玩家位置（玩家数很少，一次收集供本次检测复用；阵亡/复活等待中取不到实体）
+    private void CollectAlivePlayerPositions()
+    {
+        s_playerPosScratch.Clear();
+        foreach (var clientId in PlayerInfoList.Keys)
+        {
+            var e = GetEntityOfClient(clientId);
+            if (e == null || !e.Alive) continue;
+            s_playerPosScratch.Add(e.transform.position);
+        }
+    }
+
+    // 环带内取一个候选点：离所有存活玩家都不小于 minDist，避免贴脸刷新
+    private bool TrySampleRingPoint(Vector3 center, float minDist, float maxDist, bool humanoid, out Vector3 pos)
+    {
+        pos = default;
+        if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, maxDist, humanoid, out pos)) return false;
+        return !IsAnyPlayerWithin(pos, minDist);
+    }
+
+    // 僵尸出生点：每次尝试随机挑一个存活玩家作圆心；无存活玩家时退回全图均匀采样
+    private bool TrySampleZombieSpawnPoint(out Vector3 pos)
+    {
+        CollectAlivePlayerPositions();
+        if (s_playerPosScratch.Count == 0) return Tool.LandscapeSpawns.TrySampleSpawnPoint(out pos);
+
+        float minDist = ConfigManager.GlobalVariableConfig.zombie_spawn_range_min;
+        float maxDist = ConfigManager.GlobalVariableConfig.zombie_spawn_range_max;
+        for (int attempt = 0; attempt < RingSampleAttempts; attempt++)
+        {
+            Vector3 center = s_playerPosScratch[Random.Range(0, s_playerPosScratch.Count)];
+            if (TrySampleRingPoint(center, minDist, maxDist, humanoid: true, out pos)) return true;
+        }
+        pos = default;
+        return false;
+    }
+
+    #endregion
 
     private void SpawnNeutralStatue()
     {
@@ -80,11 +122,13 @@ public partial class BattleManager
     }
 
     #region 珊瑚（按玩家邻近动态生成）
-    private const int CoralSampleAttempts = 8;
 
     private void TickCoralSpawn(float dt)
     {
-        float rate = Config.coral_spawn_checks_per_second;
+        // 场上珊瑚数超过阈值降到慢速档，否则用快速档
+        float rate = EntityContainer.Corals.Count > ConfigManager.GlobalVariableConfig.coral_spawn_rate_rate
+            ? ConfigManager.GlobalVariableConfig.coral_spawn_rate_slow
+            : ConfigManager.GlobalVariableConfig.coral_spawn_rate_fast;
         // 累计检测次数；上限压到"1 秒的量"，避免掉帧后单帧爆发式生成
         coralSpawnAccumulator = Mathf.Min(coralSpawnAccumulator + dt * rate, rate);
         while (coralSpawnAccumulator >= 1f)
@@ -96,14 +140,7 @@ public partial class BattleManager
 
     private void TrySpawnOneCoral()
     {
-        // 收集全部存活玩家位置（玩家数很少，一次收集供本次检测复用；阵亡/复活等待中返回 null）
-        s_playerPosScratch.Clear();
-        foreach (var clientId in PlayerInfoList.Keys)
-        {
-            var e = GetEntityOfClient(clientId);
-            if (e == null || !e.Alive) continue;
-            s_playerPosScratch.Add(e.transform.position);
-        }
+        CollectAlivePlayerPositions();
         if (s_playerPosScratch.Count == 0) return;
 
         // 场上已有珊瑚位置，用于保持最小间距
@@ -120,11 +157,10 @@ public partial class BattleManager
         float spacing = ConfigManager.GlobalVariableConfig.coral_spawn_spacing;
         float maxDensity = ConfigManager.GlobalVariableConfig.coral_spawn_max_density;
 
-        for (int attempt = 0; attempt < CoralSampleAttempts; attempt++)
+        for (int attempt = 0; attempt < RingSampleAttempts; attempt++)
         {
-            // 采样：所选玩家的环带内 + MapSpace 合法区
-            if (!Tool.LandscapeSpawns.TrySampleSpawnPointInRing(center, minDist, maxDist, out Vector3 pos)) continue;
-            if (IsAnyPlayerWithin(pos, minDist)) continue;              // 该点近处还有别的玩家
+            // 采样：所选玩家的环带内 + 离所有存活玩家不小于内径 + MapSpace 合法区
+            if (!TrySampleRingPoint(center, minDist, maxDist, humanoid: false, out Vector3 pos)) continue;
             if (IsAnyCoralWithin(pos, spacing)) continue;               // 与已有珊瑚的最小间距
             if (CoralDensityAt(pos) >= maxDensity) continue;            // 所在区块珊瑚密度已达上限
 

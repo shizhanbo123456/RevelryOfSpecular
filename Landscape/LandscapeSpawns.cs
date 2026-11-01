@@ -154,8 +154,8 @@ public class LandscapeSpawns : MonoBehaviour
         return false;
     }
 
-    // 在 center 的 [minRadius, maxRadius] 环带内均匀取一个合法刷新点（珊瑚用）
-    public bool TrySampleSpawnPointInRing(Vector3 center, float minRadius, float maxRadius, out Vector3 result)
+    // 在 center 的 [minRadius, maxRadius] 环带内均匀取一个合法刷新点（humanoid 决定站立高度口径）
+    public bool TrySampleSpawnPointInRing(Vector3 center, float minRadius, float maxRadius, bool humanoid, out Vector3 result)
     {
         result = default;
         if (!CanSample) return false;
@@ -170,7 +170,7 @@ public class LandscapeSpawns : MonoBehaviour
             float x = center.x + Mathf.Cos(angle) * radius;
             float z = center.z + Mathf.Sin(angle) * radius;
             if (!Tool.AssetsManager.IsLegalSpawnXZ(x, z)) continue;
-            result = SnapToSurface(x, z, PropSurfaceOffset);
+            result = SnapToSurface(x, z, humanoid ? HumanoidSurfaceOffset : PropSurfaceOffset);
             return true;
         }
         return false;
