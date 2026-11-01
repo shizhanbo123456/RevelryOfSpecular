@@ -791,6 +791,17 @@ public partial class BattleManager : EnsBehaviour
         if (campType == PlayerCampType.Spectator) return;
         if (message.messageId < 0 || message.messageId > 7) return; // quick_message.csv 只有 0~7
 
+        // 上报状况：数据由服务器按实体真实状态组装，不接受客户端自报；真人不上传状态，只报血量
+        if (message.messageId == (int)QuickMessageType.ReportStatus)
+        {
+            var self = GetEntityOfClient(clientId);
+            if (self == null || !self.Alive) return;
+            float cap = self.baseAttribute.health;
+            int healthPercent = cap > 0f ? Mathf.RoundToInt(self.floatingAttribute.health / cap * 100f) : 0;
+            ReportStatus(self, (int)EntityReportState.None, healthPercent);
+            return;
+        }
+
         BroadcastQuickMessage(new SCQuickMessage()
         {
             messageId = message.messageId,

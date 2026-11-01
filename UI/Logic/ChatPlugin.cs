@@ -219,18 +219,19 @@ public class ChatPlugin
     private void OnStateReport(SCStateReport report)
     {
         if (report == null) return;
-        if (report.senderClientId == NetworkManager.LocalToken) return;
         if (report.camp != GetMyCamp() && !ShowEnemyDialog) return; // 与聊天同规则：阵营频道只显示同阵营
 
         entries.Add(new ChatEntry()
         {
             channel = ChannelCamp,
-            isSelf = false,
+            isSelf = report.senderClientId == NetworkManager.LocalToken, // 自己没有本地回显，靠这条显示
             senderClientId = report.senderClientId,
             camp = report.camp,
             characterIndex = report.characterIndex,
             name = GetUnitName(report.senderClientId),
-            content = $"{ReportStateText(report.state)}，血量 {report.healthPercent}%",
+            content = report.state == (int)EntityReportState.None
+                ? $"血量 {report.healthPercent}%"                     // 真人上报不带状态
+                : $"{ReportStateText(report.state)}，血量 {report.healthPercent}%",
         });
         RefreshList();
     }
