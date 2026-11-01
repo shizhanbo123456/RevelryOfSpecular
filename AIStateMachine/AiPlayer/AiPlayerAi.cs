@@ -126,10 +126,10 @@ public partial class AiPlayerAi : AiStateMachine
     }
 
     // 站定攻击：有就绪技能就放，全部没好就原地站着（文档要求的"不空放"）
-    protected bool TryAttack()
+    protected bool TryAttack(EntityData target)
     {
         if (Owner.InputBlocked(InputBlockOp.Attack)) return false;
-        return skillBar.TryCastAny();
+        return skillBar.TryCastAny(target);
     }
 
     protected EntityData NearestEnemy(bool includeCoral)

@@ -181,6 +181,7 @@ public static class Config
     public const int unarmed_punch_left = (int)SkillType.SkillPunchLeft;
     public const int unarmed_punch_right = (int)SkillType.SkillPunchRight;
     public const int unarmed_attack_smash = (int)SkillType.SkillPunchSmash;
+    public const float unarmed_smash_range = 1f; // 贴身才用崩拳，远了用直拳，避免崩拳够不到还空放
 
     // 移动类 Buff 的移速倍率来自配表 global_variables（同一乘区，连乘叠加）
     public static float anim_move_speed_up => ConfigManager.GlobalVariableConfig.buff_speed_up;

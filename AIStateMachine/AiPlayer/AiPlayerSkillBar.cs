@@ -80,15 +80,26 @@ public class AiPlayerSkillBar
     }
 
     // 栏内从高到低 → 空手三连；全不可用返回 false（调用方原地站立）
-    // 空手与真人同规则：移动中出左右拳，静止出崩拳；首选冷却时才退到另一组
-    public bool TryCastAny()
+    // 空手按与目标的距离选：远了出直拳（够得到），贴身才出崩拳，避免崩拳够不着却原地空放
+    public bool TryCastAny(EntityData target)
     {
         for (int i = 0; i < slots.Count; i++) if (TryCast(slots[i])) return true;
 
+        bool close = target != null && FlatDistance(target) <= Config.unarmed_smash_range;
         int punch = Random.Range(0, 2) == 0 ? Config.unarmed_punch_left : Config.unarmed_punch_right;
-        return owner.IsMovingForward
-            ? TryCast(punch) || TryCast(Config.unarmed_attack_smash)
-            : TryCast(Config.unarmed_attack_smash) || TryCast(punch);
+        int otherPunch = punch == Config.unarmed_punch_left ? Config.unarmed_punch_right : Config.unarmed_punch_left;
+
+        // 远了只出直拳：崩拳够不到，宁可站着等冷却也不空放
+        return close
+            ? TryCast(Config.unarmed_attack_smash) || TryCast(punch) || TryCast(otherPunch)
+            : TryCast(punch) || TryCast(otherPunch);
+    }
+
+    private float FlatDistance(EntityData target)
+    {
+        Vector3 d = target.transform.position - owner.transform.position;
+        d.y = 0f;
+        return d.magnitude;
     }
 
     private bool TryCast(int skillId)

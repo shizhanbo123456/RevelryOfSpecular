@@ -94,7 +94,7 @@ public partial class AiPlayerAi
                 return null;
             }
             ai.Owner.StopMoving();
-            ai.TryAttack();
+            ai.TryAttack(coral);
             return null;
         }
 
@@ -182,7 +182,7 @@ public partial class AiPlayerAi
             }
 
             owner.StopMoving();
-            ai.TryAttack(); // 全没好就站着，不空放
+            ai.TryAttack(target); // 全没好就站着，不空放
             return null;
         }
     }
