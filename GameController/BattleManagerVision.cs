@@ -167,6 +167,9 @@ public partial class BattleManager
         return EntityContainer.Entities.TryGetObject(entityId, out var entity) ? entity : null;
     }
 
+    // 人机状态机也要按 clientId 找发送者实体（快捷消息锚点）
+    public EntityData GetSenderEntity(int clientId) => GetEntityOfClient(clientId);
+
     public void SendCombatLabelToViewers(EntityData target, SCCombatLabel label)
     {
         foreach (var clientId in PlayerInfoList.Keys)

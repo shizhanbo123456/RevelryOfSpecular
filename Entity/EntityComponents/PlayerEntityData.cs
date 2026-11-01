@@ -205,14 +205,34 @@ public class PlayerEntityData : EntityData
             moveState.yaw = Mathf.Atan2(moveState.dir.x, moveState.dir.y) * Mathf.Rad2Deg;
     }
 
-    #region AI 驱动入口（由 PlayerAiController 调用；真人玩家不走这里）
-    private PlayerAiController ai;
+    #region AI 驱动入口（人机状态机；真人玩家不走这里）
+    private AiPlayerAi ai;
 
     public override void TickAI()
     {
         if (!aiControlled) return;
-        ai ??= new PlayerAiController(this);
+        EnsureAi();
         ai.Tick();
+    }
+
+    public void OnQuickMessage(SCQuickMessage message)
+    {
+        if (!aiControlled) return;
+        EnsureAi();
+        ai.OnQuickMessage(message);
+    }
+
+    // 队友人机请求一起追击某个敌人（群体呼叫）
+    public void RequestAiChase(EntityData target)
+    {
+        if (!aiControlled) return;
+        EnsureAi();
+        ai.RequestChase(target);
+    }
+
+    private void EnsureAi()
+    {
+        if (ai == null) ai = new AiPlayerAi(this);
     }
 
     private Vector3 aiFacePoint;

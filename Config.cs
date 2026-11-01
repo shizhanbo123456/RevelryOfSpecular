@@ -64,6 +64,37 @@ public static class Config
     public const float zombie_wander_pause = 2f;
     #endregion
 
+    #region 人机玩家 AI（Doc/08；先写代码，测试后再迁配表）
+    public const float ai_think_interval = 0.15f;
+    public const float ai_search_radius = 10f;
+    public const float ai_search_pause_min = 1f;
+    public const float ai_search_pause_max = 3f;
+    public const float ai_chase_limit = 40f;
+    public const float ai_combat_retreat_ratio = 0.3f;
+    public const float ai_escort_retreat_ratio = 0.15f;
+    public const float ai_rally_retreat_ratio = 0.2f;
+    public const float ai_danger_response_distance = 30f;
+    public const float ai_danger_response_ratio = 0.7f;
+    public const float ai_evade_distance = 20f;
+    public const float ai_evade_duration = 4f;
+    public const float ai_danger_clear_radius = 15f;
+    public const float ai_danger_clear_timeout = 30f;
+    public const float ai_escort_arrive = 5f;
+    public const float ai_escort_follow = 8f;
+    public const float ai_escort_combat_radius = 15f;
+    public const float ai_escort_slot_radius = 2f;
+    public const float ai_escort_timeout = 30f;
+    public const float ai_rally_arrive = 5f;
+    public const float ai_rally_keep = 10f;
+    public const float ai_rally_call_radius = 25f;
+    public const int ai_guard_check_interval = 1;
+    public const float ai_guard_alert_radius = 15f;
+    public const float ai_assault_arrive = 5f;
+    public const float ai_assault_combat_activity = 25f;
+    public const float ai_unreachable_pause = 2f;
+    public const float ai_message_min_interval = 1f;
+    #endregion
+
     #region 昼夜
     // 昼夜时长已移至 EnvironmentManager 的 Inspector 字段（dayDuration / nightDuration），
     // 时间改为归一化周期值（[0,2)：0/2 = 午夜，1 = 正午）循环推演，此处不再保留"阶段时长"常量。

@@ -307,6 +307,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveChatLocal, SendTo.RoomOwner, Delivery.Reliable, chat, LocalToken);
     }
 
+    // 快捷消息上行：位置参数可选（按住 J 时才带）
+    public void SendQuickMessage(CSQuickMessage message)
+    {
+        if (message == null || !CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveQuickMessageLocal, SendTo.RoomOwner, Delivery.Reliable, message, LocalToken);
+    }
+
     public void SendGm(CSGm gm)
     {
         if (gm == null || !CanSendWorldCommand) return;
@@ -532,6 +539,13 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveChatLocal, SendTo.ExcludeSender, Delivery.Reliable, chat);
     }
 
+    // 快捷消息下发：只发给同阵营的真人（人机在服务器侧直接消费）
+    public void SendQuickMessage(int clientId, SCQuickMessage message)
+    {
+        if (message == null || !TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveQuickMessageLocal, to, Delivery.Reliable, message);
+    }
+
     //GM 指令回包（服务器帧率 / 服务器时间等）
     public void SendGm(int clientId, SCGm gm)
     {
@@ -623,6 +637,12 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveChatLocal(CSChat chat, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveChat(clientId, chat);
+    }
+
+    [Rpc]
+    private void ServerReceiveQuickMessageLocal(CSQuickMessage message, int clientId)
+    {
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveQuickMessage(clientId, message);
     }
 
     [Rpc]
@@ -872,6 +892,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (chat == null) return;
         EventManager.TrigEvent(ClientEvent.OnChatMessage, chat);
+    }
+
+    [Rpc]
+    private void ClientReceiveQuickMessageLocal(SCQuickMessage message)
+    {
+        if (message == null) return;
+        EventManager.TrigEvent(ClientEvent.OnQuickMessage, message);
     }
 
     [Rpc]

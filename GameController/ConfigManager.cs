@@ -36,9 +36,10 @@ public class ConfigManager : MonoBehaviour
         int notice = NoticeConfig.Load(ReadTable(dir, NoticeConfig.FileName));
         int attrRange = AttrRangeConfig.Load(ReadTable(dir, AttrRangeConfig.FileName));
         int settingTips = SettingTipsConfig.Load(ReadTable(dir, SettingTipsConfig.FileName));
+        int quickMessage = QuickMessageConfig.Load(ReadTable(dir, QuickMessageConfig.FileName));
 
         Debug.Log($"[配表] {dir} 加载完成 | battle_fury_layer {battleFury} | entity {entity} | skill {skill} | effect {effect} | " +
-                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice} | attr_range {attrRange} | setting_tips {settingTips}");
+                  $"exp_character {expCharacter} | exp_player {expPlayer} | revive_time {revive} | global_variables {global} | notice {notice} | attr_range {attrRange} | setting_tips {settingTips} | quick_message {quickMessage}");
     }
 
     #region 文件读取与拆分
@@ -514,6 +515,7 @@ public class ConfigManager : MonoBehaviour
         public string name;
         public string description;
         public string quality;           // 第4列：B / A / S
+        public int qualityRank;          // 品质序：B/空 = 0，A = 1，S = 2（人机入栏优先级用，越大越优先）
         public float cd;                 // 第5列
         public int storeLimit;           // 第6列：-1 = 无限库存
         public int? weaponCategory;      // 第7列：0 无 / 1 刀 / 2 长枪 / 3 枪械 / 4 魔法球
@@ -535,6 +537,7 @@ public class ConfigManager : MonoBehaviour
             name = ParseString(rowData, 1);
             description = ParseString(rowData, 2);
             quality = ParseString(rowData, 3);
+            qualityRank = ParseQualityRank(quality);
             cd = ParseFloat(rowData, 4);
             storeLimit = ParseInt(rowData, 5);
             weaponCategory = ParseIntOrNull(rowData, 6);
@@ -553,6 +556,19 @@ public class ConfigManager : MonoBehaviour
                 throw new FormatException($"[配表] skill.csv 技能 {key} 的索敌范围夹角 {targetSector} 超出 [0,180]");
             if (targetSector > Config.skill_target_no_sector && targetRadius <= 0f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 配了索敌夹角 {targetSector} 但索敌半径为空或非正数");
+        }
+
+        // 品质只有 B/A/S 三档，空 = 无品质（按最低计）
+        private static int ParseQualityRank(string raw)
+        {
+            switch (raw.Trim().ToUpperInvariant())
+            {
+                case "S": return 2;
+                case "A": return 1;
+                case "B": return 0;
+                case "": return 0;
+                default: throw new FormatException($"[配表] skill.csv 品质无法识别：{raw}（只支持 B / A / S）");
+            }
         }
 
         public static int Load(ConfigTable table)
@@ -1174,6 +1190,33 @@ public class ConfigManager : MonoBehaviour
         }
 
         public static NoticeConfig Get(int key) => GetRequired(content, key, FileName);
+    }
+
+    // 快捷消息：id → 说明与展示文本；人机按 id 匹配行为，文本只用于客户端展示
+    public struct QuickMessageConfig
+    {
+        public const string FileName = "quick_message.csv";
+        private const int ColumnCount = 3;
+        public static readonly Dictionary<int, QuickMessageConfig> content = new();
+
+        public int key;
+        public string name;
+        public string text;
+
+        public QuickMessageConfig(string[] rowData)
+        {
+            key = ParseInt(rowData, 0);
+            name = ParseString(rowData, 1);
+            text = ParseString(rowData, 2);
+        }
+
+        public static int Load(ConfigTable table)
+        {
+            table.RequireColumnCount(ColumnCount);
+            return Fill(table, content, row => new QuickMessageConfig(row), row => row.key);
+        }
+
+        public static QuickMessageConfig Get(int key) => GetRequired(content, key, FileName);
     }
     #endregion
 

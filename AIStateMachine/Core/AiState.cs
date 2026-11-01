@@ -6,4 +6,13 @@ public abstract class AiState
     public abstract AiState Tick(float deltaTime);
 
     public virtual void Exit() { }
+
+    // 是否拒绝任务类消息（战斗态与危险躲避为 true，收到只写任务槽）
+    public virtual bool BlocksTaskMessages => false;
+
+    // 队友请求一起追击某个敌人：返回要切换到的状态，null = 不接受
+    public virtual AiState OnAllyChaseRequest(EntityData target) => null;
+
+    // 状态名（上报状况用）
+    public virtual string Name => GetType().Name;
 }

@@ -773,6 +773,63 @@ public partial class BattleManager : EnsBehaviour
         });
     }
 
+    #region 快捷消息（玩家指令 → 同阵营人机）
+    // 上行入口：服务器补齐发送者后按阵营广播；真人收回包，人机在服务器侧直接消费
+    public void ReceiveQuickMessage(int clientId, CSQuickMessage message)
+    {
+        if (message == null || !BattleStarted) return;
+        if (!PlayerCamps.TryGetValue(clientId, out var campType)) return;
+        if (campType == PlayerCampType.Spectator) return;
+        if (message.messageId < 0 || message.messageId > 7) return; // quick_message.csv 只有 0~7
+
+        BroadcastQuickMessage(new SCQuickMessage()
+        {
+            messageId = message.messageId,
+            senderClientId = clientId,
+            hasTargetPosition = message.hasTargetPosition,
+            targetPosition = message.targetPosition,
+        }, CampOf(clientId));
+    }
+
+    public void BroadcastQuickMessage(SCQuickMessage message, EntityCamp camp)
+    {
+        if (message == null) return;
+
+        foreach (var pair in PlayerInfoList)
+        {
+            if (AIClients.Contains(pair.Key)) continue;
+            if (CampOf(pair.Key) != camp) continue;
+            Tool.NetworkManager.SendQuickMessage(pair.Key, message);
+        }
+
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity == null || !entity.Alive || !entity.aiControlled) continue;
+            if (entity.camp != camp) continue;
+            // 人机忽略自己发的消息
+            if (EntityOwnerClient.TryGetValue(entity.id, out var ownerClient) && ownerClient == message.senderClientId) continue;
+            var player = entity as PlayerEntityData;
+            if (player == null) continue;
+            player.OnQuickMessage(message);
+        }
+    }
+
+    // 人机上报自身状况：与真人共用同一广播通道，附加自身位置与文本
+    public void ReportAiStatus(EntityData entity, string text)
+    {
+        if (entity == null) return;
+        if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
+        BroadcastQuickMessage(new SCQuickMessage()
+        {
+            messageId = (int)QuickMessageType.ReportStatus,
+            senderClientId = clientId,
+            hasTargetPosition = true,
+            targetPosition = entity.transform.position,
+            extra = text,
+        }, entity.camp);
+    }
+    #endregion
+
     private Vector3 GetAttackSpawnPos()
     {
         return LandscapeSpawns.RandomOf(Tool.LandscapeSpawns.attackPositions);

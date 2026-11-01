@@ -9,6 +9,7 @@ public class BattlePage : PageBase
     private readonly UI_BattlePanel panel;
 
     private float skillCdRefreshTimer;   // 冷却环重渲染节流（本地推演需要周期刷新）
+    private float nextQuickMessageTime;  // 快捷消息发送节流（防刷）
     private readonly List<UI_SkillList.Slot> skillSlots = new(); // 技能栏快照缓冲（每 0.1s 重填一次，避免分配）
     private readonly Dictionary<ushort, UI_EntityBar> entityBars = new();
     // 血量缓存：摘要包只在 healthDirty/全量时携带血量段，未携带的包（如仅 buff 变化）不能把血条刷成 0/0
@@ -84,9 +85,7 @@ public class BattlePage : PageBase
         panel.m_settings_panel.touchable = false;
     }
 
-    // 快捷消息面板：暂时只做显隐开关，1~8 任键切换（具体逻辑后续实现）
-    private void ToggleQuickMessage() => SetQuickMessageVisible(!panel.m_quickMessagePanel.visible);
-
+    // 快捷消息面板：收起时按键展开；展开时按键发送并收起（按住 J 时附带相机瞄准点）
     private void HideQuickMessage() => SetQuickMessageVisible(false);
 
     private void SetQuickMessageVisible(bool visible)
@@ -95,11 +94,56 @@ public class BattlePage : PageBase
         panel.m_quickMessagePanel.touchable = visible; // 收起时不吃点击
     }
 
-    private static bool AnyQuickMessageKeyDown()
+    private void HandleQuickMessageKey(int index)
+    {
+        if (!panel.m_quickMessagePanel.visible)
+        {
+            SetQuickMessageVisible(true);
+            return;
+        }
+        SendQuickMessage(index);
+        SetQuickMessageVisible(false);
+    }
+
+    private void SendQuickMessage(int index)
+    {
+        float now = Time.time;
+        if (now < nextQuickMessageTime) return; // 防刷：同玩家 1s 一条
+        nextQuickMessageTime = now + Config.ai_message_min_interval;
+
+        var message = new CSQuickMessage() { messageId = index };
+        if (Input.GetKey(Config.melee_key) && TryGetAimPoint(out var aim))
+        {
+            message.hasTargetPosition = true;
+            message.targetPosition = aim;
+        }
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendQuickMessage(message);
+    }
+
+    // 相机屏幕中心射线与地面 y=0 的交点；取不到就按"无位置"发送
+    private static bool TryGetAimPoint(out Vector3 point)
+    {
+        point = default;
+        var cam = Tool.CameraController != null ? Tool.CameraController.WorldCamera : null;
+        if (cam == null) return false;
+        Ray ray = cam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
+        if (Mathf.Abs(ray.direction.y) < 0.0001f) return false;
+        float distance = -ray.origin.y / ray.direction.y;
+        if (distance <= 0f) return false;
+        point = ray.origin + ray.direction * distance;
+        return true;
+    }
+
+    private static bool AnyQuickMessageKeyDown(out int index)
     {
         var keys = Config.quick_message_keys;
         for (int i = 0; i < keys.Length; i++)
-            if (Input.GetKeyDown(keys[i])) return true;
+        {
+            if (!Input.GetKeyDown(keys[i])) continue;
+            index = i;
+            return true;
+        }
+        index = -1;
         return false;
     }
 
@@ -219,7 +263,7 @@ public class BattlePage : PageBase
     public override void Tick(float deltaTime)
     {
         if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
-        if (AnyQuickMessageKeyDown()) ToggleQuickMessage();
+        if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
