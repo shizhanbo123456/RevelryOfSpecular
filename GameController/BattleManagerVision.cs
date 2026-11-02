@@ -18,7 +18,7 @@ public partial class BattleManager
     private const string kMinimapBuildSelfTag = "BM.Minimap.BuildSelf";
     private const string kMinimapSendTag = "BM.Minimap.Send";
 
-    private float minimapTimer;
+    private Ticker minimapTicker;
 
     private readonly Dictionary<int, HashSet<ushort>> visibleByClient = new();
     private readonly Dictionary<int, float> minimapRadiusByClient = new(); // 各客户端雷达显示半径（F 键切换，缺省 = minimap_view_radius）

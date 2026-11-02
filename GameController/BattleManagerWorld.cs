@@ -4,8 +4,8 @@ using UnityEngine;
 
 public partial class BattleManager
 {
-    private float coralSpawnTimer;
-    private float zombieSpawnTimer;
+    private Ticker coralSpawnTicker;
+    private Ticker zombieSpawnTicker;
     private static readonly List<Vector3> s_playerPosScratch = new();
     private static readonly List<Vector3> s_coralPosScratch = new();
 
@@ -50,12 +50,9 @@ public partial class BattleManager
     }
 
     // 每满一个间隔做一批尝试：夜间用快速档次数、白天用慢速档次数；场上达上限整批跳过
-    private void TickZombieSpawn(float dt)
+    private void TickZombieSpawn()
     {
-        float interval = ConfigManager.GlobalVariableConfig.zombie_spawn_attempt_interval;
-        zombieSpawnTimer = Mathf.Min(zombieSpawnTimer + dt, interval);
-        if (zombieSpawnTimer < interval) return;
-        zombieSpawnTimer = 0f;
+        if (!zombieSpawnTicker) return;
 
         int max = ConfigManager.GlobalVariableConfig.zombie_max;
         if (zombieCount >= max) return;
@@ -141,13 +138,9 @@ public partial class BattleManager
 
     #region 珊瑚（按玩家邻近动态生成）
 
-    private void TickCoralSpawn(float dt)
+    private void TickCoralSpawn()
     {
-        // 每满一个间隔做一批尝试；计时器封顶一个间隔，掉帧后也不会连续爆发多批
-        float interval = ConfigManager.GlobalVariableConfig.coral_spawn_attempt_interval;
-        coralSpawnTimer = Mathf.Min(coralSpawnTimer + dt, interval);
-        if (coralSpawnTimer < interval) return;
-        coralSpawnTimer = 0f;
+        if (!coralSpawnTicker) return;
 
         // 场上珊瑚数超过阈值用慢速档的次数，否则用快速档
         int times = EntityContainer.Corals.Count > ConfigManager.GlobalVariableConfig.coral_spawn_rate_rate
@@ -234,13 +227,11 @@ public partial class BattleManager
 
     #region 掉落回收（y < 0 的实体落回 Terrain 表面上方）
 
-    private float fallCheckTimer;
+    private Ticker fallCheckTicker;
 
-    private void TickFallRecover(float dt)
+    private void TickFallRecover()
     {
-        fallCheckTimer += dt;
-        if (fallCheckTimer < Config.entity_fall_check_interval) return;
-        fallCheckTimer = 0f;
+        if (!fallCheckTicker) return;
 
         var spawns = Tool.LandscapeSpawns;
         if (spawns == null) return;

@@ -20,9 +20,9 @@ public partial class BattleManager : EnsBehaviour
     public float AttackScore { get; private set; }
     public int DefenseKills { get; private set; }
 
-    private float syncTimer;
-    private float detailsTimer;
-    private float dayNightSyncTimer;
+    private Ticker syncTicker;
+    private Ticker detailsTicker;
+    private Ticker dayNightTicker;
     private int zombieCount;
 
     #region 玩家进出与组队大厅
@@ -992,6 +992,15 @@ public partial class BattleManager : EnsBehaviour
         zombieCount = 0; // 上局僵尸已在上面的清场里逐个减过，这里再显式归零（与计分同一口径）
         ClearBattleState();
 
+        // 周期任务计时器：开战重建，间隔取自配表（配表启动后不再变，构造时固化）
+        syncTicker = new Ticker(Config.entity_sync_interval_fast);
+        detailsTicker = new Ticker(Config.entity_sync_interval_details);
+        dayNightTicker = new Ticker(Config.daynight_sync_interval);
+        minimapTicker = new Ticker(Config.minimap_sync_interval);
+        zombieSpawnTicker = new Ticker(ConfigManager.GlobalVariableConfig.zombie_spawn_attempt_interval);
+        coralSpawnTicker = new Ticker(ConfigManager.GlobalVariableConfig.coral_spawn_attempt_interval);
+        fallCheckTicker = new Ticker(Config.entity_fall_check_interval);
+
         // 玩家实体重与 AI 同路径（AI clientId 为负虚拟 id），仅输入来源不同：真人 CSPlayerInput、AI UpdateAI
         foreach (var pair in PlayerInfoList)
         {
@@ -1138,10 +1147,9 @@ public partial class BattleManager : EnsBehaviour
         if (Tool.EnvironmentManager != null)
         {
             Tool.EnvironmentManager.Tick(UnityEngine.Time.deltaTime);
-            dayNightSyncTimer -= UnityEngine.Time.deltaTime;
-            if (Tool.EnvironmentManager.ConsumeSyncRequest() || dayNightSyncTimer <= 0f)
+            if (Tool.EnvironmentManager.ConsumeSyncRequest() || dayNightTicker)
             {
-                dayNightSyncTimer = Config.daynight_sync_interval;
+                dayNightTicker.Reset();
                 Tool.NetworkManager.SendDayNightInfo(Tool.EnvironmentManager.BuildSnapshot());
             }
         }
@@ -1160,7 +1168,7 @@ public partial class BattleManager : EnsBehaviour
         TickMovement();
         Profiler.EndSample();
         Profiler.BeginSample(kFallRecoverTag);
-        TickFallRecover(UnityEngine.Time.deltaTime); // 早于 SyncTransforms：传送当帧即同步给物理
+        TickFallRecover(); // 早于 SyncTransforms：传送当帧即同步给物理
         Profiler.EndSample();
         Profiler.BeginSample(kSyncTransformsTag);
         Physics.SyncTransforms(); //位移已由刚体积分，此处兜底按 transform 移动的对象（项目关闭了自动同步）
@@ -1205,12 +1213,12 @@ public partial class BattleManager : EnsBehaviour
 
         // 僵尸刷新（策划案第九章）：每满一个间隔做一批尝试，夜间次数多、白天次数少
         Profiler.BeginSample(kZombieRefreshTag);
-        TickZombieSpawn(UnityEngine.Time.deltaTime);
+        TickZombieSpawn();
         Profiler.EndSample(); // kZombieRefreshTag
 
         // 珊瑚邻近生成：每满一个间隔做一批尝试，尝试次数按场上珊瑚数在配表快/慢两档间切换
         Profiler.BeginSample(kCoralSpawnTag);
-        TickCoralSpawn(UnityEngine.Time.deltaTime);
+        TickCoralSpawn();
         Profiler.EndSample();
 
         // 视野锚点逐帧刷新（观战跟随 / 死亡冻结），供实体同步与小地图使用
@@ -1228,25 +1236,12 @@ public partial class BattleManager : EnsBehaviour
 
         // 同步实体表现给客户端（0.02s 节流；详细数据 0.2s；仅视野内的实体，见 SyncEntitiesToClients）
         Profiler.BeginSample(kSyncEntitiesTag);
-        syncTimer -= UnityEngine.Time.deltaTime;
-        detailsTimer -= UnityEngine.Time.deltaTime;
-        if (syncTimer <= 0f)
-        {
-            syncTimer = Config.entity_sync_interval_fast;
-            bool details = detailsTimer <= 0f;
-            if (details) detailsTimer = Config.entity_sync_interval_details;
-            SyncEntitiesToClients(details);
-        }
+        if (syncTicker) SyncEntitiesToClients(detailsTicker.Tick());
         Profiler.EndSample(); // kSyncEntitiesTag
 
         // 小地图同步（阵营共享视野，独立节流，见 Config.minimap_sync_interval）
         Profiler.BeginSample(kSyncMinimapTag);
-        minimapTimer -= UnityEngine.Time.deltaTime;
-        if (minimapTimer <= 0f)
-        {
-            minimapTimer = Config.minimap_sync_interval;
-            SyncMinimapToClients();
-        }
+        if (minimapTicker) SyncMinimapToClients();
         Profiler.EndSample(); // kSyncMinimapTag
         Profiler.EndSample(); // kManagedUpdateProfilerTag
     }
