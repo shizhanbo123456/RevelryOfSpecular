@@ -144,17 +144,22 @@ public partial class BattleManager
         return IsInRadius(state.position, target.transform.position, state.viewRadius);
     }
 
+    // 固定显示距离判定：超出即不在客户端表现（角色模型、飘字共用）
+    private bool IsInDisplayRadius(int clientId, EntityData target)
+    {
+        if (target == null) return false;
+        if (!visionStates.TryGetValue(clientId, out var state)) return false;
+        return IsInRadius(state.position, target.transform.position,
+            ConfigManager.GlobalVariableConfig.entity_character_visiable_radius);
+    }
+
     // 场景表现可见性：角色模型只按固定显示距离下发（不分阵营），其它实体仍按视野属性
     private bool CanSeeDisplayFromState(int clientId, EntityData target)
     {
         if (target == null) return false;
         var category = target.type.category;
         if (category == EntityCategory.Character_Attack || category == EntityCategory.Character_Defense)
-        {
-            if (!visionStates.TryGetValue(clientId, out var state)) return false;
-            return IsInRadius(state.position, target.transform.position,
-                ConfigManager.GlobalVariableConfig.entity_character_visiable_radius);
-        }
+            return IsInDisplayRadius(clientId, target);
         return CanSeeFromState(clientId, target);
     }
     #endregion
@@ -188,7 +193,7 @@ public partial class BattleManager
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            if (!CanSeeFromState(clientId, target)) continue;
+            if (!IsInDisplayRadius(clientId, target)) continue; // 飘字按显示距离下发，远处不显示
             Tool.NetworkManager.SendCombatLabel(clientId, label);
         }
     }
