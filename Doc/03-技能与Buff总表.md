@@ -178,7 +178,7 @@
 Skills文件夹：
 **代码状态**：技能 80 个，按拥有者分文件：`SkillPoolWeapon`（武器 50）、`SkillPoolDefense`（防守方 18）、`SkillPoolNpc`（普通僵尸 2 + 精英僵尸 3 + 防御塔孢子 1 + 中立雕像孢子 1）、`SkillPoolUnarmed`（空手 3），统一由 `SkillPools.RegisterAll()` 注册。`SkillType` 的段首项显式锚定 id、段内按枚举顺序递增，段间留空供插入：刀 0~10 / 长枪 11~18 / 枪械 19~33 / 魔法球 34~49 / 防守方 60~77 / 僵尸 90~94 / 防御塔 110~112 / 中立雕像 113 / 空手 130~132。**段内不可断号**（`WeaponRef` 用「段起点 + index」换算）、**0~49 必须整段连续**（`Config.GetRandomWeaponId` 按整段随机）；技能与武器的对应按 skill.csv 的「武器分类 / 武器细分id」走，与技能栏槽位无关（槽位顺序由客户端按 skillId 升序排列，玩家可在技能选择面板自选）。技能图标需按当前技能表重建（分配工具待重做）。
 [E]外部调用只向SkillManager传入技能id即可。
-技能双端执行模型：EntitySkillController.TryUseSkill 是全部释放路径（技能栏按键/J 键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 14 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `SendSkillCast` 下发——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
+技能双端执行模型：EntitySkillController.TryUseSkill 是全部释放路径（技能栏按键/J 键空手/AI/非玩家）的唯一收口——释放瞬间调 skill.BeginCast(entity, skillId)：按下时先摇攻击动画（动画类型读 skill.csv 第 14 列，空/0 的技能无动画则按下即施放），等动画到**攻击帧**（`EntityAnim.onAttack`）时才执行 `SkillLogic(entity)`（此刻索敌/起点基于位移后的实时位置）→ `OnCast(context)`（真实子弹结算）→ `NeedSendContext` 为真时 `SendSkillCast` 下发（`PlayVFX` 为空实现的技能为假，整个 context 不上网）——**攻击帧回调不一次性清空**：多段攻击动画的每个攻击帧都各结算一次。客户端收到 RPC 即经 SkillManager.PlayVFX 调同一技能的 `PlayVFX(context)` 播放（**不等自己的 onAttack**），用同一个轨迹构建函数重建轨迹播放特效。技能 `SkillLogic` 只生成上下文，动画由 `SkillBase.CastAnim`/`HasCastAnim` 统一读表。技能内禁止直接 Instantiate 特效或引用 AssetsManager（下标映射集中在 VfxManager）。
 
 **技能上下文（SkillContext）**：`ints` / `vectors` / `floats` 三个可变长列表，语义 = **能复原技能表现的最小可变数据包**。
 ① 只放运行时才确定、两端无法推导的东西：施法者 id、随机种子、瞄准点/落点、目标 id、档位、时间（放 floats）。发数、散布角、波次表、时长、轨迹形状、特效下标一律写死在技能类常量里，读包时用「变参 + 技能常量」复原——包体不随发数膨胀。伤害范围不写进包：有本体特效的取该特效预制体的命中球，无特效近战取 skill.csv 第 11 列半径；伤害倍率与再伤害间隔取 skill.csv 第 13 / 12 列。
@@ -186,7 +186,8 @@ Skills文件夹：
 ③ **跨端随机一律伪随机**：服务器施放时生成种子写进包里，两端用技能自己的 `System.Random(seed)` 按固定调用顺序取数（禁止 `UnityEngine.Random`：全局状态，两端消耗顺序不同必然发散）。目前只有「腾跃散华」「背袭弹幕」写种子。
 ④ **位置一律 entityId + Vector3**：客户端有该实体就按锚点取实时位置（跟随身体），取不到实体数据才用 Vector3 兜底。
 ⑤ **禁止给子弹加跨端回调**：分裂 / 弹跳 / 延时等二次效果，施放时就算好时刻与点位，两端到点各自创建——弹跳 = 起点 + 8 跳共 9 个点整串下发；分裂 = 母弹终点 + 按弹速与距离动态算出的时刻。
-包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B。
+⑥ **下发口径由 `SkillBase.NeedSendContext` 决定**（默认 true）：只有客户端表现真会读包时才下发；`PlayVFX` 为空实现的技能一律写 `protected override bool NeedSendContext => false;`——为 `OnCast` 收集的目标 id 列表属服务端私有数据，不进网络。临时缓冲 `EnsTemporaryBuffer` 固定 256B（1B 包标记 + 4B skillId + 包体），纯 int 列表最多放 59 个 id，再多必然抛「RPC 参数序列化失败」；把整串目标写进 `ints` 又要下发的技能会直接撞这个上限。
+包体参考（`SkillContextSerializer`：1B 空标记 + 每列表 4B 计数，int 4B / Vector3 12B）：普通射击 = 29B，不写落点 = 17B，写种子 = 33B，弹跳 9 点 = 158B。
 
 **发射点**：只用实体骨骼锚点。每个技能用 `OriginAnchor` + `OriginOffset` 声明：`UpCenter`（26 个）/ `UpFront`（12 个）/ `RightHand`（抛出武器、回旋武器 2 个）；水晶雕像与中立雕像也是 `UpCenter`（不走雕像顶部）。两端都用「实体实时位姿 + 锚点 + 固定偏移」现算，包里的起点只作兜底。
 **武器（第 10 / 11 列）**：按技能表现分配，**同一把武器只配一个技能**。投掷与绕身武器类（掷兵 / 五刃扇 / 天诛落刃 / 回旋枪 / 背水一击 / 旋枪荡 / 环射 / 兵雨 / 弧刃背袭）必须是真实武器模型，低级投掷用刀、高级投掷用长枪；近战挥砍用刀，突刺与重击用长枪，高速弹幕用枪械，元素 / 控制 / 法阵 / 支援用魔法球。不持武器（踢击 / 空手 / 防守方 / 非玩家）填分类 0、细分留空。
@@ -202,7 +203,7 @@ Skills文件夹：
 
 `TargetSelect.AimPos(entity, 夹角, 半径, 射程)` 给非射击类索敌用（防守方 / 塔 / 树），取点口径与上面一致：同样按体中心、水平距离取射程。
 **轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `TrialConstructor.Line(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；也可直接 new 对应 `BulletTrajectory` 子类。
-**多目标**：需要锁多个目标时由技能自己在 `SkillLogic` 里写（`ints[2..]` = 目标 id、`vectors[2..]` = 位置兜底，上限与排序规则写进技能常量）；纯范围效果优先只传「中心 + 半径 + 阵营」，由服务器自己取，不逐个下发。
+**多目标**：需要锁多个目标时由技能自己决定——客户端表现要用的（如弹跳的 9 个点）写进 `vectors`；纯服务端结算用的目标集合，走 `CollectEnemies` / `CollectInRange` 在 `SkillLogic` 里收集后只给 `OnCast` 消费，该技能 `NeedSendContext` 必须为 false，避免整串 id 顶到包体 256B 上限。多目标的上限与排序规则写进技能常量。
 **命中附加效果**：`AttackData.addEffectEvent`（命中挂 Buff）与 `AttackData.onHit`（命中额外逻辑）；子弹路径由 `BattleManagerCombat.TryHitBullet` 消费、近战球判定由 `SkillBase.StrikeSphere` 消费。`SkillBase` 提供 `ApplyEffect`（命中挂 Buff 回调）、`GiveEffect`（直接挂 Buff）、`PullTo`（命中拉拽）。**击退/击飞不是回调**：力度写在 `AttackData.knockbackPower` 上，由命中管线统一处理（见速度节⑥）。
 **持续型 Buff 表现**：客户端按同步的 `SCEntityDisplayInfo.buffs` 增删特效（仅 `includeRuntime || hasBuffs` 的包触发），映射表见 `Config.buff_vfx`（清单即本文件二章）。**技能里禁止再为 Buff 播持续特效**（不写 `PlayFollow`）——否则同一状态叠两份、且技能那份不随 Buff 消失而清理；因此 `PlayVFX` 允许空实现。每个 Buff 特效必须配 `BulletVfxInfo.hits`（至少一段）：播放时取 `hits[0]`，把它的竖直范围 `center.y ± radius` 等比缩放到实体的 `EntityModelInfo.yRange`——底对底、顶对顶，x/y/z 同倍率缩放，根节点竖直偏移由两者差值算出；rotation 不调、x/z 不做平移（资产保证 `center.x/z = 0`）。缺 hits 的 Buff 特效在启动自检时报错，并在播放时按原始大小兜底。
 **尺寸（skill.csv 第 11 列）**：`|` 分隔，按特效出现顺序每项一个值。有特效/武器模型的技能，值 = 该特效的**缩放倍率**（1 = 资产原大小，播放时由 `VfxManager.ApplyScale` 直接写成特效根节点缩放）；无特效的近战（腐爪 / 裂骨爪 / 直拳）值 = **判定半径**（米），由 `SkillBase.MeleeRadius` 直接读表。倍率列表为空按 1 处理，列表非空但下标越界、或近战没配半径，一律抛 `FormatException`（无代码兜底）。
