@@ -55,7 +55,12 @@ public static class EntityAnchorExtensions
                 case EntityAnchor.Chest: return anim.GetBoneTransform(HumanBodyBones.Chest).ToAnchorInfo(model.transform.rotation);
                 case EntityAnchor.Camera: return EntityAnchor.ModelRootPosition.GetTransform(model, anim) + (model.yRange.y*0.5f + 0.5f) * Vector3.up;
 
-                case EntityAnchor.Bar: return EntityAnchor.Head.GetTransform(model, anim) + Vector3.up * 0.5f;
+                case EntityAnchor.Bar: 
+                    {
+                        var head = EntityAnchor.Head.GetTransform(model, anim);
+                        var pos = new Vector3(model.transform.position.x, head.position.y + 0.5f, model.transform.position.z);
+                        return new EntityAnchorInfo() { position =  pos,rotation=model.transform.rotation};
+                    }
                 case EntityAnchor.UpCenter: return EntityAnchor.Chest.GetTransform(model, anim);
                 case EntityAnchor.UpFront: return EntityAnchor.Chest.GetTransform(model, anim) + (model.zRange.y+0.5f) * model.transform.forward;
             }
