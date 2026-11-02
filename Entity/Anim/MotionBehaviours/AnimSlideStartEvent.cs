@@ -3,6 +3,7 @@ using UnityEngine;
 public class AnimSlideStartEvent : AnimMotionEvent
 {
     protected override InputBlockOp blockOp => InputBlockOp.Jump | InputBlockOp.Slide | InputBlockOp.Attack;
+    public override EndureType? Endure => EndureType.Super;
     [SerializeField] private AnimationCurve speedCurve;
     private float slideTime;
     private bool canEnd;

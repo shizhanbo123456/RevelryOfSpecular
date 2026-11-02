@@ -5,6 +5,7 @@ public class AnimAttackEvent : AnimEvent
     protected override EntityAnim.AnimState State => EntityAnim.AnimState.Attack;
     protected override InputBlockOp blockOp => InputBlockOp.Rotation|InputBlockOp.Jump|InputBlockOp.Slide|InputBlockOp.Attack;
     protected override bool UseGravity => false;
+    public override EndureType? Endure => EndureType.Common;
     [SerializeField] private EntityAnim.AttackType type;
     [SerializeField] private AnimationCurve speedForward;//是位置，导数才是速度
     [SerializeField] private AnimationCurve speedUpward;//是位置，导数才是速度

@@ -47,6 +47,8 @@ public abstract class EntityData : MonoBehaviour
 
     // 输入操作屏蔽：置位期间对应操作（前后/旋转）在 RecordInput 入口被抹除，实现输入阻断（外部直接置位/清位）
     [HideInInspector] public InputBlockOp inputBlockOperations;
+    [HideInInspector] public EndureType? EndureOverride;
+    [HideInInspector] public EndureType defaultEndure;
 
     public virtual float YawSpeed => 0f;
 
@@ -104,6 +106,8 @@ public abstract class EntityData : MonoBehaviour
         level = this.level;
         this.camp = camp;
         baseAttribute = Tool.InfoManager != null ? Tool.InfoManager.GetAttribute(type, level) : new EntityAttribute();
+        // 霸体下限：entity.csv「霸体等级」列
+        defaultEndure = Tool.InfoManager != null ? Tool.InfoManager.GetEntityConfig(type).endureLevel : EndureType.None;
         // 克隆即满血：base 的 health 是"生命值上限"，同一个字段克隆到 floating 后就承载"当前生命值"（复活走重建实体，同样落在这里）
         floatingAttribute = baseAttribute.Clone();
         effectController = new EntityEffectController();
@@ -349,6 +353,11 @@ public abstract class EntityData : MonoBehaviour
         if (anim != null) anim.InAir(false);
     }
 
+    public void SetEndureOverride(EndureType? endure)
+    {
+        EndureOverride = endure;
+    }
+
     #region//速度
     private bool declaredForward;
     private float declaredForwardSpeed;
@@ -466,11 +475,14 @@ public abstract class EntityData : MonoBehaviour
 
     public EndureType GetEndureLevel()
     {
-        // 配表「霸体等级覆盖」优先于强控/位移/动画状态
-        if (effectController != null && effectController.TryGetEndureOverride(out var endure)) return endure;
-        if (effectController != null && effectController.IsActionBlocked()) return EndureType.None;
-        if (motion != null) return EndureType.Common;
-        return anim != null ? anim.CurrentState.GetEndure() : EndureType.None;
+        EndureType level;
+        // 配表「霸体等级覆盖」优先于强控/位移/动画片段
+        if (effectController != null && effectController.TryGetEndureOverride(out var endure)) level = endure;
+        else if (effectController != null && effectController.IsActionBlocked()) level = EndureType.None;
+        else if (motion != null) level = EndureType.Common;
+        else level = EndureOverride ?? EndureType.None;
+        // 实体默认霸体等级是下限，任何来源都不得低于它
+        return level < defaultEndure ? defaultEndure : level;
     }
 
     public void ProcessHit(AttackData attack, int damage, CombatLabelType damageType, Vector3 hitOrigin, Vector3? floatPos = null)

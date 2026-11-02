@@ -5,6 +5,7 @@ public class AnimEvent : StateMachineBehaviour
     protected virtual EntityAnim.AnimState State { get; }
     protected virtual InputBlockOp blockOp { get; } = InputBlockOp.None;
     protected virtual bool UseGravity { get; } = true;
+    public virtual EndureType? Endure { get; }
     //用于传递给客户端识别动画片段
     public int AnimId { get; private set; } = -1;
 
@@ -36,5 +37,6 @@ public class AnimEvent : StateMachineBehaviour
 
         data.SetGravityEnabled(UseGravity);
         data.SetInputBlock(blockOp);
+        data.SetEndureOverride(Endure);
     }
 }

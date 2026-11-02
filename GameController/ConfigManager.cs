@@ -156,6 +156,17 @@ public class ConfigManager : MonoBehaviour
         throw new FormatException($"第 {col} 列的显示血条 {value} 只允许 空 / 0 / 1");
     }
 
+    // 默认霸体等级：留空 = 0（None），只允许 0~2（对应 EndureType）
+    public static EndureType ParseEndureLevel(string[] rowData, int col)
+    {
+        string raw = Cell(rowData, col);
+        if (raw.Length == 0) return EndureType.None;
+        int value = ParseInt(rowData, col);
+        if (value < 0 || value > 2)
+            throw new FormatException($"第 {col} 列的霸体等级 {value} 超出 0~2（0:None / 1:Common / 2:Super）");
+        return (EndureType)value;
+    }
+
     // 技能攻击动画：空/0 = 无动画，其余必须是 EntityAnim.AttackType 里定义的值
     public static int ParseAttackAnim(string[] rowData, int col)
     {
@@ -369,7 +380,7 @@ public class ConfigManager : MonoBehaviour
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private const int ColumnCount = 16;
+        private const int ColumnCount = 17;
         public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
         public EntityCategory category;
@@ -388,6 +399,7 @@ public class ConfigManager : MonoBehaviour
         public List<int> initialSkills;
         public int quality;           // 0:B / 1:A / 2:S，直接对应 RoleHead 的 m_quality 页序
         public bool showHealthBar;    // 客户端是否为该实体创建头顶血条
+        public EndureType endureLevel; // 第17列：默认霸体等级，实体霸体等级的下限（留空 = None）
 
         public EntityConfig(string[] rowData)
         {
@@ -407,6 +419,7 @@ public class ConfigManager : MonoBehaviour
             initialSkills = ParseIntList(rowData, 13);
             quality = ParseQuality(rowData, 14);
             showHealthBar = ParseShowHealthBar(rowData, 15);
+            endureLevel = ParseEndureLevel(rowData, 16);
         }
 
         public static int Load(ConfigTable table)
