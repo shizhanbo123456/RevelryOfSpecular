@@ -1248,34 +1248,7 @@ public partial class BattleManager : EnsBehaviour
 
     private void SyncEntitiesToClients(bool fullRound)
     {
-        foreach (var clientId in PlayerInfoList.Keys)
-        {
-            // 未完成加载的客户端不发战斗表现数据：其可见集合保持为空，回执后第一轮自然按首见全量补上
-            if (!loadedClients.Contains(clientId)) continue;
-            // 视野锚点（存活跟随自己 / 观战跟随目标 / 死亡冻结在死亡位置），死亡不再跳过：按冻结位置继续下发
-            if (!visionStates.TryGetValue(clientId, out _)) continue;
-            // 上一轮可见集合：用于判断"刚进入视野"，新实体必须整包下发（客户端要靠持久参数才能摆对状态）
-            visibleByClient.TryGetValue(clientId, out var prevSeen);
-            BeginClientVisibility(clientId);
-            foreach (var entity in EntityContainer.Entities)
-            {
-                if (entity == null) continue;
-                if (!CanSeeDisplayFromState(clientId, entity)) continue;
-                MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
-                bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
-                bool full = fullRound || firstSeen;
-                var info = entity.GetDisplayInfo(full);
-                // 位姿/血量/buff 全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
-                if (info.hasTransform || info.hasHealth || info.hasBuffs)
-                {
-                    FillDisplayVelocity(entity, info);
-                    Tool.NetworkManager.SendEntityDisplay(clientId, info, full);
-                }
-                // 动画包独立于表现包：表现包被跳过时仍要发，否则本轮末尾清掉 AnimSyncDirty 后这次状态变化就永久丢了
-                if (entity.anim != null && (entity.anim.AnimSyncDirty || firstSeen)) SendEntityAnim(clientId, entity);
-            }
-            EndClientVisibility(clientId);
-        }
+        foreach (var clientId in PlayerInfoList.Keys) SyncEntitiesToClient(clientId, fullRound);
 
         // 本轮至少被一个客户端可见的实体：清 health/buff/skill 脏标记（无人可见则保留，等下次可见随完整同步下发）
         foreach (var id in s_dirtySweep)
@@ -1295,6 +1268,36 @@ public partial class BattleManager : EnsBehaviour
         {
             if (entity != null && entity.anim != null) entity.anim.ClearAnimSyncDirty();
         }
+    }
+
+    // 单客户端补发：观战切换时立刻刷出目标视野，不等下一轮同步；不碰实体级脏标记，交给下一次整轮统一清理
+    private void SyncEntitiesToClient(int clientId, bool fullRound)
+    {
+        // 未完成加载的客户端不发战斗表现数据：其可见集合保持为空，回执后第一轮自然按首见全量补上
+        if (!loadedClients.Contains(clientId)) return;
+        // 视野锚点（存活跟随自己 / 观战跟随目标 / 死亡冻结在死亡位置），死亡不再跳过：按冻结位置继续下发
+        if (!visionStates.TryGetValue(clientId, out _)) return;
+        // 上一轮可见集合：用于判断"刚进入视野"，新实体必须整包下发（客户端要靠持久参数才能摆对状态）
+        visibleByClient.TryGetValue(clientId, out var prevSeen);
+        BeginClientVisibility(clientId);
+        foreach (var entity in EntityContainer.Entities)
+        {
+            if (entity == null) continue;
+            if (!CanSeeDisplayFromState(clientId, entity)) continue;
+            MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
+            bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
+            bool full = fullRound || firstSeen;
+            var info = entity.GetDisplayInfo(full);
+            // 位姿/血量/buff 全无变化就不发整包；全量轮 full 恒真，兼作静止实体的心跳
+            if (info.hasTransform || info.hasHealth || info.hasBuffs)
+            {
+                FillDisplayVelocity(entity, info);
+                Tool.NetworkManager.SendEntityDisplay(clientId, info, full);
+            }
+            // 动画包独立于表现包：表现包被跳过时仍要发，否则本轮末尾清掉 AnimSyncDirty 后这次状态变化就永久丢了
+            if (entity.anim != null && (entity.anim.AnimSyncDirty || firstSeen)) SendEntityAnim(clientId, entity);
+        }
+        EndClientVisibility(clientId);
     }
 
     private void SendEntityAnim(int clientId, EntityData entity)

@@ -86,10 +86,16 @@ public partial class BattleManager
         if (targetCamp == PlayerCampType.Spectator) return; // 观战方玩家无实体，无可跟随视角
         // 观战方玩家可观战任意存活单位；攻/守玩家只能观战同阵营
         if (myCamp != PlayerCampType.Spectator && myCamp != targetCamp) return;
-        if (GetEntityOfClient(target) == null) return; // 目标死亡
+        var follow = GetEntityOfClient(target);
+        if (follow == null) return; // 目标死亡
         state.spectating = true;
         state.spectateTarget = target;
         targetState.spectators.Add(clientId);
+        // 锚点先切到新目标再立刻补发，客户端不必等下一轮 0.02s 同步
+        state.entityId = follow.id;
+        state.position = follow.transform.position;
+        state.viewRadius = VisionRadius(follow);
+        SyncEntitiesToClient(clientId, true);
     }
 
     // 退出观战：复活 / 换目标 / 退场时调用
