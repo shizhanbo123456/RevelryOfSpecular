@@ -30,7 +30,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1f));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -52,7 +52,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1f));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -78,7 +78,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f),
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
                 TrialConstructor.Point(caster.transform.position, SmashLife), SmashLife,
                 HitSpec(SkillVfxKind.RangeMagic, 6, VfxScale()));
         }

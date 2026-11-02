@@ -36,7 +36,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1f));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -58,7 +58,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1f));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -80,7 +80,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1.1f));
+            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -102,7 +102,7 @@ namespace Ros.Skill
         protected override void OnCast(SkillContext context)
         {
             var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1.1f));
+            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
         }
 
         protected override bool NeedSendContext => false;
@@ -173,7 +173,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), CreateTrajectory(context, 0), 0f,
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), CreateTrajectory(context, 0), 0f,
                 HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale()));
         }
 
@@ -209,7 +209,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), CreateTrajectory(context, 0), 0f,
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), CreateTrajectory(context, 0), 0f,
                 HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(0), ConfigDamageRate(0)));
             Burst(caster, context.vectors[1]);
         }
@@ -228,7 +228,7 @@ namespace Ros.Skill
             Timer.AddTimer(0, _ =>
             {
                 if (caster == null) return;
-                Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f),
+                Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
                     TrialConstructor.Point(at, BurstLife), BurstLife,
                     HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(1), ConfigDamageRate(1)));
             }, BulletFlight, 1, false);
@@ -288,7 +288,7 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null || Tool.BattleManager == null) return;
-            var attack = BuildAttack(caster, 1f,
+            var attack = BuildAttack(caster,
                 addEffect: ConfigHitBuff(caster, 0));
             Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0), SporeLife,
                 HitSpec(SkillVfxKind.RangeMagic, SporeVfx, VfxScale()));

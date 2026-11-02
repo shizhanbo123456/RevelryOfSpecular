@@ -4,7 +4,6 @@ public class AttackData
 {
     public ushort shooter;
     public EntityCategory? shooterCategory; // 敌对判定依据；无施法者（场景伤害）为 null
-    public float rate;
     public bool breakEndure;
     public float knockbackPower;
     public Damageable.IDamageable damageable;
@@ -13,7 +12,7 @@ public class AttackData
     public EntityAttribute attribute;
     public float outDamageMultiplier = 1f;
 
-    public static AttackData Create(EntityData shooter, float rate, bool breakEndure,
+    public static AttackData Create(EntityData shooter, bool breakEndure,
         Damageable.IDamageable damageable = null,
         Action<EntityEffectController> addEffectEvent = null, Action<EntityData> onHit = null,
         float knockbackPower = 0f)
@@ -22,7 +21,6 @@ public class AttackData
         {
             shooter = shooter != null ? shooter.id : (ushort)0,
             shooterCategory = shooter != null ? shooter.type.category : null,
-            rate = rate,
             breakEndure = breakEndure,
             damageable = damageable,
             addEffectEvent = addEffectEvent,
@@ -36,11 +34,12 @@ public class AttackData
         };
     }
 
-    public int GetDamage(out CombatLabelType type, float segmentRate = 1f)
+    // 倍率唯一来源是 skill.csv 第 13 列，代码不再额外乘任何系数
+    public int GetDamage(out CombatLabelType type, float segmentRate)
     {
         type = CombatLabelType.Normal;
         if (attribute == null) return 0;
-        float final = rate * attribute.attack;
+        float final = attribute.attack;
         final *= outDamageMultiplier;                            // 出伤乘区
         final *= segmentRate;                                    // 多段伤害倍率（skill.csv 第 13 列）
         if (attribute.critRate > 0f && UnityEngine.Random.Range(0f, 100f) < attribute.critRate)

@@ -228,7 +228,6 @@ public static class Config
     public const float plague_detonate_damage = 20f;
     public const int power_suppress_hits = 3;
     public const float power_suppress_interval = 0.4f;
-    public const float power_suppress_rate = 1f;
     public const int power_suppress_vfx_index = 5;   // RangeMagic[5]
     public const float power_suppress_vfx_life = 1f;
     public const float plague_mark_duration = 30f;   // 瘟疫标记持续时长（主动1 与 瘟疫污染扩散共用）

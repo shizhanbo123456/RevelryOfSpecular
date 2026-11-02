@@ -20,8 +20,6 @@ namespace Ros.Skill
         protected abstract float SpreadDeg { get; }
         protected abstract float BulletLife { get; }
 
-        protected virtual float DamageRate => 1f;
-
         protected virtual int WaveCount => 1;
         protected virtual float WaveInterval => 0.15f;
         protected virtual int ShotsOfWave(int wave) => Shots;
@@ -96,7 +94,7 @@ namespace Ros.Skill
         protected virtual void ShootWave(EntityData caster, SkillContext context, int wave)
         {
             if (caster == null || Tool.BattleManager == null) return;
-            var attack = BuildAttack(caster, DamageRate,
+            var attack = BuildAttack(caster,
                 addEffect: HitBuffIndex >= 0 ? ConfigHitBuff(caster, HitBuffIndex) : null,
                 onHit: HitAction(caster));
             int shots = Mathf.Max(1, ShotsOfWave(wave));

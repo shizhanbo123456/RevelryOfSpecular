@@ -109,12 +109,13 @@ namespace Ros.Skill
         }
 
         // 击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
-        protected AttackData BuildAttack(EntityData entity, float rate,
+        // 伤害倍率不在这里传：统一由 skill.csv 第 13 列在结算时乘上，代码不设系数
+        protected AttackData BuildAttack(EntityData entity,
             bool breakEndure = false, Action<EntityEffectController> addEffect = null,
             Action<EntityData> onHit = null, float? knockback = null)
         {
             var config = ConfigManager.SkillConfig.Get(Id);
-            return AttackData.Create(entity, rate, breakEndure,
+            return AttackData.Create(entity, breakEndure,
                 addEffectEvent: addEffect, onHit: onHit, knockbackPower: knockback ?? config.knockback ?? 0f);
         }
 
@@ -214,18 +215,20 @@ namespace Ros.Skill
                 VfxHitSource.GetLifeTime(kind, vfxIndex), $"{kind}[{vfxIndex}]");
         }
 
-        protected static void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
+        // 近战结算：伤害倍率同样只认 skill.csv 第 13 列（单段取第 0 项，空 = 1）
+        protected void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR
             DamageRangeDebugHost.Sphere(center, radius); // 调试：可视化本次球形伤害判定范围（渐隐渲染）
 #endif
+            float rate = ConfigDamageRate();
             int count = EntityPhysics.OverlapSphere(center, radius, s_hitBuffer);
             for (int i = 0; i < count; i++)
             {
                 var target = s_hitBuffer[i];
                 if (target == null || !target.Alive) continue;
                 if (target.id == entity.id || !EntityCampUtil.IsHostile(entity.type.category, target.camp)) continue;
-                int damage = attack.GetDamage(out CombatLabelType type);
+                int damage = attack.GetDamage(out CombatLabelType type, rate);
                 target.ProcessHit(attack, damage, type, center); // 击飞方向取判定球心 → 目标
                 if (attack.addEffectEvent != null && target.effectController != null)
                 {

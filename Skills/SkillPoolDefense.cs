@@ -91,7 +91,7 @@ namespace Ros.Skill
         {
             if (caster == null || !caster.Alive) return;
             Tool.BattleManager.ShootBullet(caster,
-                BuildAttack(caster, Config.power_suppress_rate, addEffect: ConfigHitBuff(caster, 0)),
+                BuildAttack(caster, addEffect: ConfigHitBuff(caster, 0)),
                 TrialConstructor.Point(caster.transform.position, Config.power_suppress_vfx_life),
                 Config.power_suppress_vfx_life,
                 HitSpec(SkillVfxKind.RangeMagic, Config.power_suppress_vfx_index, VfxScale()));
