@@ -45,7 +45,7 @@ namespace Ros.Skill
 
 
         #region 框架工具（攻击结算 / 特效播放）
-        private static readonly EntityData[] s_hitBuffer = new EntityData[16];
+        private static readonly EntityData[] s_hitBuffer = new EntityData[50];
 
         protected static EntityAnchorInfo HandPos(EntityData entity, bool leftHand = false)
         {
@@ -223,7 +223,7 @@ namespace Ros.Skill
             DamageRangeDebugHost.Sphere(center, radius); // 调试：可视化本次球形伤害判定范围（渐隐渲染）
 #endif
             float rate = ConfigDamageRate();
-            int count = EntityPhysics.OverlapSphere(center, radius, s_hitBuffer);
+            int count = EntityPhysics.OverlapCircleXZ(center, radius, s_hitBuffer);
             for (int i = 0; i < count; i++)
             {
                 var target = s_hitBuffer[i];

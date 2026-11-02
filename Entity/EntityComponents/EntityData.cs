@@ -135,7 +135,8 @@ public abstract class EntityData : MonoBehaviour
 
         SetupBody();
 
-        ModelInfo.BuildCapsuleCollider();
+        capsule = ModelInfo.BuildCapsuleCollider();
+        CacheHitShapeXZ();
         InitDynamicCapsule();
     }
 
@@ -713,11 +714,24 @@ public abstract class EntityData : MonoBehaviour
     private float capsuleBaseBottom;      // 建胶囊时的下边界（本地 Y）
     private float capsuleBaseTop;         // 建胶囊时的上边界（本地 Y）
 
+    // 平面判定足迹：胶囊压扁到 XZ 就是圆心 + 半径，高度与半径无关（radius 全程不变）
+    public float HitRadiusXZ { get; private set; }
+
+    public Vector3 HitCenterXZ => capsule.transform.TransformPoint(capsule.center);
+
+    // 宽相位取区块用的半径上限：实体创建时更新，只增不减
+    public static float MaxHitRadiusXZ { get; private set; }
+
+    private void CacheHitShapeXZ()
+    {
+        Vector3 scale = capsule.transform.lossyScale;
+        HitRadiusXZ = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)); // 半径受垂直于轴的两轴缩放影响
+        if (HitRadiusXZ > MaxHitRadiusXZ) MaxHitRadiusXZ = HitRadiusXZ;
+    }
+
     private void InitDynamicCapsule()
     {
-        if (anim == null) return;
-        capsule = ModelInfo.GetComponent<CapsuleCollider>();
-        if (capsule == null) return;
+        if (anim == null || capsule == null) return;
         if (!TrySampleBoneSpan(ModelInfo.transform, out float footY, out float headY)) return;
 
         boneInitFootY = footY;

@@ -20,7 +20,7 @@ public partial class BattleManager
     #region 子弹容器（时间戳推进：位置 = 轨迹 Lerp(经过时长/生命)，不做增量移动）
     private const float AllTimeWindow = 999f; // hit.end = 0 表示全程都在伤害窗口内
     private readonly List<Bullet> activeBullets = new();
-    private static readonly EntityData[] s_bulletBuffer = new EntityData[16];
+    private static readonly EntityData[] s_bulletBuffer = new EntityData[50];
     private static readonly HashSet<string> s_noHitReported = new(); // 缺命中球只报一次，避免每发刷屏
 
     private void AddBullet(AttackData attack, BulletTrajectory trajectory, float lifeTime, BulletHitSpec spec)
@@ -103,7 +103,7 @@ public partial class BattleManager
 #if UNITY_EDITOR
             DamageRangeDebugHost.Capsule(prevCenter, center, radius); // 调试：可视化本段命中球扫掠范围
 #endif
-            int count = EntityPhysics.OverlapCapsule(prevCenter, center, radius, s_bulletBuffer);
+            int count = EntityPhysics.OverlapCapsuleXZ(prevCenter, center, radius, s_bulletBuffer);
             for (int i = 0; i < count; i++)
             {
                 var e = s_bulletBuffer[i];
