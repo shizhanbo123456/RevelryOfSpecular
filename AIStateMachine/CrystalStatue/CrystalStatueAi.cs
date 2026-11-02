@@ -1,3 +1,4 @@
+﻿using Ros.Skill;
 using UnityEngine;
 
 // 水晶守护塔：定时索敌，范围内有敌人才从技能表随机放一个；不移动、不转向、不复活
@@ -37,17 +38,19 @@ public class CrystalStatueAi : AiStateMachine
         if (castProgress < 1f) return;
         castProgress = 0f;
         if (!HasEnemyInRange()) return;
-        CastRandomSkill();
+        CastSkill();
     }
 
     private bool HasEnemyInRange() =>
         BattleManager.EntityContainer.GetNearestEnemy(Owner, Config.crystal_statue_attack_range) != null;
 
-    private void CastRandomSkill()
+    // 带灵火时改放灵火喷吐（打脚 + 到点爆炸），灵火到期自动回到普通孢子
+    private void CastSkill()
     {
         var sc = Owner.skillController;
         if (sc == null || sc.SkillCount == 0) return;
-        sc.TryUseSkill(sc.GetSkillIdAt(Random.Range(0, sc.SkillCount)));
+        bool blaze = Owner.effectController != null && Owner.effectController.HasEffect(EffectType.StatueBlaze);
+        sc.TryUseSkill(blaze ? (int)SkillType.SkillCrystalStatueSporeBlaze : (int)SkillType.SkillCrystalStatueSporeA);
     }
 
     // 当前只有一种行为；将来要加档（如核心被袭提速）就新增状态并在这里返回它

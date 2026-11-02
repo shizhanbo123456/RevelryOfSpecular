@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Ros.Skill
 {
-    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 防御塔孢子喷射×1 / 中立雕像孢子喷发
+    // 非玩家单位：普通僵尸爪击×2 / 精英僵尸爪击×2+嘶吼 / 防御塔孢子喷射×2 / 中立雕像孢子喷发
     public static class SkillPoolNpc
     {
         public static void RegisterAll()
@@ -15,6 +15,7 @@ namespace Ros.Skill
             SkillManager.Register(new SkillEliteZombieClawL());
             SkillManager.Register(new SkillEliteZombieScream());
             SkillManager.Register(new SkillCrystalStatueSporeA());
+            SkillManager.Register(new SkillCrystalStatueSporeBlaze());
             SkillManager.Register(new SkillNeutralStatueSpore());
         }
     }
@@ -139,8 +140,13 @@ namespace Ros.Skill
     // 孢子喷射：从体中心射出弹体特效
     public abstract class CrystalStatueSporeShot : SkillBase
     {
+        protected const float BulletFlight = 0.6f; // 弹道时长；灵火喷吐按同一时刻在落点起爆
         public override float CastRange => Config.crystal_statue_attack_range;
         protected abstract int BulletVfx { get; }
+
+        // 落点：默认朝体中心、水平距离取射程；灵火喷吐改为目标脚部实际位置
+        protected virtual Vector3 AimPoint(EntityData entity)
+            => TargetSelect.AimPos(entity, TargetSector, TargetRadius, CastRange);
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -148,14 +154,14 @@ namespace Ros.Skill
             // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
             Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
             context.AddInts(entity.id);
-            context.AddVectors(origin, TargetSelect.AimPos(entity, TargetSector, TargetRadius, CastRange));
+            context.AddVectors(origin, AimPoint(entity));
             return context;
         }
 
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
             Vector3 origin = context.vectors[0]; // 塔/树是静止单位，直接用包里的施放点
-            return TrialConstructor.Line(origin, context.vectors[1], 0.6f);
+            return TrialConstructor.Line(origin, context.vectors[1], BulletFlight);
         }
 
         protected override void OnCast(SkillContext context)
@@ -174,6 +180,54 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillCrystalStatueSporeA;
         protected override int BulletVfx => 25;
+    }
+
+    // 灵火喷吐：塔带灵火时的普攻，子弹打敌人脚部，到点追加一次原地灵火爆炸（与普攻同一特效）
+    // 第 13 列 = 子弹倍率|灵火倍率，第 11 列 = 子弹尺寸|灵火尺寸
+    public class SkillCrystalStatueSporeBlaze : CrystalStatueSporeShot
+    {
+        public override int Id => (int)SkillType.SkillCrystalStatueSporeBlaze;
+        protected override int BulletVfx => 25;
+
+        private const float BurstLife = 0.6f; // 爆炸命中球存活时长；资产填了存活时长则以资产为准
+
+        // 打敌人脚部：不按射程归一化，否则子弹会飞过目标、爆炸点落不到脚下
+        protected override Vector3 AimPoint(EntityData entity)
+        {
+            var target = ResolveTarget(entity);
+            return target != null
+                ? target.transform.position
+                : entity.transform.position + entity.transform.forward * CastRange;
+        }
+
+        protected override void OnCast(SkillContext context)
+        {
+            var caster = FindEntity((ushort)context.ints[0]);
+            if (caster == null || Tool.BattleManager == null) return;
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f), CreateTrajectory(context, 0), 0f,
+                HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(0), ConfigDamageRate(0)));
+            Burst(caster, context.vectors[1]);
+        }
+
+        public override void PlayVFX(SkillContext context)
+        {
+            VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0), VfxScale(0));
+            Vector3 at = context.vectors[1];
+            Timer.AddTimer(0, _ => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx,
+                TrialConstructor.Point(at, BurstLife), VfxScale(1)), BulletFlight, 1, false);
+        }
+
+        // 子弹到点的灵火爆炸：伤害取第 13 列第 2 项，两端同一时刻同一点位各自创建
+        private void Burst(EntityData caster, Vector3 at)
+        {
+            Timer.AddTimer(0, _ =>
+            {
+                if (caster == null) return;
+                Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, 1f),
+                    TrialConstructor.Point(at, BurstLife), BurstLife,
+                    HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(1), ConfigDamageRate(1)));
+            }, BulletFlight, 1, false);
+        }
     }
 
 

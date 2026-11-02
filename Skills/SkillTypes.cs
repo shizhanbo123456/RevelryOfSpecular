@@ -90,8 +90,9 @@
         SkillEliteZombieClawL,
         SkillEliteZombieScream,
 
-        // ===== 防御塔 110 =====
+        // ===== 防御塔 110~111 =====
         SkillCrystalStatueSporeA = 110,
+        SkillCrystalStatueSporeBlaze,
 
         // ===== 中立雕像 113 =====
         SkillNeutralStatueSpore = 113,

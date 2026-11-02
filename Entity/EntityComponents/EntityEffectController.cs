@@ -74,7 +74,8 @@ public static class EffectTypeExt
     public static bool IsDoT(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire;
 
     //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
-    public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire or EffectType.DeathStroll;
+    public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire
+        or EffectType.DeathStroll or EffectType.DeathCurse;
 
     public static bool IsShield(this EffectType type) => ConfigManager.EffectConfig.Get((int)type).specialCalculate == 1;
 
@@ -108,6 +109,7 @@ public class EntityEffectController
     private readonly List<EffectLayer> layerSnapshot = new();
     private readonly List<int> shieldOrder = new();
     private static readonly List<EntityData> s_tickTargets = new();
+    private static readonly List<EntityData> s_curseTargets = new();
 
     private int nextSerial = 1;
     private bool blockMove;              // 任一存在层禁止移动输入
@@ -249,6 +251,8 @@ public class EntityEffectController
     {
         float m = 1f / (1f + GetLevel(EffectType.BattleFury) * 0.1f);
         if (HasEffect(EffectType.PlagueBless)) m *= 1f - Config.plague_bless_damage_reduce;
+        int curseLevel = GetLevel(EffectType.DeathCurse);
+        if (curseLevel > 0) m *= 1f + Config.death_curse_damage_taken_ratio * curseLevel;
         return m;
     }
 
@@ -363,8 +367,20 @@ public class EntityEffectController
                 {
                     if (s_tickTargets[i] != null) s_tickTargets[i].OnDamaged(Config.death_stroll_dot_ratio * stat * layer.level, owner, fixedDamage: true, damageType: CombatLabelType.DeathStroll);
                 }
+                // 死灵诅咒：光环内敌人每秒刷新一层（叠加模式 2，等级随停留时间累加）
+                s_curseTargets.Clear();
+                BattleManager.EntityContainer.GetAllInCamp(owner.transform.position, Config.death_curse_radius, enemyCamp, s_curseTargets);
+                for (int i = 0; i < s_curseTargets.Count; i++)
+                {
+                    var cursed = s_curseTargets[i];
+                    if (cursed != null && cursed.Alive && cursed.effectController != null)
+                        cursed.effectController.AddEffect(EffectType.DeathCurse, 1, Config.death_curse_duration, owner);
+                }
                 break;
             }
+            case EffectType.DeathCurse:
+                if (owner != null) owner.OnDamaged(Config.death_curse_tick_damage * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: CombatLabelType.DeathStroll);
+                break;
         }
     }
 

@@ -758,6 +758,10 @@ public class ConfigManager : MonoBehaviour
         public static float buff_speed_down;            // 减速 Buff 移速倍率
         public static float buff_mire_speed_rate;       // 泥沼 Buff 移速倍率
         public static float buff_death_stroll_speed_up; // 死灵漫步 Buff 移速倍率
+        public static float death_curse_radius;         // 死灵诅咒施加半径（米）
+        public static float death_curse_duration;       // 死灵诅咒单次持续时长（秒）
+        public static float death_curse_tick_damage;    // 死灵诅咒每跳伤害（× 等级）
+        public static float death_curse_damage_taken_ratio; // 死灵诅咒受伤增幅（每级）
         public static float move_turn_rate;             // 转向角速度（度/秒）
         public static float fly_vertical_speed;         // GM 飞行升降速度（米/秒）
         public static float gm_speed_multiplier;        // GM 极速移速倍率
@@ -890,6 +894,18 @@ public class ConfigManager : MonoBehaviour
                     break;
                 case "buff_death_stroll_speed_up":
                     buff_death_stroll_speed_up = Positive(Float(row), row.key);
+                    break;
+                case "death_curse_radius":
+                    death_curse_radius = Positive(Float(row), row.key);
+                    break;
+                case "death_curse_duration":
+                    death_curse_duration = Positive(Float(row), row.key);
+                    break;
+                case "death_curse_tick_damage":
+                    death_curse_tick_damage = Positive(Float(row), row.key);
+                    break;
+                case "death_curse_damage_taken_ratio":
+                    death_curse_damage_taken_ratio = Positive(Float(row), row.key);
                     break;
                 case "move_turn_rate":
                     move_turn_rate = Positive(Float(row), row.key);
@@ -1076,6 +1092,13 @@ public class ConfigManager : MonoBehaviour
                     $"[配表] {FileName} 缺少僵尸刷新节奏参数行（zombie_spawn_attempt_interval/zombie_refresh_rate_fast/zombie_refresh_rate_slow）");
             if (zombie_spawn_range_max <= zombie_spawn_range_min)
                 throw new FormatException($"[配表] {FileName} 缺少僵尸刷新距离参数行（zombie_spawn_range）");
+
+            // 死灵诅咒缺行会退化成 0：半径 0 等于永不施加、每跳 0 等于不掉血，都先显式拦下
+            if (death_curse_radius <= 0f || death_curse_duration <= 0f
+                || death_curse_tick_damage <= 0f || death_curse_damage_taken_ratio <= 0f)
+                throw new FormatException(
+                    $"[配表] {FileName} 缺少死灵诅咒参数行（death_curse_radius/death_curse_duration/death_curse_tick_damage/death_curse_damage_taken_ratio）");
+
             if (name_length_min > name_length_max)
                 throw new FormatException($"[配表] {FileName} 的 name_length_min 不能大于 name_length_max：{name_length_min} vs {name_length_max}");
             if (sync_precision_entity_xz >= terrain_size)

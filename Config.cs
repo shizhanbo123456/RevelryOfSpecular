@@ -219,6 +219,10 @@ public static class Config
     public const float death_stroll_radius = 4f;
     public const float death_stroll_dot_ratio = 1.5f; // 死灵漫步光环每跳 = 施加者攻击 × 此系数 × 等级
     public static float death_stroll_speed_up => ConfigManager.GlobalVariableConfig.buff_death_stroll_speed_up; // 移速倍率取配表
+    public static float death_curse_radius => ConfigManager.GlobalVariableConfig.death_curse_radius;           // 死灵诅咒施加半径
+    public static float death_curse_duration => ConfigManager.GlobalVariableConfig.death_curse_duration;       // 死灵诅咒单次持续时长
+    public static float death_curse_tick_damage => ConfigManager.GlobalVariableConfig.death_curse_tick_damage; // 每跳 = 此值 × 等级
+    public static float death_curse_damage_taken_ratio => ConfigManager.GlobalVariableConfig.death_curse_damage_taken_ratio; // 受伤增幅每级
     public const int summon_zombie_count = 5;
     public const int summon_elite_count = 3;
     public const float plague_detonate_damage = 20f;

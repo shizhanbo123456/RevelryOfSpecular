@@ -166,6 +166,16 @@ namespace Ros.Skill
         // 第 12 列：同一目标最短再伤害间隔（秒）；留空在解析阶段已填 100 = 只结算一次
         protected float DamageInterval => ConfigManager.SkillConfig.Get(Id).damageInterval;
 
+        // 第 13 列指定项；空 = 全 1，越界属配表错配直接抛（与段倍率共用同一列）
+        protected float ConfigDamageRate(int index = 0)
+        {
+            var rates = ConfigManager.SkillConfig.Get(Id).damageRates;
+            if (rates.Count == 0) return 1f;
+            if (index < 0 || index >= rates.Count)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 只配了 {rates.Count} 个伤害倍率，取第 {index} 个越界");
+            return rates[index];
+        }
+
         // 第 13 列：伤害倍率。空 = 全 1；只有 1 项 = 所有段共用；多项 = 按段序取
         private float[] SegmentRates(int segments)
         {
@@ -189,6 +199,16 @@ namespace Ros.Skill
         {
             var hits = VfxHitSource.GetHits(kind, vfxIndex);
             return new BulletHitSpec(hits, SegmentRates(hits.Length), scale, DamageInterval,
+                VfxHitSource.GetLifeTime(kind, vfxIndex), $"{kind}[{vfxIndex}]");
+        }
+
+        // 整段共用同一倍率：二次爆炸这类独立效果只从第 13 列取指定项，与命中球段数无关
+        protected BulletHitSpec HitSpec(SkillVfxKind kind, int vfxIndex, float scale, float rate)
+        {
+            var hits = VfxHitSource.GetHits(kind, vfxIndex);
+            var rates = new float[hits.Length];
+            for (int i = 0; i < rates.Length; i++) rates[i] = rate;
+            return new BulletHitSpec(hits, rates, scale, DamageInterval,
                 VfxHitSource.GetLifeTime(kind, vfxIndex), $"{kind}[{vfxIndex}]");
         }
 
