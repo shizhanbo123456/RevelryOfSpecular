@@ -39,6 +39,7 @@ namespace Ros.Skill
             StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { }
     }
 
@@ -60,6 +61,7 @@ namespace Ros.Skill
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { }
     }
 
@@ -81,6 +83,7 @@ namespace Ros.Skill
             StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster, 1.1f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { }
     }
 
@@ -102,6 +105,7 @@ namespace Ros.Skill
             StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster, 1.1f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { }
     }
 
@@ -132,6 +136,7 @@ namespace Ros.Skill
             }
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion

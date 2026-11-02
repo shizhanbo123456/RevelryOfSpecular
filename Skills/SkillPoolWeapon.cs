@@ -313,6 +313,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
@@ -349,6 +350,7 @@ namespace Ros.Skill
             if (caster != null) caster.SetMotion(new MotionDash(0.25f, 11f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // 1019：无特效（纯位移）
     }
 
@@ -369,6 +371,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
@@ -392,6 +395,7 @@ namespace Ros.Skill
             StrikeSphere(caster, context.vectors[0], MeleeRadius, BuildAttack(caster, 1.2f));
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // 1019：无特效（飞踢）
     }
 
@@ -681,6 +685,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
@@ -711,6 +716,7 @@ namespace Ros.Skill
             }
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
@@ -731,6 +737,7 @@ namespace Ros.Skill
             ApplyConfigBuff(caster, caster, 0);
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
@@ -1158,6 +1165,7 @@ namespace Ros.Skill
             }
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
 
@@ -1182,6 +1190,7 @@ namespace Ros.Skill
                 ApplyConfigBuff(caster, BattleManager.GetEntity((ushort)context.ints[i]), 0);
         }
 
+        protected override bool NeedSendContext => false;
         public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion

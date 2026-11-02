@@ -39,6 +39,8 @@ namespace Ros.Skill
         protected abstract void OnCast(SkillContext context);
         //客户端主入口，用于表现特效
         public abstract void PlayVFX(SkillContext context);
+        // context 含服务端结算数据，客户端只经 PlayVFX 消费；PlayVFX 为空的技能置 false，避免服务端私有数据上包
+        protected virtual bool NeedSendContext => true;
 
 
         #region 框架工具（攻击结算 / 特效播放）
@@ -91,7 +93,7 @@ namespace Ros.Skill
         {
             SkillContext context = SkillLogic(entity);
             OnCast(context);
-            if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
+            if (NeedSendContext && Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
         }
 
         // 配表第 17 列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
