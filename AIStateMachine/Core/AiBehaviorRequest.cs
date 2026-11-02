@@ -1,0 +1,18 @@
+using UnityEngine;
+
+// 期望行为种类：None = 决策层本拍没意见，保持字段里上一次的请求
+public enum AiBehaviorKind
+{
+    None,
+    Idle,
+    Move,
+    Attack,
+}
+
+// 决策层唯一能写的东西：期望行为 + 目标，不含任何执行动作
+public struct AiBehaviorRequest
+{
+    public AiBehaviorKind Kind;
+    public Vector3 Point;     // Move 的目的地
+    public EntityData Target; // Attack 的攻击对象；Idle 时只用于站桩朝向
+}

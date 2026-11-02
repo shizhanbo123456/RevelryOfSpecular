@@ -3,8 +3,8 @@ using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
-// 人机玩家状态机：15 个状态 + 快捷消息任务系统（设计见 Doc/08-游戏AI逻辑）
-public partial class AiPlayerAi : AiStateMachine
+// 人机玩家状态机：15 个决策状态 + 快捷消息任务系统（设计见 Doc/08-游戏AI逻辑），执行交给行为层
+public partial class AiPlayerAi : AiDecisionMachine
 {
     // 任务来源消息（锚点由"是否携带位置"决定静态/动态）
     protected struct TaskTarget
@@ -21,18 +21,22 @@ public partial class AiPlayerAi : AiStateMachine
     private readonly SearchState searchState;
     private readonly SearchCombatState searchCombatState;
     private readonly ChaseState chaseState;
-    private readonly CombatState combatState;
+    private readonly CombatDecision combatState;
     private readonly EscortApproachState escortApproachState;
     private readonly EscortState escortState;
-    private readonly CombatState escortCombatState;
+    private readonly CombatDecision escortCombatState;
     private readonly DangerEvadeState dangerEvadeState;
     private readonly DangerClearState dangerClearState;
-    private readonly CombatState dangerCombatState;
+    private readonly CombatDecision dangerCombatState;
     private readonly RallyApproachState rallyApproachState;
     private readonly RallyWaitState rallyWaitState;
-    private readonly CombatState rallyGuardState;
+    private readonly CombatDecision rallyGuardState;
     private readonly AssaultState assaultState;
-    private readonly CombatState assaultCombatState;
+    private readonly CombatDecision assaultCombatState;
+
+    private readonly IdleBehavior idleBehavior;
+    private readonly MoveBehavior moveBehavior;
+    private readonly AttackBehavior attackBehavior;
 
     // 任务槽：单槽，后到覆盖
     private bool hasPending;
@@ -52,36 +56,43 @@ public partial class AiPlayerAi : AiStateMachine
         searchState = new SearchState(this);
         searchCombatState = new SearchCombatState(this);
         chaseState = new ChaseState(this);
-        combatState = new CombatState();
+        combatState = new CombatDecision(this);
         escortApproachState = new EscortApproachState(this);
         escortState = new EscortState(this);
-        escortCombatState = new CombatState();
+        escortCombatState = new CombatDecision(this);
         dangerEvadeState = new DangerEvadeState(this);
         dangerClearState = new DangerClearState(this);
-        dangerCombatState = new CombatState();
+        dangerCombatState = new CombatDecision(this);
         rallyApproachState = new RallyApproachState(this);
         rallyWaitState = new RallyWaitState(this);
-        rallyGuardState = new CombatState();
+        rallyGuardState = new CombatDecision(this);
         assaultState = new AssaultState(this);
-        assaultCombatState = new CombatState();
+        assaultCombatState = new CombatDecision(this);
+
+        idleBehavior = new IdleBehavior(this);
+        moveBehavior = new MoveBehavior(this);
+        attackBehavior = new AttackBehavior(this);
+        behavior = idleBehavior;
 
         // 战斗态：撤离血线 / 活动范围 / 撤离去向 按战斗策略表配；脱战回到由 Bind 时传入
-        combatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, 0f, dangerEvadeState, EntityReportState.Combat);
-        escortCombatState.Setup(Owner, this, Config.ai_escort_retreat_ratio, Config.ai_escort_combat_radius * 1.5f, dangerEvadeState, EntityReportState.EscortCombat);
-        dangerCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_danger_clear_radius * 1.5f, dangerEvadeState, EntityReportState.DangerClearCombat);
-        rallyGuardState.Setup(Owner, this, Config.ai_rally_retreat_ratio, Config.ai_guard_alert_radius, rallyApproachState, EntityReportState.RallyGuard);
-        assaultCombatState.Setup(Owner, this, Config.ai_combat_retreat_ratio, Config.ai_assault_combat_activity, dangerEvadeState, EntityReportState.AssaultCombat);
+        combatState.Setup(Config.ai_combat_retreat_ratio, 0f, dangerEvadeState, EntityReportState.Combat);
+        escortCombatState.Setup(Config.ai_escort_retreat_ratio, Config.ai_escort_combat_radius * 1.5f, dangerEvadeState, EntityReportState.EscortCombat);
+        dangerCombatState.Setup(Config.ai_combat_retreat_ratio, Config.ai_danger_clear_radius * 1.5f, dangerEvadeState, EntityReportState.DangerClearCombat);
+        rallyGuardState.Setup(Config.ai_rally_retreat_ratio, Config.ai_guard_alert_radius, rallyApproachState, EntityReportState.RallyGuard);
+        assaultCombatState.Setup(Config.ai_combat_retreat_ratio, Config.ai_assault_combat_activity, dangerEvadeState, EntityReportState.AssaultCombat);
 
         stuckSamplePos = owner.transform.position;
         stuckSampleTime = Time.time;
         Initialize(searchState, owner.AIStaggerPhase);
     }
 
+    // 决策按 ThinkInterval 节流，行为层每帧仲裁
     public override void Tick()
     {
         if (!Owner.Alive) return;
         skillBar.Tick(Time.deltaTime);
         base.Tick();
+        TickBehaviors();
     }
 
     protected override void OnThink()
@@ -114,21 +125,10 @@ public partial class AiPlayerAi : AiStateMachine
 
         // 丢掉走不到的目的地，交给状态换目标，避免一直对着同一处撞
         Owner.StopMoving();
-        Current?.OnStuck();
+        NotifyStuck();
     }
 
-    protected void MoveTowards(Vector3 point)
-    {
-        // 目标连续算不出路：停住并交给状态放弃，绝不朝不可达点直冲
-        if (Owner.NavUnreachable)
-        {
-            Owner.StopMoving();
-            Current?.OnStuck();
-            return;
-        }
-
-        Owner.MoveTo(point);
-    }
+    private void NotifyStuck() => Current?.OnStuck();
 
     // 不可达的目标忽略一段时间，避免放弃后下一拍又锁回同一个
     private EntityData ignoredTarget;
@@ -262,7 +262,7 @@ public partial class AiPlayerAi : AiStateMachine
         }
     }
 
-    private CombatState ResolveCombat(AiState returnState)
+    private CombatDecision ResolveCombat(AiDecisionState returnState)
     {
         if (returnState == dangerClearState) return dangerCombatState;
         if (returnState == assaultState) return assaultCombatState;
@@ -325,8 +325,7 @@ public partial class AiPlayerAi : AiStateMachine
     private void CancelAll()
     {
         hasPending = false;
-        Owner.StopMoving();
-        Owner.ClearAiFacePoint();
+        RequestIdle(); // 立即停步；正在放技能时由行为层压到收招后再停
         SwitchTo(searchState);
     }
 
@@ -350,7 +349,7 @@ public partial class AiPlayerAi : AiStateMachine
         return true;
     }
 
-    protected AiState ConsumePendingOr(AiState fallback)
+    protected AiDecisionState ConsumePendingOr(AiDecisionState fallback)
     {
         if (!hasPending) return fallback;
         hasPending = false;
@@ -358,7 +357,7 @@ public partial class AiPlayerAi : AiStateMachine
     }
 
     // 把任务消息翻译成目标状态；静态锚点在这里落定，动态锚点每帧读 sender 位置
-    private AiState BuildTaskState(QuickMessageType type, TaskTarget target, AiState fallback, bool fromPending)
+    private AiDecisionState BuildTaskState(QuickMessageType type, TaskTarget target, AiDecisionState fallback, bool fromPending)
     {
         switch (type)
         {

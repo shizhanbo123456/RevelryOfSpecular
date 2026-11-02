@@ -1,12 +1,12 @@
 using Ros.Transport;
 using UnityEngine;
 
-// 人机玩家的各状态实现（状态图与消息矩阵见 Doc/08-游戏AI逻辑）
+// 人机玩家的各决策状态实现（状态图与消息矩阵见 Doc/08-游戏AI逻辑），只写期望行为、不碰执行层
 public partial class AiPlayerAi
 {
     private const float DefaultAttackRange = 2f; // 栏内没有带射程的技能时按空手射程算，不能用大值否则会停在打不到的距离
 
-    private sealed class SearchState : AiState
+    private sealed class SearchState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.Search;
         private readonly AiPlayerAi ai;
@@ -19,12 +19,11 @@ public partial class AiPlayerAi
 
         public override void Enter()
         {
-            ai.Owner.ClearAiFacePoint();
             hasPoint = false;
             resumeTime = 0f;
         }
 
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             // 近身敌人优先于守护点告警，避免被远处警报引走、自己在原地挨打
             var enemy = ai.NearestEnemy(false);
@@ -44,23 +43,23 @@ public partial class AiPlayerAi
             if (hasPoint)
             {
                 // 用执行层吸附后的目的地判距，避免「点被 NavMesh 吸附到脚下、状态机仍认为没到」而原地卡死
-                if (ai.Owner.DistanceToNavDestination > Config.ai_search_arrive) { ai.MoveTowards(point); return null; }
+                if (ai.Owner.DistanceToNavDestination > Config.ai_search_arrive) { ai.RequestMove(point); return null; }
                 hasPoint = false;
-                ai.Owner.StopMoving();
                 resumeTime = Time.time + UnityEngine.Random.Range(Config.ai_search_pause_min, Config.ai_search_pause_max);
+                ai.RequestIdle();
                 return null;
             }
 
-            if (Time.time < resumeTime) return null;
+            if (Time.time < resumeTime) return null; // 停顿中：保持 Idle
 
             Vector2 offset = UnityEngine.Random.insideUnitCircle * Config.ai_search_radius;
             point = ai.Owner.transform.position + new Vector3(offset.x, 0f, offset.y);
             hasPoint = true;
-            ai.MoveTowards(point);
+            ai.RequestMove(point);
             return null;
         }
 
-        public override AiState OnAllyChaseRequest(EntityData target) => ai.chaseState.Bind(target, this, Config.ai_chase_limit);
+        public override AiDecisionState OnAllyChaseRequest(EntityData target) => ai.chaseState.Bind(target, this, Config.ai_chase_limit);
 
         // 走不到就丢掉这个点，下一次决策重选
         public override void OnStuck()
@@ -70,7 +69,7 @@ public partial class AiPlayerAi
         }
     }
 
-    private sealed class SearchCombatState : AiState
+    private sealed class SearchCombatState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.SearchCombat;
         private readonly AiPlayerAi ai;
@@ -80,9 +79,7 @@ public partial class AiPlayerAi
 
         public SearchCombatState Bind(EntityData target) { coral = target; return this; }
 
-        public override void Enter() { }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             // 唯一的"可立即打断"战斗态：真正的敌人一来就让位
             var enemy = ai.NearestEnemy(false);
@@ -90,26 +87,20 @@ public partial class AiPlayerAi
 
             if (coral == null || !coral.Alive) return ai.searchState;
 
-            ai.FaceTarget(coral);
-            if (ai.FlatDistanceTo(coral) > ai.AttackRange)
-            {
-                ai.MoveTowards(coral.transform.position);
-                return null;
-            }
-            ai.Owner.StopMoving();
-            ai.TryAttack(coral);
+            if (ai.FlatDistanceTo(coral) > ai.AttackRange) { ai.RequestMove(coral.transform.position); return null; }
+            ai.RequestAttack(coral);
             return null;
         }
 
-        public override AiState OnAllyChaseRequest(EntityData target) => ai.chaseState.Bind(target, ai.searchState, Config.ai_chase_limit);
+        public override AiDecisionState OnAllyChaseRequest(EntityData target) => ai.chaseState.Bind(target, ai.searchState, Config.ai_chase_limit);
     }
 
-    private sealed class ChaseState : AiState
+    private sealed class ChaseState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.Chase;
         private readonly AiPlayerAi ai;
         private EntityData target;
-        private AiState returnState;
+        private AiDecisionState returnState;
         private float limit;
 
         public ChaseState(AiPlayerAi ai) { this.ai = ai; }
@@ -123,7 +114,7 @@ public partial class AiPlayerAi
             abandoned = true;
         }
 
-        public ChaseState Bind(EntityData t, AiState ret, float limitRange)
+        public ChaseState Bind(EntityData t, AiDecisionState ret, float limitRange)
         {
             target = t;
             returnState = ret;
@@ -132,35 +123,31 @@ public partial class AiPlayerAi
             return this;
         }
 
-        public override void Enter() { ai.Owner.ClearAiFacePoint(); }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (abandoned) { abandoned = false; return returnState; }
             if (target == null || !target.Alive) return returnState;
             if (ai.FlatDistanceTo(target) > limit) return returnState;
             if (ai.FlatDistanceTo(target) <= ai.AttackRange) return ai.ResolveCombat(returnState).Bind(target, returnState);
 
-            ai.FaceTarget(target);
-            ai.MoveTowards(target.transform.position);
+            ai.RequestMove(target.transform.position);
             return null;
         }
     }
 
-    // 战斗态：四种战斗的差异全部由构造参数决定（撤离血线 / 活动范围 / 脱战与撤离去向）
-    private sealed class CombatState : AiState
+    // 战斗决策：四种战斗的差异全部由构造参数决定（撤离血线 / 活动范围 / 撤离去向）
+    private sealed class CombatDecision : AiDecisionState
     {
-        private PlayerEntityData owner;
-        private AiPlayerAi ai;
+        private readonly AiPlayerAi ai;
         private float retreatRatio;
         private float activityRadius;
-        private AiState retreatState;
+        private AiDecisionState retreatState;
         private EntityReportState reportState; // 同一个战斗类被 5 处复用，上报类型只能按实例区分
 
         public override EntityReportState ReportState => reportState;
 
         private EntityData target;
-        private AiState returnState;
+        private AiDecisionState returnState;
         private bool abandoned;
 
         // 追不上（目标在走不到的位置）：放弃并暂时忽略
@@ -170,17 +157,17 @@ public partial class AiPlayerAi
             abandoned = true;
         }
 
-        public void Setup(PlayerEntityData owner, AiPlayerAi ai, float retreatRatio, float activityRadius, AiState retreatState, EntityReportState reportState)
+        public CombatDecision(AiPlayerAi ai) { this.ai = ai; }
+
+        public void Setup(float retreatRatio, float activityRadius, AiDecisionState retreatState, EntityReportState reportState)
         {
-            this.owner = owner;
-            this.ai = ai;
             this.retreatRatio = retreatRatio;
             this.activityRadius = activityRadius;
             this.retreatState = retreatState;
             this.reportState = reportState;
         }
 
-        public CombatState Bind(EntityData t, AiState ret)
+        public CombatDecision Bind(EntityData t, AiDecisionState ret)
         {
             target = t;
             returnState = ret;
@@ -190,9 +177,7 @@ public partial class AiPlayerAi
 
         public override bool BlocksTaskMessages => true;
 
-        public override void Enter() { owner.StopMoving(); }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (abandoned) { abandoned = false; return ai.ConsumePendingOr(returnState); }
             if (target == null || !target.Alive) return ai.ConsumePendingOr(returnState);
@@ -202,21 +187,15 @@ public partial class AiPlayerAi
             float dist = ai.FlatDistanceTo(target);
             if (activityRadius > 0f && dist > activityRadius) return ai.ConsumePendingOr(returnState);
 
-            ai.FaceTarget(target);
             // 追与停用不同阈值：接敌距离停下、退出距离才重新前压，避免在边界反复走停
-            if (dist > ai.AttackRange * Config.ai_combat_exit_scale)
-            {
-                ai.MoveTowards(target.transform.position);
-                return null;
-            }
+            if (dist > ai.AttackRange * Config.ai_combat_exit_scale) { ai.RequestMove(target.transform.position); return null; }
 
-            owner.StopMoving();
-            ai.TryAttack(target); // 全没好就站着，不空放
+            ai.RequestAttack(target);
             return null;
         }
     }
 
-    private sealed class EscortApproachState : AiState
+    private sealed class EscortApproachState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.EscortApproach;
         private readonly AiPlayerAi ai;
@@ -227,25 +206,20 @@ public partial class AiPlayerAi
 
         public EscortApproachState Bind(EntityData target) { escorted = target; return this; }
 
-        public override void Enter()
-        {
-            enterTime = Time.time;
-            ai.Owner.ClearAiFacePoint();
-        }
+        public override void Enter() { enterTime = Time.time; }
 
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (escorted == null || !escorted.Alive) return ai.searchState;
             if (Time.time - enterTime > Config.ai_escort_timeout) return ai.searchState;
             if (ai.FlatDistanceTo(escorted) <= Config.ai_escort_arrive) return ai.escortState.Bind(escorted);
 
-            ai.FaceTarget(escorted);
-            ai.MoveTowards(escorted.transform.position);
+            ai.RequestMove(escorted.transform.position);
             return null;
         }
     }
 
-    private sealed class EscortState : AiState
+    private sealed class EscortState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.Escort;
         private readonly AiPlayerAi ai;
@@ -261,10 +235,9 @@ public partial class AiPlayerAi
         {
             Vector2 offset = UnityEngine.Random.insideUnitCircle * Config.ai_escort_slot_radius;
             slotOffset = new Vector3(offset.x, 0f, offset.y);
-            ai.Owner.ClearAiFacePoint();
         }
 
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (escorted == null || !escorted.Alive) return ai.searchState;
 
@@ -274,19 +247,14 @@ public partial class AiPlayerAi
             Vector3 slot = escorted.transform.position + slotOffset;
             float dist = ai.FlatDistance(slot);
             // 追上与停下用不同阈值：锚点随护送对象移动，单阈值会在边界反复走停
-            if (dist > Config.ai_escort_follow)
-            {
-                ai.MoveTowards(slot);
-                return null;
-            }
-            if (dist <= Config.ai_escort_follow * Config.ai_hysteresis_ratio) ai.Owner.StopMoving();
+            if (dist > Config.ai_escort_follow) { ai.RequestMove(slot); return null; }
+            if (dist <= Config.ai_escort_follow * Config.ai_hysteresis_ratio) ai.RequestIdle(escorted);
 
-            ai.FaceTarget(escorted);
-            return null;
+            return null; // 滞回带：保持当前行为
         }
     }
 
-    private sealed class DangerEvadeState : AiState
+    private sealed class DangerEvadeState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.DangerEvade;
         private readonly AiPlayerAi ai;
@@ -309,17 +277,17 @@ public partial class AiPlayerAi
             escapeTo = ai.Owner.transform.position + away.normalized * Config.ai_evade_distance;
         }
 
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (Time.time - enterTime >= Config.ai_evade_duration) return ai.ConsumePendingOr(ai.searchState);
             if (ai.FlatDistance(threat) >= Config.ai_evade_distance) return ai.ConsumePendingOr(ai.searchState);
 
-            ai.MoveTowards(escapeTo);
+            ai.RequestMove(escapeTo);
             return null;
         }
     }
 
-    private sealed class DangerClearState : AiState
+    private sealed class DangerClearState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.DangerClear;
         private readonly AiPlayerAi ai;
@@ -330,26 +298,22 @@ public partial class AiPlayerAi
 
         public DangerClearState Bind(Vector3 value) { point = value; return this; }
 
-        public override void Enter()
-        {
-            enterTime = Time.time;
-            ai.Owner.ClearAiFacePoint();
-        }
+        public override void Enter() { enterTime = Time.time; }
 
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (Time.time - enterTime > Config.ai_danger_clear_timeout) return ai.searchState;
 
             var enemy = ai.NearestEnemyAround(point, Config.ai_danger_clear_radius, false);
             if (enemy != null) return ai.chaseState.Bind(enemy, this, Config.ai_chase_limit);
 
-            if (ai.FlatDistance(point) > Config.ai_danger_clear_arrive) ai.MoveTowards(point);
-            else ai.Owner.StopMoving();
+            if (ai.FlatDistance(point) > Config.ai_danger_clear_arrive) ai.RequestMove(point);
+            else ai.RequestIdle();
             return null;
         }
     }
 
-    private sealed class RallyApproachState : AiState
+    private sealed class RallyApproachState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.RallyApproach;
         private readonly AiPlayerAi ai;
@@ -359,19 +323,17 @@ public partial class AiPlayerAi
 
         public RallyApproachState Bind(TaskTarget target) { anchor = target; return this; }
 
-        public override void Enter() { ai.Owner.ClearAiFacePoint(); }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (!ai.TryResolveAnchor(anchor, out var point)) return ai.searchState;
             if (ai.FlatDistance(point) <= Config.ai_rally_arrive) return ai.rallyWaitState.Bind(anchor);
 
-            ai.MoveTowards(point);
+            ai.RequestMove(point);
             return null;
         }
     }
 
-    private sealed class RallyWaitState : AiState
+    private sealed class RallyWaitState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.RallyWait;
         private readonly AiPlayerAi ai;
@@ -382,9 +344,7 @@ public partial class AiPlayerAi
 
         public RallyWaitState Bind(TaskTarget target) { anchor = target; return this; }
 
-        public override void Enter() { ai.Owner.StopMoving(); }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (!ai.TryResolveAnchor(anchor, out var point)) return ai.searchState;
 
@@ -401,13 +361,14 @@ public partial class AiPlayerAi
 
             float dist = ai.FlatDistance(point);
             // 靠近与停下用不同阈值：锚点可能跟着发送者移动，单阈值会在边界反复走停
-            if (dist > Config.ai_rally_keep) ai.MoveTowards(point);
-            else if (dist <= Config.ai_rally_keep * Config.ai_hysteresis_ratio) ai.Owner.StopMoving();
-            return null;
+            if (dist > Config.ai_rally_keep) { ai.RequestMove(point); return null; }
+            if (dist <= Config.ai_rally_keep * Config.ai_hysteresis_ratio) ai.RequestIdle();
+
+            return null; // 滞回带：保持当前行为
         }
     }
 
-    private sealed class AssaultState : AiState
+    private sealed class AssaultState : AiDecisionState
     {
         public override EntityReportState ReportState => EntityReportState.Assault;
         private readonly AiPlayerAi ai;
@@ -417,18 +378,16 @@ public partial class AiPlayerAi
 
         public AssaultState Bind(TaskTarget target) { anchor = target; return this; }
 
-        public override void Enter() { ai.Owner.ClearAiFacePoint(); }
-
-        public override AiState Tick(float deltaTime)
+        public override AiDecisionState Decide()
         {
             if (!ai.TryResolveAnchor(anchor, out var point)) return ai.searchState;
 
             var enemy = ai.NearestEnemy(false);
             if (enemy != null) return ai.chaseState.Bind(enemy, this, Config.ai_assault_combat_activity);
 
-            if (!anchor.hasPosition) { ai.MoveTowards(point); return null; } // 动态锚点：一路跟着发送者
+            if (!anchor.hasPosition) { ai.RequestMove(point); return null; } // 动态锚点：一路跟着发送者
 
-            if (ai.FlatDistance(point) > Config.ai_assault_arrive) { ai.MoveTowards(point); return null; }
+            if (ai.FlatDistance(point) > Config.ai_assault_arrive) { ai.RequestMove(point); return null; }
             return ai.searchState; // 静态锚点到达且无敌：继续推
         }
     }
