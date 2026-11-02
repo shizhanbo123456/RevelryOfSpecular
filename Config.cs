@@ -114,8 +114,8 @@ public static class Config
     #endregion
 
     #region 视野与小地图（策划案第十五章）
-    // 可见范围只有一套数值：角色属性 EntityAttribute.viewDistance
-    // （策划案 15 章：可见距离决定敌方模型可见性与小地图显示）。小地图不另设阈值。
+    // 视野、索敌、小地图共用角色属性 EntityAttribute.viewDistance；角色模型在场景里的显示距离另取
+    // global_variables 的 entity_character_visiable_radius（远看无意义，不必同步）。
     public const float minimap_sync_interval = 0.5f;
     public const float minimap_lost_duration = 99999f;
 

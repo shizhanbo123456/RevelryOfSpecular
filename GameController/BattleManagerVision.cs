@@ -143,6 +143,20 @@ public partial class BattleManager
         }
         return IsInRadius(state.position, target.transform.position, state.viewRadius);
     }
+
+    // 场景表现可见性：角色模型只按固定显示距离下发（不分阵营），其它实体仍按视野属性
+    private bool CanSeeDisplayFromState(int clientId, EntityData target)
+    {
+        if (target == null) return false;
+        var category = target.type.category;
+        if (category == EntityCategory.Character_Attack || category == EntityCategory.Character_Defense)
+        {
+            if (!visionStates.TryGetValue(clientId, out var state)) return false;
+            return IsInRadius(state.position, target.transform.position,
+                ConfigManager.GlobalVariableConfig.entity_character_visiable_radius);
+        }
+        return CanSeeFromState(clientId, target);
+    }
     #endregion
 
     private static readonly EntityCamp[] s_camps = { EntityCamp.Attack, EntityCamp.Defense };

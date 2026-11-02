@@ -1260,7 +1260,7 @@ public partial class BattleManager : EnsBehaviour
             foreach (var entity in EntityContainer.Entities)
             {
                 if (entity == null) continue;
-                if (!CanSeeFromState(clientId, entity)) continue;
+                if (!CanSeeDisplayFromState(clientId, entity)) continue;
                 MarkClientVisible(entity.id); // 后面可能跳过下发，但可见集合仍要标上，否则会被当成离屏而回 remove 包
                 bool firstSeen = prevSeen == null || !prevSeen.Contains(entity.id);
                 bool full = fullRound || firstSeen;
