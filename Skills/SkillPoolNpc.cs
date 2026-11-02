@@ -182,13 +182,14 @@ namespace Ros.Skill
         protected override int BulletVfx => 25;
     }
 
-    // 灵火喷吐：塔带灵火时的普攻，子弹打敌人脚部，到点追加一次原地灵火爆炸（与普攻同一特效）
+    // 灵火喷吐：塔带灵火时的普攻，子弹打敌人脚部，到点追加一次原地灵火爆炸（爆炸特效与 132 崩拳同一个 RM[6]）
     // 第 13 列 = 子弹倍率|灵火倍率，第 11 列 = 子弹尺寸|灵火尺寸
     public class SkillCrystalStatueSporeBlaze : CrystalStatueSporeShot
     {
         public override int Id => (int)SkillType.SkillCrystalStatueSporeBlaze;
         protected override int BulletVfx => 25;
 
+        private const int BurstVfx = 6;     // RangeMagic[6]：与 132 崩拳同一爆炸特效
         private const float BurstLife = 0.6f; // 爆炸命中球存活时长；资产填了存活时长则以资产为准
 
         // 打敌人脚部：不按射程归一化，否则子弹会飞过目标、爆炸点落不到脚下
@@ -213,8 +214,8 @@ namespace Ros.Skill
         {
             VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0), VfxScale(0));
             Vector3 at = context.vectors[1];
-            Timer.AddTimer(0, _ => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx,
-                TrialConstructor.Point(at, BurstLife), VfxScale(1)), BulletFlight, 1, false);
+            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, BurstVfx, at, BurstLife, VfxScale(1)),
+                BulletFlight, 1, false);
         }
 
         // 子弹到点的灵火爆炸：伤害取第 13 列第 2 项，两端同一时刻同一点位各自创建
@@ -225,7 +226,7 @@ namespace Ros.Skill
                 if (caster == null) return;
                 Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
                     TrialConstructor.Point(at, BurstLife), BurstLife,
-                    HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(1), ConfigDamageRate(1)));
+                    HitSpec(SkillVfxKind.RangeMagic, BurstVfx, VfxScale(1), ConfigDamageRate(1)));
             }, BulletFlight, 1, false);
         }
     }
