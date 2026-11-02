@@ -11,7 +11,8 @@ namespace Ros.Skill
     public abstract class SkillBase
     {
         public abstract int Id { get; }
-        public virtual float CastRange => 0f;
+        // 射程读 skill.csv 第 19 列：既是弹道瞄准距离，也是 AI 的作战距离；留空 = 0 = 无射程
+        public float CastRange => ConfigManager.SkillConfig.Get(Id).castRange;
         // 索敌口径读 skill.csv 第 15/16 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
         protected float TargetSector => ConfigManager.SkillConfig.Get(Id).targetSector;
         protected float TargetRadius => ConfigManager.SkillConfig.Get(Id).targetRadius;

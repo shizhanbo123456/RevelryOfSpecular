@@ -293,7 +293,6 @@ namespace Ros.Skill
     public class SkillSilenceCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillSilenceCast;
-        public override float CastRange => 8f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -368,7 +367,6 @@ namespace Ros.Skill
     public class SkillPlagueMarkCast : SkillBase
     {
         public override int Id => (int)SkillType.SkillPlagueMarkCast;
-        public override float CastRange => 8f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -458,7 +456,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillPaleLightCast;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 20f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;
@@ -471,7 +468,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillPaleDarkCast;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 20f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 12f;

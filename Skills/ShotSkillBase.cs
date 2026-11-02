@@ -40,6 +40,8 @@ namespace Ros.Skill
         // 同上，并把本次索敌目标交出去（需要复用目标做后续效果的技能用这个重载）
         protected SkillContext ShotContext(EntityData entity, bool seed, bool aim, out EntityData target)
         {
+            if (aim && CastRange <= 0f)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 需要瞄准点，但第 19 列没有配射程");
             var context = new SkillContext();
             Vector3 origin = OriginPos(entity, OriginAnchor, OriginOffset);
             context.AddInts(entity.id);
@@ -50,8 +52,8 @@ namespace Ros.Skill
             return context;
         }
 
-        // 无目标时朝自身面向射出的距离（配了射程用射程，否则 8m）
-        protected virtual float ForwardAimDistance => CastRange > 0f ? CastRange : 8f;
+        // 无目标时朝自身面向射出的距离：就是配表射程，没配射程的技能不允许要瞄准点
+        protected virtual float ForwardAimDistance => CastRange;
 
         // 落点高度规则：不索敌 = 与起点同高（水平射出）；索敌 = 目标体中心（不锁脚）。
         // 索敌与否、索敌范围全部读配表；专门做上下变化的技能（天降/头顶/贝塞尔等）自己覆盖这里或轨迹。

@@ -76,7 +76,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillFanIceCone;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 3;
         protected override float SpreadDeg => 12f;
@@ -89,7 +88,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillTripleThunderCone;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -104,7 +102,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillFreezeShot;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -117,7 +114,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillStrengthBreakShot;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -130,7 +126,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillDoubleFanShot;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -164,7 +159,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillBackstepShot;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -209,7 +203,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillThrowWeapon;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 10f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.RightHand;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -222,7 +215,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillFanWeaponThrow;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 10f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 30f;
@@ -235,7 +227,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSkyfallWeapon;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -256,7 +247,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillBoomerangWeapon;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 9f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.RightHand;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -277,7 +267,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillBackstabWeapon;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 11f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override Vector3 OriginOffset => new Vector3(0f, 0f, -2f);
         protected override int Shots => 1;
@@ -378,7 +367,6 @@ namespace Ros.Skill
     public class SkillFlyingKick : SkillBase
     {
         public override int Id => (int)SkillType.SkillFlyingKick;
-        public override float CastRange => 3f;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -404,7 +392,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillIceFanTiny;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 4;
         protected override float SpreadDeg => 8f;
@@ -419,7 +406,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillBackVolley;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity, seed: true);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 6;
         protected override float SpreadDeg => 0f;
@@ -450,7 +436,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillIceSweep;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -466,7 +451,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillRootShot;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -479,7 +463,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillDriftOrb;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -491,7 +474,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillTripleWaveIce;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 3;
         protected override float SpreadDeg => 25f;
@@ -506,7 +488,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillForwardSpray;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 5;
         protected override float SpreadDeg => 35f;
@@ -521,7 +502,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSilenceBolt;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 18f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -533,7 +513,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSkyfallVolley;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 0f;
@@ -555,7 +534,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponVolley;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 2;
         protected override float SpreadDeg => 10f;
@@ -577,7 +555,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillOrbitWeaponRain;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 3;
         protected override float SpreadDeg => 0f;
@@ -647,7 +624,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillRainBarrage;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpFront;
         protected override int Shots => 4;
         protected override float SpreadDeg => 0f;
@@ -747,7 +723,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillSplitShot;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 16f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -794,7 +769,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPullBolt;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 15f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -841,7 +815,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillFanFreeze;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 25f;
@@ -855,7 +828,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSweepPoison;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 12f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -877,7 +849,6 @@ namespace Ros.Skill
     public class SkillBounceShot : SkillBase
     {
         public override int Id => (int)SkillType.SkillBounceShot;
-        public override float CastRange => 16f;
         private const int Jumps = 8;
         private const float JumpLife = 0.18f;
 
@@ -941,7 +912,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSweepBurn;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -985,7 +955,6 @@ namespace Ros.Skill
     public class SkillHookFan : ShotSkillBase
     {
         public override int Id => (int)SkillType.SkillHookFan;
-        public override float CastRange => 14f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 5;
         protected override float SpreadDeg => 28f;
@@ -1024,7 +993,6 @@ namespace Ros.Skill
     public class SkillVortexBomb : SkillBase
     {
         public override int Id => (int)SkillType.SkillVortexBomb;
-        public override float CastRange => 12f;
         private const float PullTime = 1.2f;
 
         public override SkillContext SkillLogic(EntityData entity)
@@ -1081,7 +1049,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillSkyfallSilence;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 16f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 1;
         protected override float SpreadDeg => 0f;
@@ -1099,7 +1066,6 @@ namespace Ros.Skill
         public override int Id => (int)SkillType.SkillBlastKnockback;
         protected override int HitBuffIndex => 0;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 4f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override int Shots => 6;
         protected override float SpreadDeg => 60f;
@@ -1116,7 +1082,6 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillBackArcWeapons;
         public override SkillContext SkillLogic(EntityData entity) => ShotContext(entity);
-        public override float CastRange => 13f;
         protected override EntityAnchor OriginAnchor => EntityAnchor.UpCenter;
         protected override Vector3 OriginOffset => new Vector3(0f, 0f, -2f);
         protected override int Shots => 3;

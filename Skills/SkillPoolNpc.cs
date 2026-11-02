@@ -24,7 +24,6 @@ namespace Ros.Skill
     public class SkillZombieClawR : SkillBase
     {
         public override int Id => (int)SkillType.SkillZombieClawR;
-        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -46,7 +45,6 @@ namespace Ros.Skill
     public class SkillZombieClawL : SkillBase
     {
         public override int Id => (int)SkillType.SkillZombieClawL;
-        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -68,7 +66,6 @@ namespace Ros.Skill
     public class SkillEliteZombieClawR : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawR;
-        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -90,7 +87,6 @@ namespace Ros.Skill
     public class SkillEliteZombieClawL : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawL;
-        public override float CastRange => Config.zombie_attack_range;
 
         public override SkillContext SkillLogic(EntityData entity)
         {
@@ -146,7 +142,6 @@ namespace Ros.Skill
     public abstract class CrystalStatueSporeShot : SkillBase
     {
         protected const float BulletFlight = 0.6f; // 弹道时长；灵火喷吐按同一时刻在落点起爆
-        public override float CastRange => Config.crystal_statue_attack_range;
         protected abstract int BulletVfx { get; }
 
         // 落点：默认朝体中心、水平距离取射程；灵火喷吐改为目标脚部实际位置
@@ -240,7 +235,6 @@ namespace Ros.Skill
     public class SkillNeutralStatueSpore : SkillBase
     {
         public override int Id => (int)SkillType.SkillNeutralStatueSpore;
-        public override float CastRange => Config.neutral_statue_attack_range;
 
         private const int SporeVfx = 9;
         private const float FormationSurfaceOffset = 0.2f;  // 阵法贴地：地形表面 + 0.2

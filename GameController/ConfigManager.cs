@@ -167,6 +167,17 @@ public class ConfigManager : MonoBehaviour
         return (EndureType)value;
     }
 
+    // 射程：留空 = 0（该技能不瞄准、不进 AI 作战距离），填了必须大于 0
+    public static float ParseCastRange(string[] rowData, int col)
+    {
+        string raw = Cell(rowData, col);
+        if (raw.Length == 0) return 0f;
+        float value = ParseFloat(rowData, col);
+        if (value <= 0f)
+            throw new FormatException($"[配表] 第 {col} 列的射程 {value} 必须大于 0（不需要射程就留空）");
+        return value;
+    }
+
     // 技能攻击动画：空/0 = 无动画，其余必须是 EntityAnim.AttackType 里定义的值
     public static int ParseAttackAnim(string[] rowData, int col)
     {
@@ -521,7 +532,7 @@ public class ConfigManager : MonoBehaviour
     public struct SkillConfig
     {
         public const string FileName = "skill.csv";
-        private const int ColumnCount = 18;
+        private const int ColumnCount = 19;
         public static readonly Dictionary<int, SkillConfig> content = new();
 
         public int key;
@@ -543,6 +554,7 @@ public class ConfigManager : MonoBehaviour
         public float targetRadius;       // 第16列：索敌半径；>9999 = 不限距离；夹角 <=0.1 时可留空
         public bool broadcast;           // 第17列：使用时是否全场播报，1 = 播报，空 = 不播报
         public SkillScore scores;        // 第18列：定长 6 项，分号分隔
+        public float castRange;          // 第19列：射程（弹道瞄准距离 / AI 作战距离），留空 = 无射程
 
         public SkillConfig(string[] rowData)
         {
@@ -565,6 +577,7 @@ public class ConfigManager : MonoBehaviour
             targetRadius = ParseFloatOrNull(rowData, 15) ?? 0f;
             broadcast = ParseBoolOrNull(rowData, 16) ?? false;
             scores = ParseSkillScore(rowData, 17);
+            castRange = ParseCastRange(rowData, 18);
             if (targetSector < 0f || targetSector > 180f)
                 throw new FormatException($"[配表] skill.csv 技能 {key} 的索敌范围夹角 {targetSector} 超出 [0,180]");
             if (targetSector > Config.skill_target_no_sector && targetRadius <= 0f)
