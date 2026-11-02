@@ -110,13 +110,13 @@ namespace Ros.Skill
         }
 
         // 击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
-        // 伤害倍率不在这里传：统一由 skill.csv 第 13 列在结算时乘上，代码不设系数
+        // 破霸体读第 20 列，伤害倍率读第 13 列：代码不再传这两项
         protected AttackData BuildAttack(EntityData entity,
-            bool breakEndure = false, Action<EntityEffectController> addEffect = null,
+            Action<EntityEffectController> addEffect = null,
             Action<EntityData> onHit = null, float? knockback = null)
         {
             var config = ConfigManager.SkillConfig.Get(Id);
-            return AttackData.Create(entity, breakEndure,
+            return AttackData.Create(entity, config.breakEndure,
                 addEffectEvent: addEffect, onHit: onHit, knockbackPower: knockback ?? config.knockback ?? 0f);
         }
 
