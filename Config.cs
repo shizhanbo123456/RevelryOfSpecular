@@ -123,7 +123,6 @@ public static class Config
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
-    public const KeyCode large_minimap_key = KeyCode.LeftAlt; // 小地图展开（纯展示整图与已收到点位）
     // 上帝视角：窗口期内连按 3 次打开（与 GM 面板同一套连按判定），关闭走底框关闭按钮
     public const KeyCode god_view_open_key = KeyCode.G;
     public const int god_view_open_press_count = 3;

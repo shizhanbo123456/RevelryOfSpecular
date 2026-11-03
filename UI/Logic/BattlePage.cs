@@ -294,7 +294,6 @@ public class BattlePage : PageBase
         {
             if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
             if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
-            if (Input.GetKeyDown(Config.large_minimap_key)) ToggleLargeMinimap();
             TickGodViewOpenKey();
         }
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
@@ -642,16 +641,10 @@ public class BattlePage : PageBase
         panel.m_godViewPanel.Tick(deltaTime, (EntityCamp)localPlayerCamp, OwnEntityId);
     }
 
-    // 小地图：点组件上的按钮（或左 Alt）打开，关闭走底框关闭按钮
+    // 小地图：点小地图组件上的按钮打开，关闭走底框关闭按钮
     private void OpenLargeMinimap()
     {
         if (!panel.m_largeMinimapPanel.IsOpen) panel.m_largeMinimapPanel.Open();
-    }
-
-    private void ToggleLargeMinimap()
-    {
-        if (panel.m_largeMinimapPanel.IsOpen) panel.m_largeMinimapPanel.Close();
-        else panel.m_largeMinimapPanel.Open();
     }
 
     // 上帝视角：窗口期内连按 3 次 G 打开（与 GM 面板同一套连按判定），关闭走底框关闭按钮
