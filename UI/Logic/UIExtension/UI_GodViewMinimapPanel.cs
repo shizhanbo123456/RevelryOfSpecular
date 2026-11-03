@@ -274,8 +274,10 @@ namespace Ros.UI.Main
         private static void PlaceMarker(GObject view, Vector2 world, float ppm, float minX, float maxZ)
         {
             if (view == null) return;
-            view.SetXY((world.x - minX) * ppm - view.width * 0.5f,
-                (maxZ - world.y) * ppm - view.height * 0.5f);
+            // 缩放以左上角为轴心：居中要按缩放后的尺寸扣半宽高，否则点位会偏到图标右下
+            float halfW = view.width * view.scale.x * 0.5f;
+            float halfH = view.height * view.scale.y * 0.5f;
+            view.SetXY((world.x - minX) * ppm - halfW, (maxZ - world.y) * ppm - halfH);
         }
 
         private static void DisposeMarkers(Dictionary<ushort, Marker> markers)
@@ -334,13 +336,14 @@ namespace Ros.UI.Main
             if (loader.texture == null) loader.texture = mapTexture;
         }
 
-        // 抵消容器上层缩放，让图标回到设计尺寸（与雷达点位同一口径）
+        // 抵消容器上层缩放回到设计尺寸，再乘配表的点位放大倍数（godView_marker_scale，便于点选）
         private void ComputeItemScale()
         {
             float upper = 1f;
             for (GObject o = m_largeMinimapContainer; o != null && o.parent != GRoot.inst; o = o.parent)
                 if (o.scale.x > 0.0001f) upper *= o.scale.x;
-            itemScale = upper > 0.0001f ? 1f / upper : 1f;
+            float design = upper > 0.0001f ? 1f / upper : 1f;
+            itemScale = design * ConfigManager.GlobalVariableConfig.godView_marker_scale;
         }
 
         private void BuildScaleButtons()
