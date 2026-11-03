@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 人机模拟技能栏：持有表按品质入栏，只有栏内技能与空手三连推进冷却
-public class AiPlayerSkillBar
+public class RobotSkillBar
 {
     private static readonly int[] UnarmedSkills = { Config.unarmed_punch_left, Config.unarmed_punch_right, Config.unarmed_attack_smash };
 
@@ -10,7 +10,7 @@ public class AiPlayerSkillBar
     private readonly List<int> slots = new();
     private readonly Dictionary<int, float> remaining = new(); // 技能 id → 剩余冷却（秒）
 
-    public AiPlayerSkillBar(PlayerEntityData owner)
+    public RobotSkillBar(PlayerEntityData owner)
     {
         this.owner = owner;
         for (int i = 0; i < UnarmedSkills.Length; i++) remaining[UnarmedSkills[i]] = 0f;

@@ -1,15 +1,15 @@
 public class CrystalStatueEntityData : EntityData
 {
-    private CrystalStatueAi ai;
+    private CrystalStatueStateMachine stateMachine;
 
     public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
     {
         base.OnCreate(id, type, level, camp);
-        ai = new CrystalStatueAi(this);
+        stateMachine = new CrystalStatueStateMachine(this);
     }
 
-    public override void TickAI()
+    public override void TickAuto()
     {
-        ai.Tick();
+        stateMachine.Tick();
     }
 }

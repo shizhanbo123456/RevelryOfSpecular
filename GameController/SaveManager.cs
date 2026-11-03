@@ -19,7 +19,7 @@ public class SaveManager : MonoBehaviour
 
     public string playerName = "";
 
-    // 玩家令牌：身份凭据，跨断线/跨进程稳定；只用正数段，AI 占另一段（见 BattleManager.AI_TOKEN_BASE）
+    // 玩家令牌：身份凭据，跨断线/跨进程稳定；只用正数段，AI 占另一段（见 BattleManager.ROBOT_TOKEN_BASE）
     public int token;
 
     public const int TokenMinInclusive = 1;

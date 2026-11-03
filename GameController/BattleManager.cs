@@ -34,9 +34,9 @@ public partial class BattleManager : EnsBehaviour
     public readonly Dictionary<ushort, int> EntityOwnerClient = new();
 
     // AI 玩家令牌段：与真人令牌（[1, 1e9)）不重叠，且 PlayerNameBase + token 仍在 int 内不溢出
-    public const int AI_TOKEN_BASE = 1_000_000_000;
-    private int nextAIToken = AI_TOKEN_BASE;
-    public readonly HashSet<int> AIClients = new();
+    public const int ROBOT_TOKEN_BASE = 1_000_000_000;
+    private int nextAIToken = ROBOT_TOKEN_BASE;
+    public readonly HashSet<int> RobotClients = new();
 
     // 加载阶段：已完成的客户端（战斗表现包只发给它们；观战未完成时不阻塞开战）
     private bool LoadingStarted;
@@ -63,7 +63,7 @@ public partial class BattleManager : EnsBehaviour
         foreach (var pair in HarvestByClient)
         {
             if (pair.Value <= bestValue) continue;
-            if (IsAIToken(pair.Key)) continue; // AI 不参与采集榜首
+            if (IsRobotToken(pair.Key)) continue; // AI 不参与采集榜首
             if (!PlayerEntityId.TryGetValue(pair.Key, out var entityId)) continue;
             if (!EntityContainer.Entities.TryGetObject(entityId, out var e) || e == null) continue;
             if (e.camp != EntityCamp.Attack) continue;
@@ -351,7 +351,7 @@ public partial class BattleManager : EnsBehaviour
 
         foreach (var pair in PlayerInfoList)
         {
-            if (IsAIToken(pair.Key)) continue; // AI 无名字
+            if (IsRobotToken(pair.Key)) continue; // AI 无名字
             Tool.NetworkManager.SendLobbyPlayerName(newClientId, new SCLobbyPlayerName { clientId = pair.Key, name = pair.Value.name });
         }
     }
@@ -384,27 +384,27 @@ public partial class BattleManager : EnsBehaviour
 
     private void RebuildAIPlayers()
     {
-        foreach (var aiClientId in AIClients)
+        foreach (var robotClientId in RobotClients)
         {
-            PlayerInfoList.Remove(aiClientId);
-            PlayerCamps.Remove(aiClientId);
+            PlayerInfoList.Remove(robotClientId);
+            PlayerCamps.Remove(robotClientId);
         }
-        AIClients.Clear();
+        RobotClients.Clear();
 
-        nextAIToken = AI_TOKEN_BASE;
+        nextAIToken = ROBOT_TOKEN_BASE;
         for (int i = 0; i < AttackAICount; i++) AddAIPlayer(PlayerCampType.Attack);
         for (int i = 0; i < DefenseAICount; i++) AddAIPlayer(PlayerCampType.Defense);
     }
 
     private void AddAIPlayer(PlayerCampType camp)
     {
-        int aiClientId = nextAIToken++;
+        int robotClientId = nextAIToken++;
         var info = new CSLobbyPlayerInfo()
         {
             attackLevel = 1,
             defenseLevel = 1,
             // 名字由令牌推导：重建时令牌源归位，编号稳定且不与真人令牌冲突
-            name = $"AI玩家{aiClientId - AI_TOKEN_BASE + 1}",
+            name = $"AI玩家{robotClientId - ROBOT_TOKEN_BASE + 1}",
         };
         if (camp == PlayerCampType.Attack)
         {
@@ -414,9 +414,9 @@ public partial class BattleManager : EnsBehaviour
         {
             info.defenseCharacter = EntityType.Defense(UnityEngine.Random.Range(0, Config.defense_character_count));
         }
-        PlayerInfoList[aiClientId] = info;
-        PlayerCamps[aiClientId] = camp;
-        AIClients.Add(aiClientId);
+        PlayerInfoList[robotClientId] = info;
+        PlayerCamps[robotClientId] = camp;
+        RobotClients.Add(robotClientId);
     }
 
     public void ReceiveLobbyUpdate(int clientId, CSLobbyUpdate update)
@@ -455,7 +455,7 @@ public partial class BattleManager : EnsBehaviour
         int count = 0;
         foreach (var pair in PlayerCamps)
         {
-            if (pair.Value == camp && !AIClients.Contains(pair.Key)) count++;
+            if (pair.Value == camp && !RobotClients.Contains(pair.Key)) count++;
         }
         return count < limit;
     }
@@ -465,7 +465,7 @@ public partial class BattleManager : EnsBehaviour
     {
         foreach (var clientId in PlayerInfoList.Keys)
         {
-            if (AIClients.Contains(clientId)) continue;
+            if (RobotClients.Contains(clientId)) continue;
             if (!readyByClient.TryGetValue(clientId, out var ready) || !ready) return false;
         }
         return true;
@@ -473,7 +473,7 @@ public partial class BattleManager : EnsBehaviour
 
     private void SetReady(int clientId, bool ready)
     {
-        if (BattleStarted || LoadingStarted || AIClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
+        if (BattleStarted || LoadingStarted || RobotClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
         readyByClient[clientId] = ready;
         if (!ready)
         {
@@ -542,7 +542,7 @@ public partial class BattleManager : EnsBehaviour
         // ① 先切加载界面（观战方 camp = None）
         foreach (var pair in PlayerInfoList)
         {
-            if (AIClients.Contains(pair.Key)) continue;
+            if (RobotClients.Contains(pair.Key)) continue;
             Tool.NetworkManager.SendLoadingStart(pair.Key, new SCLoadingStart { camp = CampOf(pair.Key) });
         }
 
@@ -559,7 +559,7 @@ public partial class BattleManager : EnsBehaviour
         // ③ 预处理完成：客户端此时才开始逐步请求数据
         foreach (var pair in PlayerInfoList)
         {
-            if (AIClients.Contains(pair.Key)) continue;
+            if (RobotClients.Contains(pair.Key)) continue;
             PlayerEntityId.TryGetValue(pair.Key, out var ownId);
             bool isDefense = PlayerCamps.TryGetValue(pair.Key, out var camp) && camp == PlayerCampType.Defense;
             Tool.NetworkManager.SendLoadingPrepared(pair.Key, new SCLoadingPrepared
@@ -570,7 +570,7 @@ public partial class BattleManager : EnsBehaviour
                 serverTime = Time.time,
             });
         }
-        Debug.Log($"[加载] 开始：真人 {PlayerInfoList.Count - AIClients.Count}，预留实体 id {reservedEntityIds.Count} 个");
+        Debug.Log($"[加载] 开始：真人 {PlayerInfoList.Count - RobotClients.Count}，预留实体 id {reservedEntityIds.Count} 个");
     }
 
     private EntityCamp CampOf(int clientId)
@@ -599,13 +599,13 @@ public partial class BattleManager : EnsBehaviour
         var list = new List<LoadingUnitEntry>();
         foreach (var pair in PlayerInfoList)
         {
-            bool isAI = AIClients.Contains(pair.Key);
+            bool isRobot = RobotClients.Contains(pair.Key);
             if (humanCamp.HasValue)
             {
-                if (isAI) continue;
+                if (isRobot) continue;
                 if (!PlayerCamps.TryGetValue(pair.Key, out var camp) || camp != humanCamp.Value) continue;
             }
-            else if (!isAI) continue;
+            else if (!isRobot) continue;
 
             if (!PlayerEntityId.TryGetValue(pair.Key, out var entityId)) continue; // 观战方无实体
             list.Add(new LoadingUnitEntry
@@ -619,13 +619,13 @@ public partial class BattleManager : EnsBehaviour
         return list;
     }
 
-    // AI 令牌落在 [AI_TOKEN_BASE, …) 段，与真人令牌段互不重叠
-    public static bool IsAIToken(int clientId) => clientId >= AI_TOKEN_BASE;
+    // AI 令牌落在 [ROBOT_TOKEN_BASE, …) 段，与真人令牌段互不重叠
+    public static bool IsRobotToken(int clientId) => clientId >= ROBOT_TOKEN_BASE;
 
     private static string NameOf(int clientId, CSLobbyPlayerInfo info)
     {
         if (info != null && !string.IsNullOrEmpty(info.name)) return info.name;
-        return IsAIToken(clientId) ? $"AI玩家{clientId - AI_TOKEN_BASE + 1}" : $"玩家{clientId}";
+        return IsRobotToken(clientId) ? $"AI玩家{clientId - ROBOT_TOKEN_BASE + 1}" : $"玩家{clientId}";
     }
 
     // 攻守真人全部回执完成后才真正开战；观战方不阻塞
@@ -633,7 +633,7 @@ public partial class BattleManager : EnsBehaviour
     {
         foreach (var pair in PlayerCamps)
         {
-            if (AIClients.Contains(pair.Key)) continue;
+            if (RobotClients.Contains(pair.Key)) continue;
             if (pair.Value == PlayerCampType.Spectator) continue;
             if (!loadedClients.Contains(pair.Key)) return false;
         }
@@ -642,7 +642,7 @@ public partial class BattleManager : EnsBehaviour
 
     public void OnClientLoadingComplete(int clientId)
     {
-        if (AIClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
+        if (RobotClients.Contains(clientId) || !PlayerInfoList.ContainsKey(clientId)) return;
         if (!LoadingStarted && !BattleStarted) return;
         if (!loadedClients.Add(clientId)) return;
 
@@ -689,7 +689,7 @@ public partial class BattleManager : EnsBehaviour
         into.Clear();
         foreach (var pair in PlayerInfoList)
         {
-            if (IsAIToken(pair.Key)) continue; // AI 不进成员列表，只通过两个数量表达
+            if (IsRobotToken(pair.Key)) continue; // AI 不进成员列表，只通过两个数量表达
             int campValue = PlayerCamps.TryGetValue(pair.Key, out var camp) ? (int)camp : (int)PlayerCampType.Spectator;
             //所选角色：按成员最终阵营取 CSLobbyPlayerInfo 里对应一侧（首页选择随加入上报）
             int characterIndex = -1;
@@ -817,14 +817,14 @@ public partial class BattleManager : EnsBehaviour
 
         foreach (var pair in PlayerInfoList)
         {
-            if (AIClients.Contains(pair.Key)) continue;
+            if (RobotClients.Contains(pair.Key)) continue;
             if (CampOf(pair.Key) != camp) continue;
             Tool.NetworkManager.SendQuickMessage(pair.Key, message);
         }
 
         foreach (var entity in EntityContainer.Entities)
         {
-            if (entity == null || !entity.Alive || !entity.aiControlled) continue;
+            if (entity == null || !entity.Alive || !entity.robotControlled) continue;
             if (entity.camp != camp) continue;
             // 人机忽略自己发的消息
             if (EntityOwnerClient.TryGetValue(entity.id, out var ownerClient) && ownerClient == message.senderClientId) continue;
@@ -853,7 +853,7 @@ public partial class BattleManager : EnsBehaviour
 
         foreach (var pair in PlayerInfoList)
         {
-            if (AIClients.Contains(pair.Key)) continue;
+            if (RobotClients.Contains(pair.Key)) continue;
             if (CampValueOf(pair.Key) != campValue) continue;
             Tool.NetworkManager.SendStateReport(pair.Key, report);
         }
@@ -874,7 +874,7 @@ public partial class BattleManager : EnsBehaviour
     {
         foreach (var entity in EntityContainer.Entities)
         {
-            if (entity != null) entity.TickAI();
+            if (entity != null) entity.TickAuto();
         }
     }
 
@@ -1027,12 +1027,12 @@ public partial class BattleManager : EnsBehaviour
             Tool.NetworkManager.SendPlayerEntity(clientId, entityId);
 
             // AI 玩家：置位后 PlayerEntityData 才走 AI 决策（真人不受影响，输入仍来自网络）
-            if (AIClients.Contains(clientId))
+            if (RobotClients.Contains(clientId))
             {
-                var aiEntity = GetEntity(entityId);
-                if (aiEntity != null) aiEntity.aiControlled = true;
+                var robotEntity = GetEntity(entityId);
+                if (robotEntity != null) robotEntity.robotControlled = true;
             }
-            Debug.Log($"{(AIClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp} id={entityId}");
+            Debug.Log($"{(RobotClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp} id={entityId}");
         }
 
         // 对局世界：雕像×4 / 珊瑚 / 水晶雕像 / 中立雕像（位置来自地形组件 LandscapeSpawns）
@@ -1058,7 +1058,7 @@ public partial class BattleManager : EnsBehaviour
             Tool.NetworkManager.SendBattleStart(clientId);
             SendSkillSyncFull(clientId); // 必须在 BattleStart 之后：客户端进战斗页会先清空技能表
         }
-        Debug.Log($"战斗开始：人类 {PlayerInfoList.Count - AIClients.Count}，AI {AIClients.Count}");
+        Debug.Log($"战斗开始：人类 {PlayerInfoList.Count - RobotClients.Count}，AI {RobotClients.Count}");
     }
 
     public void EndBattle(int gameState)

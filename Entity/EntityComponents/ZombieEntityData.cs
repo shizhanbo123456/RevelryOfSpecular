@@ -5,7 +5,7 @@ public class ZombieEntityData : EntityData
     // 到达判定：寻路终点与游荡取点共用
     public const float ArriveRadius = 0.4f;
 
-    private ZombieAi ai;
+    private ZombieStateMachine stateMachine;
 
     private float yaw;
     private float yawSpeed;
@@ -18,12 +18,12 @@ public class ZombieEntityData : EntityData
     public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
     {
         base.OnCreate(id, type, level, camp);
-        ai = new ZombieAi(this);
+        stateMachine = new ZombieStateMachine(this);
     }
 
-    public override void TickAI()
+    public override void TickAuto()
     {
-        ai.Tick();
+        stateMachine.Tick();
     }
 
     // 由状态机指定朝向目标：停下攻击时每帧朝它转

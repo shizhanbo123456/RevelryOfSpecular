@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 僵尸：无目标在出生点附近游荡；有目标按距离分档——超追距放弃、远处嘶吼、贴身停下爪击
-public class ZombieAi : AiStateMachine
+public class ZombieStateMachine : StateMachine
 {
     private const int SlotClawRight = 0;
     private const int SlotClawLeft = 1;
@@ -22,7 +22,7 @@ public class ZombieAi : AiStateMachine
     private EntityData currentTarget;
     private bool clawLeftNext;
 
-    public ZombieAi(ZombieEntityData owner)
+    public ZombieStateMachine(ZombieEntityData owner)
     {
         Owner = owner;
         homePosition = owner.transform.position;
@@ -31,7 +31,7 @@ public class ZombieAi : AiStateMachine
         wanderState = new WanderState(this);
         chaseState = new ChaseState(this);
         attackState = new AttackState(this);
-        Initialize(wanderState, owner.AIStaggerPhase);
+        Initialize(wanderState, owner.AutoStaggerPhase);
     }
 
     public override void Tick()
@@ -119,100 +119,100 @@ public class ZombieAi : AiStateMachine
         return sc.TryUseSkill(sc.GetSkillIdAt(slot)) == EntitySkillController.UseResult.Success;
     }
 
-    private sealed class WanderState : AiState
+    private sealed class WanderState : State
     {
-        private readonly ZombieAi ai;
+        private readonly ZombieStateMachine robot;
 
-        public WanderState(ZombieAi ai) { this.ai = ai; }
+        public WanderState(ZombieStateMachine robot) { this.robot = robot; }
 
-        public override void Enter() { ai.Owner.SetFaceTarget(0); } // 已无目标，别再朝旧目标转
+        public override void Enter() { robot.Owner.SetFaceTarget(0); } // 已无目标，别再朝旧目标转
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            if (ai.currentTarget != null) return ai.chaseState;
+            if (robot.currentTarget != null) return robot.chaseState;
 
-            if (ai.hasWanderPoint)
+            if (robot.hasWanderPoint)
             {
-                if (ai.FlatDistance(ai.wanderPoint) > ZombieEntityData.ArriveRadius) return null; // 还在路上
-                ai.hasWanderPoint = false;
-                ai.Owner.Stop();
-                ai.wanderResumeTime = Time.time + Config.zombie_wander_pause;
+                if (robot.FlatDistance(robot.wanderPoint) > ZombieEntityData.ArriveRadius) return null; // 还在路上
+                robot.hasWanderPoint = false;
+                robot.Owner.Stop();
+                robot.wanderResumeTime = Time.time + Config.zombie_wander_pause;
                 return null;
             }
 
-            if (Time.time < ai.wanderResumeTime) return null; // 到点后的停顿
+            if (Time.time < robot.wanderResumeTime) return null; // 到点后的停顿
 
             Vector2 offset = Random.insideUnitCircle * Config.zombie_wander_radius;
-            ai.wanderPoint = ai.homePosition + new Vector3(offset.x, 0f, offset.y);
-            ai.hasWanderPoint = true;
-            ai.Owner.MoveTo(ai.wanderPoint);
+            robot.wanderPoint = robot.homePosition + new Vector3(offset.x, 0f, offset.y);
+            robot.hasWanderPoint = true;
+            robot.Owner.MoveTo(robot.wanderPoint);
             return null;
         }
     }
 
-    private sealed class ChaseState : AiState
+    private sealed class ChaseState : State
     {
-        private readonly ZombieAi ai;
+        private readonly ZombieStateMachine robot;
 
-        public ChaseState(ZombieAi ai) { this.ai = ai; }
+        public ChaseState(ZombieStateMachine robot) { this.robot = robot; }
 
-        public override void Enter() { ai.Owner.SetFaceTarget(0); } // 追击时朝向跟着行进方向
+        public override void Enter() { robot.Owner.SetFaceTarget(0); } // 追击时朝向跟着行进方向
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            var target = ai.currentTarget;
-            if (target == null) return ai.wanderState;
+            var target = robot.currentTarget;
+            if (target == null) return robot.wanderState;
 
-            float dist = ai.FlatDistance(target.transform.position);
+            float dist = robot.FlatDistance(target.transform.position);
             if (dist > Config.zombie_max_chase_distance)
             {
-                ai.ClearTarget(); // 拉开太远：放弃，回出生点游荡
-                return ai.wanderState;
+                robot.ClearTarget(); // 拉开太远：放弃，回出生点游荡
+                return robot.wanderState;
             }
-            if (dist <= Config.zombie_attack_range) return ai.attackState;
+            if (dist <= Config.zombie_attack_range) return robot.attackState;
 
-            ai.Owner.MoveTo(target.transform.position);
-            if (dist > Config.zombie_roar_range) ai.TryRoar(); // 近了直接近战更优，只在远处嘶吼
+            robot.Owner.MoveTo(target.transform.position);
+            if (dist > Config.zombie_roar_range) robot.TryRoar(); // 近了直接近战更优，只在远处嘶吼
             return null;
         }
     }
 
-    private sealed class AttackState : AiState
+    private sealed class AttackState : State
     {
-        private readonly ZombieAi ai;
+        private readonly ZombieStateMachine robot;
 
-        public AttackState(ZombieAi ai) { this.ai = ai; }
+        public AttackState(ZombieStateMachine robot) { this.robot = robot; }
 
         // 进入即贴身：停步、锁朝向、当帧出爪
         public override void Enter()
         {
-            ai.Owner.Stop();
-            var target = ai.currentTarget;
-            if (target != null) ai.Owner.SetFaceTarget(target.id);
-            ai.TryClaw();
+            robot.Owner.Stop();
+            var target = robot.currentTarget;
+            if (target != null) robot.Owner.SetFaceTarget(target.id);
+            robot.TryClaw();
         }
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            var target = ai.currentTarget;
-            if (target == null) return ai.wanderState; // 目标丢了：直接回游荡，不必经追击态多等一个 tick
+            var target = robot.currentTarget;
+            if (target == null) return robot.wanderState; // 目标丢了：直接回游荡，不必经追击态多等一个 tick
 
-            float dist = ai.FlatDistance(target.transform.position);
+            float dist = robot.FlatDistance(target.transform.position);
 
             // 退出距离大于进入距离：目标在攻击距离边界晃动时不会在追击/攻击之间反复切换
-            if (dist > Config.zombie_attack_range * Config.zombie_attack_exit_scale) return ai.chaseState;
+            if (dist > Config.zombie_attack_range * Config.zombie_attack_exit_scale) return robot.chaseState;
 
             if (dist > Config.zombie_attack_range)
             {
                 // 退出缓冲区内继续贴近，保持攻击态，不切状态也不出爪
-                ai.Owner.MoveTo(target.transform.position);
-                ai.Owner.SetFaceTarget(target.id);
+                robot.Owner.MoveTo(target.transform.position);
+                robot.Owner.SetFaceTarget(target.id);
                 return null;
             }
 
-            ai.Owner.Stop(); // 停下后仍要能转到目标（朝向由 OnTickMove 的无目的地分支负责）
-            ai.Owner.SetFaceTarget(target.id);
-            ai.TryClaw();
+            robot.Owner.Stop(); // 停下后仍要能转到目标（朝向由 OnTickMove 的无目的地分支负责）
+            robot.Owner.SetFaceTarget(target.id);
+            robot.TryClaw();
             return null;
         }
     }

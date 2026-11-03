@@ -326,7 +326,7 @@ public partial class BattleManager
         {
             data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能带走，库存按上限回满
         }
-        if (data != null) data.aiControlled = AIClients.Contains(clientId);
+        if (data != null) data.robotControlled = RobotClients.Contains(clientId);
 
         // 愈战愈勇：第 n 条命层数（配表按死亡次数给出，永久 Buff）
         int fury = ConfigManager.BattleFuryLayerConfig.GetClamped(rs.deathCount).buffLayerCount;

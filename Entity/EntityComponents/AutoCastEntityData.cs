@@ -11,10 +11,10 @@ public abstract class AutoCastEntityData : EntityData
     public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
     {
         base.OnCreate(id, type, level, camp);
-        nextCastTime = Time.time + AutoCastInterval * AIStaggerPhase;
+        nextCastTime = Time.time + AutoCastInterval * AutoStaggerPhase;
     }
 
-    public override void TickAI()
+    public override void TickAuto()
     {
         if (!Alive) return;
         if (Time.time < nextCastTime) return;

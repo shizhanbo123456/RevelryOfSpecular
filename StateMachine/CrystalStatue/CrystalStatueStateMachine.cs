@@ -2,7 +2,7 @@
 using UnityEngine;
 
 // 水晶守护塔：定时索敌，范围内有敌人才从技能表随机放一个；不移动、不转向、不复活
-public class CrystalStatueAi : AiStateMachine
+public class CrystalStatueStateMachine : StateMachine
 {
     public readonly CrystalStatueEntityData Owner;
 
@@ -11,12 +11,12 @@ public class CrystalStatueAi : AiStateMachine
     // 施法进度 0~1：满一轮出手并归零
     private float castProgress;
 
-    public CrystalStatueAi(CrystalStatueEntityData owner)
+    public CrystalStatueStateMachine(CrystalStatueEntityData owner)
     {
         Owner = owner;
         ThinkInterval = 0f; // 每帧推进进度，进到 1 才索敌
         // 首帧错峰：原口径把首次施法定在 interval×phase 之后，换算成进度起点即 1 - phase
-        castProgress = 1f - owner.AIStaggerPhase;
+        castProgress = 1f - owner.AutoStaggerPhase;
 
         waitState = new WaitState(this);
         Initialize(waitState, 0f);
@@ -54,17 +54,17 @@ public class CrystalStatueAi : AiStateMachine
     }
 
     // 当前只有一种行为；将来要加档（如核心被袭提速）就新增状态并在这里返回它
-    private sealed class WaitState : AiState
+    private sealed class WaitState : State
     {
-        private readonly CrystalStatueAi ai;
+        private readonly CrystalStatueStateMachine robot;
 
-        public WaitState(CrystalStatueAi ai) { this.ai = ai; }
+        public WaitState(CrystalStatueStateMachine robot) { this.robot = robot; }
 
         public override void Enter() { }
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            ai.AdvanceCast();
+            robot.AdvanceCast();
             return null;
         }
     }

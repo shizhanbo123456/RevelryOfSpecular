@@ -4,7 +4,7 @@ using Ros.Transport;
 using UnityEngine;
 
 // 人机玩家状态机：15 个决策状态 + 快捷消息任务系统（设计见 Doc/08-游戏AI逻辑），执行交给行为层
-public partial class AiPlayerAi : AiDecisionMachine
+public partial class RobotAi : DecisionMachine
 {
     // 任务来源消息（锚点由"是否携带位置"决定静态/动态）
     protected struct TaskTarget
@@ -16,7 +16,7 @@ public partial class AiPlayerAi : AiDecisionMachine
 
     public readonly PlayerEntityData Owner;
 
-    private readonly AiPlayerSkillBar skillBar;
+    private readonly RobotSkillBar skillBar;
 
     private readonly SearchState searchState;
     private readonly SearchCombatState searchCombatState;
@@ -47,10 +47,10 @@ public partial class AiPlayerAi : AiDecisionMachine
     private Vector3 stuckSamplePos;
     private float stuckSampleTime;
 
-    public AiPlayerAi(PlayerEntityData owner)
+    public RobotAi(PlayerEntityData owner)
     {
         Owner = owner;
-        skillBar = new AiPlayerSkillBar(owner);
+        skillBar = new RobotSkillBar(owner);
         ThinkInterval = Config.ai_think_interval;
 
         searchState = new SearchState(this);
@@ -83,7 +83,7 @@ public partial class AiPlayerAi : AiDecisionMachine
 
         stuckSamplePos = owner.transform.position;
         stuckSampleTime = Time.time;
-        Initialize(searchState, owner.AIStaggerPhase);
+        Initialize(searchState, owner.AutoStaggerPhase);
     }
 
     // 决策按 ThinkInterval 节流，行为层每帧仲裁
@@ -147,7 +147,7 @@ public partial class AiPlayerAi : AiDecisionMachine
     protected void FaceTarget(EntityData target)
     {
         if (target == null) return;
-        Owner.SetAiFacePoint(target.transform.position);
+        Owner.SetRobotFacePoint(target.transform.position);
     }
 
     // 站定攻击：有就绪技能就放，全部没好就原地站着（文档要求的"不空放"）
@@ -221,12 +221,12 @@ public partial class AiPlayerAi : AiDecisionMachine
         float sqr = radius * radius;
         foreach (var e in BattleManager.EntityContainer.Entities)
         {
-            if (e == null || e == Owner || !e.Alive || !e.aiControlled) continue;
+            if (e == null || e == Owner || !e.Alive || !e.robotControlled) continue;
             if (e.camp != Owner.camp) continue;
             var player = e as PlayerEntityData;
             if (player == null) continue;
             if ((e.transform.position - Owner.transform.position).sqrMagnitude > sqr) continue;
-            player.RequestAiChase(target);
+            player.RequestRobotChase(target);
         }
     }
 
@@ -262,7 +262,7 @@ public partial class AiPlayerAi : AiDecisionMachine
         }
     }
 
-    private CombatDecision ResolveCombat(AiDecisionState returnState)
+    private CombatDecision ResolveCombat(DecisionState returnState)
     {
         if (returnState == dangerClearState) return dangerCombatState;
         if (returnState == assaultState) return assaultCombatState;
@@ -349,7 +349,7 @@ public partial class AiPlayerAi : AiDecisionMachine
         return true;
     }
 
-    protected AiDecisionState ConsumePendingOr(AiDecisionState fallback)
+    protected DecisionState ConsumePendingOr(DecisionState fallback)
     {
         if (!hasPending) return fallback;
         hasPending = false;
@@ -357,7 +357,7 @@ public partial class AiPlayerAi : AiDecisionMachine
     }
 
     // 把任务消息翻译成目标状态；静态锚点在这里落定，动态锚点每帧读 sender 位置
-    private AiDecisionState BuildTaskState(QuickMessageType type, TaskTarget target, AiDecisionState fallback, bool fromPending)
+    private DecisionState BuildTaskState(QuickMessageType type, TaskTarget target, DecisionState fallback, bool fromPending)
     {
         switch (type)
         {

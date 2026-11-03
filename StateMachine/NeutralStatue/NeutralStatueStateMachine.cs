@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 中立雕像：定时索敌，范围内有敌人才从技能表随机放一个；生命值低于阈值转愤怒态，出招更快
-public class NeutralStatueAi : AiStateMachine
+public class NeutralStatueStateMachine : StateMachine
 {
     public readonly NeutralStatueEntityData Owner;
 
@@ -11,12 +11,12 @@ public class NeutralStatueAi : AiStateMachine
     // 施法进度 0~1：两个状态共用，换档只改变推进速度，已积累的进度保留
     private float castProgress;
 
-    public NeutralStatueAi(NeutralStatueEntityData owner)
+    public NeutralStatueStateMachine(NeutralStatueEntityData owner)
     {
         Owner = owner;
         ThinkInterval = 0f; // 每帧推进进度，进到 1 才索敌
         // 首帧错峰：原口径把首次施法定在 interval×phase 之后，换算成进度起点即 1 - phase
-        castProgress = 1f - owner.AIStaggerPhase;
+        castProgress = 1f - owner.AutoStaggerPhase;
 
         normalState = new NormalState(this);
         angryState = new AngryState(this);
@@ -58,34 +58,34 @@ public class NeutralStatueAi : AiStateMachine
         sc.TryUseSkill(sc.GetSkillIdAt(Random.Range(0, sc.SkillCount)));
     }
 
-    private sealed class NormalState : AiState
+    private sealed class NormalState : State
     {
-        private readonly NeutralStatueAi ai;
+        private readonly NeutralStatueStateMachine robot;
 
-        public NormalState(NeutralStatueAi ai) { this.ai = ai; }
+        public NormalState(NeutralStatueStateMachine robot) { this.robot = robot; }
 
         public override void Enter() { }
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            if (ai.IsAngry) return ai.angryState; // 换档优先于出手
-            ai.AdvanceCast(ai.NormalInterval);
+            if (robot.IsAngry) return robot.angryState; // 换档优先于出手
+            robot.AdvanceCast(robot.NormalInterval);
             return null;
         }
     }
 
-    private sealed class AngryState : AiState
+    private sealed class AngryState : State
     {
-        private readonly NeutralStatueAi ai;
+        private readonly NeutralStatueStateMachine robot;
 
-        public AngryState(NeutralStatueAi ai) { this.ai = ai; }
+        public AngryState(NeutralStatueStateMachine robot) { this.robot = robot; }
 
         public override void Enter() { } // 入场钩子：愤怒表现/播报后续挂这里
 
-        public override AiState Tick(float deltaTime)
+        public override State Tick(float deltaTime)
         {
-            if (!ai.IsAngry) return ai.normalState; // 血量回到阈值以上（如后续加入回复）
-            ai.AdvanceCast(ai.AngryInterval);
+            if (!robot.IsAngry) return robot.normalState; // 血量回到阈值以上（如后续加入回复）
+            robot.AdvanceCast(robot.AngryInterval);
             return null;
         }
     }

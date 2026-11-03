@@ -167,7 +167,7 @@ public class PlayerEntityData : EntityData
             SetVelocityVertical(v, VelocitySource.Flight);
         }
 
-        if (aiControlled)
+        if (robotControlled)
         {
             TickAiMove(deltaTime, canInput);
             transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
@@ -205,46 +205,46 @@ public class PlayerEntityData : EntityData
             moveState.yaw = Mathf.Atan2(moveState.dir.x, moveState.dir.y) * Mathf.Rad2Deg;
     }
 
-    #region AI 驱动入口（人机状态机；真人玩家不走这里）
-    private AiPlayerAi ai;
+    #region Robot 驱动入口（人机；真人玩家不走这里）
+    private RobotAi robot;
 
-    public override void TickAI()
+    public override void TickAuto()
     {
-        if (!aiControlled) return;
-        EnsureAi();
-        ai.Tick();
+        if (!robotControlled) return;
+        EnsureRobot();
+        robot.Tick();
     }
 
     public void OnQuickMessage(SCQuickMessage message)
     {
-        if (!aiControlled) return;
-        EnsureAi();
-        ai.OnQuickMessage(message);
+        if (!robotControlled) return;
+        EnsureRobot();
+        robot.OnQuickMessage(message);
     }
 
     // 队友人机请求一起追击某个敌人（群体呼叫）
-    public void RequestAiChase(EntityData target)
+    public void RequestRobotChase(EntityData target)
     {
-        if (!aiControlled) return;
-        EnsureAi();
-        ai.RequestChase(target);
+        if (!robotControlled) return;
+        EnsureRobot();
+        robot.RequestChase(target);
     }
 
-    private void EnsureAi()
+    private void EnsureRobot()
     {
-        if (ai == null) ai = new AiPlayerAi(this);
+        if (robot == null) robot = new RobotAi(this);
     }
 
-    private Vector3 aiFacePoint;
-    private bool aiFaceSet;
+    private Vector3 robotFacePoint;
+    private bool robotFaceSet;
 
-    public void SetAiFacePoint(Vector3 worldPoint)
+    public void SetRobotFacePoint(Vector3 worldPoint)
     {
-        aiFacePoint = worldPoint;
-        aiFaceSet = true;
+        robotFacePoint = worldPoint;
+        robotFaceSet = true;
     }
 
-    public void ClearAiFacePoint() => aiFaceSet = false;
+    public void ClearRobotFacePoint() => robotFaceSet = false;
 
     private void TickAiMove(float deltaTime, bool canInput)
     {
@@ -281,10 +281,10 @@ public class PlayerEntityData : EntityData
         }
 
         // 站桩（攻击档已 StopMoving）：朝 AI 指定的目标转
-        if (aiFaceSet && !blockRotation)
+        if (robotFaceSet && !blockRotation)
         {
             // 目标几乎与自己重合时方向向量极短、逐帧乱跳，直接不转，否则会高速来回抽搐
-            Vector3 toFace = aiFacePoint - transform.position;
+            Vector3 toFace = robotFacePoint - transform.position;
             toFace.y = 0f;
             if (toFace.sqrMagnitude > 0.09f) FaceDirection(toFace);
             else moveState.yawSpeed = 0f;
@@ -293,7 +293,7 @@ public class PlayerEntityData : EntityData
     }
 
     // AI 转向瞬时生效：不做渐转，客户端按同步包里的 yaw 绝对值直接对齐
-    private const float AiFaceDeadzone = 5f; // 方向抖动小于此角度不动朝向，避免逐帧反复翻转
+    private const float RobotFaceDeadzone = 5f; // 方向抖动小于此角度不动朝向，避免逐帧反复翻转
 
     private void FaceDirection(Vector3 direction)
     {
@@ -305,7 +305,7 @@ public class PlayerEntityData : EntityData
         }
 
         float targetYaw = Quaternion.LookRotation(direction).eulerAngles.y;
-        if (Mathf.Abs(Mathf.DeltaAngle(moveState.yaw, targetYaw)) < AiFaceDeadzone)
+        if (Mathf.Abs(Mathf.DeltaAngle(moveState.yaw, targetYaw)) < RobotFaceDeadzone)
         {
             moveState.yawSpeed = 0f;
             return;

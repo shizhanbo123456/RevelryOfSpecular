@@ -1,7 +1,7 @@
 using Ros.Skill;
 using UnityEngine;
 
-public class PlayerAiController
+public class RobotController
 {
     private const float DecideInterval = 0.15f;
     private const float RetargetInterval = 1f;
@@ -22,11 +22,11 @@ public class PlayerAiController
     private float nextRetargetTime;
     private float retreatStartTime;
 
-    public PlayerAiController(PlayerEntityData entity)
+    public RobotController(PlayerEntityData entity)
     {
         this.entity = entity;
         // 首次决策按 id 错峰
-        nextDecideTime = Time.time + DecideInterval * entity.AIStaggerPhase;
+        nextDecideTime = Time.time + DecideInterval * entity.AutoStaggerPhase;
     }
 
     public void Tick()

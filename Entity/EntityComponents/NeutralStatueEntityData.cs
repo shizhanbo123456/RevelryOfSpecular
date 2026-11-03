@@ -2,19 +2,19 @@ using UnityEngine;
 
 public class NeutralStatueEntityData : EntityData
 {
-    private NeutralStatueAi ai;
+    private NeutralStatueStateMachine stateMachine;
 
     private EntityData captor;
 
     public override void OnCreate(ushort id, EntityType type, int level, EntityCamp camp = EntityCamp.Neutral)
     {
         base.OnCreate(id, type, level, camp);
-        ai = new NeutralStatueAi(this);
+        stateMachine = new NeutralStatueStateMachine(this);
     }
 
-    public override void TickAI()
+    public override void TickAuto()
     {
-        ai.Tick();
+        stateMachine.Tick();
     }
 
     public override void OnDamaged(float damage, EntityData attacker = null, bool fixedDamage = false, bool canReflect = true, CombatLabelType damageType = CombatLabelType.Normal, Vector3? hitPos = null)
