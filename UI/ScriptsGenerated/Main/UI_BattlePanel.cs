@@ -22,6 +22,8 @@ namespace Ros.UI.Main
         public UI_ImportantEventBanner m_important_event_banner;
         public UI_SkillSelectPanel m_skillSelectPanel;
         public UI_QuickMessagePanel m_quickMessagePanel;
+        public UI_GodViewMinimapPanel m_godViewPanel;
+        public UI_LargeMinimapPanel m_largeMinimapPanel;
         public Transition m_showBanner;
         public Transition m_showHit;
         public const string URL = "ui://q68vr2bfjtpbhd";
@@ -50,6 +52,8 @@ namespace Ros.UI.Main
             m_important_event_banner = (UI_ImportantEventBanner)GetChildAt(16);
             m_skillSelectPanel = (UI_SkillSelectPanel)GetChildAt(17);
             m_quickMessagePanel = (UI_QuickMessagePanel)GetChildAt(18);
+            m_godViewPanel = (UI_GodViewMinimapPanel)GetChildAt(19);
+            m_largeMinimapPanel = (UI_LargeMinimapPanel)GetChildAt(20);
             m_showBanner = GetTransitionAt(0);
             m_showHit = GetTransitionAt(1);
         }

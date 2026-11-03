@@ -11,6 +11,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_panel_2.URL, typeof(UI_panel_2));
             UIObjectFactory.SetPackageItemExtension(UI_EventBanner.URL, typeof(UI_EventBanner));
             UIObjectFactory.SetPackageItemExtension(UI_QuickMessagePanel.URL, typeof(UI_QuickMessagePanel));
+            UIObjectFactory.SetPackageItemExtension(UI_LargeMinimapPanel.URL, typeof(UI_LargeMinimapPanel));
             UIObjectFactory.SetPackageItemExtension(UI_PlayerCampIcon.URL, typeof(UI_PlayerCampIcon));
             UIObjectFactory.SetPackageItemExtension(UI_SkillTip.URL, typeof(UI_SkillTip));
             UIObjectFactory.SetPackageItemExtension(UI_TipLevel.URL, typeof(UI_TipLevel));
@@ -36,7 +37,10 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_BattleResult.URL, typeof(UI_BattleResult));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetail.URL, typeof(UI_BattleResultDetail));
             UIObjectFactory.SetPackageItemExtension(UI_BattleResultDetailItem.URL, typeof(UI_BattleResultDetailItem));
+            UIObjectFactory.SetPackageItemExtension(UI_MinimapItemButton.URL, typeof(UI_MinimapItemButton));
             UIObjectFactory.SetPackageItemExtension(UI_empty_container.URL, typeof(UI_empty_container));
+            UIObjectFactory.SetPackageItemExtension(UI_GodViewMinimapPanel.URL, typeof(UI_GodViewMinimapPanel));
+            UIObjectFactory.SetPackageItemExtension(UI_GodViewMinimapContainer.URL, typeof(UI_GodViewMinimapContainer));
             UIObjectFactory.SetPackageItemExtension(UI_iconEmerald.URL, typeof(UI_iconEmerald));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberContent.URL, typeof(UI_LobbyMemberContent));
             UIObjectFactory.SetPackageItemExtension(UI_ImportantEventBanner.URL, typeof(UI_ImportantEventBanner));
@@ -60,6 +64,7 @@ namespace Ros.UI.Main
             UIObjectFactory.SetPackageItemExtension(UI_AttrItem.URL, typeof(UI_AttrItem));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyPanel.URL, typeof(UI_LobbyPanel));
             UIObjectFactory.SetPackageItemExtension(UI_LobbyMemberList.URL, typeof(UI_LobbyMemberList));
+            UIObjectFactory.SetPackageItemExtension(UI_panel_3.URL, typeof(UI_panel_3));
             UIObjectFactory.SetPackageItemExtension(UI_BuffTip.URL, typeof(UI_BuffTip));
             UIObjectFactory.SetPackageItemExtension(UI_HomePanel.URL, typeof(UI_HomePanel));
             UIObjectFactory.SetPackageItemExtension(UI_RoleHead.URL, typeof(UI_RoleHead));

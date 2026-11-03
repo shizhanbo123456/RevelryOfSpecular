@@ -30,14 +30,14 @@ namespace Ros.UI.Main
 
             m_show_channel_menu = GetControllerAt(0);
             m_fold = GetControllerAt(1);
-            m_input = (GTextInput)GetChildAt(2);
-            m_btn_send = (GButton)GetChildAt(4);
-            m_content = (GList)GetChildAt(6);
-            m_btn_allChannel = (GButton)GetChildAt(7);
-            m_btn_campChannel = (GButton)GetChildAt(8);
-            m_btn_systemInfo = (GButton)GetChildAt(9);
-            m_btn_hide = (UI_btn_chatShowHide)GetChildAt(11);
-            m_btn_show = (UI_btn_chatShowHide)GetChildAt(13);
+            m_input = (GTextInput)GetChildAt(1);
+            m_btn_send = (GButton)GetChildAt(3);
+            m_content = (GList)GetChildAt(4);
+            m_btn_allChannel = (GButton)GetChildAt(5);
+            m_btn_campChannel = (GButton)GetChildAt(6);
+            m_btn_systemInfo = (GButton)GetChildAt(7);
+            m_btn_hide = (UI_btn_chatShowHide)GetChildAt(9);
+            m_btn_show = (UI_btn_chatShowHide)GetChildAt(11);
         }
     }
 }
