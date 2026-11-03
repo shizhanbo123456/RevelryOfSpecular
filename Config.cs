@@ -123,6 +123,8 @@ public static class Config
     public const float minimap_entity_timeout = 1.5f;
     // 雷达显示半径切换键
     public const KeyCode minimap_radius_key = KeyCode.F;
+    public const KeyCode large_minimap_key = KeyCode.LeftAlt; // 小地图展开（纯展示整图与已收到点位）
+    public const KeyCode god_view_key = KeyCode.LeftControl;  // 上帝视角（可拖动的区域视图 + 实体详情）
     #endregion
 
     #region 玩家操作（双手键盘无鼠标：W/S 前后 / A/D 左右 / 前后+左右同按渐转 / J 空手攻击 / K 跳跃 / 左 Shift 滑铲 / U I O L H Y 技能槽 / Tab 技能选择）

@@ -75,6 +75,12 @@ public class BattlePage : PageBase
             (i, obj) => ((UI_buffItem)obj).Fill(localBuffs[i].type, localBuffs[i].level, ShowBuffTip, HideBuffTip);
         panel.m_skillSelectPanel.Build(OnSkillSelectCommitted);
         panel.m_skillSelectPanel.Close();
+        panel.m_largeMinimapPanel.visible = false;
+        panel.m_largeMinimapPanel.touchable = false;
+        panel.m_largeMinimapPanel.m_panel.m_close.onClick.Set(panel.m_largeMinimapPanel.Close);
+        panel.m_godViewPanel.Init(ShowBuffTip, HideBuffTip);
+        panel.m_godViewPanel.Close();
+        panel.m_godViewPanel.m_panel.m_close.onClick.Set(panel.m_godViewPanel.Close);
     }
 
     // 设置面板常驻战斗界面，开关只改显隐与点击拦截
@@ -205,6 +211,9 @@ public class BattlePage : PageBase
         EventManager.AddEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.AddEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.AddEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
+        EventManager.AddEvent<SCGodViewEntities>(ClientEvent.OnGodViewEntities, OnGodViewEntities);
+        EventManager.AddEvent<SCGodViewCorals>(ClientEvent.OnGodViewCorals, OnGodViewCorals);
+        EventManager.AddEvent<SCGodViewEntityDetail>(ClientEvent.OnGodViewDetail, OnGodViewDetail);
         EventManager.AddEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCCombatLabel>(ClientEvent.OnCombatLabelDisplay, OnCombatLabelDisplay);
@@ -235,6 +244,8 @@ public class BattlePage : PageBase
         localBuffs.Clear();
         panel.m_PlayerBar.m_buffList.m_list.numItems = 0;
         panel.m_Minimap?.Reset(ConfigManager.GlobalVariableConfig.minimap_view_radius[0]); //每局回到默认档（首档），与服务器 ClearBattleState 对齐
+        panel.m_largeMinimapPanel.Close();
+        panel.m_godViewPanel.Close();
         panel.m_skillSelectPanel.Close();
         Skills?.ResetBattle();
         BuildSkillSlots();
@@ -248,6 +259,9 @@ public class BattlePage : PageBase
         EventManager.RemoveEvent<int>(ClientEvent.OnEntityDisplayRemove, OnEntityDisplayRemove);
         EventManager.RemoveEvent<SCMinimapEntity>(ClientEvent.OnMinimapUpdate, OnMinimapUpdate);
         EventManager.RemoveEvent<float>(ClientEvent.OnMinimapRadiusUpdate, OnMinimapRadiusUpdate);
+        EventManager.RemoveEvent<SCGodViewEntities>(ClientEvent.OnGodViewEntities, OnGodViewEntities);
+        EventManager.RemoveEvent<SCGodViewCorals>(ClientEvent.OnGodViewCorals, OnGodViewCorals);
+        EventManager.RemoveEvent<SCGodViewEntityDetail>(ClientEvent.OnGodViewDetail, OnGodViewDetail);
         EventManager.RemoveEvent<SCScoreInfo>(ClientEvent.OnScoreUpdate, OnScoreUpdate);
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCCombatLabel>(ClientEvent.OnCombatLabelDisplay, OnCombatLabelDisplay);
@@ -261,6 +275,8 @@ public class BattlePage : PageBase
         spectateTargetClientId = -1;
         spectateTargetEntityId = -1;
         if (panel.m_onlook != null) panel.m_onlook.selectedIndex = 0;
+        panel.m_largeMinimapPanel.Close();
+        panel.m_godViewPanel.Close();
         panel.m_skillSelectPanel.Close();
         HideAllTips();
         HideImportantBanner();
@@ -273,12 +289,15 @@ public class BattlePage : PageBase
         {
             if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
             if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
+            if (Input.GetKeyDown(Config.large_minimap_key)) ToggleLargeMinimap();
+            if (Input.GetKeyDown(Config.god_view_key)) ToggleGodView();
         }
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
             panel.m_batleInfoPanel.m_label_time_left.text = FormatTime(Mathf.Max(0f, BattleTime.RemainTime));
         RefreshTimeIcon();
         TickMinimap();
+        TickMinimapPanels(deltaTime);
         TickSpectator(deltaTime);
         TickLocalSkillCd(deltaTime);
         TickReviveProgress(deltaTime);
@@ -605,6 +624,50 @@ public class BattlePage : PageBase
         panel.m_Minimap?.Tick(center, hasCenter, yaw, hasYaw);
         if (hasCenter) TickLocalPlayerArea(center);
     }
+
+    #region 小地图展开 / 上帝视角
+    private void TickMinimapPanels(float deltaTime)
+    {
+        if (panel.m_largeMinimapPanel.IsOpen)
+        {
+            bool hasYaw = TryGetSelfYaw(out float yaw);
+            var points = panel.m_Minimap != null ? panel.m_Minimap.CurrentPoints : null;
+            panel.m_largeMinimapPanel.Refresh(points, (EntityCamp)localPlayerCamp, yaw, hasYaw);
+        }
+        panel.m_godViewPanel.Tick(deltaTime, (EntityCamp)localPlayerCamp, OwnEntityId);
+    }
+
+    // 两个界面互不相干：左 Alt 展开小地图，左 Ctrl 上帝视角；再按一次或点底框关闭按钮收起
+    private void ToggleLargeMinimap()
+    {
+        if (panel.m_largeMinimapPanel.IsOpen) panel.m_largeMinimapPanel.Close();
+        else panel.m_largeMinimapPanel.Open();
+    }
+
+    private void ToggleGodView()
+    {
+        if (panel.m_godViewPanel.IsOpen)
+        {
+            panel.m_godViewPanel.Close();
+            return;
+        }
+        panel.m_godViewPanel.Open(ResolveGodViewCenter());
+    }
+
+    // 初始区域中心 = 雷达圆心（本地实体 / 观战目标 / 自由视角相机），取不到就从地图正中开始
+    private Vector2 ResolveGodViewCenter()
+    {
+        if (TryGetMinimapCenter(out var center)) return new Vector2(center.x, center.z);
+        float half = Landscape.MapSize * 0.5f;
+        return new Vector2(half, half);
+    }
+
+    private void OnGodViewEntities(SCGodViewEntities chunk) => panel.m_godViewPanel.OnEntities(chunk);
+
+    private void OnGodViewCorals(SCGodViewCorals chunk) => panel.m_godViewPanel.OnCorals(chunk);
+
+    private void OnGodViewDetail(SCGodViewEntityDetail info) => panel.m_godViewPanel.OnDetail(info);
+    #endregion
 
     // 自身图标随朝向旋转：地图不转，图标转（每帧读本地玩家推演朝向）
     private bool TryGetSelfYaw(out float yaw)

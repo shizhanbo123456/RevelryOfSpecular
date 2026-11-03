@@ -44,6 +44,9 @@ namespace Ros.UI.Main
         private GLoader mapLoader;
         private NTexture mapTexture;
 
+        // 已收到且未超时的点位（展开小地图直接铺这些点，不另存一份）
+        internal IReadOnlyDictionary<ushort, Point> CurrentPoints => points;
+
         // 自身点位：固定在雷达中心且永远置顶
         private UI_MinimapItem SelfItem => selfId != 0 && items.TryGetValue(selfId, out var item) ? item : null;
 
@@ -146,26 +149,28 @@ namespace Ros.UI.Main
             return true;
         }
 
-        // 实体类别 → 点位档位（0 自己 / 1 队友 / 2 敌人 / 3~9 场景与守卫）
-        private int GetPage(in Point point)
+        // 实体类别 → 点位档位（0 自己 / 1 队友 / 2 敌人 / 3~9 场景与守卫），展开图与雷达共用
+        internal static int PageOf(EntityCategory category, EntityType type, EntityCamp camp, bool self, EntityCamp myCamp)
         {
-            switch (point.category)
+            switch (category)
             {
                 case EntityCategory.Character_Attack:
                 case EntityCategory.Character_Defense:
-                    if (point.self) return 0;
-                    return point.camp == myCamp ? 1 : 2;
+                    if (self) return 0;
+                    return camp == myCamp ? 1 : 2;
                 case EntityCategory.NeutralStatue: return 3;
                 case EntityCategory.Coral: return 4;
                 case EntityCategory.CrystalStatue: return 5;
                 case EntityCategory.Zombie: return 6;
                 case EntityCategory.EliteZombie: return 7;
-                case EntityCategory.GuardStatue: return point.type == EntityType.KingStatue ? 8 : 9;
+                case EntityCategory.GuardStatue: return type == EntityType.KingStatue ? 8 : 9;
                 default:
-                    Debug.LogError($"[Minimap] 未处理的实体类别：{point.category}");
+                    Debug.LogError($"[Minimap] 未处理的实体类别：{category}");
                     return 7;
             }
         }
+
+        private int GetPage(in Point point) => PageOf(point.category, point.type, point.camp, point.self, myCamp);
 
         private void RaiseSelfToTop()
         {

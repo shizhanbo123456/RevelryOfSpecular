@@ -26,6 +26,9 @@ public static class ClientEvent
     public const int OnMinimapUpdate = 10233;
     public const int OnMinimapRadiusUpdate = 10234; // param=float 切换后的雷达显示半径
     public const int OnCombatLabelDisplay = 10235;  // param=SCCombatLabel 战斗飘字（伤害/治疗）
+    public const int OnGodViewEntities = 10236;     // param=SCGodViewEntities 上帝视角实体块（不含珊瑚）
+    public const int OnGodViewCorals = 10237;       // param=SCGodViewCorals 上帝视角珊瑚块（仅 id 与位置）
+    public const int OnGodViewDetail = 10238;       // param=SCGodViewEntityDetail 上帝视角点选实体的详情快照
     #endregion
 
     #region UI 通用（10300 段）

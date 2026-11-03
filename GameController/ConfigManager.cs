@@ -781,6 +781,7 @@ public class ConfigManager : MonoBehaviour
 
         // 每行一个静态字段（字段名即表内 key），Load 时由 Apply 填入
         public static List<float> minimap_view_radius;  // 小地图显示半径档位，首档即默认档
+        public static List<float> godView_scale;        // 上帝视角地图放大比例：区域边长 = terrain_size / 倍率，首档即默认档
         public static float entity_character_visiable_radius; // 角色在客户端场景显示的距离（与角色视野属性解耦）
         public static int day_duration;                 // 默认白天时长
         public static int night_duration;               // 默认晚上时长
@@ -879,6 +880,9 @@ public class ConfigManager : MonoBehaviour
             {
                 case "minimap_view_radius":
                     minimap_view_radius = Floats(row);
+                    break;
+                case "godView_scale":
+                    godView_scale = Floats(row);
                     break;
                 case "entity_character_visiable_radius":
                     entity_character_visiable_radius = Positive(Float(row), row.key);
@@ -1113,6 +1117,12 @@ public class ConfigManager : MonoBehaviour
             // 角色显示半径缺行会退化成 0，所有角色模型都不再下发，先显式拦下
             if (entity_character_visiable_radius <= 0f)
                 throw new FormatException($"[配表] {FileName} 缺少 entity_character_visiable_radius（场景角色显示半径）");
+
+            // 上帝视角倍率缺行/配 0 会让区域边长除零或无穷大
+            if (godView_scale == null || godView_scale.Count == 0)
+                throw new FormatException($"[配表] {FileName} 缺少 godView_scale（上帝视角地图放大比例）");
+            foreach (float scale in godView_scale)
+                Positive(scale, "godView_scale");
 
             // 名字长度与真人人数上限必须给值；AI 上限允许 0（不允许 AI），缺行按 0 处理
             if (name_length_max <= 0 || name_length_min <= 0

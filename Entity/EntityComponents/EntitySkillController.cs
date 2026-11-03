@@ -117,6 +117,29 @@ public class EntitySkillController
         recharge.ExportRoots(slotSkills, info.roots);
         return info;
     }
+
+    // 上帝视角详情：技能栏槽位带当前冷却与库存，未装备的持有技能只给 id
+    public void FillGodViewSkills(SCGodViewEntityDetail info)
+    {
+        if (slotBarEnabled)
+        {
+            foreach (int skillId in slotSkills)
+            {
+                info.slotSkills.Add(new SCGodViewEntityDetail.SlotSkill
+                {
+                    skillId = (ushort)skillId,
+                    recharge01 = (byte)Mathf.RoundToInt(Mathf.Clamp01(recharge.GetCycleProgress(skillId)) * 100f),
+                    store = recharge.GetStore(skillId),
+                });
+            }
+        }
+        foreach (int skillId in skillIds)
+        {
+            if (slotSkills.Contains(skillId)) continue;
+            if (info.heldSkills.Count >= GodViewChunk.MaxHeldSkills) break;
+            info.heldSkills.Add((ushort)skillId);
+        }
+    }
     #endregion
 
     #region 复活继承
