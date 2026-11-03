@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 僵尸：无目标在出生点附近游荡；有目标按距离分档——超追距放弃、远处嘶吼、贴身停下爪击
-public class ZombieStateMachine : StateMachine
+public class ZombieStateMachine : DecisionMachine, IBehaviorHost
 {
     private const int SlotClawRight = 0;
     private const int SlotClawLeft = 1;
@@ -9,6 +9,7 @@ public class ZombieStateMachine : StateMachine
 
     public readonly ZombieEntityData Owner;
 
+    private readonly BehaviorArbiter arbiter;
     private readonly WanderState wanderState;
     private readonly ChaseState chaseState;
     private readonly AttackState attackState;
@@ -31,13 +32,17 @@ public class ZombieStateMachine : StateMachine
         wanderState = new WanderState(this);
         chaseState = new ChaseState(this);
         attackState = new AttackState(this);
+        arbiter = new BehaviorArbiter(this);
         Initialize(wanderState, owner.AutoStaggerPhase);
     }
+
+    protected override EntityData MachineOwner => Owner;
 
     public override void Tick()
     {
         if (!Owner.Alive) return;
         base.Tick();
+        arbiter.Tick(Time.deltaTime);
     }
 
     #region//Local
@@ -100,119 +105,155 @@ public class ZombieStateMachine : StateMachine
         currentTarget = null;
     }
 
-    // 左右爪交替：主手不放再试另一只，避免同一只手连击
-    private void TryClaw()
+    private bool CanUseSlot(int slot) => IsSkillReady(SkillIdAt(slot));
+
+    // 左右爪交替：主手不放再试另一只，避免同一只手连击；普通攻击不计冷却
+    private bool TryClaw()
     {
         clawLeftNext = !clawLeftNext;
         int first = clawLeftNext ? SlotClawLeft : SlotClawRight;
-        if (TryUseSlot(first)) return;
-        TryUseSlot(clawLeftNext ? SlotClawRight : SlotClawLeft);
+        if (TryUseSkillNoCd(SkillIdAt(first))) return true;
+        return TryUseSkillNoCd(SkillIdAt(clawLeftNext ? SlotClawRight : SlotClawLeft));
     }
 
-    private void TryRoar() => TryUseSlot(SlotRoar);
+    private void RequestIdle() => arbiter.RequestIdle();
 
-    private bool TryUseSlot(int slot)
+    private void RequestMove(Vector3 point) => arbiter.RequestMove(point);
+
+    private void RequestChase(EntityData target) => arbiter.RequestChase(target);
+
+    private void RequestAttack(EntityData target) => arbiter.RequestAttack(target);
+    #endregion
+
+    #region//IBehaviorHost
+    EntityData IBehaviorHost.Owner => Owner;
+
+    public void Stop() => Owner.Stop();
+
+    public void FaceTarget(EntityData target) => Owner.SetFaceTarget(target != null ? target.id : (ushort)0);
+
+    // 远距离用嘶吼（计冷却），近距离用爪击（不计冷却）
+    public bool TryAttack(EntityData target)
     {
-        if (Owner.InputBlocked(InputBlockOp.Attack)) return false; // 攻击屏蔽：爪击/嘶吼均不放
-        var sc = Owner.skillController;
-        if (sc == null) return false;
-        return sc.TryUseSkill(sc.GetSkillIdAt(slot)) == EntitySkillController.UseResult.Success;
+        if (target == null) return false;
+        if (FlatDistance(target.transform.position) > Config.zombie_roar_range) return TryUseSkill(SkillIdAt(SlotRoar));
+        return TryClaw();
     }
 
-    private sealed class WanderState : State
+    public bool IsActing => Owner.anim != null && Owner.anim.CurrentState == EntityAnim.AnimState.Attack;
+
+    public void ClearFace() => Owner.SetFaceTarget(0);
+
+    // 卡住由 OnThink 统一处理（忽略该目标一段时间），行为层不必额外做
+    public void NotifyStuck() { }
+    #endregion
+
+    #region//DecisionStates
+    private sealed class WanderState : DecisionState
     {
-        private readonly ZombieStateMachine robot;
+        private readonly ZombieStateMachine machine;
 
-        public WanderState(ZombieStateMachine robot) { this.robot = robot; }
+        public WanderState(ZombieStateMachine machine) { this.machine = machine; }
 
-        public override void Enter() { robot.Owner.SetFaceTarget(0); } // 已无目标，别再朝旧目标转
+        public override void Enter() => machine.Owner.SetFaceTarget(0); // 已无目标，别再朝旧目标转
 
-        public override State Tick(float deltaTime)
+        public override DecisionState Decide()
         {
-            if (robot.currentTarget != null) return robot.chaseState;
+            if (machine.currentTarget != null) return machine.chaseState;
 
-            if (robot.hasWanderPoint)
+            if (machine.hasWanderPoint)
             {
-                if (robot.FlatDistance(robot.wanderPoint) > ZombieEntityData.ArriveRadius) return null; // 还在路上
-                robot.hasWanderPoint = false;
-                robot.Owner.Stop();
-                robot.wanderResumeTime = Time.time + Config.zombie_wander_pause;
+                if (machine.FlatDistance(machine.wanderPoint) > ZombieEntityData.ArriveRadius)
+                {
+                    machine.RequestMove(machine.wanderPoint); // 还在路上
+                    return null;
+                }
+                machine.hasWanderPoint = false;
+                machine.wanderResumeTime = Time.time + Config.zombie_wander_pause;
+                machine.RequestIdle();
                 return null;
             }
 
-            if (Time.time < robot.wanderResumeTime) return null; // 到点后的停顿
+            if (Time.time < machine.wanderResumeTime)
+            {
+                machine.RequestIdle(); // 到点后的停顿
+                return null;
+            }
 
             Vector2 offset = Random.insideUnitCircle * Config.zombie_wander_radius;
-            robot.wanderPoint = robot.homePosition + new Vector3(offset.x, 0f, offset.y);
-            robot.hasWanderPoint = true;
-            robot.Owner.MoveTo(robot.wanderPoint);
+            machine.wanderPoint = machine.homePosition + new Vector3(offset.x, 0f, offset.y);
+            machine.hasWanderPoint = true;
+            machine.RequestMove(machine.wanderPoint);
             return null;
         }
     }
 
-    private sealed class ChaseState : State
+    private sealed class ChaseState : DecisionState
     {
-        private readonly ZombieStateMachine robot;
+        private readonly ZombieStateMachine machine;
 
-        public ChaseState(ZombieStateMachine robot) { this.robot = robot; }
+        public ChaseState(ZombieStateMachine machine) { this.machine = machine; }
 
-        public override void Enter() { robot.Owner.SetFaceTarget(0); } // 追击时朝向跟着行进方向
+        public override void Enter() => machine.Owner.SetFaceTarget(0); // 追击时朝向跟着行进方向
 
-        public override State Tick(float deltaTime)
+        public override DecisionState Decide()
         {
-            var target = robot.currentTarget;
-            if (target == null) return robot.wanderState;
+            var target = machine.currentTarget;
+            if (target == null) return machine.wanderState;
 
-            float dist = robot.FlatDistance(target.transform.position);
+            float dist = machine.FlatDistance(target.transform.position);
             if (dist > Config.zombie_max_chase_distance)
             {
-                robot.ClearTarget(); // 拉开太远：放弃，回出生点游荡
-                return robot.wanderState;
+                machine.ClearTarget(); // 拉开太远：放弃，回出生点游荡
+                return machine.wanderState;
             }
-            if (dist <= Config.zombie_attack_range) return robot.attackState;
+            if (dist <= Config.zombie_attack_range) return machine.attackState;
 
-            robot.Owner.MoveTo(target.transform.position);
-            if (dist > Config.zombie_roar_range) robot.TryRoar(); // 近了直接近战更优，只在远处嘶吼
+            // 远处且嘶吼冷却好了：进攻击态放一嗓子，放完由攻击态切回追击
+            if (dist > Config.zombie_roar_range && machine.CanUseSlot(SlotRoar)) return machine.attackState;
+
+            machine.RequestChase(target); // 跟随目标物体
             return null;
         }
     }
 
-    private sealed class AttackState : State
+    private sealed class AttackState : DecisionState
     {
-        private readonly ZombieStateMachine robot;
+        private readonly ZombieStateMachine machine;
 
-        public AttackState(ZombieStateMachine robot) { this.robot = robot; }
+        public AttackState(ZombieStateMachine machine) { this.machine = machine; }
 
-        // 进入即贴身：停步、锁朝向、当帧出爪
-        public override void Enter()
+        public override DecisionState Decide()
         {
-            robot.Owner.Stop();
-            var target = robot.currentTarget;
-            if (target != null) robot.Owner.SetFaceTarget(target.id);
-            robot.TryClaw();
-        }
+            var target = machine.currentTarget;
+            if (target == null) return machine.wanderState; // 目标丢了：直接回游荡，不必经追击态多等一拍
 
-        public override State Tick(float deltaTime)
-        {
-            var target = robot.currentTarget;
-            if (target == null) return robot.wanderState; // 目标丢了：直接回游荡，不必经追击态多等一个 tick
-
-            float dist = robot.FlatDistance(target.transform.position);
-
-            // 退出距离大于进入距离：目标在攻击距离边界晃动时不会在追击/攻击之间反复切换
-            if (dist > Config.zombie_attack_range * Config.zombie_attack_exit_scale) return robot.chaseState;
-
-            if (dist > Config.zombie_attack_range)
+            // 动作没播完：压住，不出新招也不切状态
+            if (machine.IsActing)
             {
-                // 退出缓冲区内继续贴近，保持攻击态，不切状态也不出爪
-                robot.Owner.MoveTo(target.transform.position);
-                robot.Owner.SetFaceTarget(target.id);
+                machine.RequestAttack(target);
                 return null;
             }
 
-            robot.Owner.Stop(); // 停下后仍要能转到目标（朝向由 OnTickMove 的无目的地分支负责）
-            robot.Owner.SetFaceTarget(target.id);
-            robot.TryClaw();
+            float dist = machine.FlatDistance(target.transform.position);
+
+            if (dist <= Config.zombie_attack_range)
+            {
+                machine.RequestAttack(target);
+                return null;
+            }
+
+            if (dist > Config.zombie_roar_range && machine.CanUseSlot(SlotRoar))
+            {
+                machine.RequestAttack(target);
+                return null;
+            }
+
+            // 退出距离大于进入距离：目标在攻击距离边界晃动时不会在追击/攻击之间反复切换
+            if (dist > Config.zombie_attack_range * Config.zombie_attack_exit_scale) return machine.chaseState;
+
+            // 退出缓冲区内继续贴近，保持攻击态，不切状态也不出招
+            machine.RequestChase(target);
             return null;
         }
     }
