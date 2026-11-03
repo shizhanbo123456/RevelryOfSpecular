@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 决策状态机骨架：只负责节流与状态切换，行为由子类写入请求字段后交给行为层
@@ -10,6 +11,11 @@ public abstract class DecisionMachine
     private float nextThinkTime;
 
     protected DecisionState Current => current;
+
+    // 子类返回自己的实体：模拟冷却与行为层共用
+    protected abstract EntityData MachineOwner { get; }
+
+    private readonly Dictionary<int, float> lastUseTime = new();
 
     public virtual void Tick()
     {
@@ -55,4 +61,38 @@ public abstract class DecisionMachine
         nextThinkTime = Time.time + ThinkInterval * staggerPhase;
         current.Enter();
     }
+
+    #region//技能冷却模拟
+    // 冷却一律读 skill 表的 CD，状态机自己记上次使用时间；最多存 1 次，不累计
+    protected bool IsSkillReady(int skillId)
+    {
+        if (skillId < 0) return false;
+        EntityData owner = MachineOwner;
+        if (owner == null) return false;
+        if (owner.skillController == null) return false;
+        if (owner.InputBlocked(InputBlockOp.Attack)) return false;
+        float cd = ConfigManager.SkillConfig.Get(skillId).cd;
+        return !lastUseTime.TryGetValue(skillId, out float usedAt) || Time.time - usedAt >= cd;
+    }
+
+    protected bool TryUseSkill(int skillId)
+    {
+        if (!IsSkillReady(skillId)) return false;
+        if (MachineOwner.skillController.TryUseSkill(skillId) != EntitySkillController.UseResult.Success) return false;
+        lastUseTime[skillId] = Time.time;
+        return true;
+    }
+
+    // 不计冷却的施放：僵尸普通攻击走这条
+    protected bool TryUseSkillNoCd(int skillId)
+    {
+        if (skillId < 0) return false;
+        EntityData owner = MachineOwner;
+        if (owner == null || owner.skillController == null) return false;
+        if (owner.InputBlocked(InputBlockOp.Attack)) return false;
+        return owner.skillController.TryUseSkill(skillId) == EntitySkillController.UseResult.Success;
+    }
+
+    protected int SkillIdAt(int slot) => MachineOwner?.skillController?.GetSkillIdAt(slot) ?? -1;
+    #endregion
 }

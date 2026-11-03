@@ -3,8 +3,8 @@ using Ros.Skill;
 using Ros.Transport;
 using UnityEngine;
 
-// 人机玩家状态机：15 个决策状态 + 快捷消息任务系统（设计见 Doc/08-游戏AI逻辑），执行交给行为层
-public partial class RobotAi : DecisionMachine
+// 人机玩家状态机：15 个决策状态 + 快捷消息任务系统（设计见 Doc/08-游戏AI逻辑），执行交给公共行为层
+public partial class RobotAi : DecisionMachine, IBehaviorHost
 {
     // 任务来源消息（锚点由"是否携带位置"决定静态/动态）
     protected struct TaskTarget
@@ -17,6 +17,8 @@ public partial class RobotAi : DecisionMachine
     public readonly PlayerEntityData Owner;
 
     private readonly RobotSkillBar skillBar;
+
+    private readonly BehaviorArbiter arbiter;
 
     private readonly SearchState searchState;
     private readonly SearchCombatState searchCombatState;
@@ -33,10 +35,6 @@ public partial class RobotAi : DecisionMachine
     private readonly CombatDecision rallyGuardState;
     private readonly AssaultState assaultState;
     private readonly CombatDecision assaultCombatState;
-
-    private readonly IdleBehavior idleBehavior;
-    private readonly MoveBehavior moveBehavior;
-    private readonly AttackBehavior attackBehavior;
 
     // 任务槽：单槽，后到覆盖
     private bool hasPending;
@@ -69,10 +67,7 @@ public partial class RobotAi : DecisionMachine
         assaultState = new AssaultState(this);
         assaultCombatState = new CombatDecision(this);
 
-        idleBehavior = new IdleBehavior(this);
-        moveBehavior = new MoveBehavior(this);
-        attackBehavior = new AttackBehavior(this);
-        behavior = idleBehavior;
+        arbiter = new BehaviorArbiter(this);
 
         // 战斗态：撤离血线 / 活动范围 / 撤离去向 按战斗策略表配；脱战回到由 Bind 时传入
         combatState.Setup(Config.ai_combat_retreat_ratio, 0f, dangerEvadeState, EntityReportState.Combat);
@@ -92,8 +87,10 @@ public partial class RobotAi : DecisionMachine
         if (!Owner.Alive) return;
         skillBar.Tick(Time.deltaTime);
         base.Tick();
-        TickBehaviors();
+        arbiter.Tick(Time.deltaTime);
     }
+
+    protected override EntityData MachineOwner => Owner;
 
     protected override void OnThink()
     {

@@ -13,6 +13,6 @@ public enum BehaviorKind
 public struct BehaviorRequest
 {
     public BehaviorKind Kind;
-    public Vector3 Point;     // Move 的目的地
-    public EntityData Target; // Attack 的攻击对象；Idle 时只用于站桩朝向
+    public Vector3 Point;     // Move 的静止坐标目的地；Target 非空时忽略
+    public EntityData Target; // Move 跟随的目标物体；Attack 的攻击对象；Idle 的站桩朝向
 }

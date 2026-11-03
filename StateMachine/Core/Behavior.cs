@@ -11,4 +11,7 @@ public abstract class Behavior
     public virtual void Exit() { }
 
     public abstract void Bind(in BehaviorRequest request);
+
+    // 持续行为每帧推进（跟随移动目标用）；一次性行为留空
+    public virtual void Tick(float deltaTime) { }
 }
