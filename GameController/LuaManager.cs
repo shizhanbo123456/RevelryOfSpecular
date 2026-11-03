@@ -40,7 +40,7 @@ public class LuaManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        _luaEnv?.Dispose();
+        if (_luaEnv != null) _luaEnv.Dispose();
         _luaEnv = null;
     }
 }

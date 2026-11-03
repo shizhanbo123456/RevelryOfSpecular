@@ -67,10 +67,7 @@ public abstract class DecisionMachine
     protected bool IsSkillReady(int skillId)
     {
         if (skillId < 0) return false;
-        EntityData owner = MachineOwner;
-        if (owner == null) return false;
-        if (owner.skillController == null) return false;
-        if (owner.InputBlocked(InputBlockOp.Attack)) return false;
+        if (MachineOwner.InputBlocked(InputBlockOp.Attack)) return false;
         float cd = ConfigManager.SkillConfig.Get(skillId).cd;
         return !lastUseTime.TryGetValue(skillId, out float usedAt) || Time.time - usedAt >= cd;
     }
@@ -87,12 +84,10 @@ public abstract class DecisionMachine
     protected bool TryUseSkillNoCd(int skillId)
     {
         if (skillId < 0) return false;
-        EntityData owner = MachineOwner;
-        if (owner == null || owner.skillController == null) return false;
-        if (owner.InputBlocked(InputBlockOp.Attack)) return false;
-        return owner.skillController.TryUseSkill(skillId) == EntitySkillController.UseResult.Success;
+        if (MachineOwner.InputBlocked(InputBlockOp.Attack)) return false;
+        return MachineOwner.skillController.TryUseSkill(skillId) == EntitySkillController.UseResult.Success;
     }
 
-    protected int SkillIdAt(int slot) => MachineOwner?.skillController?.GetSkillIdAt(slot) ?? -1;
+    protected int SkillIdAt(int slot) => MachineOwner.skillController.GetSkillIdAt(slot);
     #endregion
 }
