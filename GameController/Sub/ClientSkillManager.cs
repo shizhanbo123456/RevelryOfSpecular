@@ -10,7 +10,7 @@ public class ClientSkillManager : ClientSubManager
     private readonly List<int> activeSkills = new();   // 槽位技能，顺序即按键顺序，来自服务器快照
 
     // 根戳由服务器下发，读数只是 (服务器时间 − 根戳) / CD，与服务器时钟对齐
-    private readonly SkillRecharge recharge = new(NetworkManager.ClientToServerTime);
+    private readonly SkillRecharge recharge = new(() => NetworkManager.ClientToServerTime(Time.time));
 
     private int slotCapacity;
 
