@@ -44,6 +44,8 @@ public class BattlePage : PageBase
     private readonly List<int> settingTabKeys = new();   // 页签 → 配表 key（按 key 排序）
     private readonly List<string> settingTabTexts = new(); // 每个页签对应的说明文本
     private int settingTab; // 当前选中的页签下标
+    private int godViewPressCount;        // 上帝视角连按计数
+    private float godViewFirstPressTime;  // 本轮第一次按下的时刻（超窗口重算）
 
     // 本局会话数据全部来自加载期（不再读组队缓存）
     private static ClientLoadingManager Session => ClientLoadingManager.Current;
@@ -78,6 +80,8 @@ public class BattlePage : PageBase
         panel.m_largeMinimapPanel.visible = false;
         panel.m_largeMinimapPanel.touchable = false;
         panel.m_largeMinimapPanel.m_panel.m_close.onClick.Set(panel.m_largeMinimapPanel.Close);
+        if (panel.m_Minimap != null && panel.m_Minimap.m_minimapButton != null)
+            panel.m_Minimap.m_minimapButton.onClick.Set(OpenLargeMinimap); // 点小地图打开大地图，关闭走底框按钮
         panel.m_godViewPanel.Init(ShowBuffTip, HideBuffTip);
         panel.m_godViewPanel.Close();
         panel.m_godViewPanel.m_panel.m_close.onClick.Set(panel.m_godViewPanel.Close);
@@ -236,6 +240,7 @@ public class BattlePage : PageBase
         ResetGuardStatues();
         HideSettings(); // 设置面板每局从收起状态开始
         HideQuickMessage(); // 快捷消息面板每局从收起状态开始
+        ResetGodViewPress(); // 连按计数每局清零
         HideImportantBanner(); // 重要事件 banner 每局从隐藏状态开始
         OnDefensePointProgress(NetworkManager.LatestDefensePointProgress); // 进入战斗先填一次缓存值，随后由变更包刷新
         reviveActive = false; // 复活条每局从收起状态开始，重新由 SCReviveInfo 驱动
@@ -284,13 +289,13 @@ public class BattlePage : PageBase
 
     public override void Tick(float deltaTime)
     {
-        // 键盘被 UI 占用（GM 面板 / 文字输入）时，技能选择与快捷消息都不响应
+        // 键盘被 UI 占用（GM 面板 / 文字输入）时，技能选择、快捷消息与面板快捷键都不响应
         if (!InputManager.KeysCapturedByUi)
         {
             if (Input.GetKeyDown(Config.skill_select_key)) ToggleSkillSelect();
             if (AnyQuickMessageKeyDown(out int quickMessageIndex)) HandleQuickMessageKey(quickMessageIndex);
             if (Input.GetKeyDown(Config.large_minimap_key)) ToggleLargeMinimap();
-            if (Input.GetKeyDown(Config.god_view_key)) ToggleGodView();
+            TickGodViewOpenKey();
         }
         //剩余时间（以快照校准的本地推演为准，重连/中途进入的起点由服务器补发）
         if (HasSession && BattleTime != null && panel.m_batleInfoPanel.m_label_time_left != null)
@@ -637,21 +642,42 @@ public class BattlePage : PageBase
         panel.m_godViewPanel.Tick(deltaTime, (EntityCamp)localPlayerCamp, OwnEntityId);
     }
 
-    // 两个界面互不相干：左 Alt 展开小地图，左 Ctrl 上帝视角；再按一次或点底框关闭按钮收起
+    // 小地图：点组件上的按钮（或左 Alt）打开，关闭走底框关闭按钮
+    private void OpenLargeMinimap()
+    {
+        if (!panel.m_largeMinimapPanel.IsOpen) panel.m_largeMinimapPanel.Open();
+    }
+
     private void ToggleLargeMinimap()
     {
         if (panel.m_largeMinimapPanel.IsOpen) panel.m_largeMinimapPanel.Close();
         else panel.m_largeMinimapPanel.Open();
     }
 
-    private void ToggleGodView()
+    // 上帝视角：窗口期内连按 3 次 G 打开（与 GM 面板同一套连按判定），关闭走底框关闭按钮
+    private void TickGodViewOpenKey()
     {
         if (panel.m_godViewPanel.IsOpen)
         {
-            panel.m_godViewPanel.Close();
+            ResetGodViewPress(); // 已打开时不再累计，避免关闭后残留一半计数
             return;
         }
+        if (!Input.GetKeyDown(Config.god_view_open_key)) return;
+        if (godViewPressCount == 0 || Time.unscaledTime - godViewFirstPressTime > Config.god_view_open_press_window)
+        {
+            godViewPressCount = 1;
+            godViewFirstPressTime = Time.unscaledTime;
+        }
+        else godViewPressCount++;
+        if (godViewPressCount < Config.god_view_open_press_count) return;
+        ResetGodViewPress();
         panel.m_godViewPanel.Open(ResolveGodViewCenter());
+    }
+
+    private void ResetGodViewPress()
+    {
+        godViewPressCount = 0;
+        godViewFirstPressTime = 0f;
     }
 
     // 初始区域中心 = 雷达圆心（本地实体 / 观战目标 / 自由视角相机），取不到就从地图正中开始

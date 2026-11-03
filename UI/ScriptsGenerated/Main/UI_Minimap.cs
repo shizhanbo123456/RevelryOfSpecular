@@ -9,6 +9,7 @@ namespace Ros.UI.Main
     {
         public GGraph m_mapBase;
         public GComponent m_mask;
+        public GButton m_minimapButton;
         public const string URL = "ui://q68vr2bfjtpbi6";
 
         public static UI_Minimap CreateInstance()
@@ -22,6 +23,7 @@ namespace Ros.UI.Main
 
             m_mapBase = (GGraph)GetChildAt(0);
             m_mask = (GComponent)GetChildAt(1);
+            m_minimapButton = (GButton)GetChildAt(2);
         }
     }
 }
