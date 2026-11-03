@@ -169,7 +169,7 @@ public class PlayerEntityData : EntityData
 
         if (robotControlled)
         {
-            TickAiMove(deltaTime, canInput);
+            TickRobotMove(deltaTime, canInput);
             transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
             return;
         }
@@ -246,7 +246,7 @@ public class PlayerEntityData : EntityData
 
     public void ClearRobotFacePoint() => robotFaceSet = false;
 
-    private void TickAiMove(float deltaTime, bool canInput)
+    private void TickRobotMove(float deltaTime, bool canInput)
     {
         // 强控/位移锁输入期间不推进：清掉移动输入，但保留 AI 的朝向意图（解除后立刻恢复）
         if (!canInput || !MotionCanMove)

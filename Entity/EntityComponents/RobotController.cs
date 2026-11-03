@@ -61,7 +61,7 @@ public class RobotController
         {
             // 附近没有敌对目标：原地待机（下次节流点再找）
             entity.StopMoving();
-            entity.ClearAiFacePoint();
+            entity.ClearRobotFacePoint();
             return;
         }
 
@@ -72,7 +72,7 @@ public class RobotController
             targetId = 0;
             nextRetargetTime = 0f;
             entity.StopMoving();
-            entity.ClearAiFacePoint();
+            entity.ClearRobotFacePoint();
             return;
         }
 
@@ -81,14 +81,14 @@ public class RobotController
             // 进入攻击距离：站定、只转向目标、循环尝试放技能
             state = State.Engage;
             entity.StopMoving();
-            entity.SetAiFacePoint(target.transform.position);
+            entity.SetRobotFacePoint(target.transform.position);
             TryCast();
             return;
         }
 
-        // 还在路上：朝目标推进（朝向由 TickAiMove 按行进方向自动推进）
+        // 还在路上：朝目标推进（朝向由 TickRobotMove 按行进方向自动推进）
         state = State.Approach;
-        entity.ClearAiFacePoint();
+        entity.ClearRobotFacePoint();
         entity.MoveTo(target.transform.position);
     }
 
@@ -119,7 +119,7 @@ public class RobotController
     private void TickRetreat()
     {
         var threat = BattleManager.EntityContainer.GetNearestEnemy(entity, AcquireRadius);
-        entity.ClearAiFacePoint();
+        entity.ClearRobotFacePoint();
         if (threat == null)
         {
             entity.StopMoving();
