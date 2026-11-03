@@ -23,6 +23,7 @@ public class NeutralStatueStateMachine : DecisionMachine, IBehaviorHost
     public override void Tick()
     {
         if (!Owner.Alive) return; // 死亡后不再施法，实体销毁由战斗管理器负责
+        TickSkillRecharge();
         base.Tick();
         arbiter.Tick(Time.deltaTime);
     }

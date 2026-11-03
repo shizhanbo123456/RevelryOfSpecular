@@ -71,6 +71,17 @@ namespace Ros.Skill.Utils
         // 每帧推进：advancing 里的技能正常恢复；其余技能把根与时间同步平移，进度原地冻结
         public void Tick(IReadOnlyList<int> advancing)
         {
+            TickInternal(advancing, false);
+        }
+
+        // 全部推进：没有技能栏的持有者（NPC）用这条，持有即恢复
+        public void TickAll()
+        {
+            TickInternal(null, true);
+        }
+
+        private void TickInternal(IReadOnlyList<int> advancing, bool advanceAll)
+        {
             if (cdRoots.Count == 0) return;
             float now = GetServerTime();
             if (!hasLastTickTime)
@@ -88,7 +99,7 @@ namespace Ros.Skill.Utils
             foreach (var skillId in tickBuffer)
             {
                 float root = cdRoots[skillId];
-                cdRoots[skillId] = IsAdvancing(advancing, skillId) ? Advance(skillId, root, now) : root + frozenDelta;
+                cdRoots[skillId] = advanceAll || IsAdvancing(advancing, skillId) ? Advance(skillId, root, now) : root + frozenDelta;
             }
         }
 

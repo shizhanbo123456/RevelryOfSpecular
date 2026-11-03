@@ -41,6 +41,7 @@ public class ZombieStateMachine : DecisionMachine, IBehaviorHost
     public override void Tick()
     {
         if (!Owner.Alive) return;
+        TickSkillRecharge();
         base.Tick();
         arbiter.Tick(Time.deltaTime);
     }
@@ -112,8 +113,8 @@ public class ZombieStateMachine : DecisionMachine, IBehaviorHost
     {
         clawLeftNext = !clawLeftNext;
         int first = clawLeftNext ? SlotClawLeft : SlotClawRight;
-        if (TryUseSkillNoCd(SkillIdAt(first))) return true;
-        return TryUseSkillNoCd(SkillIdAt(clawLeftNext ? SlotClawRight : SlotClawLeft));
+        if (TryUseSkill(SkillIdAt(first))) return true;
+        return TryUseSkill(SkillIdAt(clawLeftNext ? SlotClawRight : SlotClawLeft));
     }
 
     private void RequestIdle() => arbiter.RequestIdle();

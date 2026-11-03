@@ -48,7 +48,7 @@ public partial class RobotAi : DecisionMachine, IBehaviorHost
     public RobotAi(PlayerEntityData owner)
     {
         Owner = owner;
-        skillBar = new RobotSkillBar(owner);
+        skillBar = new RobotSkillBar(owner, this);
         ThinkInterval = Config.ai_think_interval;
 
         searchState = new SearchState(this);
@@ -85,7 +85,7 @@ public partial class RobotAi : DecisionMachine, IBehaviorHost
     public override void Tick()
     {
         if (!Owner.Alive) return;
-        skillBar.Tick(Time.deltaTime);
+        TickSkillRecharge();
         base.Tick();
         arbiter.Tick(Time.deltaTime);
     }
