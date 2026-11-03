@@ -20,12 +20,12 @@ namespace Ros.UI.Main
         }
 
         private readonly Dictionary<ushort, Marker> entityMarkers = new();
-        private readonly Dictionary<ushort, Marker> coralMarkers = new();
+        private readonly List<UI_MinimapItem> coralViews = new(); // 珊瑚没有 id：按序号复用图标
         private readonly HashSet<ushort> staleIds = new();
         private readonly HashSet<ushort> receivedEntityChunks = new();
         private readonly HashSet<ushort> receivedCoralChunks = new();
         private readonly List<SCMinimapEntity> entityBuffer = new();
-        private readonly List<SCGodViewCorals.Point> coralBuffer = new();
+        private readonly List<Vector2> coralBuffer = new();
         private readonly List<UI_SkillList.Slot> detailSkills = new();
         private readonly List<UI_SkillList.Slot> detailHeldSkills = new();
         private readonly List<SCGodViewEntityDetail.Buff> detailBuffs = new();
@@ -69,7 +69,7 @@ namespace Ros.UI.Main
             requestTimer = RequestInterval;
             dragging = false;
             DisposeMarkers(entityMarkers);
-            DisposeMarkers(coralMarkers);
+            DisposeCoralViews(coralViews);
             ClearDetail();
             BuildScaleButtons();
             ComputeItemScale();
@@ -83,7 +83,7 @@ namespace Ros.UI.Main
             touchable = false;
             dragging = false;
             DisposeMarkers(entityMarkers);
-            DisposeMarkers(coralMarkers);
+            DisposeCoralViews(coralViews);
             ClearDetail();
         }
 
@@ -215,24 +215,32 @@ namespace Ros.UI.Main
             PlaceMarkers();
         }
 
+        // 珊瑚没有 id（不可点），按序号复用图标：每轮用新坐标覆盖前 N 个，多出来的销毁
         private void ApplyCorals()
         {
-            staleIds.Clear();
-            foreach (ushort id in coralMarkers.Keys) staleIds.Add(id);
-            foreach (var point in coralBuffer)
+            while (coralViews.Count < coralBuffer.Count)
             {
-                var view = EnsureCoralView(point.entityId);
-                if (view == null) continue;
+                var view = UI_MinimapItem.CreateInstance();
+                view.scale = new Vector2(itemScale, itemScale);
+                view.touchable = false;
                 view.m_type.selectedIndex = UI_Minimap.PageOf(EntityCategory.Coral, default, EntityCamp.None, false, myCamp);
-                coralMarkers[point.entityId] = new Marker
-                {
-                    view = view,
-                    world = new Vector2(point.posX, point.posZ),
-                };
-                staleIds.Remove(point.entityId);
+                m_largeMinimapContainer.AddChild(view);
+                coralViews.Add(view);
             }
-            foreach (ushort id in staleIds) RemoveMarker(coralMarkers, id);
+            while (coralViews.Count > coralBuffer.Count)
+            {
+                var view = coralViews[coralViews.Count - 1];
+                if (view != null) view.Dispose();
+                coralViews.RemoveAt(coralViews.Count - 1);
+            }
             PlaceMarkers();
+        }
+
+        private static void DisposeCoralViews(List<UI_MinimapItem> views)
+        {
+            foreach (var view in views)
+                if (view != null) view.Dispose();
+            views.Clear();
         }
 
         private UI_MinimapItemButton EnsureEntityView(ushort entityId)
@@ -242,17 +250,6 @@ namespace Ros.UI.Main
             var view = UI_MinimapItemButton.CreateInstance();
             view.scale = new Vector2(itemScale, itemScale);
             view.onClick.Set(() => RequestDetail(entityId));
-            m_largeMinimapContainer.AddChild(view);
-            return view;
-        }
-
-        private UI_MinimapItem EnsureCoralView(ushort entityId)
-        {
-            if (coralMarkers.TryGetValue(entityId, out var marker) && marker.view != null && !marker.view.isDisposed)
-                return marker.view as UI_MinimapItem;
-            var view = UI_MinimapItem.CreateInstance();
-            view.scale = new Vector2(itemScale, itemScale);
-            view.touchable = false; // 珊瑚只画点
             m_largeMinimapContainer.AddChild(view);
             return view;
         }
@@ -269,16 +266,16 @@ namespace Ros.UI.Main
             float ppm = PixelsPerMeter;
             float minX = center.x - Edge * 0.5f;
             float maxZ = center.y + Edge * 0.5f;
-            foreach (var marker in entityMarkers.Values) PlaceMarker(marker, ppm, minX, maxZ);
-            foreach (var marker in coralMarkers.Values) PlaceMarker(marker, ppm, minX, maxZ);
+            foreach (var marker in entityMarkers.Values) PlaceMarker(marker.view, marker.world, ppm, minX, maxZ);
+            for (int i = 0; i < coralViews.Count && i < coralBuffer.Count; i++)
+                PlaceMarker(coralViews[i], coralBuffer[i], ppm, minX, maxZ);
         }
 
-        private static void PlaceMarker(in Marker marker, float ppm, float minX, float maxZ)
+        private static void PlaceMarker(GObject view, Vector2 world, float ppm, float minX, float maxZ)
         {
-            var view = marker.view;
             if (view == null) return;
-            view.SetXY((marker.world.x - minX) * ppm - view.width * 0.5f,
-                (maxZ - marker.world.y) * ppm - view.height * 0.5f);
+            view.SetXY((world.x - minX) * ppm - view.width * 0.5f,
+                (maxZ - world.y) * ppm - view.height * 0.5f);
         }
 
         private static void DisposeMarkers(Dictionary<ushort, Marker> markers)

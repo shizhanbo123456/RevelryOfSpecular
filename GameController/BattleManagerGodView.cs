@@ -7,7 +7,7 @@ public partial class BattleManager
     // 上帝视角：客户端按 0.2s 反复请求显示区域，服务器只在收到请求时扫描并回块，不保存状态、不做定时下发
     // 区域内的实体没有任何显示条件（阵营 / 视野 / 昼夜 / 显示距离一律不过滤）
     private static readonly List<SCMinimapEntity> s_godViewEntities = new();
-    private static readonly List<SCGodViewCorals.Point> s_godViewCorals = new();
+    private static readonly List<Vector2> s_godViewCorals = new();
 
     public void ReceiveGodViewArea(int clientId, CSGodViewArea request)
     {
@@ -44,15 +44,10 @@ public partial class BattleManager
             if (entity == null) continue;
             var pos = entity.transform.position;
             if (pos.x < minX || pos.x > maxX || pos.z < minZ || pos.z > maxZ) continue;
-            // 珊瑚数量最多，只进珊瑚流（id + 位置），实体流不带
+            // 珊瑚数量最多，只进珊瑚流（纯坐标，不可点所以不带 id），实体流不带
             if (entity.type.category == EntityCategory.Coral)
             {
-                s_godViewCorals.Add(new SCGodViewCorals.Point
-                {
-                    entityId = entity.id,
-                    posX = pos.x,
-                    posZ = pos.z,
-                });
+                s_godViewCorals.Add(new Vector2(pos.x, pos.z));
                 continue;
             }
             s_godViewEntities.Add(new SCMinimapEntity
