@@ -261,8 +261,8 @@ quick_message.csv 读取类（消息类型 → 文本）。
 协议：CSQuickMessage{messageId, hasTargetPosition, targetPosition} 上行（senderClientId 由服务器补），
       SCQuickMessage{messageId, senderClientId, hasTargetPosition, targetPosition} 下发，服务器按阵营广播。
 客户端发送端：面板开关 + J 组合键取相机瞄准点（需要 CameraController 提供"屏幕中心射线与地面交点"）。
-人机状态机替换现有 PlayerAiController（aiControlled 置位点在开局与复活两处）。
-AI 侧技能栏：持有表按「品质降序、同品质 id 降序」取前 weaponSlotCount 个入栏；只有栏内技能 + 空手三连推进冷却。
+人机由 `RobotAi` 驱动（`robotControlled` 置位点在开局与复活两处）。
+AI 侧技能栏：持有表按「品质降序、同品质 id 降序」取前 weaponSlotCount 个入栏；冷却与库存由状态机的 `SkillRecharge` 统一记账，全部持有技能都推进（人机没有"栏外冻结"）。
 死亡/复活：实体销毁即重建状态机，任务槽、技能栏与冷却、目标、计时器全部清空，复活后从搜索开始。
 
 【与原稿的差异 / 待确认】
@@ -279,4 +279,4 @@ AI 侧技能栏：持有表按「品质降序、同品质 id 降序」取前 wea
 11. 已定：防守方不要"围绕守护点巡逻"，就是随机乱跑 + 守护点告警。
 12. 已解决：AI 走模拟技能栏（见前文【AI 技能栏】），容量取实体属性 weaponSlotCount，按品质优先入栏。
 13. 待确认：skill.csv 的 quality 是字符串（B/A/S），需要一份排序映射；将来若加入 D/C 档要同步更新。
-14. 与原 PlayerAiController 的差异：试放顺序从"技能槽从后往前"改成"栏内从高到低"（配合品质排序），战斗表现会有变化。
+14. 试放顺序：栏内从高到低（配合品质排序），全部不可用再退到空手三连；接了真实存储次数后，可连放的次数以 `skill.csv` 的「存储上限」为准。
