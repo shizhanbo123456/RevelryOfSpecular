@@ -50,9 +50,8 @@ public class ClientLoadingManager : ClientSubManager
         IsResync = info.resync;
         if (info.resync)
         {
-            // 断线重连：本地实体视图全部作废，等服务器按「首见全量」重发；技能库存清零后按 CD 重新恢复
+            // 断线重连：本地实体视图全部作废，等服务器按「首见全量」重发；冷却留在服务器，随技能快照回来
             Tool.ClientLogicManager.EntityPlayers.ClearAll();
-            Tool.ClientLogicManager.SkillVfx.BeginResync();
         }
         HasSession = true;
         Camp = info.camp;

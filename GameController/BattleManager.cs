@@ -927,7 +927,7 @@ public partial class BattleManager : EnsBehaviour
         entity.RecordInput(input);
     }
 
-    // 技能键：客户端已经把按键解析成技能 id（技能栏只在客户端），这里只校验持有与状态
+    // 技能键：客户端已经把按键解析成技能 id（技能栏在服务器），这里只转发给实体的统一收口
     public void ReceiveSkillCast(int clientId, int skillId)
     {
         if (skillId < 0) return;
@@ -936,6 +936,24 @@ public partial class BattleManager : EnsBehaviour
         if (entity.InputBlocked(InputBlockOp.Attack)) return; // 攻击动画等期间的输入阻断
         var result = entity.skillController.TryUseSkill(skillId);
         if (result != EntitySkillController.UseResult.Success) NotifySkillUseFailed(entity, result);
+    }
+
+    // 技能栏选择：没实体（观战/已死）忽略；无论校验是否通过都回推快照，客户端据此回到服务器口径
+    public void ReceiveSkillSelection(int clientId, List<int> skillIds)
+    {
+        if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
+        if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
+        if (entity.skillController == null) return;
+        entity.skillController.TrySetSlotSkills(skillIds);
+        SendSkillRecharge(clientId);
+    }
+
+    // 真人玩家的技能栏由服务器持有；AI 玩家与 NPC 没有栏外冻结，持有即恢复
+    private void EnableSkillBar(int clientId, EntityData entity)
+    {
+        if (entity == null || entity.skillController == null) return;
+        if (RobotClients.Contains(clientId)) return;
+        entity.skillController.EnableSlotBar(entity.baseAttribute.weaponSlotCount);
     }
 
     // 相机模式决定 WASD 的解释口径（俯视 = 四向），由客户端在切模式时同步
@@ -1025,6 +1043,7 @@ public partial class BattleManager : EnsBehaviour
             PlayerEntityId[clientId] = entityId;
             EntityOwnerClient[entityId] = clientId;
             Tool.NetworkManager.SendPlayerEntity(clientId, entityId);
+            EnableSkillBar(clientId, GetEntity(entityId)); // 先建台账再下发技能，快照才有根戳可发
 
             // AI 玩家：置位后 PlayerEntityData 才走 AI 决策（真人不受影响，输入仍来自网络）
             if (RobotClients.Contains(clientId))

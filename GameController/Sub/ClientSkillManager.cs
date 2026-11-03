@@ -3,23 +3,16 @@ using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
 
-// 客户端技能状态的唯一持有者：服务器全量持有表、技能栏激活表（客户端决定）、每个技能的冷却与库存
+// 客户端技能表现数据：服务器下发的持有表（选择面板用）与槽位冷却快照（技能栏用），本地不算库存
 public class ClientSkillManager : ClientSubManager
 {
     private readonly List<int> heldSkills = new();
-    private readonly List<int> activeSkills = new();   // 技能栏：按 skillId 升序，长度 ≤ 槽位数
-    private readonly List<int> advancing = new();      // 参与冷却推进的技能 = 技能栏 + 空手三连
-    private readonly SkillRecharge recharge = new();
+    private readonly List<int> activeSkills = new();   // 槽位技能，顺序即按键顺序，来自服务器快照
+
+    // 根戳由服务器下发，读数只是 (服务器时间 − 根戳) / CD，与服务器时钟对齐
+    private readonly SkillRecharge recharge = new(NetworkManager.ClientToServerTime);
 
     private int slotCapacity;
-    private ushort lastOwnEntityId;
-    private bool resyncPending; // 重连补发尚未收到新的持有表：期间库存从 0 起算，且不许回满
-
-    // 空手三连绑 J：不属于技能栏，冷却照常推进
-    private static readonly int[] UnarmedSkills =
-    {
-        Config.unarmed_punch_left, Config.unarmed_punch_right, Config.unarmed_attack_smash,
-    };
 
     public IReadOnlyList<int> HeldSkills => heldSkills;
 
@@ -36,61 +29,18 @@ public class ClientSkillManager : ClientSubManager
         slotCapacity = ResolveSlotCapacity();
     }
 
-    protected override void BindEvents()
-    {
-        EventManager.AddEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
-    }
-
-    protected override void UnbindEvents()
-    {
-        EventManager.RemoveEvent<int>(ClientEvent.OnSkillUsed, OnSkillUsed);
-    }
-
-    // 每局进战斗页时清空：持有表/技能栏/冷却都随对局重建
+    // 每局进战斗页时清空：持有表与槽位都随对局重建，等服务器重发
     public void ResetBattle()
     {
         heldSkills.Clear();
         activeSkills.Clear();
-        advancing.Clear();
         recharge.Clear();
-        lastOwnEntityId = 0;
-        // 重连补发时保留清零状态（等服务器重发持有表再按 0 库存登记），正常开战则清掉残留标记
-        if (ClientLoadingManager.Current == null || !ClientLoadingManager.Current.IsResync) resyncPending = false;
         slotCapacity = ResolveSlotCapacity();
-        foreach (var id in UnarmedSkills) recharge.AddSkill(id);
-        RebuildAdvancing();
-    }
-
-    public override void Tick(float deltaTime)
-    {
-        var loading = ClientLoadingManager.Current;
-        if (loading != null && loading.HasSession && loading.OwnEntityId != lastOwnEntityId)
-        {
-            lastOwnEntityId = loading.OwnEntityId;
-            // 重连补发期间不回满（库存已在 BeginResync 清零）；复活重建等其它情况仍按上限回满
-            if (lastOwnEntityId != 0 && !resyncPending) recharge.ResetAll();
-        }
-        recharge.Tick(advancing);
     }
     #endregion
 
     #region 持有与技能栏
-    // 断线重连：库存与恢复进度清零，持有表原样保留，之后按各自 CD 重新恢复（断线惩罚）
-    public void BeginResync()
-    {
-        float now = recharge.GetServerTime();
-        var held = recharge.GetSkillIds();
-        recharge.Clear(); // 一并重置 Tick 的时间基准，否则断线期间的时间跳变会把根顶到满库存
-        foreach (var skillId in held) recharge.SetRoot(skillId, now);
-        foreach (var skillId in UnarmedSkills)
-        {
-            if (!recharge.HasSkill(skillId)) recharge.AddSkill(skillId);
-        }
-        resyncPending = true;
-        EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
-    }
-
-    // 服务器下发的持有表（全量替换）：新技能栏内没有就自动选中，栏满后不再自动选中
+    // 服务器下发的持有表（全量替换）：只影响选择面板，槽位与冷却以服务器快照为准
     public void SetHeldSkills(List<int> ids)
     {
         if (slotCapacity <= 0) slotCapacity = ResolveSlotCapacity(); // 会话晚于初始化建立时补一次
@@ -101,48 +51,27 @@ public class ClientSkillManager : ClientSubManager
         {
             if (!heldSkills.Contains(activeSkills[i])) activeSkills.RemoveAt(i);
         }
-        foreach (var skillId in heldSkills)
-        {
-            if (skillId < 0 || activeSkills.Contains(skillId)) continue;
-            if (activeSkills.Count >= slotCapacity) break;
-            activeSkills.Add(skillId);
-        }
-        activeSkills.Sort();
-
-        // 冷却/库存记录跟着持有表走：栏外的技能也记录，只是不推进
-        var recorded = recharge.GetSkillIds();
-        foreach (var skillId in recorded)
-        {
-            if (!heldSkills.Contains(skillId) && !IsUnarmed(skillId)) recharge.RemoveSkill(skillId);
-        }
-        foreach (var skillId in heldSkills)
-        {
-            if (recharge.HasSkill(skillId)) continue;
-            // 重连补发：持有表重建时从 0 库存起算，之后按各自 CD 恢复
-            if (resyncPending) recharge.SetRoot(skillId, recharge.GetServerTime());
-            else recharge.AddSkill(skillId);
-        }
-        resyncPending = false; // 持有表已按服务器下发重建，恢复正常逻辑
-        RebuildAdvancing();
         EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
     }
 
-    // 增量新增（掉落 / GM 下发）：已持有则忽略，技能栏有空位就自动选中
+    // 增量新增（掉落 / GM 下发）：已持有则忽略
     public void AddHeldSkill(int skillId)
     {
         if (skillId < 0 || heldSkills.Contains(skillId)) return;
         heldSkills.Add(skillId);
-        if (activeSkills.Count < slotCapacity && !activeSkills.Contains(skillId))
-        {
-            activeSkills.Add(skillId);
-            activeSkills.Sort();
-        }
-        if (!recharge.HasSkill(skillId)) recharge.AddSkill(skillId);
-        RebuildAdvancing();
         EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
     }
 
-    // 技能选择面板关闭时应用：必须都持有且不超过栏位数
+    // 服务器快照：槽位技能 + cd 根戳，一次覆盖本地显示状态（不每帧同步）
+    public void ApplyRecharge(IReadOnlyList<int> skillIds, IReadOnlyList<float> roots)
+    {
+        activeSkills.Clear();
+        if (skillIds != null) activeSkills.AddRange(skillIds);
+        recharge.SetRoots(skillIds, roots);
+        EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
+    }
+
+    // 选择面板关闭时上行：服务器校验后回推快照，本地不预演（避免闪现错误库存）
     public bool TrySetActiveSkills(List<int> ids)
     {
         if (ids == null) return false;
@@ -151,11 +80,7 @@ public class ClientSkillManager : ClientSubManager
             if (!heldSkills.Contains(skillId)) return false;
         }
         if (ids.Count > slotCapacity) return false;
-
-        activeSkills.Clear();
-        activeSkills.AddRange(ids);
-        activeSkills.Sort();
-        RebuildAdvancing();
+        if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillSelection(ids);
         return true;
     }
 
@@ -168,7 +93,7 @@ public class ClientSkillManager : ClientSubManager
     #endregion
 
     #region 释放
-    // 技能键：槽位 → 技能 id 由客户端决定，服务器只校验持有；空槽不发包
+    // 技能键：槽位 → 技能 id 由服务器下发的槽位表决定，空槽不发包
     public void CastSlot(int slot)
     {
         int skillId = GetSlotSkillId(slot);
@@ -186,14 +111,6 @@ public class ClientSkillManager : ClientSubManager
             : Config.unarmed_attack_smash;
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCastInput(skillId);
     }
-
-    // 服务器受理成功才扣一次：被沉默/强控/死亡/连点被抹掉的请求都不会有这条包
-    private void OnSkillUsed(int skillId)
-    {
-        if (skillId < 0) return;
-        recharge.Consume(skillId);
-        EventManager.TrigEvent(ClientEvent.OnSkillBarRefresh);
-    }
     #endregion
 
     #region 表现
@@ -206,22 +123,6 @@ public class ClientSkillManager : ClientSubManager
     #endregion
 
     #region//Local
-    private static bool IsUnarmed(int skillId)
-    {
-        foreach (var id in UnarmedSkills)
-        {
-            if (id == skillId) return true;
-        }
-        return false;
-    }
-
-    private void RebuildAdvancing()
-    {
-        advancing.Clear();
-        advancing.AddRange(activeSkills);
-        foreach (var id in UnarmedSkills) advancing.Add(id);
-    }
-
     // 技能栏槽位数 = 本局角色属性（与服务器同一列 entity.csv 第 9 列）
     private static int ResolveSlotCapacity()
     {

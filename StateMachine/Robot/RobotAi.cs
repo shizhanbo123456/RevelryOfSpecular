@@ -85,7 +85,6 @@ public partial class RobotAi : DecisionMachine, IBehaviorHost
     public override void Tick()
     {
         if (!Owner.Alive) return;
-        TickSkillRecharge();
         base.Tick();
         arbiter.Tick(Time.deltaTime);
     }

@@ -98,5 +98,18 @@ public partial class BattleManager
                 info.skills = entity.skillController.GetSkillIds();
         }
         Tool.NetworkManager.SendSkillSync(clientId, info);
+        SendSkillRecharge(clientId); // 持有表换了，槽位与根戳一起补一份
+    }
+
+    // 技能栏快照：槽位技能 + cd 根戳，只在槽位改变 / 释放成功 / 技能表变化时推一次
+    private void SendSkillRecharge(int clientId)
+    {
+        var info = new SCSkillRecharge();
+        if (PlayerEntityId.TryGetValue(clientId, out var entityId))
+        {
+            var entity = GetEntity(entityId);
+            if (entity != null && entity.skillController != null) info = entity.skillController.BuildRecharge();
+        }
+        Tool.NetworkManager.SendSkillRecharge(clientId, info);
     }
 }

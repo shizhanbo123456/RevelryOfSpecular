@@ -256,6 +256,7 @@ public partial class BattleManager
         var sync = new SCSkillSync { full = false };
         sync.skills.Add(weaponId);
         Tool.NetworkManager.SendSkillSync(clientId, sync); // 增量下发：技能不再跟随实体表现包
+        SendSkillRecharge(clientId); // 拾取的新武器可能自动进栏，槽位与根戳跟着补
         NotifyPlayer(clientId, 14); // 获得新武器
     }
 
@@ -322,11 +323,13 @@ public partial class BattleManager
         ExitSpectate(clientId); // 复活即结束观战，视野回到自己实体
 
         var data = GetEntity(entityId);
+        EnableSkillBar(clientId, data); // 先启用栏位，复活才能沿用死亡前的槽位选择
         if (data != null && data.skillController != null && rs.loadout.HasValue)
         {
-            data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能带走，库存按上限回满
+            data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能与槽位带走，冷却按上限回满
         }
         if (data != null) data.robotControlled = RobotClients.Contains(clientId);
+        SendSkillRecharge(clientId); // 新实体满库存：把重生后的技能栏快照同步给本人
 
         // 愈战愈勇：第 n 条命层数（配表按死亡次数给出，永久 Buff）
         int fury = ConfigManager.BattleFuryLayerConfig.GetClamped(rs.deathCount).buffLayerCount;
@@ -443,10 +446,19 @@ public partial class BattleManager
     private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏
     private readonly Dictionary<int, float> skillFailPromptTime = new();
 
-    // 技能失败回包：只有玩家看得懂的原因才提示（沉默/强控），AI 与配置错误不提示
+    // 技能失败回包：只有玩家看得懂的原因才提示（沉默/强控）；库存不足静默回推快照纠正客户端显示
     public void NotifySkillUseFailed(EntityData entity, EntitySkillController.UseResult result)
     {
         if (entity == null) return;
+        if (result == EntitySkillController.UseResult.Cooling)
+        {
+            if (entity.skillController == null) return;
+            if (!EntityOwnerClient.TryGetValue(entity.id, out var coolingClientId)) return;
+            if (Tool.NetworkManager != null)
+                Tool.NetworkManager.SendSkillRecharge(coolingClientId, entity.skillController.BuildRecharge());
+            return;
+        }
+
         int messageId;
         if (result == EntitySkillController.UseResult.Silenced) messageId = 30;
         else if (result == EntitySkillController.UseResult.Controlled) messageId = 31;
@@ -458,12 +470,14 @@ public partial class BattleManager
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendPrompt(clientId, messageId);
     }
 
-    // 技能受理成功回执：客户端只凭这条包扣可用次数（AI / 无主实体没有客户端，直接跳过）
+    // 受理成功：服务器已扣过库存，把新快照推给施法者本人（AI / 无主实体没有客户端，直接跳过）
     public void NotifySkillUsed(EntityData entity, int skillId)
     {
         if (entity == null || skillId < 0) return;
+        if (entity.skillController == null) return;
         if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return;
-        if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillUsed(clientId, skillId);
+        if (Tool.NetworkManager != null)
+            Tool.NetworkManager.SendSkillRecharge(clientId, entity.skillController.BuildRecharge());
     }
     #endregion
 

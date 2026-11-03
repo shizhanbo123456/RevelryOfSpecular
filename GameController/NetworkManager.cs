@@ -238,11 +238,20 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ServerReceiveInputLocal, SendTo.RoomOwner, Delivery.Strive, input, LocalToken);
     }
 
-    // 技能键：客户端已把按键解析成技能 id，服务器只做持有/沉默/强控校验
+    // 技能键：客户端已把按键解析成技能 id，服务器只做持有/沉默/强控/冷却校验
     public void SendSkillCastInput(int skillId)
     {
         if (!CanSendWorldCommand || skillId < 0) return;
         CallFuncRpc(ServerReceiveSkillCastInputLocal, SendTo.RoomOwner, Delivery.Strive, new CSSkillCast() { skillId = skillId }, LocalToken);
+    }
+
+    // 技能栏选择：服务器校验持有与槽位容量后记录，并回推快照
+    public void SendSkillSelection(List<int> skillIds)
+    {
+        if (!CanSendWorldCommand || skillIds == null) return;
+        var selection = new CSSkillSelection();
+        selection.skillIds.AddRange(skillIds);
+        CallFuncRpc(ServerReceiveSkillSelectionLocal, SendTo.RoomOwner, Delivery.Reliable, selection, LocalToken);
     }
 
     public void SendLobbyUpdate(CSLobbyUpdate update)
@@ -418,11 +427,11 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceivePromptLocal, to, Delivery.Reliable, new SCPrompt() { messageId = messageId });
     }
 
-    // 技能受理成功回执：只回施法者，客户端收到才扣一次可用次数
-    public void SendSkillUsed(int clientId, int skillId)
+    // 技能栏快照：槽位技能 + 各自 cd 根戳，只在槽位改变或释放成功时发一次
+    public void SendSkillRecharge(int clientId, SCSkillRecharge info)
     {
         if (!TryGetSendTo(clientId, out var to)) return;
-        CallFuncRpc(ClientReceiveSkillUsedLocal, to, Delivery.Reliable, new SCSkillUsed() { skillId = skillId });
+        CallFuncRpc(ClientReceiveSkillRechargeLocal, to, Delivery.Reliable, info);
     }
 
     public void SendSkillSync(int clientId, SCSkillSync info)
@@ -578,6 +587,13 @@ public partial class NetworkManager : EnsBehaviour
     private void ServerReceiveSkillCastInputLocal(CSSkillCast cast, int clientId)
     {
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveSkillCast(clientId, cast.skillId);
+    }
+
+    [Rpc]
+    private void ServerReceiveSkillSelectionLocal(CSSkillSelection selection, int clientId)
+    {
+        if (selection == null) return;
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveSkillSelection(clientId, selection.skillIds);
     }
 
     [Rpc]
@@ -758,10 +774,13 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
-    private void ClientReceiveSkillUsedLocal(SCSkillUsed info)
+    private void ClientReceiveSkillRechargeLocal(SCSkillRecharge info)
     {
         if (info == null) return;
-        EventManager.TrigEvent(ClientEvent.OnSkillUsed, info.skillId);
+        if (Tool.ClientLogicManager == null) return;
+        var skills = Tool.ClientLogicManager.SkillVfx;
+        if (skills == null) return;
+        skills.ApplyRecharge(info.skillIds, info.roots);
     }
 
     [Rpc]

@@ -143,6 +143,7 @@ public partial class BattleManager
         var sync = new SCSkillSync { full = false };
         sync.skills.Add(skillId);
         Tool.NetworkManager.SendSkillSync(clientId, sync);
+        SendSkillRecharge(clientId); // 新技能若自动进栏，槽位与根戳要一起补
     }
 
     private void GmForceUseSkill(int clientId, int skillId)
@@ -157,6 +158,7 @@ public partial class BattleManager
         if (skills == null) return;
         skills.SetSkillList(null);
         Tool.NetworkManager.SendSkillSync(clientId, new SCSkillSync { full = true });
+        SendSkillRecharge(clientId);
     }
 
     private void GmAddBuff(int clientId, EffectType type)

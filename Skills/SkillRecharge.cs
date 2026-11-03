@@ -1,114 +1,109 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ros.Skill.Utils
 {
-    // 技能冷却状态的唯一表达 = (skillId, cd 根时间戳)，根 = now − CD × (已恢复次数 + 当前轮进度)
-    // 内部持有全部技能的记录；Tick 只推进「技能栏内」的，栏外的根随时间平移 = 进度冻结
+    // 技能冷却的唯一状态 = (skillId, cd 根时间戳)；库存与进度都是 (now − root) / CD 的纯函数，没有每帧推演
+    // 卸下槽位的技能冻结在卸下瞬间的恢复量，重新选上只平移根戳，防止反复装卸刷次数
     public class SkillRecharge
     {
         private readonly Dictionary<int, float> cdRoots = new();
+        private readonly Dictionary<int, float> frozenAt = new();
 
-        private readonly List<int> tickBuffer = new(); // Tick 的遍历缓冲，避免每帧新列表
+        private readonly List<int> keyBuffer = new();
 
-        private bool hasLastTickTime;
-        private float lastTickTime;
+        private readonly Func<float> timeSource;
 
-        // 时间源：服务器侧偏移恒为 0，等于 Time.time；客户端把本地时间换算成服务器时间
-        public virtual float GetServerTime()
+        public SkillRecharge(Func<float> timeSource)
         {
-            return NetworkManager.ClientToServerTime(Time.time);
+            this.timeSource = timeSource;
         }
 
-        #region 技能列表
-        // 入列并按满库存起算；已持有则保持原有根戳（重复获得不补库存）
+        public float GetServerTime() => timeSource();
+
+        #region 记账
+        // 首次获得：按满库存起算
         public void AddSkill(int skillId)
         {
             if (skillId < 0 || cdRoots.ContainsKey(skillId)) return;
             cdRoots[skillId] = FullRoot(skillId, GetServerTime());
         }
 
-        // 从服务器下发的二元组写入/刷新根戳（客户端用）
-        public void SetRoot(int skillId, float rootTime)
-        {
-            if (skillId < 0) return;
-            cdRoots[skillId] = rootTime;
-        }
-
         public void RemoveSkill(int skillId)
         {
             cdRoots.Remove(skillId);
+            frozenAt.Remove(skillId);
         }
 
         public void Clear()
         {
             cdRoots.Clear();
-            hasLastTickTime = false;
+            frozenAt.Clear();
         }
 
-        // 库存整体回满：复活重建实体等场景
-        public void ResetAll()
+        // 遍历用：把已登记的技能 id 填进外部 buffer，避免每次分配新列表
+        public void FillSkillIds(List<int> buffer)
+        {
+            buffer.Clear();
+            buffer.AddRange(cdRoots.Keys);
+        }
+
+        // 整体替换：服务器下发的槽位技能与根戳，未列出的技能一律丢弃
+        public void SetRoots(IReadOnlyList<int> skillIds, IReadOnlyList<float> roots)
+        {
+            if (skillIds == null || roots == null) return;
+            if (skillIds.Count != roots.Count)
+                throw new ArgumentException($"技能 id 与根戳数量不一致：{skillIds.Count} / {roots.Count}");
+            cdRoots.Clear();
+            frozenAt.Clear();
+            for (int i = 0; i < skillIds.Count; i++) cdRoots[skillIds[i]] = roots[i];
+        }
+
+        // 槽位变更时一次性结算：卸下的记下解冻基准，重新选上的把根戳平移回卸下那一刻
+        public void SetAdvancing(IReadOnlyList<int> advancing)
         {
             if (cdRoots.Count == 0) return;
             float now = GetServerTime();
-            tickBuffer.Clear();
-            tickBuffer.AddRange(cdRoots.Keys);
-            foreach (var skillId in tickBuffer) cdRoots[skillId] = FullRoot(skillId, now);
+            keyBuffer.Clear();
+            keyBuffer.AddRange(cdRoots.Keys);
+            foreach (var skillId in keyBuffer)
+            {
+                if (Contains(advancing, skillId))
+                {
+                    if (!frozenAt.TryGetValue(skillId, out var frozenTime)) continue;
+                    cdRoots[skillId] += now - frozenTime;
+                    frozenAt.Remove(skillId);
+                    continue;
+                }
+                if (frozenAt.ContainsKey(skillId)) continue;
+                cdRoots[skillId] = Mathf.Max(cdRoots[skillId], FullRoot(skillId, now));
+                frozenAt[skillId] = now;
+            }
         }
 
-        public List<int> GetSkillIds()
+        // 下发给客户端的根戳：按槽位顺序输出，未登记属错配
+        public void ExportRoots(IReadOnlyList<int> slotSkillIds, List<float> roots)
         {
-            return new List<int>(cdRoots.Keys);
-        }
-
-        public bool HasSkill(int skillId)
-        {
-            return cdRoots.ContainsKey(skillId);
+            roots.Clear();
+            if (slotSkillIds == null) return;
+            for (int i = 0; i < slotSkillIds.Count; i++)
+            {
+                if (!cdRoots.TryGetValue(slotSkillIds[i], out var root))
+                    throw new InvalidOperationException($"技能 {slotSkillIds[i]} 未登记冷却，无法下发根戳");
+                roots.Add(root);
+            }
         }
         #endregion
 
         #region 推演
-        // 每帧推进：advancing 里的技能正常恢复；其余技能把根与时间同步平移，进度原地冻结
-        public void Tick(IReadOnlyList<int> advancing)
-        {
-            TickInternal(advancing, false);
-        }
-
-        // 全部推进：没有技能栏的持有者（NPC）用这条，持有即恢复
-        public void TickAll()
-        {
-            TickInternal(null, true);
-        }
-
-        private void TickInternal(IReadOnlyList<int> advancing, bool advanceAll)
-        {
-            if (cdRoots.Count == 0) return;
-            float now = GetServerTime();
-            if (!hasLastTickTime)
-            {
-                hasLastTickTime = true;
-                lastTickTime = now;
-                return;
-            }
-
-            float frozenDelta = now - lastTickTime;
-            lastTickTime = now;
-
-            tickBuffer.Clear();
-            tickBuffer.AddRange(cdRoots.Keys);
-            foreach (var skillId in tickBuffer)
-            {
-                float root = cdRoots[skillId];
-                cdRoots[skillId] = advanceAll || IsAdvancing(advancing, skillId) ? Advance(skillId, root, now) : root + frozenDelta;
-            }
-        }
-
         // 使用一次：根前移一个 CD；无库存或无限库存时不动
         public void Consume(int skillId)
         {
             if (!cdRoots.TryGetValue(skillId, out var root)) return;
-            float now = GetServerTime();
-            float aligned = Advance(skillId, root, now); // 先对齐满库存的根，否则消耗会多算一段恢复量
+            // 冻结中的技能以解冻基准为准，否则这段冻结期会被当成恢复量
+            float now = frozenAt.TryGetValue(skillId, out var frozenTime) ? frozenTime : GetServerTime();
+            float aligned = Mathf.Max(root, FullRoot(skillId, now)); // 满库存先对齐根戳，否则这段恢复量会漏掉
             if (GetCycles(skillId, aligned, now) <= 0f) return;
             cdRoots[skillId] = aligned + SkillManager.GetSkillCD(skillId);
         }
@@ -116,34 +111,34 @@ namespace Ros.Skill.Utils
         public int GetStore(int skillId)
         {
             if (!cdRoots.TryGetValue(skillId, out var root)) return 0;
-            return (int)GetCycles(skillId, root, GetServerTime());
+            return (int)GetCycles(skillId, root, RefTime(skillId));
         }
 
         // 当前这一轮的恢复进度 0~1；满库存与无限库存都算 1（可直接喂冷却环）
         public float GetCycleProgress(int skillId)
         {
             if (!cdRoots.TryGetValue(skillId, out var root)) return 0f;
-            float now = GetServerTime();
+            float now = RefTime(skillId);
             float cycles = GetCycles(skillId, root, now);
             if (cycles < 0f) return 1f;
             if (cycles >= SkillManager.GetSkillStore(skillId)) return 1f;
             return cycles - (int)cycles;
         }
-
-        // 下发给客户端的根戳；未持有返回 0
-        public float GetRootTime(int skillId)
-        {
-            return cdRoots.TryGetValue(skillId, out var root) ? root : 0f;
-        }
         #endregion
 
         #region//Local
-        private static bool IsAdvancing(IReadOnlyList<int> advancing, int skillId)
+        // 冻结中的技能以解冻基准当「当前时刻」，读到的是卸下瞬间的恢复量
+        private float RefTime(int skillId)
         {
-            if (advancing == null) return false;
-            for (int i = 0; i < advancing.Count; i++)
+            return frozenAt.TryGetValue(skillId, out var frozenTime) ? frozenTime : GetServerTime();
+        }
+
+        private static bool Contains(IReadOnlyList<int> ids, int skillId)
+        {
+            if (ids == null) return false;
+            for (int i = 0; i < ids.Count; i++)
             {
-                if (advancing[i] == skillId) return true;
+                if (ids[i] == skillId) return true;
             }
             return false;
         }
@@ -168,13 +163,6 @@ namespace Ros.Skill.Utils
 
             // 夹到 [0, max]：满库存后 cycles 会超过上限，不夹的话小数部分会被误当成「正在恢复」
             return Mathf.Clamp((now - rootTime) / cd, 0f, max);
-        }
-
-        // 每帧推进：只负责把「早就满了」的根顶到满库存位置，未满时原样返回
-        private static float Advance(int skillId, float rootTime, float now)
-        {
-            if (SkillManager.GetSkillStore(skillId) < 0) return rootTime; // 无限库存没有充能概念
-            return Mathf.Max(rootTime, FullRoot(skillId, now));
         }
         #endregion
     }

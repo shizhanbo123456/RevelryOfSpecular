@@ -1,14 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 人机技能栏：只做选栏与出招顺序；冷却与库存统一由状态机的 SkillRecharge 记账
+// 人机技能栏：只做选栏与出招顺序；冷却与库存由实体的 EntitySkillController 记账
 public class RobotSkillBar
 {
-    private static readonly int[] UnarmedSkills =
-    {
-        Config.unarmed_punch_left, Config.unarmed_punch_right, Config.unarmed_attack_smash,
-    };
-
     private readonly PlayerEntityData owner;
     private readonly DecisionMachine machine;
     private readonly List<int> slots = new();
@@ -17,8 +12,6 @@ public class RobotSkillBar
     {
         this.owner = owner;
         this.machine = machine;
-        // 空手三连不在持有表里，要单独登记才有库存记录
-        for (int i = 0; i < UnarmedSkills.Length; i++) machine.RegisterExtraSkill(UnarmedSkills[i]);
     }
 
     public int Capacity => owner.baseAttribute.weaponSlotCount;
