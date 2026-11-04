@@ -120,9 +120,10 @@ namespace Ros.UI.Main
         private UI_MinimapItem EnsureItem(in Point point)
         {
             if (items.TryGetValue(point.id, out var item) && item != null && !item.isDisposed) return item;
+            if (m_mask == null) return null;
             item = UI_MinimapItem.CreateInstance();
             item.scale = new Vector2(itemScale, itemScale); // 抵消上层缩放，恢复 FGUI 设计尺寸
-            AddChild(item); // GGraph 不是容器，点位挂在小地图面板上
+            m_mask.AddChild(item); // 挂在遮罩里：越界由遮罩裁掉，层级也落在边框之下
             items[point.id] = item;
             if (point.self) selfId = point.id;
             return item;
@@ -142,10 +143,10 @@ namespace Ros.UI.Main
                 if (dx * dx + dz * dz > viewRadius * viewRadius) return false;
             }
 
-            // 雷达坐标：上方=世界Z+、右侧=世界X+，显示半径铺满 mapBase；减半宽高让图标几何居中
+            // 雷达坐标：上方=世界Z+、右侧=世界X+，显示半径铺满 mapBase；减半宽高让图标几何居中，再换到遮罩局部
             float scale = mapBase.width * 0.5f / viewRadius;
-            item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f,
-                mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f);
+            item.SetXY(mapBase.x + mapBase.width * 0.5f + dx * scale - item.width * 0.5f - m_mask.x,
+                mapBase.y + mapBase.height * 0.5f - dz * scale - item.height * 0.5f - m_mask.y);
             return true;
         }
 
@@ -176,7 +177,7 @@ namespace Ros.UI.Main
         {
             var self = SelfItem;
             if (self == null || self.isDisposed) return;
-            SetChildIndex(self, numChildren - 1); // 新点加入可能盖住自身图标，每次校一次层级
+            m_mask.SetChildIndex(self, m_mask.numChildren - 1); // 新点加入可能盖住自身图标，每次校一次层级
         }
 
         // 超时剔除：长时间未收到点位包（离屏停传 / 夜间敌方停传）即移除
