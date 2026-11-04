@@ -782,6 +782,9 @@ public partial class BattleManager : EnsBehaviour
         return -1;
     }
 
+    // 快捷消息报文不带角色，聊天条目按 clientId 反查头像下标
+    public int CharacterIndexOfClient(int clientId) => CharacterIndexOf(clientId, CampValueOf(clientId));
+
     #region 快捷消息（玩家指令 → 同阵营人机）
     // 上行入口：服务器补齐发送者后按阵营广播；真人收回包，人机在服务器侧直接消费
     public void ReceiveQuickMessage(int clientId, CSQuickMessage message)
@@ -834,7 +837,7 @@ public partial class BattleManager : EnsBehaviour
         }
     }
 
-    // 人机/真人上报自身状况：只发同阵营真人，客户端按 state + healthPercent 本地拼聊天文本
+    // 人机/真人上报自身状况：只发同阵营真人，客户端按状态、血量、位置与周边敌人数本地拼聊天文本
     public void ReportStatus(EntityData entity, int state, int healthPercent)
     {
         if (entity == null) return;
@@ -849,6 +852,7 @@ public partial class BattleManager : EnsBehaviour
             camp = campValue,
             characterIndex = CharacterIndexOf(clientId, campValue),
             position = entity.transform.position,
+            nearbyEnemyCount = CountHostileAround(entity),
         };
 
         foreach (var pair in PlayerInfoList)
@@ -857,6 +861,25 @@ public partial class BattleManager : EnsBehaviour
             if (CampValueOf(pair.Key) != campValue) continue;
             Tool.NetworkManager.SendStateReport(pair.Key, report);
         }
+    }
+
+    private static readonly HashSet<int> s_hostileBuffer = new();
+
+    // 周边敌对实体数量：含僵尸/雕像等一切敌对类别，范围取配表「场景中角色的可见距离」（XZ）
+    private static int CountHostileAround(EntityData self)
+    {
+        EntityCamp hostile = EntityCampUtil.HostileOf(self.type.category);
+        EntityContainer.Entities.GetIdsInRange(self.transform.position,
+            ConfigManager.GlobalVariableConfig.entity_character_visiable_radius, s_hostileBuffer);
+
+        int count = 0;
+        foreach (int id in s_hostileBuffer)
+        {
+            if (!EntityContainer.Entities.TryGetObject(id, out var other) || other == null) continue;
+            if (other.id == self.id || (hostile & other.camp) == 0 || !other.Alive) continue;
+            count++;
+        }
+        return count;
     }
     #endregion
 

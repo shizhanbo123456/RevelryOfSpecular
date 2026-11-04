@@ -1284,22 +1284,24 @@ public class ConfigManager : MonoBehaviour
         public static NoticeConfig Get(int key) => GetRequired(content, key, FileName);
     }
 
-    // 快捷消息：id → 说明与展示文本；人机按 id 匹配行为，文本只用于客户端展示
+    // 快捷消息：id → 说明 / 面板文本 / 聊天发言；uiText 用 [Space] 换行并支持 UBB，chatText 留空则不发言
     public struct QuickMessageConfig
     {
         public const string FileName = "quick_message.csv";
-        private const int ColumnCount = 3;
+        private const int ColumnCount = 4;
         public static readonly Dictionary<int, QuickMessageConfig> content = new();
 
         public int key;
         public string name;
-        public string text;
+        public string uiText;
+        public string chatText;
 
         public QuickMessageConfig(string[] rowData)
         {
             key = ParseInt(rowData, 0);
             name = ParseString(rowData, 1);
-            text = ParseString(rowData, 2);
+            uiText = ParseString(rowData, 2);
+            chatText = ParseString(rowData, 3);
         }
 
         public static int Load(ConfigTable table)

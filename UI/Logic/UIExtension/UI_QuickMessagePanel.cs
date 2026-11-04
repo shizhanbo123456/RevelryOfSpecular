@@ -9,8 +9,9 @@ namespace Ros.UI.Main
             for (int i = 0; i < labels.Length; i++)
             {
                 var cfg = ConfigManager.QuickMessageConfig.Get(i);
-                labels[i].singleLine = false; // 名称与描述分两行
-                labels[i].text = $"{cfg.name}\n{cfg.text}";
+                labels[i].singleLine = false; // 名称与说明分两行
+                labels[i].UBBEnabled = true;
+                labels[i].text = $"{cfg.name}\n{cfg.uiText.Replace("[Space]", "\n")}"; // 配表换行占位符先行替换，避免被当成 UBB 标签
             }
         }
     }

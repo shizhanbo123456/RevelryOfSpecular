@@ -32,6 +32,7 @@ namespace Ros.Transport
         public int camp;           // 0 进攻 / 1 防守 / -1 未定
         public int characterIndex; // 头像下标，-1 无
         public Vector3 position;   // 上报时位置
+        public int nearbyEnemyCount; // 上报者周边敌对实体数量（范围 = 场景角色显示距离）
     }
 
     public struct SCStateReportSerializer
@@ -45,7 +46,8 @@ namespace Ros.Transport
             if (!IntSerializer.Serialize(value.healthPercent, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.camp, result, ref indexStart)) return false;
             if (!IntSerializer.Serialize(value.characterIndex, result, ref indexStart)) return false;
-            return Vector3Serializer.Serialize(value.position, result, ref indexStart);
+            if (!Vector3Serializer.Serialize(value.position, result, ref indexStart)) return false;
+            return IntSerializer.Serialize(value.nearbyEnemyCount, result, ref indexStart);
         }
 
         public static SCStateReport Deserialize(byte[] data, ref int indexStart, int invalidIndex)
@@ -58,6 +60,7 @@ namespace Ros.Transport
             value.camp = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             value.characterIndex = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             value.position = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
+            value.nearbyEnemyCount = IntSerializer.Deserialize(data, ref indexStart, invalidIndex);
             return value;
         }
     }

@@ -74,6 +74,7 @@ public class ChatPlugin
         EventManager.AddEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.AddEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
         EventManager.AddEvent<SCStateReport>(ClientEvent.OnStateReport, OnStateReport);
+        EventManager.AddEvent<SCQuickMessage>(ClientEvent.OnQuickMessage, OnQuickMessage);
         EventManager.AddEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.AddEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -87,6 +88,7 @@ public class ChatPlugin
         EventManager.RemoveEvent<SCBattleEvent>(ClientEvent.OnBattleEvent, OnBattleEvent);
         EventManager.RemoveEvent<SCChat>(ClientEvent.OnChatMessage, OnChatMessage);
         EventManager.RemoveEvent<SCStateReport>(ClientEvent.OnStateReport, OnStateReport);
+        EventManager.RemoveEvent<SCQuickMessage>(ClientEvent.OnQuickMessage, OnQuickMessage);
         EventManager.RemoveEvent(ClientEvent.OnExitWorld, OnLeaveRoom);
         EventManager.RemoveEvent(ClientEvent.OnRestartGame, OnLeaveRoom);
     }
@@ -215,25 +217,79 @@ public class ChatPlugin
         RefreshList();
     }
 
-    // 状态上报：协议只带状态枚举与血量，文本本地拼，统一进阵营频道
+    // 状态上报：协议只带状态、血量、位置与周边敌人数，文本本地拼，统一进阵营频道
     private void OnStateReport(SCStateReport report)
     {
         if (report == null) return;
         if (report.camp != GetMyCamp() && !ShowEnemyDialog) return; // 与聊天同规则：阵营频道只显示同阵营
 
+        bool isSelf = report.senderClientId == NetworkManager.LocalToken; // 自己没有本地回显，靠这条显示
+        string head = report.state == (int)EntityReportState.None
+            ? $"血量 {report.healthPercent}%"                     // 真人上报不带状态
+            : $"{ReportStateText(report.state)}，血量 {report.healthPercent}%";
+
         entries.Add(new ChatEntry()
         {
             channel = ChannelCamp,
-            isSelf = report.senderClientId == NetworkManager.LocalToken, // 自己没有本地回显，靠这条显示
+            isSelf = isSelf,
             senderClientId = report.senderClientId,
             camp = report.camp,
             characterIndex = report.characterIndex,
             name = GetUnitName(report.senderClientId),
-            content = report.state == (int)EntityReportState.None
-                ? $"血量 {report.healthPercent}%"                     // 真人上报不带状态
-                : $"{ReportStateText(report.state)}，血量 {report.healthPercent}%",
+            content = $"{head}，周围敌人 {report.nearbyEnemyCount} 个，{PositionText(report.position, isSelf)}",
         });
         RefreshList();
+    }
+
+    // 快捷指令发进阵营频道；chatText 留空的（上报状况）改走 SCStateReport，这里不出条目
+    private void OnQuickMessage(SCQuickMessage message)
+    {
+        if (message == null) return;
+        var cfg = ConfigManager.QuickMessageConfig.Get(message.messageId);
+        if (string.IsNullOrEmpty(cfg.chatText)) return;
+
+        entries.Add(new ChatEntry()
+        {
+            channel = ChannelCamp,
+            isSelf = message.senderClientId == NetworkManager.LocalToken,
+            senderClientId = message.senderClientId,
+            camp = GetMyCamp(), // 广播只发同阵营，本机阵营即发送方阵营
+            characterIndex = Tool.BattleManager != null ? Tool.BattleManager.CharacterIndexOfClient(message.senderClientId) : -1,
+            name = GetUnitName(message.senderClientId),
+            content = cfg.chatText,
+        });
+        RefreshList();
+    }
+
+    // 位置写成「绝对坐标 + 相对读者方位」，自己的上报只给坐标（相对自己无意义）
+    private static string PositionText(Vector3 position, bool isSelf)
+    {
+        string text = $"位置 ({Mathf.RoundToInt(position.x)}, {Mathf.RoundToInt(position.z)})";
+        if (isSelf) return text;
+
+        var mine = Tool.BattleManager != null ? Tool.BattleManager.GetSenderEntity(NetworkManager.LocalToken) : null;
+        if (mine == null) return text; // 自己无实体（观战）时只报坐标
+
+        Vector3 from = mine.transform.position;
+        float dx = position.x - from.x;
+        float dz = position.z - from.z;
+        return $"{text}，在你{BearingText(dx, dz)}方向 {Mathf.RoundToInt(Mathf.Sqrt(dx * dx + dz * dz))} 米";
+    }
+
+    // 世界 +Z 为北、+X 为东，方位按象限写成「北偏东 45°」
+    private static string BearingText(float dx, float dz)
+    {
+        int deg = Mathf.RoundToInt(Mathf.Atan2(dx, dz) * Mathf.Rad2Deg);
+        if (deg < 0) deg += 360;
+        if (deg >= 360) deg = 0;
+        if (deg == 0) return "正北";
+        if (deg < 90) return $"北偏东 {deg}°";
+        if (deg == 90) return "正东";
+        if (deg < 180) return $"南偏东 {180 - deg}°";
+        if (deg == 180) return "正南";
+        if (deg < 270) return $"南偏西 {deg - 180}°";
+        if (deg == 270) return "正西";
+        return $"北偏西 {360 - deg}°";
     }
 
     private static string ReportStateText(int state) => state switch
