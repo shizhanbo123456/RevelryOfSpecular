@@ -279,6 +279,11 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
 7. 「等待中断」已按方案 a 实现：C# 只提供非阻塞的 ai.interrupts，ai.wait.bat 内部轮询后
    对 AI 表现为一次阻塞调用；超时由 Python 侧合成 [Timeout] 输出，与 C# 的 Timeout 中断同格式。
    若以后要桥本身阻塞，需要扩展 runtime-bridge 支持延迟响应。
+8. 「连接服务器」的最终结果回不到调用方：Submit 立即回「已发起连接」，成功/失败在 TickConnect
+   里二次回调，那时 ai.exec 早已返回。当前只能靠 BattleStart / 提示消息中断间接判断，
+   若要精确回执，需要给连接结果单独记状态并提供查询命令。
+9. CommandEnd 中断类型只登记在默认开启集合里，没有任何生产者（没有「命令结束」这条中断），
+   要么补生产者，要么从枚举里删掉。
 
 十、文档内容（给 AI 的静态资料）
 ----------------------------------------------------
@@ -321,7 +326,7 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
   接管与拦截        BattleManager.AiClients（会话级）+ KeyboardBlocked（输入与技能键各一处判断）
   LuaEnv 生命周期   LuaManager 全局唯一：Awake 创建、Update 驱动、OnDestroy 销毁
   外部调用入口      AiInterface/AiBridgeCommands.cs（runtime-bridge 适配，ai.exec / ai.interrupts）
-                    StreamingAssets/AiCmd/ai.exec.bat · ai.wait.bat · ai_wait.py
+                    StreamingAssets/AiCmd/ai.exec.bat · ai.wait.bat · ai_wait.py · README.md（AI 手册）
 
 未完成
   1. Ens 代码生成未跑：Assets/ENS-Netcode/Gen/NetworkManager.Generated.cs 里还没有
@@ -346,10 +351,15 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
   Python 环境：StreamingAssets/python 是随包携带的精简 CPython（去掉 site-packages 等，约 29MB / 580 文件）
     bat 优先用它；没有才回退系统 python，再回退 py -3
     自检：设 AI_DEBUG=1 会先打印实际使用的 python 与桥客户端路径
+  维护注意：bat 必须存成 CRLF（LF 下 goto 标签失效），正文保持纯 ASCII，中文只作为参数传入
 
   桥客户端的两种布局（bat 自动探测，先打包布局、后编辑器布局）：
     打包后  <Game>_Data/StreamingAssets/unity-python-bridge-runtime/python
     编辑器  Assets/unity-python-bridge-runtime/StreamingAssets/unity-python-bridge-runtime/python
+
+  给外部 AI 的完整手册：StreamingAssets/AiCmd/README.md
+    含命令速查（参数与实际返回格式）、相位可用性、中断类型与字段、推荐驱动循环、已知限制、排障
+    本节只记实现侧口径；命令的用法细节以该手册为准
 
 接入方式
   第一步  回 Unity 跑 Ens 代码生成，让 Unity 导入新文件生成 .meta，确认编译通过
