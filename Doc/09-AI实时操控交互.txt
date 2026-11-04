@@ -173,7 +173,7 @@ Battle
   4. AI 接管期间服务器丢弃该客户端的键盘输入（ReceiveInput / ReceiveSkillCast 各一处判断），
      接管状态记在会话上（BattleManager.AiClients）：复活重建实体时按会话恢复，只在玩家退场时清除
 
-五、默认 Lua 状态机（实现于 AiInterface/Lua/state_machine.lua）
+五、默认 Lua 状态机（实现于 StreamingAssets/AiInterface/Lua/state_machine.lua）
 ----------------------------------------------------
 
 状态：站立、移动到位置、攻击敌人、逃跑、寻找珊瑚、追击珊瑚、攻击珊瑚
@@ -276,6 +276,11 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
 5. 小地图缓存由命令行自建（订阅 OnMinimapUpdate + minimap_entity_timeout 超时剔除），
    未复刻 UI 的显示半径裁剪，边界点位可能比小地图多，需实测对齐。
 6. 安全：服务器是否校验「该客户端被授权做 AI 操控」（当前设计默认不校验，任何客户端都能发意图）。
+7. 「等待中断」与 runtime-bridge 的同步模型冲突：桥一次调用一次响应、命令在主线程执行，
+   无法挂起等中断。三种接法待定：
+   a) ai.wait 改为非阻塞取积压，AI 侧轮询（改动最小）
+   b) 句柄式：ai.wait 返回 token，中断到达后 ai.poll 取结果（AI 不必高频轮询）
+   c) 扩展桥支持延迟响应（要改第三方库，最干净但风险最大）
 
 十、文档内容（给 AI 的静态资料）
 ----------------------------------------------------
@@ -310,8 +315,8 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
   客户端 Lua        AiInterface/AiLuaInterface.cs
                     借用 LuaManager 的 LuaEnv（不自建）；两个入口脚本按需加载、激活时整份重载
                     每帧 on_tick；ai 表读写 API；报错 → LogError + 中断 + 停状态机并下发站立
-  默认状态机        AiInterface/Lua/state_machine.lua（7 态、5 参数、0.2s 节拍）
-  拓展示例          AiInterface/Lua/extensions.lua（ai_hello）
+  默认状态机        StreamingAssets/AiInterface/Lua/state_machine.lua（7 态、5 参数、0.2s 节拍）
+  拓展示例          StreamingAssets/AiInterface/Lua/extensions.lua（ai_hello）
   服务器转发器      AiInterface/AiIntentRelay.cs（DecisionMachine + IBehaviorHost，ThinkInterval = 0）
                     移动失败回执；partial BattleManager.ReceiveAiIntent / ReceiveAiSkillCast
   协议              Transport/CSAiIntent.cs、CSAiSkillCast.cs、SCAiFeedback.cs
@@ -319,24 +324,26 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
   LuaEnv 生命周期   LuaManager 全局唯一：Awake 创建、Update 驱动、OnDestroy 销毁
 
 未完成
-  1. 外部输入通道（接入的前提）：AiCommandLine.Submit 全项目无调用方，命令目前送不进来
+  1. runtime-bridge 适配层未写（接入的前提）：项目已带 Assets/unity-python-bridge-runtime
+     （本机 TCP 127.0.0.1:21928、单行 JSON、按 [RuntimeCommand] 反射注册静态方法），
+     但还没有任何 ai.* 命令把 AiCommandLine.Submit 暴露出去，命令目前送不进来
   2. Ens 代码生成未跑：Assets/ENS-Netcode/Gen/NetworkManager.Generated.cs 里还没有
      CSAiIntent / CSAiSkillCast / SCAiFeedback 三条 RPC，不生成则收发不成立
-  3. 新增 .cs / .lua 的 .meta 未生成（Unity 导入后补提交）
+  3. 新增 .cs 的 .meta 未生成（Unity 导入后补提交）
   4. 「站立并面向某点」不支持：RequestIdle 只接受实体作朝向目标
   5. 拓展脚本无运行中单独重载的命令（只有「激活lua状态机」时整份重载）
   6. 未做接入授权校验：任何客户端都能发意图
   7. 小地图缓存未按显示半径裁剪，可能比 UI 实际显示的点多
-  8. Lua 脚本从 Application.dataPath 读：编辑器与开发构建可用，正式出包需改到 StreamingAssets
-  9. 全链路未编译、未联调（尚未在 Unity 里跑过一次端到端）
+  8. 全链路未编译、未联调（尚未在 Unity 里跑过一次端到端）
 
 接入方式
   第一步  回 Unity 跑 Ens 代码生成，让 Unity 导入新文件生成 .meta，确认编译通过
-  第二步  选一个外部输入通道，把一行文本交给 Tool.ClientLogicManager.Ai.Submit(line, reply)
-            a) 编辑器输入框（最快验证联调，几十行 GUI）
-            b) TCP 环回（正式接入：一行一条命令，回包一行，适合外部 AI 进程）
-            c) stdin 管道（需把客户端打成可重定向的 Player 进程）
-          回包走 Submit 的 onResult 回调；「等待中断」的回包是异步的，可能隔很久才回
+  第二步  接 runtime-bridge（库已在工程里，只差一层 [RuntimeCommand] 适配）
+          桥的模型：一次调用一次响应、命令在主线程同步执行、不支持服务端异步推送，因此
+            ai.exec {line}   执行一条立即返回的命令，返回文本；「等待中断」不走这条
+            ai.wait {ms}     取中断积压，空则按桥的限制立即返回（阻塞语义待定，见第九节）
+          外部 AI 侧：python -m unity_rt_bridge call ai.exec --arg line="移动到位置 12 8"
+                      python -m unity_rt_bridge list       看全部 ai.* 命令
   第三步  外部 AI 的驱动循环：
             连接服务器 → 选择角色/阵营 → 准备 → 等待「战斗开始」中断
             → 激活lua状态机 → 等待中断 → 按中断内容决策 → 再等待

@@ -37,7 +37,8 @@ public sealed class AiLuaInterface : ClientSubManager
 
     public IReadOnlyList<string> CommandNames => commandNames;
 
-    private static string ScriptRoot => Path.Combine(Application.dataPath, "Scripts", ScriptFolder);
+    // 脚本放在 StreamingAssets，编辑器与打包后都能按普通文件读改
+    private static string ScriptRoot => Path.Combine(Application.streamingAssetsPath, ScriptFolder);
 
     public override void Init(ClientLogicManager owner)
     {
