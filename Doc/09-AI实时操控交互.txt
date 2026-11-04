@@ -276,11 +276,9 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
 5. 小地图缓存由命令行自建（订阅 OnMinimapUpdate + minimap_entity_timeout 超时剔除），
    未复刻 UI 的显示半径裁剪，边界点位可能比小地图多，需实测对齐。
 6. 安全：服务器是否校验「该客户端被授权做 AI 操控」（当前设计默认不校验，任何客户端都能发意图）。
-7. 「等待中断」与 runtime-bridge 的同步模型冲突：桥一次调用一次响应、命令在主线程执行，
-   无法挂起等中断。三种接法待定：
-   a) ai.wait 改为非阻塞取积压，AI 侧轮询（改动最小）
-   b) 句柄式：ai.wait 返回 token，中断到达后 ai.poll 取结果（AI 不必高频轮询）
-   c) 扩展桥支持延迟响应（要改第三方库，最干净但风险最大）
+7. 「等待中断」已按方案 a 实现：C# 只提供非阻塞的 ai.interrupts，ai.wait.bat 内部轮询后
+   对 AI 表现为一次阻塞调用；超时由 Python 侧合成 [Timeout] 输出，与 C# 的 Timeout 中断同格式。
+   若以后要桥本身阻塞，需要扩展 runtime-bridge 支持延迟响应。
 
 十、文档内容（给 AI 的静态资料）
 ----------------------------------------------------
@@ -322,28 +320,33 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
   协议              Transport/CSAiIntent.cs、CSAiSkillCast.cs、SCAiFeedback.cs
   接管与拦截        BattleManager.AiClients（会话级）+ KeyboardBlocked（输入与技能键各一处判断）
   LuaEnv 生命周期   LuaManager 全局唯一：Awake 创建、Update 驱动、OnDestroy 销毁
+  外部调用入口      AiInterface/AiBridgeCommands.cs（runtime-bridge 适配，ai.exec / ai.interrupts）
+                    StreamingAssets/AiInterface/Tools/ai.exec.bat · ai.wait.bat · ai_wait.py
 
 未完成
-  1. runtime-bridge 适配层未写（接入的前提）：项目已带 Assets/unity-python-bridge-runtime
-     （本机 TCP 127.0.0.1:21928、单行 JSON、按 [RuntimeCommand] 反射注册静态方法），
-     但还没有任何 ai.* 命令把 AiCommandLine.Submit 暴露出去，命令目前送不进来
-  2. Ens 代码生成未跑：Assets/ENS-Netcode/Gen/NetworkManager.Generated.cs 里还没有
+  1. Ens 代码生成未跑：Assets/ENS-Netcode/Gen/NetworkManager.Generated.cs 里还没有
      CSAiIntent / CSAiSkillCast / SCAiFeedback 三条 RPC，不生成则收发不成立
-  3. 新增 .cs 的 .meta 未生成（Unity 导入后补提交）
-  4. 「站立并面向某点」不支持：RequestIdle 只接受实体作朝向目标
-  5. 拓展脚本无运行中单独重载的命令（只有「激活lua状态机」时整份重载）
-  6. 未做接入授权校验：任何客户端都能发意图
-  7. 小地图缓存未按显示半径裁剪，可能比 UI 实际显示的点多
-  8. 全链路未编译、未联调（尚未在 Unity 里跑过一次端到端）
+  2. 新增 .cs 的 .meta 未生成（Unity 导入后补提交）
+  3. 「站立并面向某点」不支持：RequestIdle 只接受实体作朝向目标
+  4. 拓展脚本无运行中单独重载的命令（只有「激活lua状态机」时整份重载）
+  5. 未做接入授权校验：任何客户端都能发意图
+  6. 小地图缓存未按显示半径裁剪，可能比 UI 实际显示的点多
+  7. 全链路未编译、未联调（尚未在 Unity 里跑过一次端到端）
+
+外部调用入口（AI 一律调 bat，不直接调 python）
+  目录：Assets/StreamingAssets/AiInterface/Tools（打包后 <Game>_Data/StreamingAssets/AiInterface/Tools）
+  把该目录加进 PATH 或先 cd 进去，然后：
+    call ai.exec --arg line="移动到位置 12 8"     执行一条立即返回的命令，直接打印返回文本
+    call ai.wait 30                               等待中断，30 秒无中断输出 [Timeout] 后返回
+    call ai.wait 0                                一直等到有中断为止
+  ai.wait 内部的轮询间隔默认 0.2s，可用 --interval 0.05 调整
+  退出码：0 正常（含超时）/ 1 连接或调用失败 / 2 参数错误
+  bat 自己不产出数据，只做路径发现与转调；找不到桥客户端时可用 AI_BRIDGE_PY 指定 ...\unity-python-bridge-runtime\python
 
 接入方式
   第一步  回 Unity 跑 Ens 代码生成，让 Unity 导入新文件生成 .meta，确认编译通过
-  第二步  接 runtime-bridge（库已在工程里，只差一层 [RuntimeCommand] 适配）
-          桥的模型：一次调用一次响应、命令在主线程同步执行、不支持服务端异步推送，因此
-            ai.exec {line}   执行一条立即返回的命令，返回文本；「等待中断」不走这条
-            ai.wait {ms}     取中断积压，空则按桥的限制立即返回（阻塞语义待定，见第九节）
-          外部 AI 侧：python -m unity_rt_bridge call ai.exec --arg line="移动到位置 12 8"
-                      python -m unity_rt_bridge list       看全部 ai.* 命令
+  第二步  起 Unity（Play 模式或出包），桥会按 ini 自动监听 127.0.0.1:21928
+          外部 AI 用上面两个 bat 驱动；「等待中断」= call ai.wait（C# 侧只做非阻塞取中断）
   第三步  外部 AI 的驱动循环：
             连接服务器 → 选择角色/阵营 → 准备 → 等待「战斗开始」中断
             → 激活lua状态机 → 等待中断 → 按中断内容决策 → 再等待
