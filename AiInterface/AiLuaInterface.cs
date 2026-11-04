@@ -11,7 +11,7 @@ public sealed class AiLuaInterface : ClientSubManager
 {
     public static AiLuaInterface Current { get; private set; }
 
-    private const string ScriptFolder = "AiInterface/Lua";
+    private const string ScriptFolder = "LuaInterface";
     private const string StateMachineScript = "state_machine.lua";
     private const string ExtensionScript = "extensions.lua";
 
