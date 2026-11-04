@@ -168,8 +168,26 @@ public partial class BattleManager
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity) || entity == null) return;
         if (entity is not PlayerEntityData player) return;
 
+        // 接管状态记在会话上：复活重建实体时按它恢复，不会掉回「真人」
+        AiClients.Add(clientId);
         player.aiControlled = true;
         if (player.AiRelay == null) player.AiRelay = new AiIntentRelay(player, clientId);
         player.AiRelay.SetIntent((AiIntent)intent.intent, new Vector2(intent.posX, intent.posZ), (ushort)intent.targetId);
+    }
+
+    // AI 专用技能释放：不走键盘那条链路（接管期间键盘包会被丢弃），校验口径与键盘一致
+    public void ReceiveAiSkillCast(int clientId, int skillId)
+    {
+        if (skillId < 0) return;
+        if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
+        if (!EntityContainer.Entities.TryGetObject(entityId, out var entity) || entity == null) return;
+        if (entity.InputBlocked(InputBlockOp.Attack)) return; // 攻击动画等期间的输入阻断
+
+        // 放技能也算接管：之后键盘照常丢弃
+        AiClients.Add(clientId);
+        if (entity is PlayerEntityData player) player.aiControlled = true;
+
+        var result = entity.skillController.TryUseSkill(skillId);
+        if (result != EntitySkillController.UseResult.Success) NotifySkillUseFailed(entity, result);
     }
 }

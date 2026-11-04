@@ -492,7 +492,7 @@ public sealed class AiLuaApi
     public bool cast_skill(int skillId)
     {
         if (skillId < 0 || !NetworkManager.CanSendWorldCommand) return false;
-        Tool.NetworkManager.SendSkillCastInput(skillId);
+        Tool.NetworkManager.SendAiSkillCast(skillId); // AI 专用通道，不受键盘拦截
         return true;
     }
 

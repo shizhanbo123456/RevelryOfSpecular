@@ -38,7 +38,6 @@ AI 实时操控交互（命令行 + Lua）
   战斗节奏快，命令行不参与操作，一律由客户端 Lua 状态机驱动
   命令行只在战斗外做编排、查询与调试
 
-
 二、命令行可控内容
 ----------------------------------------------------
 
@@ -107,7 +106,6 @@ Battle
   本地玩家血条和技能状态
       血量当前/上限、buff 列表、技能槽位与冷却进度、库存
 
-
 三、Lua 可控内容
 ----------------------------------------------------
 
@@ -131,7 +129,6 @@ Battle
 命令行拓展
   Lua 侧注册命令，供命令行按需调用，见第七节
 
-
 四、服务器：意图转发器与行为层
 ----------------------------------------------------
 
@@ -149,6 +146,8 @@ Battle
   停止            → RequestIdle() 并清空意图
 
 释放指定技能：
+  走独立的 AI 专用协议（CSAiSkillCast → ReceiveAiSkillCast），与键盘技能键分开：
+  接管期间键盘包被服务器丢弃，不影响这条通道
   不算意图，属于插队行为：停步 + 面朝（若有目标）+ TryUseSkill(skillId)
   释放后保留原意图，下一拍回到原行为（放技能不打断走位意图）
   技能被拒（未持有 / 沉默 / 强控 / 冷却）：由服务器的既有提示与技能快照处理，Lua 不另做判断
@@ -171,7 +170,8 @@ Battle
      建议把该分支的判据泛化为「自动驱动」，不要复制一份移动逻辑
   2. RequestIdle 目前只接受实体作为朝向目标，「站立并面向某个点」要补一个点重载
   3. 转发器的 Tick 挂在 PlayerEntityData.TickAuto()，与 RobotAi 同层互斥
-
+  4. AI 接管期间服务器丢弃该客户端的键盘输入（ReceiveInput / ReceiveSkillCast 各一处判断），
+     接管状态记在会话上（BattleManager.AiClients）：复活重建实体时按会话恢复，只在玩家退场时清除
 
 五、默认 Lua 状态机（实现于 AiInterface/Lua/state_machine.lua）
 ----------------------------------------------------
@@ -188,7 +188,6 @@ Battle
   都没有 → 站立
 敌我判定 = 阵营不同且非中立（僵尸属防守阵营，天然被进攻方当敌人）
 注意：状态机激活期间，命令行的 站立/移动到位置/攻击珊瑚 会被状态机节拍覆盖；手动控制先停状态机
-
 
 六、中断系统
 ----------------------------------------------------
@@ -230,7 +229,6 @@ Battle
   获得技能        OnSkillBarRefresh(10221)；该事件也被选栏与快照触发，需按持有表变化去重
   提示消息        OnShowPrompt(10305) + SCPrompt（notice.csv id）
 
-
 七、Lua 命令行拓展
 ----------------------------------------------------
 
@@ -241,7 +239,6 @@ Battle
 枚举：提供一条命令列出当前已注册的拓展命令，供 AI 先查询再调用
 重载：重载拓展脚本时清空并重建注册表；正在执行的拓展命令先跑完再重建
 报错：拓展命令抛错进「lua 报错」中断，只记录与上报，不影响状态机与其他命令继续运行
-
 
 八、数据来源对照
 ----------------------------------------------------
@@ -257,7 +254,7 @@ Battle
                    未装备技能客户端没有冷却与库存数据
 设置技能栏         ClientSkillManager.TrySetActiveSkills → CSSkillSelection → 服务器回推 SCSkillRecharge
 小地图实体         OnMinimapUpdate(10233) ← SCMinimapEntity{entityId, type, camp, posX, posZ, marked}
-                   缓存与小地图显示同一份：已按显示半径裁剪、按 Config.minimap_entity_timeout 超时剔除
+                   缓存由命令行自建：订阅 OnMinimapUpdate + minimap_entity_timeout 超时剔除，未复刻半径裁剪
 守护点进度         OnDefensePointProgress(10217) ← SCDefensePointProgress{main, sub1~3}，0~100
 本地玩家实体状态   OnEntityDisplayUpdate(10230) ← SCEntityDisplayInfo（血量、buff、持有技能）
 会话身份           ClientLoadingManager.HasSession / Camp / OwnEntityId
@@ -265,8 +262,8 @@ Battle
 锚点               LandscapeSpawns（副守护点 / 主守护点 / 水晶 / 中立 / 进攻出生 / 防守出生）
 路径长度           NavMesh.CalculatePath（客户端场景已烘焙）
 意图上行           CSAiIntent → NetworkManager.SendAiIntent → 服务器 AiIntentRelay 翻译成行为层请求
+AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服务器 ReceiveAiSkillCast（不受键盘拦截）
 服务器回执         SCAiFeedback（移动失败）→ 命令行 OnServerFeedback → 中断原因 MoveFailed
-
 
 九、待确认与不一致
 ----------------------------------------------------
@@ -279,7 +276,6 @@ Battle
 5. 小地图缓存由命令行自建（订阅 OnMinimapUpdate + minimap_entity_timeout 超时剔除），
    未复刻 UI 的显示半径裁剪，边界点位可能比小地图多，需实测对齐。
 6. 安全：服务器是否校验「该客户端被授权做 AI 操控」（当前设计默认不校验，任何客户端都能发意图）。
-
 
 十、文档内容（给 AI 的静态资料）
 ----------------------------------------------------

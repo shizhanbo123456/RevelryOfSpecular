@@ -38,6 +38,9 @@ public partial class BattleManager : EnsBehaviour
     private int nextAIToken = ROBOT_TOKEN_BASE;
     public readonly HashSet<int> RobotClients = new();
 
+    // 被外部 AI 接管的真人客户端：会话级，只在客户端退场时移除（实体重建不影响接管状态）
+    public readonly HashSet<int> AiClients = new();
+
     // 加载阶段：已完成的客户端（战斗表现包只发给它们；观战未完成时不阻塞开战）
     private bool LoadingStarted;
     private readonly HashSet<int> loadedClients = new();
@@ -370,6 +373,7 @@ public partial class BattleManager : EnsBehaviour
         loadedClients.Remove(clientId);
         PlayerInfoList.Remove(clientId);
         PlayerCamps.Remove(clientId);
+        AiClients.Remove(clientId); // 退场即结束接管
         // 开始倒计时中有人退场：剩余真人不再全员 ready 则取消计时并提示（仍满足则继续倒计时）
         if (startCountdownHandle != null && !AllHumansReady())
         {
@@ -944,10 +948,17 @@ public partial class BattleManager : EnsBehaviour
     #endregion
 
     #region 输入与技能接收（服务器）
+    // AI 接管期间丢弃该客户端的键盘输入：控制权在客户端 Lua，键盘不应再影响实体
+    private static bool KeyboardBlocked(EntityData entity)
+    {
+        return entity is PlayerEntityData player && player.aiControlled;
+    }
+
     public void ReceiveInput(int clientId, CSPlayerInput input)
     {
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
+        if (KeyboardBlocked(entity)) return;
         entity.RecordInput(input);
     }
 
@@ -957,6 +968,7 @@ public partial class BattleManager : EnsBehaviour
         if (skillId < 0) return;
         if (!PlayerEntityId.TryGetValue(clientId, out var entityId)) return;
         if (!EntityContainer.Entities.TryGetObject(entityId, out var entity)) return;
+        if (KeyboardBlocked(entity)) return; // AI 接管：技能由意图/释放指定技能驱动，不吃键盘
         if (entity.InputBlocked(InputBlockOp.Attack)) return; // 攻击动画等期间的输入阻断
         var result = entity.skillController.TryUseSkill(skillId);
         if (result != EntitySkillController.UseResult.Success) NotifySkillUseFailed(entity, result);
@@ -1069,11 +1081,12 @@ public partial class BattleManager : EnsBehaviour
             Tool.NetworkManager.SendPlayerEntity(clientId, entityId);
             EnableSkillBar(clientId, GetEntity(entityId)); // 先建台账再下发技能，快照才有根戳可发
 
-            // AI 玩家：置位后 PlayerEntityData 才走 AI 决策（真人不受影响，输入仍来自网络）
-            if (RobotClients.Contains(clientId))
+            // AI 接管 / 人机：置位后实体走对应的自动驱动分支（真人不受影响，输入仍来自网络）
+            var spawned = GetEntity(entityId);
+            if (spawned is PlayerEntityData spawnedPlayer)
             {
-                var robotEntity = GetEntity(entityId);
-                if (robotEntity != null) robotEntity.robotControlled = true;
+                spawnedPlayer.robotControlled = RobotClients.Contains(clientId);
+                spawnedPlayer.aiControlled = AiClients.Contains(clientId);
             }
             Debug.Log($"{(RobotClients.Contains(clientId) ? "AI" : "玩家")} {clientId} 出战：{characterType} camp={camp} id={entityId}");
         }

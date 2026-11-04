@@ -335,6 +335,13 @@ public partial class NetworkManager : EnsBehaviour
         if (intent == null || !CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveAiIntentLocal, SendTo.RoomOwner, Delivery.Reliable, intent, LocalToken);
     }
+
+    // AI 专用技能释放：与键盘技能键分开，AI 接管期间键盘包会被服务器丢弃
+    public void SendAiSkillCast(int skillId)
+    {
+        if (skillId < 0 || !CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveAiSkillCastLocal, SendTo.RoomOwner, Delivery.Reliable, new CSAiSkillCast { skillId = skillId }, LocalToken);
+    }
     #endregion
 
     #region//发送封装：服务器 → 客户端
@@ -694,6 +701,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (intent == null) return;
         if (Tool.BattleManager != null) Tool.BattleManager.ReceiveAiIntent(clientId, intent);
+    }
+
+    [Rpc]
+    private void ServerReceiveAiSkillCastLocal(CSAiSkillCast cast, int clientId)
+    {
+        if (cast == null) return;
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveAiSkillCast(clientId, cast.skillId);
     }
     #endregion
 

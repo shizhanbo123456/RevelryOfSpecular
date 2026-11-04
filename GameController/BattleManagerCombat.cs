@@ -328,7 +328,11 @@ public partial class BattleManager
         {
             data.skillController.ApplyLoadout(rs.loadout.Value); // 死亡无损失：技能与槽位带走，冷却按上限回满
         }
-        if (data != null) data.robotControlled = RobotClients.Contains(clientId);
+        if (data is PlayerEntityData player)
+        {
+            player.robotControlled = RobotClients.Contains(clientId);
+            player.aiControlled = AiClients.Contains(clientId); // 复活换实体：接管状态按会话恢复
+        }
         SendSkillRecharge(clientId); // 新实体满库存：把重生后的技能栏快照同步给本人
 
         // 愈战愈勇：第 n 条命层数（配表按死亡次数给出，永久 Buff）

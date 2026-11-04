@@ -778,8 +778,8 @@ public sealed class AiCommandLine : ClientSubManager
             reply("错误：未联网");
             return;
         }
-        Tool.NetworkManager.SendSkillCastInput(skillId);
-        reply("已发送技能 " + skillId);
+        Tool.NetworkManager.SendAiSkillCast(skillId);
+        reply("已释放技能 " + skillId);
     }
 
     private void PathLength(string[] args, Action<string> reply)
