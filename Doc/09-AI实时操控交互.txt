@@ -366,8 +366,12 @@ AI 技能释放        CSAiSkillCast → NetworkManager.SendAiSkillCast → 服�
 
 接入方式
   第一步  回 Unity 跑 Ens 代码生成，让 Unity 导入新文件生成 .meta，确认编译通过
-  第二步  起 Unity（Play 模式或出包），桥会按 ini 自动监听 127.0.0.1:21928
-          外部 AI 用上面两个 bat 驱动；「等待中断」= call ai.wait（C# 侧只做非阻塞取中断）
+  第二步  起 Unity（Play 模式或出包），桥会按 ini 的 autostart 自动监听 127.0.0.1:21928
+          （[RuntimeInitializeOnLoadMethod(AfterSceneLoad)] 静态入口 → RuntimeBridgeServer.Start() →
+            建隐藏常驻物体挂 RuntimeBridgePump，由它的 Update 把命令队列在主线程执行；切场景不掉）
+          先 call ai.ping 验连通，再用三个 bat 驱动；「等待中断」= call ai.wait（C# 侧只做非阻塞取中断）
+          关闭方式：包内 ini 改 autostart=false，或代码里显式 RuntimeBridgeServer.Start()/Stop()
+          注意默认 bind=127.0.0.1 且 token 为空，本机任何进程都能驱动角色，外发版本应关闭或设 token
   第三步  外部 AI 的驱动循环：
             连接服务器 → 选择角色/阵营 → 准备 → 等待「战斗开始」中断
             → 激活lua状态机 → 等待中断 → 按中断内容决策 → 再等待
