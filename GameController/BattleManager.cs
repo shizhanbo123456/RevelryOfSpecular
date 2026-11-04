@@ -865,7 +865,7 @@ public partial class BattleManager : EnsBehaviour
 
     private static readonly HashSet<int> s_hostileBuffer = new();
 
-    // 周边敌对实体数量：含僵尸/雕像等一切敌对类别，范围取配表「场景中角色的可见距离」（XZ）
+    // 周边敌对实体数量：含僵尸/雕像，珊瑚是资源不计；范围取配表「场景中角色的可见距离」（XZ）
     private static int CountHostileAround(EntityData self)
     {
         EntityCamp hostile = EntityCampUtil.HostileOf(self.type.category);
@@ -877,6 +877,7 @@ public partial class BattleManager : EnsBehaviour
         {
             if (!EntityContainer.Entities.TryGetObject(id, out var other) || other == null) continue;
             if (other.id == self.id || (hostile & other.camp) == 0 || !other.Alive) continue;
+            if (other.type.category == EntityCategory.Coral) continue;
             count++;
         }
         return count;
