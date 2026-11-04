@@ -291,6 +291,7 @@ public sealed class AiLuaApi
     private AiIntent lastIntent;
     private Vector2 lastPoint;
     private ushort lastTarget;
+    private int lastSelfId;
     private bool hasLast;
 
     public AiLuaApi(AiLuaInterface owner) { this.owner = owner; }
@@ -525,6 +526,14 @@ public sealed class AiLuaApi
     // 移动/站立同值不重发；攻击每次都发 —— 行为层靠重复请求维持「持续出招」的节拍
     private bool Send(AiIntent intent, Vector2 position, ushort targetId)
     {
+        // 复活换了实体：去重缓存作废，否则同值意图不会重发，服务器侧转发器建不起来
+        int selfId = self_id();
+        if (selfId != lastSelfId)
+        {
+            lastSelfId = selfId;
+            hasLast = false;
+        }
+
         bool same = hasLast && intent == lastIntent && targetId == lastTarget
             && (intent != AiIntent.MoveTo || (position - lastPoint).sqrMagnitude < 0.01f);
         if (same) return true;
