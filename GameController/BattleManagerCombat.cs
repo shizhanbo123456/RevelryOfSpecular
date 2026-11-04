@@ -446,7 +446,7 @@ public partial class BattleManager
     private const float SkillFailPromptInterval = 1f; // 同一客户端提示间隔，连点不刷屏
     private readonly Dictionary<int, float> skillFailPromptTime = new();
 
-    // 技能失败回包：只有玩家看得懂的原因才提示（沉默/强控）；库存不足静默回推快照纠正客户端显示
+    // 技能失败回包：玩家看得懂的原因都提示（沉默/强控/冷却中），冷却同时回推快照纠正客户端显示
     public void NotifySkillUseFailed(EntityData entity, EntitySkillController.UseResult result)
     {
         if (entity == null) return;
@@ -456,6 +456,7 @@ public partial class BattleManager
             if (!EntityOwnerClient.TryGetValue(entity.id, out var coolingClientId)) return;
             if (Tool.NetworkManager != null)
                 Tool.NetworkManager.SendSkillRecharge(coolingClientId, entity.skillController.BuildRecharge());
+            SendFailPrompt(coolingClientId, 32);
             return;
         }
 
@@ -465,6 +466,11 @@ public partial class BattleManager
         else return;
 
         if (!EntityOwnerClient.TryGetValue(entity.id, out var clientId)) return; // AI / 非玩家没有客户端
+        SendFailPrompt(clientId, messageId);
+    }
+
+    private void SendFailPrompt(int clientId, int messageId)
+    {
         if (skillFailPromptTime.TryGetValue(clientId, out var last) && Time.time - last < SkillFailPromptInterval) return;
         skillFailPromptTime[clientId] = Time.time;
         if (Tool.NetworkManager != null) Tool.NetworkManager.SendPrompt(clientId, messageId);
