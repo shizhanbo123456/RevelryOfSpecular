@@ -13,6 +13,7 @@ public sealed class AiIntentRelay : DecisionMachine, IBehaviorHost
     private AiIntent intent = AiIntent.Stand;
     private Vector2 point;
     private ushort targetId;
+    private bool moveBlocked; // 目的地走不到：意图不变就不再重发，避免每帧重算路径并刷回执
     private readonly List<int> castOrder = new();
 
     public AiIntentRelay(PlayerEntityData owner, int ownerClientId)
@@ -26,6 +27,7 @@ public sealed class AiIntentRelay : DecisionMachine, IBehaviorHost
 
     public void SetIntent(AiIntent kind, Vector2 position, ushort target)
     {
+        if (kind != intent || position != point || target != targetId) moveBlocked = false;
         intent = kind;
         point = position;
         targetId = target;
@@ -50,6 +52,11 @@ public sealed class AiIntentRelay : DecisionMachine, IBehaviorHost
                 arbiter.RequestIdle();
                 break;
             case AiIntent.MoveTo:
+                if (moveBlocked)
+                {
+                    arbiter.RequestIdle();
+                    break;
+                }
                 arbiter.RequestMove(new Vector3(point.x, Owner.transform.position.y, point.y));
                 break;
             case AiIntent.AttackTarget:
@@ -143,7 +150,11 @@ public sealed class AiIntentRelay : DecisionMachine, IBehaviorHost
 
     void IBehaviorHost.ClearFace() => Owner.ClearRobotFacePoint();
 
-    void IBehaviorHost.NotifyStuck() => NotifyMoveFailed();
+    void IBehaviorHost.NotifyStuck()
+    {
+        moveBlocked = true;
+        NotifyMoveFailed();
+    }
     #endregion
 }
 

@@ -1,4 +1,4 @@
-using System;
+// 全局唯一的 LuaEnv 持有者：任何模块不得自行实例化 LuaEnv；场景销毁（含退出游戏）时释放
 using UnityEngine;
 using XLua;
 
@@ -6,41 +6,23 @@ public class LuaManager : MonoBehaviour
 {
     private LuaEnv _luaEnv;
 
-    private void Start()
+    private void Awake()
     {
-        TestLua();
+        Tool.LuaManager = this;
+        _luaEnv = new LuaEnv();
     }
 
-    // 冒烟测试：能取到 _VERSION 且 xlua.util 可 require，说明原生库与加载链路都通了
-    private void TestLua()
-    {
-        string chunk = @"
-            local jitVer = jit and jit.version or 'none'
-            local ok = pcall(require, 'xlua.util')
-            return string.format('engine=%s | jit=%s | xlua.util=%s | path=%s',
-                _VERSION, jitVer, tostring(ok), package.path)
-        ";
+    public LuaEnv Env => _luaEnv;
 
-        try
-        {
-            _luaEnv = new LuaEnv();
-            object[] result = _luaEnv.DoString(chunk, "LuaManagerTest");
-            Debug.Log($"[LuaManager] Lua 可运行 → {result[0]}");
-        }
-        catch (DllNotFoundException e)
-        {
-            Debug.LogError("[LuaManager] xlua.dll 加载失败：确认 Assets/xLua/Plugins/x86_64/xlua.dll 存在，" +
-                           "且该 dll 的 Inspector 勾选了 x86_64 平台。" + e.Message);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[LuaManager] Lua 初始化或执行失败：{e.GetType().Name} - {e.Message}");
-        }
+    private void Update()
+    {
+        if (_luaEnv != null) _luaEnv.Tick();
     }
 
     private void OnDestroy()
     {
         if (_luaEnv != null) _luaEnv.Dispose();
         _luaEnv = null;
+        if (Tool.LuaManager == this) Tool.LuaManager = null;
     }
 }

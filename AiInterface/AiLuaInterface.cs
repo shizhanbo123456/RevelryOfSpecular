@@ -1,4 +1,4 @@
-// AI 操控的 Lua 接口：LuaEnv 生命周期、状态机 / 命令行拓展两段脚本、给 Lua 的读写 API
+// AI 操控的 Lua 接口：脚本加载与重载、状态机驱动、给 Lua 的读写 API（LuaEnv 本体在 LuaManager，此处只借用）
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,17 +15,23 @@ public sealed class AiLuaInterface : ClientSubManager
     private const string StateMachineScript = "state_machine.lua";
     private const string ExtensionScript = "extensions.lua";
 
-    private LuaEnv env;
+    private LuaEnv env;          // 当前 LuaEnv 快照，LuaManager 重建后自动切换到新实例
+    private bool loaderAdded;
+    private bool missingLogged;
     private LuaFunction onTick;
     private bool active;
     private bool extensionsLoaded;
     private readonly object[] tickArgs = new object[1];
 
+    private readonly AiLuaApi api;
     private readonly Dictionary<string, LuaFunction> extensions = new();
     private readonly List<string> commandNames = new();
     private readonly List<SCMinimapEntity> mapBuffer = new();
 
-    public LuaEnv Env => env;
+    public AiLuaInterface()
+    {
+        api = new AiLuaApi(this);
+    }
 
     public bool Active => active;
 
@@ -37,15 +43,13 @@ public sealed class AiLuaInterface : ClientSubManager
     {
         base.Init(owner);
         Current = this;
-        CreateEnv();
     }
 
     public override void Tick(float deltaTime)
     {
-        if (env == null) return;
-        env.Tick();
-
+        if (!EnsureEnv()) return;
         if (!active || onTick == null) return;
+
         tickArgs[0] = deltaTime;
         try
         {
@@ -60,16 +64,59 @@ public sealed class AiLuaInterface : ClientSubManager
 
     protected override void UnbindEvents()
     {
-        StopStateMachineInternal(false);
-        DisposeEnv();
+        ResetScriptState();
         if (Current == this) Current = null;
+    }
+
+    // LuaEnv 由 LuaManager 持有；实例被重建（场景重载 / 退出）时旧脚本句柄全部作废重来
+    private bool EnsureEnv()
+    {
+        var manager = Tool.LuaManager;
+        if (manager == null)
+        {
+            if (!missingLogged)
+            {
+                missingLogged = true;
+                Debug.LogError("[AI][Lua] 场景缺少 LuaManager，Lua 接口不可用");
+            }
+            return false;
+        }
+        if (env == manager.Env) return env != null;
+
+        ResetScriptState();
+        missingLogged = false;
+        env = manager.Env;
+        if (env == null) return false;
+
+        if (!loaderAdded)
+        {
+            env.AddLoader(Loader);
+            loaderAdded = true;
+        }
+        env.Global.Set("ai", api);
+        return true;
+    }
+
+    private void ResetScriptState()
+    {
+        active = false;
+        extensionsLoaded = false;
+        if (onTick != null)
+        {
+            onTick.Dispose();
+            onTick = null;
+        }
+        foreach (var pair in extensions) pair.Value.Dispose();
+        extensions.Clear();
+        commandNames.Clear();
     }
 
     #region 状态机
     // 激活即接管：先整份重载（状态机 + 拓展），再从 on_tick 开始逐帧驱动
     public string ActivateStateMachine()
     {
-        Rebuild();
+        if (!EnsureEnv()) return "错误：LuaManager 未就绪";
+        ResetScriptState();
         if (!LoadExtensions()) return "错误：拓展脚本加载失败（详见控制台）";
         if (!LoadStateMachine()) return "错误：状态机脚本加载失败（详见控制台）";
 
@@ -79,6 +126,7 @@ public sealed class AiLuaInterface : ClientSubManager
 
     public string StopStateMachine()
     {
+        if (!EnsureEnv()) return "错误：LuaManager 未就绪";
         StopStateMachineInternal(true);
         return "状态机已停止（已下发站立）";
     }
@@ -150,6 +198,7 @@ public sealed class AiLuaInterface : ClientSubManager
 
     public string RunExtension(string name, string argText)
     {
+        if (!EnsureEnv()) return "错误：LuaManager 未就绪";
         if (!extensionsLoaded && !LoadExtensions()) return "错误：拓展脚本加载失败（详见控制台）";
         if (!extensions.TryGetValue(name, out var fn))
         {
@@ -191,40 +240,7 @@ public sealed class AiLuaInterface : ClientSubManager
     #endregion
 
     #region 环境
-    private void Rebuild()
-    {
-        StopStateMachineInternal(false);
-        DisposeEnv();
-        CreateEnv();
-    }
-
-    private void CreateEnv()
-    {
-        env = new LuaEnv();
-        env.AddLoader(Loader);
-        env.Global.Set("ai", new AiLuaApi(this));
-    }
-
-    private void DisposeEnv()
-    {
-        if (onTick != null)
-        {
-            onTick.Dispose();
-            onTick = null;
-        }
-        foreach (var pair in extensions) pair.Value.Dispose();
-        extensions.Clear();
-        commandNames.Clear();
-        extensionsLoaded = false;
-
-        if (env != null)
-        {
-            env.Dispose();
-            env = null;
-        }
-    }
-
-    // 只服务 require：脚本目录下的模块名以点分隔
+    // 重载不清 package.loaded：两个入口脚本每次全量重新执行，require 的用户模块沿用缓存
     private byte[] Loader(ref string filepath)
     {
         string path = Path.Combine(ScriptRoot, filepath.Replace('.', '/') + ".lua");
@@ -267,10 +283,15 @@ public sealed class AiLuaInterface : ClientSubManager
     #endregion
 }
 
-// 暴露给 lua 的 API 表：读状态零成本可每帧调，写动作只在变化时由 C# 侧下发
+// 暴露给 lua 的 API 表：读状态零成本可每帧调，写动作经去重后上行（攻击意图例外，它是持续出招的节拍）
 public sealed class AiLuaApi
 {
     private readonly AiLuaInterface owner;
+
+    private AiIntent lastIntent;
+    private Vector2 lastPoint;
+    private ushort lastTarget;
+    private bool hasLast;
 
     public AiLuaApi(AiLuaInterface owner) { this.owner = owner; }
 
@@ -501,11 +522,24 @@ public sealed class AiLuaApi
         commands.Interrupts.Push(AiInterruptKind.LuaTrigger, string.IsNullOrEmpty(text) ? "lua 触发" : text);
     }
 
-    private static bool Send(AiIntent intent, Vector2 position, ushort targetId)
+    // 移动/站立同值不重发；攻击每次都发 —— 行为层靠重复请求维持「持续出招」的节拍
+    private bool Send(AiIntent intent, Vector2 position, ushort targetId)
     {
-        if (AiCommandLine.TrySendIntent(intent, position, targetId, out string error)) return true;
-        Debug.LogError("[AI][Lua] 意图下发失败：" + error);
-        return false;
+        bool same = hasLast && intent == lastIntent && targetId == lastTarget
+            && (intent != AiIntent.MoveTo || (position - lastPoint).sqrMagnitude < 0.01f);
+        if (same) return true;
+
+        if (!AiCommandLine.TrySendIntent(intent, position, targetId, out string error))
+        {
+            Debug.LogError("[AI][Lua] 意图下发失败：" + error);
+            return false;
+        }
+
+        lastIntent = intent;
+        lastPoint = position;
+        lastTarget = targetId;
+        hasLast = true;
+        return true;
     }
     #endregion
 

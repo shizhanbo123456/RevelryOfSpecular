@@ -313,6 +313,7 @@ public sealed class AiCommandLine : ClientSubManager
     {
         TickMinimapExpire();
         TickConnect();
+        TickEnemySpot();
     }
 
     protected override void BindEvents()
@@ -326,6 +327,7 @@ public sealed class AiCommandLine : ClientSubManager
         EventManager.AddEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.AddEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.AddEvent(ClientEvent.OnSkillBarRefresh, OnSkillBarRefresh);
+        EventManager.AddEvent<SCQuickMessage>(ClientEvent.OnQuickMessage, OnQuickMessage);
     }
 
     protected override void UnbindEvents()
@@ -339,6 +341,7 @@ public sealed class AiCommandLine : ClientSubManager
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleStart, OnBattleStart);
         EventManager.RemoveEvent<int>(ClientEvent.OnBattleEnd, OnBattleEnd);
         EventManager.RemoveEvent(ClientEvent.OnSkillBarRefresh, OnSkillBarRefresh);
+        EventManager.RemoveEvent<SCQuickMessage>(ClientEvent.OnQuickMessage, OnQuickMessage);
         if (waitTimer != null) waitTimer.Cancel();
         waitTimer = null;
         if (Current == this) Current = null;
@@ -1138,6 +1141,24 @@ public sealed class AiCommandLine : ClientSubManager
 
     private void OnGuardProgress(SCDefensePointProgress info) => guardProgress = info;
 
+    // 他人信号：同阵营快捷消息（8 种），发送者名字按客户端名表解析
+    private void OnQuickMessage(SCQuickMessage message)
+    {
+        if (message == null) return;
+
+        var loading = ClientLoadingManager.Current;
+        var fields = new List<string>
+        {
+            "类型=" + ((QuickMessageType)message.messageId).ToString(),
+            "发送者=" + (loading != null ? loading.GetName(message.senderClientId) : "#" + message.senderClientId),
+        };
+        if (message.hasTargetPosition)
+        {
+            fields.Add($"坐标=({message.targetPosition.x:0.#},{message.targetPosition.z:0.#})");
+        }
+        hub.Push(AiInterruptKind.OtherSignal, fields.ToArray());
+    }
+
     private void OnBattleStart(int camp) => hub.Push(AiInterruptKind.BattleStart, "阵营=" + (EntityCamp)camp);
 
     private void OnBattleEnd(int gameState) => hub.Push(AiInterruptKind.BattleEnd, "结算=" + gameState);
@@ -1187,6 +1208,54 @@ public sealed class AiCommandLine : ClientSubManager
             minimapSeen.Remove(id);
             minimap.Remove(id);
         }
+    }
+
+    // 遇敌：小地图上出现新的敌对单位；去抖 = 0.5s 检查间隔 + 中断列表同类型合并，离开视野再出现会重新报
+    private const float EnemyCheckInterval = 0.5f;
+    private float nextEnemyCheck;
+    private readonly HashSet<ushort> knownEnemies = new();
+
+    private void TickEnemySpot()
+    {
+        if (CurrentPhase != AiPhase.Battle)
+        {
+            knownEnemies.Clear();
+            return;
+        }
+        if (Time.time < nextEnemyCheck) return;
+        nextEnemyCheck = Time.time + EnemyCheckInterval;
+
+        var loading = ClientLoadingManager.Current;
+        if (loading == null || !loading.HasSession || loading.Camp == EntityCamp.None)
+        {
+            knownEnemies.Clear();
+            return;
+        }
+
+        var added = new List<string>();
+        var seen = new HashSet<ushort>();
+        bool hasSelf = TryGetSelfPos(out Vector3 self);
+        foreach (var pair in minimap)
+        {
+            var e = pair.Value;
+            seen.Add(e.entityId);
+            if (e.camp == loading.Camp || e.camp == EntityCamp.Neutral) continue;
+            if (knownEnemies.Contains(e.entityId)) continue;
+
+            if (hasSelf)
+            {
+                float dx = e.posX - self.x;
+                float dz = e.posZ - self.z;
+                added.Add($"id={e.entityId} 类型={e.type.category}:{e.type.value} 距离={Mathf.Sqrt(dx * dx + dz * dz):0.#}");
+            }
+            else
+            {
+                added.Add($"id={e.entityId} 类型={e.type.category}:{e.type.value}");
+            }
+        }
+        knownEnemies.IntersectWith(seen);
+        if (added.Count == 0) return;
+        hub.Push(AiInterruptKind.EnemySpotted, added.ToArray());
     }
 
     private static List<string> SplitArgs(string line)

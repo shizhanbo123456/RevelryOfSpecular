@@ -55,6 +55,7 @@ public class Tool : MonoBehaviour
     public static UIManager UIManager;
     public static VfxManager VfxManager;
     public static TransitionManager TransitionManager;
+    public static LuaManager LuaManager;
 
     public static LandscapeSpawns LandscapeSpawns
     {
@@ -132,6 +133,7 @@ public class Tool : MonoBehaviour
             errors += CheckObject(nameof(CameraController), CameraController);
             errors += CheckObject(nameof(ClientLogicManager), ClientLogicManager);
             errors += CheckObject(nameof(VfxManager), VfxManager);
+            errors += CheckObject(nameof(LuaManager), LuaManager);
         }
 
         errors += CheckInfoManager();
