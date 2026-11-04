@@ -167,7 +167,7 @@ public class PlayerEntityData : EntityData
             SetVelocityVertical(v, VelocitySource.Flight);
         }
 
-        if (robotControlled)
+        if (robotControlled || aiControlled)
         {
             TickRobotMove(deltaTime, canInput);
             transform.rotation = Quaternion.Euler(0f, moveState.yaw, 0f);
@@ -208,11 +208,20 @@ public class PlayerEntityData : EntityData
     #region Robot 驱动入口（人机；真人玩家不走这里）
     private RobotAi robot;
 
+    // AI 操控（外部指令驱动）：与人机互斥的另一种自动驱动，复用同一套 Nav 移动分支
+    public bool aiControlled;
+    public AiIntentRelay AiRelay;
+
     public override void TickAuto()
     {
-        if (!robotControlled) return;
-        EnsureRobot();
-        robot.Tick();
+        if (robotControlled)
+        {
+            EnsureRobot();
+            robot.Tick();
+            return;
+        }
+        if (!aiControlled || AiRelay == null) return;
+        AiRelay.Tick();
     }
 
     public void OnQuickMessage(SCQuickMessage message)

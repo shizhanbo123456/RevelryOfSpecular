@@ -14,6 +14,10 @@ public class ClientLogicManager : MonoBehaviour
 
     public ClientLoadingManager Loading { get; private set; }
 
+    public AiCommandLine Ai { get; private set; }
+
+    public AiLuaInterface AiLua { get; private set; }
+
     private ClientSubManager[] subManagers;
 
     private void Awake()
@@ -26,9 +30,11 @@ public class ClientLogicManager : MonoBehaviour
         BattleTime = new ClientBattleTimeManager();
         HomePreview = new HomePreviewManager();
         Loading = new ClientLoadingManager();
+        Ai = new AiCommandLine();
+        AiLua = new AiLuaInterface();
 
         // 先全部建好再统一 Init：Init 内可能有跨子管理器的引用
-        subManagers = new ClientSubManager[] { EntityPlayers, Settlement, SkillVfx, BattleTime, HomePreview, Loading };
+        subManagers = new ClientSubManager[] { EntityPlayers, Settlement, SkillVfx, BattleTime, HomePreview, Loading, Ai, AiLua };
         foreach (var sub in subManagers) sub.Init(this);
     }
 

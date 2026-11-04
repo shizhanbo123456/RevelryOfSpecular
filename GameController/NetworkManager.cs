@@ -328,6 +328,13 @@ public partial class NetworkManager : EnsBehaviour
         if (gm == null || !CanSendWorldCommand) return;
         CallFuncRpc(ServerReceiveGmLocal, SendTo.RoomOwner, Delivery.Reliable, gm, LocalToken);
     }
+
+    // AI 操控意图上行：低频可靠包，服务器翻译成行为层请求
+    public void SendAiIntent(CSAiIntent intent)
+    {
+        if (intent == null || !CanSendWorldCommand) return;
+        CallFuncRpc(ServerReceiveAiIntentLocal, SendTo.RoomOwner, Delivery.Reliable, intent, LocalToken);
+    }
     #endregion
 
     #region//发送封装：服务器 → 客户端
@@ -568,6 +575,13 @@ public partial class NetworkManager : EnsBehaviour
         if (gm == null || !TryGetSendTo(clientId, out var to)) return;
         CallFuncRpc(ClientReceiveGmLocal, to, Delivery.Reliable, gm);
     }
+
+    // AI 操控回执（移动失败等）：只发给发起意图的客户端
+    public void SendAiFeedback(int clientId, SCAiFeedback info)
+    {
+        if (info == null || !TryGetSendTo(clientId, out var to)) return;
+        CallFuncRpc(ClientReceiveAiFeedbackLocal, to, Delivery.Reliable, info);
+    }
     #endregion
 
     #region//[Rpc] 服务器侧接收（客户端 → 服务器）
@@ -673,6 +687,13 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (gm == null) return;
         if (Tool.BattleManager != null) Tool.BattleManager.ExecuteGm(clientId, gm);
+    }
+
+    [Rpc]
+    private void ServerReceiveAiIntentLocal(CSAiIntent intent, int clientId)
+    {
+        if (intent == null) return;
+        if (Tool.BattleManager != null) Tool.BattleManager.ReceiveAiIntent(clientId, intent);
     }
     #endregion
 
@@ -939,6 +960,15 @@ public partial class NetworkManager : EnsBehaviour
     {
         if (gm == null) return;
         EventManager.TrigEvent(ClientEvent.OnGmResult, gm);
+    }
+
+    [Rpc]
+    private void ClientReceiveAiFeedbackLocal(SCAiFeedback info)
+    {
+        if (info == null) return;
+        var commands = AiCommandLine.Current;
+        if (commands == null) return;
+        commands.OnServerFeedback(info);
     }
     #endregion
 

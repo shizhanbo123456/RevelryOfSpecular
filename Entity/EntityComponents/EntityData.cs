@@ -297,8 +297,10 @@ public abstract class EntityData : MonoBehaviour
 
         // 只有正在移动的单位才需要检查，站桩单位（珊瑚/雕像）不必付这份开销
         if (!HasNavDestination && moveInput.sqrMagnitude <= 0.0001f) return;
-        // 只对 AI 单位（僵尸/精英僵尸/人机玩家）救援；真人玩家靠刚体移动，允许站在导航面外（台阶/平台）
-        if (!(this is ZombieEntityData) && !(this is PlayerEntityData && robotControlled)) return;
+        // 只对 AI 单位（僵尸/精英僵尸/人机玩家/AI 操控玩家）救援；真人玩家靠刚体移动，允许站在导航面外（台阶/平台）
+        bool aiDriven = this is ZombieEntityData
+            || (this is PlayerEntityData player && (player.robotControlled || player.aiControlled));
+        if (!aiDriven) return;
         navNextRescueTime = Time.time + nav_rescue_interval;
 
         // 站位附近仍有导航面，说明没脱网
