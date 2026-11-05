@@ -107,6 +107,8 @@ namespace Ros.Skill
         // 索敌 = 朝目标体中心、水平距离仍取射程、高度取体中心
         protected Vector3 Aim(EntityData caster, Vector3 origin)
         {
+            if (CastRange <= 0f)
+                throw new FormatException($"[配表] skill.csv 技能 {Id} 需要瞄准点，但第 19 列没有配射程");
             Vector3 forward = caster.transform.forward;
             EntityData target = ResolveTarget(caster);
             if (target == null)
