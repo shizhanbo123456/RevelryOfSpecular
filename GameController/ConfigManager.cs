@@ -398,11 +398,11 @@ public class ConfigManager : MonoBehaviour
     }
     #endregion
 
-    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 / 4 攻击 …… 13 初始技能列表 / 14 品质 / 15 显示血条
+    #region 角色信息表：0 实体类型 / 1 副键 / 2 姓名 / 3 生命 / 4 攻击 …… 12 初始技能列表 / 13 品质 / 14 显示血条 / 15 霸体等级
     public struct EntityConfig
     {
         public const string FileName = "entity.csv";
-        private const int ColumnCount = 17;
+        private const int ColumnCount = 16;
         public static readonly Dictionary<EntityType, EntityConfig> content = new();
 
         public EntityCategory category;
@@ -416,12 +416,11 @@ public class ConfigManager : MonoBehaviour
         public int weaponSlotCount;
         public int upgradeA;
         public int upgradeB;
-        public int upgradeC;
         public int unlockLevel;
         public List<int> initialSkills;
         public int quality;           // 0:B / 1:A / 2:S，直接对应 RoleHead 的 m_quality 页序
         public bool showHealthBar;    // 客户端是否为该实体创建头顶血条
-        public EndureType endureLevel; // 第17列：默认霸体等级，实体霸体等级的下限（留空 = None）
+        public EndureType endureLevel; // 第16列：默认霸体等级，实体霸体等级的下限（留空 = None）
 
         public EntityConfig(string[] rowData)
         {
@@ -436,12 +435,11 @@ public class ConfigManager : MonoBehaviour
             weaponSlotCount = ParseInt(rowData, 8);
             upgradeA = ParseUpgrade(rowData, 9);
             upgradeB = ParseUpgrade(rowData, 10);
-            upgradeC = ParseUpgrade(rowData, 11);
-            unlockLevel = ParseInt(rowData, 12);
-            initialSkills = ParseIntList(rowData, 13);
-            quality = ParseQuality(rowData, 14);
-            showHealthBar = ParseShowHealthBar(rowData, 15);
-            endureLevel = ParseEndureLevel(rowData, 16);
+            unlockLevel = ParseInt(rowData, 11);
+            initialSkills = ParseIntList(rowData, 12);
+            quality = ParseQuality(rowData, 13);
+            showHealthBar = ParseShowHealthBar(rowData, 14);
+            endureLevel = ParseEndureLevel(rowData, 15);
         }
 
         public static int Load(ConfigTable table)
@@ -489,18 +487,23 @@ public class ConfigManager : MonoBehaviour
             };
 
             level = Mathf.Max(1, level);
+            float healthRatio = 0f;
+            float attackRatio = 0f;
+            int critRateAdd = 0;
+            int critDamageAdd = 0;
+            // 四项每级同涨：boosted 取高增益，其余三项取常规增益；系数按 1 级基础值线性累加
             for (int lv = 2; lv <= level; lv++)
             {
-                int step = (lv - 2) % 3;
-                int upgrade = step == 0 ? upgradeA : step == 1 ? upgradeB : upgradeC;
-                switch (upgrade)
-                {
-                    case 0: attr.health += attr.health * GlobalVariableConfig.attr_growth_health; break;
-                    case 1: attr.attack += (int)(attr.attack * GlobalVariableConfig.attr_growth_attack); break;
-                    case 2: attr.critRate += GlobalVariableConfig.attr_growth_critRate; break;
-                    case 3: attr.critDamage += GlobalVariableConfig.attr_growth_critDamage; break;
-                }
+                int boosted = (lv - 2) % 2 == 0 ? upgradeA : upgradeB;
+                healthRatio += boosted == 0 ? GlobalVariableConfig.attr_growth_health : GlobalVariableConfig.attr_growth_health_common;
+                attackRatio += boosted == 1 ? GlobalVariableConfig.attr_growth_attack : GlobalVariableConfig.attr_growth_attack_common;
+                critRateAdd += boosted == 2 ? GlobalVariableConfig.attr_growth_critRate : GlobalVariableConfig.attr_growth_critRate_common;
+                critDamageAdd += boosted == 3 ? GlobalVariableConfig.attr_growth_critDamage : GlobalVariableConfig.attr_growth_critDamage_common;
             }
+            attr.health += health * healthRatio;
+            attr.attack += (int)(attack * attackRatio);
+            attr.critRate += critRateAdd;
+            attr.critDamage += critDamageAdd;
             return attr;
         }
     }
@@ -792,6 +795,10 @@ public class ConfigManager : MonoBehaviour
         public static float attr_growth_attack;         // 升级增益系数：攻击
         public static int attr_growth_critRate;         // 升级增益：暴击率，每级加点（百分点）
         public static int attr_growth_critDamage;       // 升级增益：暴击伤害，每级加点（百分点）
+        public static float attr_growth_health_common;  // 升级常规增益系数：生命
+        public static float attr_growth_attack_common;  // 升级常规增益系数：攻击
+        public static int attr_growth_critRate_common;  // 升级常规增益：暴击率，每级加点（百分点）
+        public static int attr_growth_critDamage_common; // 升级常规增益：暴击伤害，每级加点（百分点）
         public static int battle_max_level;             // 战斗期等级上限（生成实体时钳制）
         public static float status_auto_cast_interval_crystal; // 水晶雕像自动施法间隔
         public static float status_auto_cast_interval_neutral; // 中立雕像自动施法间隔
@@ -918,6 +925,18 @@ public class ConfigManager : MonoBehaviour
                     break;
                 case "attr_growth_critDamage":
                     attr_growth_critDamage = NonNegative(Int(row), row.key);
+                    break;
+                case "attr_growth_health_common":
+                    attr_growth_health_common = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_attack_common":
+                    attr_growth_attack_common = NonNegative(Float(row), row.key);
+                    break;
+                case "attr_growth_critRate_common":
+                    attr_growth_critRate_common = NonNegative(Int(row), row.key);
+                    break;
+                case "attr_growth_critDamage_common":
+                    attr_growth_critDamage_common = NonNegative(Int(row), row.key);
                     break;
                 case "battle_max_level":
                     battle_max_level = Int(row);
