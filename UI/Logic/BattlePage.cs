@@ -82,7 +82,7 @@ public class BattlePage : PageBase
         panel.m_largeMinimapPanel.m_panel.m_close.onClick.Set(panel.m_largeMinimapPanel.Close);
         if (panel.m_Minimap != null && panel.m_Minimap.m_minimapButton != null)
             panel.m_Minimap.m_minimapButton.onClick.Set(OpenLargeMinimap); // 点小地图打开大地图，关闭走底框按钮
-        panel.m_godViewPanel.Init(ShowBuffTip, HideBuffTip);
+        panel.m_godViewPanel.Init(ShowBuffTip, HideBuffTip, ShowSkillTip, HideSkillTip);
         panel.m_godViewPanel.Close();
         panel.m_godViewPanel.m_panel.m_close.onClick.Set(panel.m_godViewPanel.Close);
     }
