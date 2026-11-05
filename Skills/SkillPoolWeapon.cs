@@ -368,11 +368,14 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillFlyingKick;
 
+        private const float KickTime = 1.5f;  // 判定窗：跟随子弹存活时长
+        private const float DashTime = 0.3f;  // 前冲时长
+        private const float DashSpeed = 12f;  // 前冲速度
+
         public override SkillContext SkillLogic(EntityData entity)
         {
             var context = new SkillContext();
             context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position + entity.transform.forward * 1.2f);
             return context;
         }
 
@@ -380,11 +383,14 @@ namespace Ros.Skill
         {
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
-            StrikeSphere(caster, context.vectors[0], MeleeRadius, BuildAttack(caster));
+            caster.SetMotion(new MotionDash(DashTime, DashSpeed));
+            var hit = new BulletVfxInfo.HitInfo { center = Vector3.zero, radius = MeleeRadius }; // end 留 0 = 全程有效
+            var spec = new BulletHitSpec(new[] { hit }, new[] { ConfigDamageRate() }, 1f, DamageInterval, 0f, "飞踢[跟随]");
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), new FollowTrajectory(caster.id), KickTime, spec);
         }
 
         protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { } // 1019：无特效（飞踢）
+        public override void PlayVFX(SkillContext context) { } // 无特效：判定球全程跟随角色，表现即角色本体
     }
 
     public class SkillIceFanTiny : ShotSkillBase
