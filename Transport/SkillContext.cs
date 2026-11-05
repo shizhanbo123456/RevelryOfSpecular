@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Ros.Transport
 {
+    [System.Obsolete]
     public class SkillContext
     {
         public List<int> ints = new();
@@ -24,7 +25,7 @@ namespace Ros.Transport
             foreach (var v in values) floats.Add(v);
         }
     }
-
+    [System.Obsolete]
     public struct SkillContextSerializer
     {
         public static bool Serialize(SkillContext value, byte[] result, ref int indexStart)
