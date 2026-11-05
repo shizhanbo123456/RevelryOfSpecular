@@ -1,12 +1,14 @@
 using UnityEngine;
 
-public class PointTrajectory : BulletTrajectory
+// 定点：位置不随归一化进度变化（原地范围技、陪特效走的子弹用它）
+public class SkillTrajectoryPoint : BulletTrajectory
 {
     private readonly Vector3 point;
 
-    public PointTrajectory(Vector3 point)
+    public SkillTrajectoryPoint(Vector3 point, float duration)
     {
         this.point = point;
+        Duration = duration;
     }
 
     public override Vector3 Lerp(float factor)

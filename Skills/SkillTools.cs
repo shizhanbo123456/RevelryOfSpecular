@@ -154,36 +154,6 @@ namespace Ros.Skill.Utils
                 entity.transform.position.z + dir.z * fallbackDistance);
         }
     }
-    public static class TrialConstructor
-    {
-        public static BulletTrajectory Line(Vector3 from,Vector3 to, float duration)
-        {
-            var t = new LineTrajectory(from, to);
-            t.Duration = duration;
-            return t;
-        }
-
-        public static BulletTrajectory Point(Vector3 point, float duration)
-        {
-            var t = new PointTrajectory(point);
-            t.Duration = duration;
-            return t;
-        }
-
-        public static BulletTrajectory SkyFall(Vector3 from, Vector3 to, float duration, float skyHeight = 30f)
-        {
-            var t = new SkyFallTrajectory(from, to, skyHeight);
-            t.Duration = duration;
-            return t;
-        }
-
-        public static BulletTrajectory Arc(Vector3 from,Vector3 to, float duration, float height = 8f)
-        {
-            var t = new BezierTrajectory(from, from + Vector3.up * height, to + Vector3.up * height, to);
-            t.Duration = duration;
-            return t;
-        }
-    }
     public static class VfxHelper
     {
         public static void PlayAt(SkillVfxKind kind, int index, Vector3 pos, float duration, float scale = 0f)
@@ -260,7 +230,7 @@ namespace Ros.Skill.Utils
         public static void PlayFollow(SkillVfxKind kind, int index, ushort entityId, float lifeTime = 0f)
         {
             if (kind == SkillVfxKind.None) return;
-            var trajectory = new FollowTrajectory(entityId);
+            var trajectory = new SkillTrajectoryFollow(entityId);
             if (lifeTime > 0f) trajectory.Duration = lifeTime;
             PlayOne(kind, index, trajectory);
         }

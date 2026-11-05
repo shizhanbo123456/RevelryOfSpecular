@@ -426,7 +426,7 @@ public class EntityPlayerManager : ClientSubManager
                 offsetY = 0f;
             }
 
-            var trajectory = new FollowTrajectory(view.id, new Vector3(0f, offsetY, 0f));
+            var trajectory = new SkillTrajectoryFollow(view.id, new Vector3(0f, offsetY, 0f));
             trajectory.Duration = Config.buff_vfx_life_time;
             var obj = PlayTrackedVfx(kind, index, trajectory, scale);
             if (obj != null) view.buffVfx[b.type] = obj;

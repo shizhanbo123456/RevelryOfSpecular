@@ -202,7 +202,7 @@ Skills文件夹：
 - 专门做上下变化的技能自己覆盖 `AimPoint`（天罗 / 兵雨 → 自身脚下）；不写瞄准点的 6 个（回锋环 / 腾跃散华 / 旋枪荡 / 静滞矩阵 / 六芒连射 / 六点灼阵）落点由各自轨迹常量决定。
 
 `TargetSelect.AimPos(entity, 夹角, 半径, 射程)` 给非射击类索敌用（防守方 / 塔 / 树），取点口径与上面一致：同样按体中心、水平距离取射程。
-**轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `TrialConstructor.Line(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；也可直接 new 对应 `BulletTrajectory` 子类。
+**轨迹构建**：射击类写 `TrajectoryFor(context, wave, shotIndex, shotsInWave, spread)`（默认 = 扇形 `FanDest` + `SkillTrajectoryLine(origin, dest, BulletLife)`），非射击类写 `CreateTrajectory(context, index)`；轨迹类型见《02-代码架构》「轨迹」节，时长在构造时传入。
 **多目标**：需要锁多个目标时由技能自己决定——客户端表现要用的（如弹跳的 9 个点）写进 `vectors`；纯服务端结算用的目标集合，走 `CollectEnemies` / `CollectInRange` 在 `SkillLogic` 里收集后只给 `OnCast` 消费，该技能 `NeedSendContext` 必须为 false，避免整串 id 顶到包体 256B 上限。多目标的上限与排序规则写进技能常量。
 **命中附加效果**：`AttackData.addEffectEvent`（命中挂 Buff）与 `AttackData.onHit`（命中额外逻辑）；子弹路径由 `BattleManagerCombat.TryHitBullet` 消费、近战球判定由 `SkillBase.StrikeSphere` 消费。`SkillBase` 提供 `ApplyEffect`（命中挂 Buff 回调）、`GiveEffect`（直接挂 Buff）、`PullTo`（命中拉拽）。**击退/击飞不是回调**：力度写在 `AttackData.knockbackPower` 上，由命中管线统一处理（见速度节⑥）。
 **持续型 Buff 表现**：客户端按同步的 `SCEntityDisplayInfo.buffs` 增删特效（仅 `includeRuntime || hasBuffs` 的包触发），映射表见 `Config.buff_vfx`（清单即本文件二章）。**技能里禁止再为 Buff 播持续特效**（不写 `PlayFollow`）——否则同一状态叠两份、且技能那份不随 Buff 消失而清理；因此 `PlayVFX` 允许空实现。每个 Buff 特效必须配 `BulletVfxInfo.hits`（至少一段）：播放时取 `hits[0]`，把它的竖直范围 `center.y ± radius` 等比缩放到实体的 `EntityModelInfo.yRange`——底对底、顶对顶，x/y/z 同倍率缩放，根节点竖直偏移由两者差值算出；rotation 不调、x/z 不做平移（资产保证 `center.x/z = 0`）。缺 hits 的 Buff 特效在启动自检时报错，并在播放时按原始大小兜底。

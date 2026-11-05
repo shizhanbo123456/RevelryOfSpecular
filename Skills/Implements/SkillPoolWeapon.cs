@@ -151,7 +151,7 @@ namespace Ros.Skill
         private const float Turns = 1.5f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 360f / 4f, Turns, BulletLife);
+            => new SkillTrajectoryOrbit((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 360f / 4f, Turns, BulletLife);
     }
 
     // 后撤闪避（短暂闪避 buff）后向前一发
@@ -195,7 +195,7 @@ namespace Ros.Skill
             float angle = 0f;
             for (int i = 0; i <= shotIndex; i++) angle = (float)rng.NextDouble() * 360f;
             Vector3 dir = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-            return TrialConstructor.Line(origin, origin + dir * Radius, BulletLife);
+            return new SkillTrajectoryLine(origin, origin + dir * Radius, BulletLife);
         }
     }
 
@@ -237,7 +237,7 @@ namespace Ros.Skill
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
-            return TrialConstructor.SkyFall(origin, context.vectors[1], BulletLife);
+            return new SkillTrajectorySkyFall(origin, context.vectors[1], BulletLife);
         }
     }
     #endregion
@@ -257,7 +257,7 @@ namespace Ros.Skill
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
-            return new BoomerangTrajectory((ushort)context.ints[0], origin, context.vectors[1]);
+            return new SkillTrajectoryBoomerang((ushort)context.ints[0], origin, context.vectors[1]);
         }
     }
 
@@ -281,7 +281,7 @@ namespace Ros.Skill
             base.PlayVFX(context);
             // 命中后原地静止漂浮：纯表现，不参与判定
             Vector3 end = context.vectors[1];
-            VfxHelper.PlayOne(SkillVfxKind.Weapon, VfxIndex, TrialConstructor.Point(end, HoverTime), VfxScale());
+            VfxHelper.PlayOne(SkillVfxKind.Weapon, VfxIndex, new SkillTrajectoryPoint(end, HoverTime), VfxScale());
         }
     }
 
@@ -319,7 +319,7 @@ namespace Ros.Skill
         private const float Radius = 2f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => new OrbitTrajectory((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 90f, 1.25f, BulletLife);
+            => new SkillTrajectoryOrbit((ushort)context.ints[0], context.vectors[0], Radius, shotIndex * 90f, 1.25f, BulletLife);
     }
 
     public class SkillShortDash : SkillBase
@@ -386,7 +386,7 @@ namespace Ros.Skill
             caster.SetMotion(new MotionDash(DashTime, DashSpeed));
             var hit = new BulletVfxInfo.HitInfo { center = Vector3.zero, radius = MeleeRadius }; // end 留 0 = 全程有效
             var spec = new BulletHitSpec(new[] { hit }, new[] { ConfigDamageRate() }, 1f, DamageInterval, 0f, "飞踢[跟随]");
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), new FollowTrajectory(caster.id), KickTime, spec);
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), new SkillTrajectoryFollow(caster.id), KickTime, spec);
         }
 
         protected override bool NeedSendContext => false;
@@ -433,7 +433,7 @@ namespace Ros.Skill
                 origin = center + rot * new Vector3(side, 0f, -back);
             }
             Vector3 aim = context.vectors[1];
-            return TrialConstructor.Line(origin, aim, BulletLife);
+            return new SkillTrajectoryLine(origin, aim, BulletLife);
         }
     }
 
@@ -532,7 +532,7 @@ namespace Ros.Skill
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
         {
             Vector3 center = context.vectors[1];
-            return TrialConstructor.SkyFall(center, center + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 5)[shotIndex], BulletLife);
+            return new SkillTrajectorySkyFall(center, center + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 5)[shotIndex], BulletLife);
         }
     }
 
@@ -553,7 +553,7 @@ namespace Ros.Skill
         {
             Vector3 center = context.vectors[0];
             Vector3 start = center + Utils.SpreadStyle.CircleDests(center, 1.5f, 6, wave * 60f + shotIndex * 30f)[0];
-            return TrialConstructor.Line(start, context.vectors[1], BulletLife);
+            return new SkillTrajectoryLine(start, context.vectors[1], BulletLife);
         }
     }
 
@@ -578,7 +578,7 @@ namespace Ros.Skill
             Vector3 center = context.vectors[1];
             int idx = (wave * shotsInWave + shotIndex) % 6;
             Vector3 land = center + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 6)[idx];
-            return TrialConstructor.SkyFall(center + Vector3.up * 8f, land, BulletLife);
+            return new SkillTrajectorySkyFall(center + Vector3.up * 8f, land, BulletLife);
         }
     }
 
@@ -614,7 +614,7 @@ namespace Ros.Skill
                 if (stillCaster == null) return;
                 // 落点伤害由 RM[4] 的命中球决定：子弹定在落点陪特效走
                 Tool.BattleManager.ShootBullet(stillCaster, BuildAttack(stillCaster),
-                    TrialConstructor.Point(stillCaster.transform.position, LandVfxLife), LandVfxLife,
+                    new SkillTrajectoryPoint(stillCaster.transform.position, LandVfxLife), LandVfxLife,
                     HitSpec(SkillVfxKind.RangeMagic, 4, VfxScale(1)));
             }, PullTime, 1, false);
         }
@@ -643,7 +643,7 @@ namespace Ros.Skill
             Vector3 center = context.vectors[1];
             int idx = (wave * shotsInWave + shotIndex) % 8;
             Vector3 land = center + Utils.SpreadStyle.CircleDests(Vector3.zero, 4f, 8)[idx];
-            return TrialConstructor.SkyFall(center + Vector3.up * 10f, land, BulletLife);
+            return new SkillTrajectorySkyFall(center + Vector3.up * 10f, land, BulletLife);
         }
     }
 
@@ -753,7 +753,7 @@ namespace Ros.Skill
                 Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
                 var dests = SpreadStyle.FanDests(origin, end, SplitCount, SplitSpread);
                 for (int i = 0; i < SplitCount; i++)
-                    VfxHelper.PlayOne(SkillVfxKind.Bullet, SplitVfx, TrialConstructor.Line(end, dests[i], BulletLife), VfxScale(1));
+                    VfxHelper.PlayOne(SkillVfxKind.Bullet, SplitVfx, new SkillTrajectoryLine(end, dests[i], BulletLife), VfxScale(1));
             }, BulletLife, 1, false);
         }
 
@@ -766,7 +766,7 @@ namespace Ros.Skill
             var attack = BuildAttack(caster);
             var spec = HitSpec(SkillVfxKind.Bullet, SplitVfx, VfxScale(1));
             for (int i = 0; i < SplitCount; i++)
-                Tool.BattleManager.ShootBullet(caster, attack, TrialConstructor.Line(end, dests[i], BulletLife), BulletLife, spec);
+                Tool.BattleManager.ShootBullet(caster, attack, new SkillTrajectoryLine(end, dests[i], BulletLife), BulletLife, spec);
         }
     }
 
@@ -812,7 +812,7 @@ namespace Ros.Skill
         private const float Ring = 2.6f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => TrialConstructor.Point(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 12)[shotIndex], BulletLife);
+            => new SkillTrajectoryPoint(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 12)[shotIndex], BulletLife);
 
     }
 
@@ -847,7 +847,7 @@ namespace Ros.Skill
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
             float[] angles = { -25f, 0f, 25f, 25f, 0f, -25f };
             Vector3 aim = Utils.SpreadStyle.RotateTargetAroundDirection(origin, context.vectors[1], angles[wave % angles.Length]);
-            return TrialConstructor.Line(origin, aim, BulletLife);
+            return new SkillTrajectoryLine(origin, aim, BulletLife);
         }
     }
 
@@ -896,8 +896,7 @@ namespace Ros.Skill
             var points = new Vector3[context.vectors.Count - 1];
             for (int i = 1; i < context.vectors.Count; i++) points[i - 1] = context.vectors[i];
             if (points.Length < 2) return;
-            var trajectory = new PolylineTrajectory(points);
-            trajectory.Duration = JumpLife * (points.Length - 1);
+            var trajectory = new SkillTrajectoryPolyline(points, JumpLife * (points.Length - 1));
             Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), trajectory, trajectory.Duration,
                 HitSpec(SkillVfxKind.Bullet, 5, VfxScale()));
         }
@@ -907,8 +906,7 @@ namespace Ros.Skill
             var points = new Vector3[context.vectors.Count - 1];
             for (int i = 1; i < context.vectors.Count; i++) points[i - 1] = context.vectors[i];
             if (points.Length < 2) return;
-            var trajectory = new PolylineTrajectory(points);
-            trajectory.Duration = JumpLife * (points.Length - 1);
+            var trajectory = new SkillTrajectoryPolyline(points, JumpLife * (points.Length - 1));
             VfxHelper.PlayOne(SkillVfxKind.Bullet, 5, trajectory, VfxScale());
         }
     }
@@ -953,7 +951,7 @@ namespace Ros.Skill
         {
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
             Vector3 dir = Quaternion.Euler(0f, wave * 60f, 0f) * Vector3.forward;
-            return TrialConstructor.Line(origin, origin + dir * FireRange, BulletLife);
+            return new SkillTrajectoryLine(origin, origin + dir * FireRange, BulletLife);
         }
     }
 
@@ -1023,7 +1021,7 @@ namespace Ros.Skill
             }
             // 引爆时刻由 RM[1] 的命中窗口决定（1.0~1.2s），子弹在施放时就位陪特效走完整段
             Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
-                TrialConstructor.Point(center, PullTime), PullTime,
+                new SkillTrajectoryPoint(center, PullTime), PullTime,
                 HitSpec(SkillVfxKind.RangeMagic, 1, VfxScale()));
         }
 
@@ -1047,7 +1045,7 @@ namespace Ros.Skill
         private const float Ring = 3f;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => TrialConstructor.Point(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 6)[shotIndex], BulletLife);
+            => new SkillTrajectoryPoint(context.vectors[0] + Utils.SpreadStyle.CircleDests(Vector3.zero, Ring, 6)[shotIndex], BulletLife);
     }
 
     public class SkillSkyfallSilence : ShotSkillBase
@@ -1063,7 +1061,7 @@ namespace Ros.Skill
         protected override int VfxIndex => 4;
 
         protected override BulletTrajectory TrajectoryFor(SkillContext context, int wave, int shotIndex, int shotsInWave, float spread)
-            => TrialConstructor.SkyFall(context.vectors[1] + Vector3.up * 10f, context.vectors[1], BulletLife);
+            => new SkillTrajectorySkyFall(context.vectors[1] + Vector3.up * 10f, context.vectors[1], BulletLife);
     }
 
     // 自身位置爆炸：击飞 + 灼烧
@@ -1102,7 +1100,7 @@ namespace Ros.Skill
         {
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
             Vector3 dest = FanDest(origin, context.vectors[1], shotIndex, shotsInWave, spread);
-            return TrialConstructor.Arc(origin, dest, BulletLife);
+            return new SkillTrajectoryBezier(origin, dest, BulletLife);
         }
     }
 

@@ -64,7 +64,7 @@ public class VfxManager : MonoBehaviour
         ApplyScale(obj, scale);
         float life = lifeTime > 0f ? lifeTime : trajectory.Duration;
         // 跟随实体的持续表现（护盾/Buff/光环）由持有者决定何时销毁，不吃资产存活时长
-        BulletPlayer.Create(obj, trajectory, trajectory is FollowTrajectory ? life : ResolveLife(vfxPrefab, life), rotation);
+        BulletPlayer.Create(obj, trajectory, trajectory is SkillTrajectoryFollow ? life : ResolveLife(vfxPrefab, life), rotation);
         return obj;
     }
 

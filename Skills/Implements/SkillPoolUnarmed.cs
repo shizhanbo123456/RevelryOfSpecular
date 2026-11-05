@@ -76,7 +76,7 @@ namespace Ros.Skill
             var caster = FindEntity((ushort)context.ints[0]);
             if (caster == null) return;
             Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
-                TrialConstructor.Point(caster.transform.position, SmashLife), SmashLife,
+                new SkillTrajectoryPoint(caster.transform.position, SmashLife), SmashLife,
                 HitSpec(SkillVfxKind.RangeMagic, 6, VfxScale()));
         }
 

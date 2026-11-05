@@ -1,6 +1,7 @@
 using UnityEngine;
 
-public class SkyFallTrajectory : BulletTrajectory
+// 天降：垂直升空 → 高空平移 → 垂直坠落，三段按固定比例分配
+public class SkillTrajectorySkyFall : BulletTrajectory
 {
     private readonly Vector3 start;
     private readonly Vector3 target;
@@ -9,11 +10,12 @@ public class SkyFallTrajectory : BulletTrajectory
     private const float RiseEnd = 0.4f;
     private const float MoveEnd = 0.6f;
 
-    public SkyFallTrajectory(Vector3 start, Vector3 target, float skyHeight = 30f)
+    public SkillTrajectorySkyFall(Vector3 start, Vector3 target, float duration, float skyHeight = 30f)
     {
         this.start = start;
         this.target = target;
         this.skyHeight = skyHeight;
+        Duration = duration;
     }
 
     public override Vector3 Lerp(float factor)
@@ -26,15 +28,13 @@ public class SkyFallTrajectory : BulletTrajectory
 
         if (factor < RiseEnd)
         {
-            // 升空段：起点 → 起点上空
             return Vector3.Lerp(start, skyStart, factor / RiseEnd);
         }
         if (factor < MoveEnd)
         {
-            // 高空平移段：起 点上空 → 目标点上空（视野外，不影响表现）
+            // 高空平移段在视野外，只为把起飞点搬到目标正上方
             return Vector3.Lerp(skyStart, skyTarget, (factor - RiseEnd) / (MoveEnd - RiseEnd));
         }
-        // 坠落段：目标点上空 → 目标点
         return Vector3.Lerp(skyTarget, target, (factor - MoveEnd) / (1f - MoveEnd));
     }
 

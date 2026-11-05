@@ -126,7 +126,7 @@ namespace Ros.Skill
             Vector3 origin = OriginPos(casterId, OriginAnchor, OriginOffset, context.vectors[OriginVector]);
             Vector3 aim = context.vectors[AimVector];
             Vector3 dest = FanDest(origin, aim, shotIndex, shotsInWave, spread);
-            return TrialConstructor.Line(origin, dest, BulletLife);
+            return new SkillTrajectoryLine(origin, dest, BulletLife);
         }
 
         protected static Vector3 FanDest(Vector3 origin, Vector3 aim, int index, int count, float spreadDeg)

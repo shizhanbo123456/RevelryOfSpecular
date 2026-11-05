@@ -92,7 +92,7 @@ namespace Ros.Skill
             if (caster == null || !caster.Alive) return;
             Tool.BattleManager.ShootBullet(caster,
                 BuildAttack(caster, addEffect: ConfigHitBuff(caster, 0)),
-                TrialConstructor.Point(caster.transform.position, Config.power_suppress_vfx_life),
+                new SkillTrajectoryPoint(caster.transform.position, Config.power_suppress_vfx_life),
                 Config.power_suppress_vfx_life,
                 HitSpec(SkillVfxKind.RangeMagic, Config.power_suppress_vfx_index, VfxScale()));
         }
@@ -478,7 +478,7 @@ namespace Ros.Skill
         {
             Vector3 origin = OriginPos((ushort)context.ints[0], OriginAnchor, OriginOffset, context.vectors[0]);
             Vector3 dest = FanDest(origin, context.vectors[1], shotIndex, shotsInWave, spread);
-            return TrialConstructor.Arc(origin, dest, BulletLife);
+            return new SkillTrajectoryBezier(origin, dest, BulletLife);
         }
     }
 

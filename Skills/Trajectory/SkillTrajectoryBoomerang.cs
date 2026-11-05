@@ -1,13 +1,13 @@
 using UnityEngine;
 
 // 回旋：前半程飞到最远点，后半程回到施法者"当前"位置
-public class BoomerangTrajectory : BulletTrajectory
+public class SkillTrajectoryBoomerang : BulletTrajectory
 {
     private readonly ushort casterId;
     private readonly Vector3 fallbackCaster;
     private readonly Vector3 outPoint;
 
-    public BoomerangTrajectory(ushort casterId, Vector3 fallbackCaster, Vector3 outPoint)
+    public SkillTrajectoryBoomerang(ushort casterId, Vector3 fallbackCaster, Vector3 outPoint)
     {
         this.casterId = casterId;
         this.fallbackCaster = fallbackCaster;

@@ -4,7 +4,7 @@ using Ros.Skill.Utils;
 using Ros.Transport;
 using UnityEngine;
 
-// 跳跃散布：子弹按 skillTargets 顺序逐点穿过（链首通常放施法者当起点），每段按距离/速度匀速
+// 弹射散布：子弹按 skillTargets 顺序逐点穿过（链首通常放施法者当起点），每段按距离/速度匀速
 public struct SkillSpreadJump
 {
     public List<SkillTarget> skillTargets;
@@ -14,9 +14,9 @@ public struct SkillSpreadJump
     {
         if (skillTargets == null || skillTargets.Count < 2)
             throw new System.ArgumentException(
-                $"跳跃散布至少需要 2 个点，收到 {(skillTargets == null ? 0 : skillTargets.Count)}");
+                $"弹射散布至少需要 2 个点，收到 {(skillTargets == null ? 0 : skillTargets.Count)}");
         if (bulletSpeed <= 0f)
-            throw new System.ArgumentException($"跳跃散布需要正的子弹速度，收到 {bulletSpeed}");
+            throw new System.ArgumentException($"弹射散布需要正的子弹速度，收到 {bulletSpeed}");
         this.skillTargets = skillTargets;
         this.bulletSpeed = bulletSpeed;
     }
@@ -55,7 +55,7 @@ public struct SkillSpreadJump
             }
             totalLength = sum;
             if (totalLength <= 0.0001f)
-                throw new System.ArgumentException("跳跃散布的链长为 0：所有点位重合，检查索敌结果");
+                throw new System.ArgumentException("弹射散布的链长为 0：所有点位重合，检查索敌结果");
             Duration = totalLength / spread.bulletSpeed;
         }
 

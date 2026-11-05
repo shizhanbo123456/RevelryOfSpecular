@@ -1,13 +1,13 @@
 using UnityEngine;
 
-// 折线：按弧长匀速走完给定点序列（弹跳链等"释放时就算好全部落点"的技能用它）
-public class PolylineTrajectory : BulletTrajectory
+// 折线：按弧长匀速走完给定点序列
+public class SkillTrajectoryPolyline : BulletTrajectory
 {
     private readonly Vector3[] points;
     private readonly float[] cumulative;
     private readonly float totalLength;
 
-    public PolylineTrajectory(Vector3[] points)
+    public SkillTrajectoryPolyline(Vector3[] points, float duration)
     {
         if (points == null || points.Length < 2) throw new System.ArgumentException("折线至少需要 2 个点");
         this.points = points;
@@ -19,6 +19,7 @@ public class PolylineTrajectory : BulletTrajectory
             cumulative[i] = sum;
         }
         totalLength = sum;
+        Duration = duration;
     }
 
     public override Vector3 Lerp(float factor)

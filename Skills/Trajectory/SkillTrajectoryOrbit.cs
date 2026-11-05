@@ -1,7 +1,7 @@
 using UnityEngine;
 
-// 环绕：绕某个实体转圈（起点角度固定、圈数固定，双端按实体 id 取实时位置）
-public class OrbitTrajectory : BulletTrajectory
+// 环绕：绕某个实体转圈（起始角与圈数固定，两端按实体 id 取实时位置）
+public class SkillTrajectoryOrbit : BulletTrajectory
 {
     private readonly ushort centerId;
     private readonly Vector3 fallbackCenter;
@@ -10,8 +10,8 @@ public class OrbitTrajectory : BulletTrajectory
     private readonly float turns;
     private readonly float height;
 
-    public OrbitTrajectory(ushort centerId, Vector3 fallbackCenter, float radius, float startAngleDeg, float turns,
-        float duration, float height = 0f)
+    public SkillTrajectoryOrbit(ushort centerId, Vector3 fallbackCenter, float radius, float startAngleDeg,
+        float turns, float duration, float height = 0f)
     {
         this.centerId = centerId;
         this.fallbackCenter = fallbackCenter;
@@ -19,7 +19,7 @@ public class OrbitTrajectory : BulletTrajectory
         this.startAngleDeg = startAngleDeg;
         this.turns = turns;
         this.height = height;
-        Duration = duration; // 不给默认值会让表现按 1s 归一化，转速与持续时间都和判定对不上
+        Duration = duration;
     }
 
     public override Vector3 Lerp(float factor)

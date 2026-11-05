@@ -161,7 +161,7 @@ namespace Ros.Skill
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
             Vector3 origin = context.vectors[0]; // 塔/树是静止单位，直接用包里的施放点
-            return TrialConstructor.Line(origin, context.vectors[1], BulletFlight);
+            return new SkillTrajectoryLine(origin, context.vectors[1], BulletFlight);
         }
 
         protected override void OnCast(SkillContext context)
@@ -225,7 +225,7 @@ namespace Ros.Skill
             {
                 if (caster == null) return;
                 Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
-                    TrialConstructor.Point(at, BurstLife), BurstLife,
+                    new SkillTrajectoryPoint(at, BurstLife), BurstLife,
                     HitSpec(SkillVfxKind.RangeMagic, BurstVfx, VfxScale(1), ConfigDamageRate(1)));
             }, BulletFlight, 1, false);
         }
@@ -276,7 +276,7 @@ namespace Ros.Skill
 
         public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
         {
-            return TrialConstructor.Point(context.vectors[1], SporeLife); // 点轨迹 = 落点定住不动
+            return new SkillTrajectoryPoint(context.vectors[1], SporeLife); // 点轨迹 = 落点定住不动
         }
 
         protected override void OnCast(SkillContext context)
