@@ -24,7 +24,8 @@ namespace Ros.Transport
     // 一个波次包：SkillId / SkillWave / caster 是每个包都有的头，其余由技能类按自己的顺序写进 buffer
     public class SCSkillDisplayContext
     {
-        public const int BufferSize = 256;
+        // EnsTemporaryBuffer 256B（首位是函数号）− 线上头 18B = payload 可写上限
+        public const int BufferSize = 237;
 
         public byte SkillId;
         public byte SkillWave;
@@ -36,6 +37,7 @@ namespace Ros.Transport
 
         public SCSkillDisplayContext()
         {
+            // 池按 2 的幂分档，实际给的数组可能比预算大，写入一律以 BufferSize 为准
             buffer = BytesPool.GetBuffer(BufferSize);
         }
 
@@ -51,25 +53,25 @@ namespace Ros.Transport
         public void WriteByte(byte value)
         {
             if (!ByteSerializer.Serialize(value, buffer, ref cursor)) Overflow(1);
-            length = cursor;
+            Commit(1);
         }
 
         public void WriteInt(int value)
         {
             if (!IntSerializer.Serialize(value, buffer, ref cursor)) Overflow(4);
-            length = cursor;
+            Commit(4);
         }
 
         public void WriteFloat(float value)
         {
             if (!FloatSerializer.Serialize(value, buffer, ref cursor)) Overflow(4);
-            length = cursor;
+            Commit(4);
         }
 
         public void WriteVector3(Vector3 value)
         {
             if (!Vector3Serializer.Serialize(value, buffer, ref cursor)) Overflow(12);
-            length = cursor;
+            Commit(12);
         }
 
         // 目标占 14B：id(2) + pos(12)
@@ -77,7 +79,7 @@ namespace Ros.Transport
         {
             if (!UshortSerializer.Serialize(value.id, buffer, ref cursor)) Overflow(2);
             if (!Vector3Serializer.Serialize(value.pos, buffer, ref cursor)) Overflow(14);
-            length = cursor;
+            Commit(14);
         }
         #endregion
 
@@ -115,10 +117,17 @@ namespace Ros.Transport
         }
         #endregion
 
+        // 池给的数组可能大于预算，按 BufferSize 卡：超出即整包放不进 EnsTemporaryBuffer
+        private void Commit(int need)
+        {
+            if (cursor > BufferSize) Overflow(need);
+            length = cursor;
+        }
+
         private void Overflow(int need)
         {
             throw new System.Exception(
-                $"[技能包] 超长：skill={SkillId} wave={SkillWave} 已写 {cursor} 字节，本项需 {need}，上限 {buffer.Length}");
+                $"[技能包] 超长：skill={SkillId} wave={SkillWave} 已写 {cursor} 字节，本项需 {need}，上限 {BufferSize}");
         }
 
         private void EnsureRead(int need)
@@ -156,8 +165,8 @@ namespace Ros.Transport
             Vector3 casterPos = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
             context.caster = new SkillTarget(casterId, casterPos);
             int length = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex);
-            if (length > context.buffer.Length)
-                throw new System.Exception($"[技能包] payload 长度 {length} 超出缓冲 {context.buffer.Length}");
+            if (length > SCSkillDisplayContext.BufferSize)
+                throw new System.Exception($"[技能包] payload 长度 {length} 超出预算 {SCSkillDisplayContext.BufferSize}");
             for (int i = 0; i < length; i++)
             {
                 context.buffer[i] = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex);

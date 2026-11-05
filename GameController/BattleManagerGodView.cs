@@ -124,14 +124,16 @@ public partial class BattleManager
         return info;
     }
 
-    // buff 复用实体表现包的同一份数据（effectController 的运行时快照）
+    // buff 复用实体表现包的同一份数据（effectController 的运行时快照），条数按同一口径截断
     private static void FillGodViewBuffs(EntityData entity, SCGodViewEntityDetail info)
     {
         var display = entity.GetDisplayInfo(true);
         if (display.buffs == null) return;
+        int max = SyncRanges.MaxBuffCount; // global_variables.sync_max_buff_count
         foreach (var buff in display.buffs)
         {
             if (buff == null) continue;
+            if (info.buffs.Count >= max) break;
             info.buffs.Add(new SCGodViewEntityDetail.Buff
             {
                 type = (byte)buff.type,
