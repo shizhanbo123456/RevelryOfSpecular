@@ -19,68 +19,36 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillPunchLeft;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
     }
 
     public class SkillPunchRight : SkillBase
     {
         public override int Id => (int)SkillType.SkillPunchRight;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
     }
 
     public class SkillPunchSmash : SkillBase
     {
         public override int Id => (int)SkillType.SkillPunchSmash;
+
+        private const int Vfx = 6;
         private const float SmashLife = 0.6f;
 
-        public override SkillContext SkillLogic(EntityData entity)
+        // 伤害范围取 RM[6] 的命中球，子弹定在原地陪特效走完
+        protected override void OnCast(EntityData caster)
         {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position);
-            return context;
-        }
-
-        // 有特效：伤害范围取 RM[6] 的命中球，子弹定在原地陪特效走完
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null) return;
+            Vector3 at = caster.transform.position;
             Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
-                new SkillTrajectoryPoint(caster.transform.position, SmashLife), SmashLife,
-                HitSpec(SkillVfxKind.RangeMagic, 6, VfxScale()));
+                new SkillTrajectoryPoint(at, SmashLife), SmashLife,
+                HitSpec(SkillVfxKind.RangeMagic, Vfx, VfxScale()));
+            SendWave(caster, 0, context => context.WriteVector3(at));
         }
 
-        public override void PlayVFX(SkillContext context)
-            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, 6, context.vectors[0], SmashLife, VfxScale());
+        public override void PlayWave(SCSkillDisplayContext context)
+            => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, Vfx, context.ReadVector3(), SmashLife, VfxScale());
     }
 }

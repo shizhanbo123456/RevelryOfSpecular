@@ -128,4 +128,42 @@ namespace Ros.Transport
                 $"[技能包] 读越界：skill={SkillId} wave={SkillWave} 已读 {cursor} / {length} 字节，本项需 {need}");
         }
     }
+
+    // 线上布局：SkillId(1) + SkillWave(1) + caster.id(2) + caster.pos(12) + payload 长度(2) + payload
+    public struct SCSkillDisplayContextSerializer
+    {
+        public static bool Serialize(SCSkillDisplayContext value, byte[] result, ref int indexStart)
+        {
+            if (value == null) throw new System.Exception("[技能包] 序列化收到空上下文");
+            if (!ByteSerializer.Serialize(value.SkillId, result, ref indexStart)) return false;
+            if (!ByteSerializer.Serialize(value.SkillWave, result, ref indexStart)) return false;
+            if (!UshortSerializer.Serialize(value.caster.id, result, ref indexStart)) return false;
+            if (!Vector3Serializer.Serialize(value.caster.pos, result, ref indexStart)) return false;
+            if (!UshortSerializer.Serialize((ushort)value.length, result, ref indexStart)) return false;
+            for (int i = 0; i < value.length; i++)
+            {
+                if (!ByteSerializer.Serialize(value.buffer[i], result, ref indexStart)) return false;
+            }
+            return true;
+        }
+
+        public static SCSkillDisplayContext Deserialize(byte[] data, ref int indexStart, int invalidIndex)
+        {
+            var context = new SCSkillDisplayContext();
+            context.SkillId = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            context.SkillWave = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            ushort casterId = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            Vector3 casterPos = Vector3Serializer.Deserialize(data, ref indexStart, invalidIndex);
+            context.caster = new SkillTarget(casterId, casterPos);
+            int length = UshortSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            if (length > context.buffer.Length)
+                throw new System.Exception($"[技能包] payload 长度 {length} 超出缓冲 {context.buffer.Length}");
+            for (int i = 0; i < length; i++)
+            {
+                context.buffer[i] = ByteSerializer.Deserialize(data, ref indexStart, invalidIndex);
+            }
+            context.length = length;
+            return context;
+        }
+    }
 }

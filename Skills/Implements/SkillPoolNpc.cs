@@ -25,197 +25,105 @@ namespace Ros.Skill
     {
         public override int Id => (int)SkillType.SkillZombieClawR;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
     }
 
     public class SkillZombieClawL : SkillBase
     {
         public override int Id => (int)SkillType.SkillZombieClawL;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
     }
 
     public class SkillEliteZombieClawR : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawR;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster).position, MeleeRadius, BuildAttack(caster));
     }
 
     public class SkillEliteZombieClawL : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieClawL;
 
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
-        }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { }
+        protected override void OnCast(EntityData caster)
+            => StrikeSphere(caster, HandPos(caster, leftHand: true).position, MeleeRadius, BuildAttack(caster));
     }
 
+    // 血嚎：自身与同阵营半径内的单位挂增益，半径读第 16 列
     public class SkillEliteZombieScream : SkillBase
     {
         public override int Id => (int)SkillType.SkillEliteZombieScream;
 
-        public override SkillContext SkillLogic(EntityData entity)
+        protected override void OnCast(EntityData caster)
         {
-            var context = new SkillContext();
-            context.AddInts(entity.id);
-            context.AddVectors(entity.transform.position);
-            Utils.TargetSelect.SetEntitiesInCampToBuffer(entity.camp);
-            for (int i = 0; i < Utils.TargetSelect.TargetBuffer.Count; i++)
-                context.AddInts(Utils.TargetSelect.TargetBuffer[i].id);
-            return context;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            Vector3 center = context.vectors[0];
-            for (int i = 1; i < context.ints.Count; i++)
+            TargetSelect.SetEntitiesInCampToBuffer(caster.camp);
+            Vector3 center = caster.transform.position;
+            float sqr = TargetRadius * TargetRadius;
+            for (int i = 0; i < TargetSelect.TargetBuffer.Count; i++)
             {
-                var ally = BattleManager.GetEntity((ushort)context.ints[i]);
-                if (ally == null || (ally.transform.position - center).sqrMagnitude > TargetRadius * TargetRadius) continue;
+                EntityData ally = TargetSelect.TargetBuffer[i];
+                if (ally == null || (ally.transform.position - center).sqrMagnitude > sqr) continue;
                 ApplyConfigBuff(caster, ally, 0);
             }
         }
-
-        protected override bool NeedSendContext => false;
-        public override void PlayVFX(SkillContext context) { } // buff 持续表现由客户端按 effect.csv 统一播
     }
     #endregion
 
     #region 水晶雕像 / 中立雕像
-    // 孢子喷射：从体中心射出弹体特效
-    public abstract class CrystalStatueSporeShot : SkillBase
-    {
-        protected const float BulletFlight = 0.6f; // 弹道时长；灵火喷吐按同一时刻在落点起爆
-        protected abstract int BulletVfx { get; }
-
-        // 落点：默认朝体中心、水平距离取射程；灵火喷吐改为目标脚部实际位置
-        protected virtual Vector3 AimPoint(EntityData entity)
-            => TargetSelect.AimPos(entity, TargetSector, TargetRadius, CastRange);
-
-        public override SkillContext SkillLogic(EntityData entity)
-        {
-            var context = new SkillContext();
-            // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
-            Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
-            context.AddInts(entity.id);
-            context.AddVectors(origin, AimPoint(entity));
-            return context;
-        }
-
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
-        {
-            Vector3 origin = context.vectors[0]; // 塔/树是静止单位，直接用包里的施放点
-            return new SkillTrajectoryLine(origin, context.vectors[1], BulletFlight);
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), CreateTrajectory(context, 0), 0f,
-                HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale()));
-        }
-
-        public override void PlayVFX(SkillContext context)
-            => VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0), VfxScale());
-    }
-
-    public class SkillCrystalStatueSporeA : CrystalStatueSporeShot
+    // 孢子喷射：塔/树一律从体中心射出，落点朝范围内最近敌人、不用射程归一化
+    public class SkillCrystalStatueSporeA : SkillBase
     {
         public override int Id => (int)SkillType.SkillCrystalStatueSporeA;
-        protected override int BulletVfx => 25;
+
+        private const int BulletVfx = 25;
+        private const float BulletFlight = 0.6f;
+
+        protected override void OnCast(EntityData caster)
+        {
+            Vector3 origin = EntityAnchor.UpCenter.GetTransform(caster.ModelInfo, caster.anim).position;
+            Vector3 aim = TargetSelect.AimPos(caster, TargetSector, TargetRadius, CastRange);
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
+                new SkillTrajectoryLine(origin, aim, BulletFlight), 0f,
+                HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale()));
+            SendWave(caster, 0, context => { context.WriteVector3(origin); context.WriteVector3(aim); });
+        }
+
+        public override void PlayWave(SCSkillDisplayContext context)
+        {
+            Vector3 origin = context.ReadVector3();
+            Vector3 aim = context.ReadVector3();
+            VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, new SkillTrajectoryLine(origin, aim, BulletFlight), VfxScale());
+        }
     }
 
-    // 灵火喷吐：塔带灵火时的普攻，子弹打敌人脚部，到点追加一次原地灵火爆炸（爆炸特效与 132 崩拳同一个 RM[6]）
+    // 灵火喷吐：塔带灵火时的普攻，子弹打敌人脚部，到点追加一次原地灵火爆炸（与 132 崩拳同一个 RM[6]）
     // 第 13 列 = 子弹倍率|灵火倍率，第 11 列 = 子弹尺寸|灵火尺寸
-    public class SkillCrystalStatueSporeBlaze : CrystalStatueSporeShot
+    public class SkillCrystalStatueSporeBlaze : SkillBase
     {
         public override int Id => (int)SkillType.SkillCrystalStatueSporeBlaze;
-        protected override int BulletVfx => 25;
 
-        private const int BurstVfx = 6;     // RangeMagic[6]：与 132 崩拳同一爆炸特效
-        private const float BurstLife = 0.6f; // 爆炸命中球存活时长；资产填了存活时长则以资产为准
+        private const int BulletVfx = 25;
+        private const int BurstVfx = 6;
+        private const float BulletFlight = 0.6f;
+        private const float BurstLife = 0.6f;
 
-        // 打敌人脚部：不按射程归一化，否则子弹会飞过目标、爆炸点落不到脚下
-        protected override Vector3 AimPoint(EntityData entity)
+        protected override void OnCast(EntityData caster)
         {
-            var target = ResolveTarget(entity);
-            return target != null
+            Vector3 origin = EntityAnchor.UpCenter.GetTransform(caster.ModelInfo, caster.anim).position;
+            // 打敌人脚部：不按射程归一化，否则子弹会飞过目标、爆炸点落不到脚下
+            EntityData target = ResolveTarget(caster);
+            Vector3 aim = target != null
                 ? target.transform.position
-                : entity.transform.position + entity.transform.forward * CastRange;
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null || Tool.BattleManager == null) return;
-            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster), CreateTrajectory(context, 0), 0f,
+                : caster.transform.position + caster.transform.forward * CastRange;
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster),
+                new SkillTrajectoryLine(origin, aim, BulletFlight), 0f,
                 HitSpec(SkillVfxKind.Bullet, BulletVfx, VfxScale(0), ConfigDamageRate(0)));
-            Burst(caster, context.vectors[1]);
-        }
-
-        public override void PlayVFX(SkillContext context)
-        {
-            VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, CreateTrajectory(context, 0), VfxScale(0));
-            Vector3 at = context.vectors[1];
-            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, BurstVfx, at, BurstLife, VfxScale(1)),
-                BulletFlight, 1, false);
+            Burst(caster, aim);
+            SendWave(caster, 0, context => { context.WriteVector3(origin); context.WriteVector3(aim); });
         }
 
         // 子弹到点的灵火爆炸：伤害取第 13 列第 2 项，两端同一时刻同一点位各自创建
@@ -229,8 +137,16 @@ namespace Ros.Skill
                     HitSpec(SkillVfxKind.RangeMagic, BurstVfx, VfxScale(1), ConfigDamageRate(1)));
             }, BulletFlight, 1, false);
         }
-    }
 
+        public override void PlayWave(SCSkillDisplayContext context)
+        {
+            Vector3 origin = context.ReadVector3();
+            Vector3 at = context.ReadVector3();
+            VfxHelper.PlayOne(SkillVfxKind.Bullet, BulletVfx, new SkillTrajectoryLine(origin, at, BulletFlight), VfxScale(0));
+            Timer.AddTimer(0, _ => VfxHelper.PlayAt(SkillVfxKind.RangeMagic, BurstVfx, at, BurstLife, VfxScale(1)),
+                BulletFlight, 1, false);
+        }
+    }
 
     // 疫孢吐息：在目标位置落一座疫孢阵法（定点，不飞行），命中挂 Poison
     public class SkillNeutralStatueSpore : SkillBase
@@ -251,20 +167,19 @@ namespace Ros.Skill
             }
         }
 
-        public override SkillContext SkillLogic(EntityData entity)
+        protected override void OnCast(EntityData caster)
         {
-            var context = new SkillContext();
-            // 塔/树一律从体中心发射，不走武器槽顶部；包内只留施法者 id
-            Vector3 origin = EntityAnchor.UpCenter.GetTransform(entity.ModelInfo, entity.anim).position;
-            context.AddInts(entity.id);
-            context.AddVectors(origin, FormationPos(entity));
-            return context;
+            Vector3 at = FormationPos(caster);
+            Tool.BattleManager.ShootBullet(caster, BuildAttack(caster, addEffect: ConfigHitBuff(caster, 0)),
+                new SkillTrajectoryPoint(at, SporeLife), SporeLife,
+                HitSpec(SkillVfxKind.RangeMagic, SporeVfx, VfxScale()));
+            SendWave(caster, 0, context => context.WriteVector3(at));
         }
 
         // 阵法落点：目标所在 x/z，高度 = 地形表面 + 0.2；范围内没有敌人时退到自身面向的射程处
         private Vector3 FormationPos(EntityData entity)
         {
-            var target = ResolveTarget(entity);
+            EntityData target = ResolveTarget(entity);
             Vector3 at = target != null
                 ? target.transform.position
                 : entity.transform.position + entity.transform.forward * CastRange;
@@ -274,24 +189,10 @@ namespace Ros.Skill
             return new Vector3(at.x, groundY + FormationSurfaceOffset, at.z);
         }
 
-        public override BulletTrajectory CreateTrajectory(SkillContext context, int index)
+        public override void PlayWave(SCSkillDisplayContext context)
         {
-            return new SkillTrajectoryPoint(context.vectors[1], SporeLife); // 点轨迹 = 落点定住不动
-        }
-
-        protected override void OnCast(SkillContext context)
-        {
-            var caster = FindEntity((ushort)context.ints[0]);
-            if (caster == null || Tool.BattleManager == null) return;
-            var attack = BuildAttack(caster,
-                addEffect: ConfigHitBuff(caster, 0));
-            Tool.BattleManager.ShootBullet(caster, attack, CreateTrajectory(context, 0), SporeLife,
-                HitSpec(SkillVfxKind.RangeMagic, SporeVfx, VfxScale()));
-        }
-
-        public override void PlayVFX(SkillContext context)
-        {
-            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, SporeVfx, CreateTrajectory(context, 0), VfxScale());
+            Vector3 at = context.ReadVector3();
+            VfxHelper.PlayOne(SkillVfxKind.RangeMagic, SporeVfx, new SkillTrajectoryPoint(at, SporeLife), VfxScale());
         }
     }
     #endregion

@@ -115,10 +115,10 @@ public class ClientSkillManager : ClientSubManager
 
     #region 表现
     // 服务器只在攻击帧下发，客户端收到即播；不挂 anim.onAttack（那是赋值覆盖，会顶掉该动画本来的攻击帧事件）
-    public void OnSkillCast(int skillId, SkillContext context)
+    public void OnSkillCast(SCSkillDisplayContext context)
     {
-        if (context == null || context.ints.Count == 0) return;
-        SkillManager.PlayVFX(skillId, context);
+        if (context == null) return;
+        SkillManager.PlayWave(context);
     }
     #endregion
 

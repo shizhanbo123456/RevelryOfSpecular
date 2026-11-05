@@ -1,8 +1,8 @@
-﻿using Ros.Transport;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 using Ros.Skill.Utils;
+using Ros.Transport;
+using UnityEngine;
 
 namespace Ros.Skill
 {
@@ -11,6 +11,7 @@ namespace Ros.Skill
     public abstract class SkillBase
     {
         public abstract int Id { get; }
+
         // 射程读 skill.csv 第 19 列：既是弹道瞄准距离，也是 AI 的作战距离；留空 = 0 = 无射程
         public float CastRange => ConfigManager.SkillConfig.Get(Id).castRange;
         // 索敌口径读 skill.csv 第 15/16 列：夹角 <=0.1 = 不索敌，>179.9 = 不限方向，半径 >9999 = 不限距离
@@ -30,21 +31,58 @@ namespace Ros.Skill
             }
         }
 
-        //服务器使用技能主入口，内部生成上下文，并根据上下文生成轨迹发射子弹，并传出Context给客户端
-        public abstract SkillContext SkillLogic(EntityData entity);
-        //服务器客户端共用，确保轨迹一致
-        public virtual BulletTrajectory CreateTrajectory(SkillContext context, int index)
+        // 服务器唯一结算入口：直接拿实体干活，不经过任何上下文
+        protected abstract void OnCast(EntityData caster);
+
+        // 客户端表现入口：按波次 id 分派，只做表现
+        public virtual void PlayWave(SCSkillDisplayContext context) { }
+
+        // 施放入口：按下时先摇攻击动画，动画到攻击帧时才结算（此时索敌/起点基于位移后的实时位置）
+        public void BeginCast(EntityData entity, int skillId)
         {
-            return null;
+            BroadcastSpecial(skillId); // 每次施放请求只播报一次，不走 CastNow（多段攻击帧会重复）
+            if (!HasCastAnim || entity.anim == null)
+            {
+                OnCast(entity);
+                return;
+            }
+            if (CastAnim == EntityAnim.AttackType.Attack_Weapon_R
+                || CastAnim == EntityAnim.AttackType.Attack_Weapon_L
+                || CastAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
+            {
+                entity.heldWeapon = Weapon;
+            }
+            entity.anim.onAttack = _ => OnCast(entity); // 不置空回调：多段攻击帧逐次结算技能
+            entity.anim.DoAttack(CastAnim);
         }
-        protected abstract void OnCast(SkillContext context);
-        //客户端主入口，用于表现特效
-        public abstract void PlayVFX(SkillContext context);
-        // context 含服务端结算数据，客户端只经 PlayVFX 消费；PlayVFX 为空的技能置 false，避免服务端私有数据上包
-        protected virtual bool NeedSendContext => true;
 
+        // 发一个波次包：头由基类填，payload 由技能自己按读端同样的顺序写
+        protected void SendWave(EntityData caster, int wave, Action<SCSkillDisplayContext> write)
+        {
+            if (caster == null) throw new ArgumentNullException(nameof(caster), "发波次包需要施法者实体");
+            if (wave < 0 || wave > byte.MaxValue) throw new ArgumentOutOfRangeException(nameof(wave), wave, "波次 id 超出 1 字节");
+            var context = new SCSkillDisplayContext();
+            context.SkillId = (byte)Id;
+            context.SkillWave = (byte)wave;
+            context.caster = new SkillTarget(caster);
+            write(context);
+            if (Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(context);
+            else PlayWave(context); // 单机测试场景没有网络，直接本地播一遍表现
+        }
 
-        #region 框架工具（攻击结算 / 特效播放）
+        // 配表第 17 列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
+        private void BroadcastSpecial(int skillId)
+        {
+            if (!BattleManager.AtServer || Tool.NetworkManager == null) return;
+            if (!ConfigManager.SkillConfig.Get(skillId).broadcast) return;
+            Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
+            {
+                type = SCBattleEvent.Type.SkillBroadcast,
+                textId = skillId,
+            });
+        }
+
+        #region 框架工具（起点 / 落点 / 攻击结算）
         private static readonly EntityData[] s_hitBuffer = new EntityData[50];
 
         protected static EntityAnchorInfo HandPos(EntityData entity, bool leftHand = false)
@@ -54,11 +92,31 @@ namespace Ros.Skill
                 .GetTransform(entity.ModelInfo, entity.anim);
         }
 
-        // —— 显式参数原语：不解析 SkillContext，参数含义由各技能自己决定 ——
+        // 起点 = 实体骨骼锚点 + 实体朝向下的固定偏移
+        protected static Vector3 OriginPos(EntityData entity, EntityAnchor anchor, Vector3 offset)
+        {
+            Vector3 p = anchor.GetTransform(entity.ModelInfo, entity.anim).position;
+            return p + entity.transform.rotation * offset;
+        }
 
-        // 本次施法的索敌目标：只在服务器 SkillLogic 里解析一次并随包下发，客户端不复算
+        // 本次施法的索敌目标：服务器结算时解析一次，客户端用包里下发的点位，不复算
         protected EntityData ResolveTarget(EntityData entity)
             => TargetSelect.GetNearestEnemy(entity, TargetRadius, TargetSector);
+
+        // 落点口径（见《03-技能与Buff总表》三章）：不索敌 = 朝面向、水平距离取射程、与起点同高；
+        // 索敌 = 朝目标体中心、水平距离仍取射程、高度取体中心
+        protected Vector3 Aim(EntityData caster, Vector3 origin)
+        {
+            Vector3 forward = caster.transform.forward;
+            EntityData target = ResolveTarget(caster);
+            if (target == null)
+                return new Vector3(origin.x + forward.x * CastRange, origin.y, origin.z + forward.z * CastRange);
+            Vector3 body = TargetSelect.BodyPos(target);
+            Vector3 flat = body - caster.transform.position;
+            flat.y = 0f;
+            Vector3 dir = flat.sqrMagnitude > 0.0001f ? flat.normalized : forward;
+            return new Vector3(origin.x + dir.x * CastRange, body.y, origin.z + dir.z * CastRange);
+        }
 
         // 按配表半径收集场内敌对目标（半径 >9999 = 不限距离）；center 由技能决定
         protected void CollectEnemies(EntityData caster, Vector3 center)
@@ -70,44 +128,6 @@ namespace Ros.Skill
 
         // 按 id 找实体（服务器权威容器；客户端查不到返回 null）
         protected static EntityData FindEntity(ushort id) => BattleManager.GetEntity(id);
-
-        // 施放入口：按下时先摇攻击动画，动画到攻击帧时再生成上下文（索敌基于位移后的实时位置）、结算并下发表现
-        public void BeginCast(EntityData entity, int skillId)
-        {
-            BroadcastSpecial(skillId); // 每次施放请求只播报一次，不走 CastNow（多段攻击帧会重复）
-            if (!HasCastAnim || entity.anim == null)
-            {
-                CastNow(entity, skillId);
-                return;
-            }
-            if (CastAnim == EntityAnim.AttackType.Attack_Weapon_R
-                || CastAnim == EntityAnim.AttackType.Attack_Weapon_L
-                || CastAnim == EntityAnim.AttackType.Attack_Weapon_R_And_L)
-            {
-                entity.heldWeapon = Weapon;
-            }
-            entity.anim.onAttack = _ => CastNow(entity, skillId); // 不置空回调：多段攻击帧逐次结算技能
-            entity.anim.DoAttack(CastAnim);
-        }
-
-        private void CastNow(EntityData entity, int skillId)
-        {
-            SkillContext context = SkillLogic(entity);
-            OnCast(context);
-            if (NeedSendContext && Tool.NetworkManager != null) Tool.NetworkManager.SendSkillCast(skillId, context);
-        }
-
-        // 配表第 17 列：特殊技能施放时向全客户端播报，客户端据此弹战斗界面的重要事件 banner
-        private static void BroadcastSpecial(int skillId)
-        {
-            if (!BattleManager.AtServer || Tool.NetworkManager == null) return;
-            if (!ConfigManager.SkillConfig.Get(skillId).broadcast) return;
-            Tool.NetworkManager.SendBattleEvent(new SCBattleEvent
-            {
-                type = SCBattleEvent.Type.SkillBroadcast,
-                textId = skillId,
-            });
-        }
 
         // 击退力度默认读 skill.csv，个别技能可显式覆盖；伤害范围由命中球决定，不在攻击数据里
         // 破霸体读第 20 列，伤害倍率读第 13 列：代码不再传这两项
@@ -216,7 +236,7 @@ namespace Ros.Skill
                 VfxHitSource.GetLifeTime(kind, vfxIndex), $"{kind}[{vfxIndex}]");
         }
 
-        // 近战结算：伤害倍率同样只认 skill.csv 第 13 列（单段取第 0 项，空 = 1）
+        // 无特效近战的球形判定：伤害倍率同样只认 skill.csv 第 13 列（单段取第 0 项，空 = 1）
         protected void StrikeSphere(EntityData entity, Vector3 center, float radius, AttackData attack)
         {
 #if UNITY_EDITOR

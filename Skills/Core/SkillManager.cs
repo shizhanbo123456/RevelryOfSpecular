@@ -45,14 +45,15 @@ public static class SkillManager
         return ids;
     }
 
-    public static void PlayVFX(int id, SkillContext context)
+    public static void PlayWave(SCSkillDisplayContext context)
     {
-        if (!s_map.TryGetValue(id, out var skill))
+        if (context == null) throw new System.ArgumentNullException(nameof(context), "波次包为空");
+        if (!s_map.TryGetValue(context.SkillId, out var skill))
         {
-            Debug.LogWarning($"未知技能 id：{id}");
+            Debug.LogError($"[技能] id={context.SkillId} 未注册，无法播放表现");
             return;
         }
-        skill.PlayVFX(context);
+        skill.PlayWave(context);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

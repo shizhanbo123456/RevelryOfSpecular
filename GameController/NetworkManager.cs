@@ -551,9 +551,9 @@ public partial class NetworkManager : EnsBehaviour
         CallFuncRpc(ClientReceiveDayNightInfoLocal, SendTo.ExcludeSender, Delivery.Strive, info);
     }
 
-    public void SendSkillCast(int skillId, SkillContext context)
+    public void SendSkillCast(SCSkillDisplayContext context)
     {
-        CallFuncRpc(ClientUseSkillLocal, SendTo.ExcludeSender, Delivery.Strive, skillId, context);
+        CallFuncRpc(ClientUseSkillLocal, SendTo.ExcludeSender, Delivery.Strive, context);
     }
 
     //聊天广播：发送者本地已回显，不回送
@@ -940,12 +940,12 @@ public partial class NetworkManager : EnsBehaviour
     }
 
     [Rpc]
-    private void ClientUseSkillLocal(int skillId, SkillContext context)
+    private void ClientUseSkillLocal(SCSkillDisplayContext context)
     {
         if (context == null) return;
         var logic = Tool.ClientLogicManager;
-        if (logic != null) logic.SkillVfx.OnSkillCast(skillId, context);
-        else SkillManager.PlayVFX(skillId, context);
+        if (logic != null) logic.SkillVfx.OnSkillCast(context);
+        else SkillManager.PlayWave(context);
     }
 
     [Rpc]

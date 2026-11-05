@@ -208,8 +208,7 @@ namespace Ros.Skill.Utils
             }
         }
 
-        // —— 以下为不依赖 SkillContext 布局的通用版本：轨迹 / 目标 id 由调用方自备 ——
-        // 约定同上：index 在 Weapon 类下 = 全局武器 id，其余类 = 特效下标
+        // 轨迹 / 目标 id 由调用方自备；index 在 Weapon 类下 = 全局武器 id，其余类 = 特效下标
 
         // 逐发弹道播放：vfx 与 trajectories 顺序一一配对取 Current；
         // Weapon 类下 vfx 元素 = 全局武器 id，其余类 = 特效下标
