@@ -627,7 +627,7 @@ public class ConfigManager : MonoBehaviour
     public struct EffectConfig
     {
         public const string FileName = "effect.csv";
-        private const int ColumnCount = 12;
+        private const int ColumnCount = 13;
         public static readonly Dictionary<int, EffectConfig> content = new();
 
         public int key;
@@ -642,6 +642,7 @@ public class ConfigManager : MonoBehaviour
         public int? specialCalculate;
         public SkillVfxKind? vfxKind;  // 第11列：持续表现的特效类别，留空 = 不播特效
         public int? vfxIndex;          // 第12列：该类别下的特效下标
+        public int iconId;             // 第13列：UI 图标 id，指向 AssetsManager.buffIconTextures 的贴图前 3 位
 
         public EffectConfig(string[] rowData)
         {
@@ -657,6 +658,9 @@ public class ConfigManager : MonoBehaviour
             specialCalculate = ParseIntOrNull(rowData, 9);
             vfxKind = ParseVfxKind(rowData, 10);
             vfxIndex = ParseIntOrNull(rowData, 11);
+            iconId = ParseInt(rowData, 12);
+            if (iconId < 0)
+                throw new FormatException($"图标 id 不能为负数：{iconId}");
             if (vfxKind.HasValue != vfxIndex.HasValue)
                 throw new FormatException("特效类型与特效下标必须同时填写或同时留空");
             if (vfxIndex.HasValue && vfxIndex.Value < 0)

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class NeutralStatueEntityData : EntityData
@@ -33,7 +34,13 @@ public class NeutralStatueEntityData : EntityData
 
         if (captor != null && captor.effectController != null)
         {
-            captor.effectController.AddEffect(EffectType.PlagueBless, 1, Config.plague_bless_duration);
+            EffectType bless = type.value switch
+            {
+                0 => EffectType.AngelBless,
+                1 => EffectType.DemonBless,
+                _ => throw new ArgumentOutOfRangeException(nameof(type.value), type.value, "中立雕像 value 只允许 0/1"),
+            };
+            captor.effectController.AddEffect(bless, 1, Config.statue_bless_duration);
         }
         battle.NotifyNeutralStatueCaptured(this.id);
         battle.ScheduleNeutralStatueRespawn();

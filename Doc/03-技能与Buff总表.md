@@ -154,7 +154,8 @@
 | Freeze 冰冻 | Buff[12] 冻结 | 冻结弹 / 冰锥术 / 冰霜新星 |
 | AnimSlowDown 减速 | Buff[17] 黑绿喷发 | 破甲重弹 |
 | AnimSpeedUp 加速 | Buff[27] 环绕风 | 激励弹 |
-| PlagueBless 瘟疫祝福 | MC[9] 蓝色攻击增益 | 攻占中立雕像 |
+| AngelBless 天使祝福 | MC[9] 蓝色攻击增益 | 攻占天使雕像 |
+| DemonBless 恶魔祝福 | MC[9] 蓝色攻击增益 | 攻占恶魔雕像 |
 | ZombieScreamBoost 僵尸嘶吼增益（攻击 +20%/级、暴击率 +100 点/级、移速 +20%/级） | MC[9] 蓝色攻击增益 | 精英僵尸·血嚎（自身 + 半径内同阵营） |
 | AttrAttackBoost | MC[0] 黄色力场 | 激励法阵等属性增益 |
 | AttrCritRateBoost / AttrCritDamageBoost | MC[1] 治愈绿 | 暴击 / 暴伤增益 |
@@ -224,7 +225,7 @@ Buff管理器（EntityEffectController）设计要点（对应策划案 11.3）�
    **`EntityAttribute.health` 一个字段承载两种语义**：在 `baseAttribute` 里是**生命值上限**（配置项，entity.csv 每行只有一个"生命"列，由升级路线抬高），在 `floatingAttribute` 里是**当前生命值**（受击扣减、生成/复活克隆即满血、死亡清零）。→ **读上限读 `baseAttribute.health`，读当前生命读 `floatingAttribute.health`。**
    Add/Remove 时统一重算运行时属性（base 克隆 + Σ 各层修改量，再把当前生命**夹回上限**——夹取不平移 = 不自动回血）；其它 Buff 一律不得触碰属性
 3. 查询式战斗管线：功能 Buff 不做每帧计算，由战斗代码在明确时机调用查询接口——受伤管线顺序 = 护盾吸收（**仅命中类伤害，即正常/暴击**；盾不够的溢出照常扣血）→ 减伤 → 受伤乘区（愈战愈勇；固定数值伤害跳过）→ 扣血 → 反伤；DoT / 反伤 / 瘟疫引爆等特殊伤害**无视护盾直扣血**；出伤乘区由攻击方在伤害计算时调用
-4. OnUpdate 只做两件事：按层到期移除（每层记录自己的 endTime，不每帧刷新剩余时间）、固定间隔 tick（`IsTicking`：燃烧/苍白之火/中毒/死灵漫步，**逐层各自 1s 一跳**，吃减伤、无视护盾、不吃增减伤）。**每跳伤害也内部定死**：燃烧与苍白之火 = `Config.burning_damage_per_tick`(30) × 该层等级；中毒 = `Config.poison_damage_ratio`(0.5) × max(该层施加者快照力/魔) × 该层等级；死灵漫步 = `Config.death_stroll_dot_ratio`(1.5) × max(快照力/魔) × 该层等级，光环半径 `Config.death_stroll_radius`。**叠层自动提高每跳伤害**
+4. OnUpdate 只做两件事：按层到期移除（每层记录自己的 endTime，不每帧刷新剩余时间）、固定间隔 tick（`IsTicking`：燃烧/苍白之火/中毒/死灵漫步/天使祝福/恶魔祝福，**逐层各自 1s 一跳**，伤害类吃减伤、无视护盾、不吃增减伤，两个祝福每跳按固定量回血并夹到生命上限）。**每跳伤害也内部定死**：燃烧与苍白之火 = `Config.burning_damage_per_tick`(30) × 该层等级；中毒 = `Config.poison_damage_ratio`(0.5) × max(该层施加者快照力/魔) × 该层等级；死灵漫步 = `Config.death_stroll_dot_ratio`(1.5) × max(快照力/魔) × 该层等级，光环半径 `Config.death_stroll_radius`。**叠层自动提高每跳伤害**
 5. 护盾（`Shield`/`StatueShield`，effect.csv「特殊计算效果」= 1）：**每层各有一份抵消量**，初始值 = 被施加者生命上限 × `Config.shield_health_ratio`(0.1) × 该层等级；**只对命中类伤害（正常/暴击）生效**——按 `min(盾值, 本次伤害)` 扣盾（**剩余时间最短的层优先**，扣空即移除该层），盾不够的溢出部分照常扣血；撞盾的命中一律飘「护盾」页，数值取名义伤害（整次数值）。DoT / 反伤 / 瘟疫引爆无视护盾、也不消耗护盾。反伤（`Reflect`）按比例制：**反弹 = 实际受伤（扣盾/减伤后）× 等级 × `Config.reflect_rate`(0.1)，向下取整 min=1；实伤 ≤1 不反弹**
 6. 极性静态标注：`EffectType.IsNegative()` 扩展方法固定每种 Buff 的正/负（负面白名单 + 全部属性削弱 Decrease 类），`AddEffect` 不接收极性参数；净化（`RemoveAllNegative`）按此筛选
 7. 控制与霸体全部由 effect.csv 列驱动：`禁止移动输入` → `CanMove` = false、`禁止技能输入` → `CanCastSkill` 校验、`冻结动画` → 动画播放速度置 0（当前攻击随之被打断，所有带该列的层移除后恢复）、`霸体等级覆盖` → `GetEndureLevel` 优先返回该值（留空不覆盖，多层取最高）。`GetEndureLevel` 顺序：霸体覆盖 > 锁移动 → None > 位移 → Common > 动画状态。因此**冰冻 / 苍白之冰**（覆盖 2）期间虽不能行动，但霸体仍是 Super（不被打断、不被击飞）
@@ -233,4 +234,4 @@ Buff管理器（EntityEffectController）设计要点（对应策划案 11.3）�
 10. Buff 数据使用 struct；标记类 Buff（瘟疫标记/苍白之光/暗）无自身效果，供其它逻辑读层数（苍白转化由被动订阅 Buff 变化实现；**转化出的苍白之冰/之雷/之火归属原施加者**——`AddEffect` 的苍白钩子把标记的施加者传给 `CheckPaleConversion`，多人叠同一目标时归属最后叠层者）。苍白之冰/之雷是独立强控类型（行为同冰冻/麻痹），苍白之火是独立 DoT（每跳同燃烧），三者只是类型不同、可与通用冰冻/麻痹/燃烧并存各算各的层数与时间
 11. 全局参数（僵尸刷新等级等）不是 Buff，实现于游戏逻辑控制器/Config（策划案第二十章）；其中僵尸刷新等级按战斗剩余时间实时计算（`BattleManagerPassive.GetZombieSpawnLevel`：每经过 7.5% 战斗时间 +1，死亡漫步者被动再 +4，普通/精英共用）。受击类被动（白眼伯爵单次受伤上限、瘟疫使者致命拦截）不进 Buff 系统，在 `EntityData.OnDamaged` 的伤害管线里即时判定。等级上限分三档：角色等级上限 `save_max_level=10`（对应 `exp_character.csv` 的 1~10 级）、战斗期生成等级 `battle_max_level=20`（`EntityData.OnCreate` 钳制，最高刷出 20 级）、玩家等级上限取 `exp_player.csv` 的最大主键（`Config.player_max_level` 由表推断，不写死）
 12. 表现：持续型 Buff 特效**只由客户端播**——`EntityPlayerManager.ApplyBuffVfx` 按 `SCEntityDisplayInfo.buffs` 查 `Config.buff_vfx` 增删跟随特效（映射表按《特效清单分别表1019》定稿），**技能 `PlayVFX` 内禁止播 buff 特效**。下发时同类型多层**聚合成一条**：`level` = 各层等级之和，按协议 4bit 截断在 15（超出部分客户端不可见，服务端效果照常按真实层数算）；客户端只按 type 表现，层级差异不体现在特效与图标上。
-13. 瘟疫祝福（`PlagueBless`）：唯一的"出伤 / 受伤乘区"Buff，与愈战愈勇同通道（`GetOutDamageMultiplier` +75% / `GetInDamageMultiplier` −25%），攻击方在伤害计算时读取。由 `NeutralStatueEntityData.OnKilled` 挂给"把雕像血量清零那一次攻击的攻击者"；被 Buff/DoT（固定数值伤害）打死的没有归属。移速类单独一档，见"速度"节⑨
+13. 天使祝福（`AngelBless`）/ 恶魔祝福（`DemonBless`）：出伤 / 受伤乘区 Buff，与愈战愈勇同通道（`GetOutDamageMultiplier`：+25% / +100%；`GetInDamageMultiplier`：−25% / +25%），攻击方在伤害计算时读取；两者每跳分别回血 200 / 50，夹到生命上限。由 `NeutralStatueEntityData.OnKilled` 按雕像 value 挂给"把雕像血量清零那一次攻击的攻击者"；被 Buff/DoT（固定数值伤害）打死的没有归属。移速类单独一档，见"速度"节⑨

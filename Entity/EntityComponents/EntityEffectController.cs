@@ -25,7 +25,7 @@ public enum EffectType
 
     //特殊来源
     GmSpeedUp = 16,                 // GM极速
-    PlagueBless = 17,               // 瘟疫祝福
+    // 17 空缺
     BattleFury = 18,                // 愈战愈勇
     StatueReduce = 19,              // 分层减伤（每存活贤者雕像 25%）
     MinimapLost = 20,               // 小地图失联
@@ -54,6 +54,10 @@ public enum EffectType
     AttrViewDistanceDecrease = 40,  // 可见距离降低
     SpeedUp = 41,                   // 加速
     SlowDown = 42,                  // 减速
+
+    // 中立雕像攻占祝福
+    AngelBless = 43,               // 天使祝福
+    DemonBless = 44,               // 恶魔祝福
 }
 
 public static class EffectTypeExt
@@ -75,7 +79,7 @@ public static class EffectTypeExt
 
     //固定间隔生效的类型（统一 1s 一跳，见 OnUpdate）
     public static bool IsTicking(this EffectType type) => type is EffectType.Burning or EffectType.Poison or EffectType.PaleFire
-        or EffectType.DeathStroll or EffectType.DeathCurse;
+        or EffectType.DeathStroll or EffectType.DeathCurse or EffectType.AngelBless or EffectType.DemonBless;
 
     public static bool IsShield(this EffectType type) => ConfigManager.EffectConfig.Get((int)type).specialCalculate == 1;
 
@@ -243,14 +247,16 @@ public class EntityEffectController
     public float GetOutDamageMultiplier()
     {
         float m = 1f + GetLevel(EffectType.BattleFury) * 0.1f;
-        if (HasEffect(EffectType.PlagueBless)) m *= 1f + Config.plague_bless_damage_up;
+        if (HasEffect(EffectType.AngelBless)) m *= 1f + Config.angel_bless_damage_up;
+        if (HasEffect(EffectType.DemonBless)) m *= 1f + Config.demon_bless_damage_up;
         return m;
     }
 
     public float GetInDamageMultiplier()
     {
         float m = 1f / (1f + GetLevel(EffectType.BattleFury) * 0.1f);
-        if (HasEffect(EffectType.PlagueBless)) m *= 1f - Config.plague_bless_damage_reduce;
+        if (HasEffect(EffectType.AngelBless)) m *= 1f - Config.angel_bless_damage_reduce;
+        if (HasEffect(EffectType.DemonBless)) m *= 1f + Config.demon_bless_damage_taken_up;
         int curseLevel = GetLevel(EffectType.DeathCurse);
         if (curseLevel > 0) m *= 1f + Config.death_curse_damage_taken_ratio * curseLevel;
         return m;
@@ -311,11 +317,11 @@ public class EntityEffectController
     }
     #endregion
 
-    #region//每帧推进（只做两件事：到期移除、DoT/光环 tick）
+    #region//每帧推进（到期移除、周期 tick）
     public void OnUpdate()
     {
         if (effects.Count == 0) return;
-        // 先快照 key 与层：TickDamage 会走 OnDamaged → 可能施加/移除效果（苍白转化、死亡清空等）
+        // 先快照 key 与层：TickEffect 会走 OnDamaged → 可能施加/移除效果（苍白转化、死亡清空等）
         iterateKeys.Clear();
         iterateKeys.AddRange(effects.Keys);
         foreach (var key in iterateKeys)
@@ -334,12 +340,12 @@ public class EntityEffectController
                 if (!layer.type.IsTicking() || Time.time < layer.nextTickTime) continue;
                 layer.nextTickTime = Time.time + TickInterval;
                 if (!WriteBackLayer(key, layer)) continue; // 快照层已被本轮结算移除
-                TickDamage(layer);
+                TickEffect(layer);
             }
         }
     }
 
-    private void TickDamage(EffectLayer layer)
+    private void TickEffect(EffectLayer layer)
     {
         switch (layer.type)
         {
@@ -381,7 +387,20 @@ public class EntityEffectController
             case EffectType.DeathCurse:
                 if (owner != null) owner.OnDamaged(Config.death_curse_tick_damage * layer.level, FindEntity(layer.sourceId), fixedDamage: true, damageType: CombatLabelType.DeathStroll);
                 break;
+            case EffectType.AngelBless:
+                HealOwner(Config.angel_bless_heal_per_tick * layer.level);
+                break;
+            case EffectType.DemonBless:
+                HealOwner(Config.demon_bless_heal_per_tick * layer.level);
+                break;
         }
+    }
+
+    private void HealOwner(float amount)
+    {
+        if (owner == null || !owner.Alive) return;
+        owner.floatingAttribute.health = Mathf.Min(owner.baseAttribute.health, owner.floatingAttribute.health + amount);
+        owner.healthDirty = true;
     }
 
     // 施加者快照里的攻击；无施加者时为 0
