@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20191ccf1f67e604495e258a0e4d6ac7, type: 3}
+  m_Name: BuildingSettings
+  m_EditorClassIdentifier: 
+  cellSize: 6
+  groundHeight: 4
+  mapCellsX: 64
+  mapCellsZ: 64
+  seed: 676654
+  maxRoomCells: 6
+  minRoomCells: 4
+  roomMargin: 6
+  corridorMaxWidth: 1
+  minRoomLinks: 1
+  extraLinkChance: 0.2
+  notchChance: 0.35
+  openAlongCorridor: 1
+  pointOpenRadius: 2
+  pointEdgeMargin: 6
+  subGuardCount: 3
+  extraPointMin: 4
+  extraPointMax: 6
+  pointSpacing: 8
+  towerCountPerGuard: 3
+  towerMinDistance: 2
+  towerMaxDistance: 6
+  towerSpacing: 3

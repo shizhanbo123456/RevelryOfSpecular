@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a1ed24c724d5b14d97af3bcc2ca6981, type: 3}
+  m_Name: BuildingKitSet
+  m_EditorClassIdentifier: 
+  ground:
+  - {fileID: 191810, guid: a65d892ddf6b61440ac95a9284593af4, type: 3}
+  - {fileID: 155858, guid: 5b9ec60375247354e8e32f5a310ab9cd, type: 3}
+  - {fileID: 132474, guid: 15e8545dd2c445c42b8f3af838141d22, type: 3}
+  fences:
+  - {fileID: 128534, guid: e068514672ef8e24f8e3806f16858fe9, type: 3}
+  posts:
+  - {fileID: 182968, guid: b8e1e10130ef28c4a88a8d5846149b64, type: 3}
+  - {fileID: 158532, guid: db792844e9dcfc64389b3bcf6123cf4f, type: 3}
+  - {fileID: 155334, guid: 10e1db897679c8945bcb8dc9f2313d46, type: 3}
+  - {fileID: 164814, guid: 4d3568bdd69812c43b45b2593f1d6f1b, type: 3}
+  - {fileID: 175032, guid: 2f32b7915fc07c1469d5b0dcb60cabfa, type: 3}
+  - {fileID: 107702, guid: 73ea43a294df6da4e8e9f3c4ffa1a5a1, type: 3}
+  - {fileID: 128688, guid: a38e1a25713a2f245bfbb5e2a843415a, type: 3}
+  - {fileID: 195992, guid: 0b08d821c77af8b41a7de4a187d7a081, type: 3}
+  - {fileID: 175226, guid: 3544148f51b518a48bc3a5f580b10295, type: 3}
+  - {fileID: 102234, guid: dead670e673c5154ba9df002996613b8, type: 3}
+  - {fileID: 151804, guid: 3cc96a4f974485d478c762b0a8aab6c6, type: 3}
+  - {fileID: 104006, guid: 6c29ff31f6eaeb44d8b572bd38d0d841, type: 3}
+  - {fileID: 195374, guid: 7849a19afb7caca418ba8c6097526e02, type: 3}
+  - {fileID: 126358, guid: 28a21739e7778ab47a9bb2dcdfacdd10, type: 3}
+  - {fileID: 148196, guid: a6b15dc43c09c7e49af5ee1b1d146d30, type: 3}
+  - {fileID: 103660, guid: 6900d8e62c1d2eb46990b381c66708fb, type: 3}
+  fenceYawOffset: 0
+  variantSeed: 0
